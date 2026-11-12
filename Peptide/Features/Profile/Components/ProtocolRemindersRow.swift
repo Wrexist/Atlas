@@ -68,7 +68,12 @@ struct ProtocolRemindersRow: View {
         Task {
             let outcome = await ProtocolReminderSwitch.apply(enabled: enabled, effects: .init(
                 requestAuthorization: { await NotificationService.shared.requestAuthorization() },
-                schedule: { _ = NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols) },
+                schedule: {
+                    _ = NotificationService.shared.scheduleNotifications(
+                        for: dataStore.activeProtocols,
+                        loggedSlots: dataStore.loggedDoseSlots
+                    )
+                },
                 // Habit reminders survive this switch: each habit opts in
                 // on its own.
                 cancel: { NotificationService.shared.cancelProtocolReminders() }

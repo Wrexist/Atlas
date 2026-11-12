@@ -29,6 +29,14 @@ struct ScheduleReport: Equatable {
     }
 }
 
+/// A dose reminder's trigger, as `NotificationService.weeklyDoseTrigger`
+/// plans it.
+struct PlannedDoseTrigger: Equatable, Sendable {
+    let components: DateComponents
+    let repeats: Bool
+    let nextFireDate: Date
+}
+
 @MainActor @Observable
 final class NotificationService {
     static let shared = NotificationService()
@@ -163,6 +171,43 @@ final class NotificationService {
         return (shifted / 60, shifted % 60)
     }
 
+    /// Identifies one dose reminder slot, a protocol at a wall-clock
+    /// minute, so a logged dose can be matched to the reminder it makes
+    /// redundant.
+    nonisolated static func doseSlotKey(protocolID: UUID, date: Date, calendar: Calendar) -> String {
+        let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let stamp = String(format: "%04d%02d%02d%02d%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0, c.hour ?? 0, c.minute ?? 0)
+        return "\(protocolID.uuidString)-\(stamp)"
+    }
+
+    /// Trigger for a weekly dose slot (Calendar `weekday`, 1 = Sunday).
+    /// Normally a weekly repeat. When the next occurrence is already
+    /// logged a repeat would still fire it, so the slot becomes a one-shot
+    /// a week later instead; the next re-plan after that occurrence has
+    /// passed restores the repeat.
+    nonisolated static func weeklyDoseTrigger(
+        weekday: Int,
+        hour: Int,
+        minute: Int,
+        now: Date,
+        calendar: Calendar,
+        isLogged: (Date) -> Bool
+    ) -> PlannedDoseTrigger? {
+        let weekly = DateComponents(hour: hour, minute: minute, weekday: weekday)
+        guard let next = calendar.nextDate(after: now, matching: weekly, matchingPolicy: .nextTime) else { return nil }
+        guard isLogged(next) else {
+            return PlannedDoseTrigger(components: weekly, repeats: true, nextFireDate: next)
+        }
+        guard let following = calendar.date(byAdding: .day, value: 7, to: next),
+              let fireDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: following)
+        else { return nil }
+        return PlannedDoseTrigger(
+            components: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
+            repeats: false,
+            nextFireDate: fireDate
+        )
+    }
+
     func requestAuthorization() async -> Bool {
         do {
             return try await center.requestAuthorization(options: [.alert, .sound, .badge])
@@ -185,8 +230,13 @@ final class NotificationService {
     /// ascending so the user keeps coverage for the soonest doses; the tail is
     /// dropped. Protocols whose requests were partially or fully dropped land
     /// in `ScheduleReport.droppedProtocolIDs` so the UI can surface a banner.
+    ///
+    /// `loggedSlots` holds the `doseSlotKey`s of doses already taken: their
+    /// reminder is skipped for that day only.
     @discardableResult
-    func scheduleNotifications(for protocols: [PeptideProtocol]) -> ScheduleReport {
+    func scheduleNotifications(for protocols: [PeptideProtocol], loggedSlots: Set<String> = []) -> ScheduleReport {
+        let calendar = Calendar.current
+        let now = Date()
         var pendingRequests: [PendingRequest] = []
         // Dedup so the report shows distinct issues even when many peptides
         // share the same bad weekday or time string within a protocol.
@@ -199,6 +249,7 @@ final class NotificationService {
             // notification, mirroring the weekly path's behaviour.
             appendIntervalRequestsForProtocol(
                 proto,
+                loggedSlots: loggedSlots,
                 invalidTimes: &invalidTimesSet,
                 into: &pendingRequests
             )
@@ -227,6 +278,7 @@ final class NotificationService {
                 appendCycleBoundedWeeklyRequests(
                     proto,
                     grouped: grouped,
+                    loggedSlots: loggedSlots,
                     invalidTimes: &invalidTimesSet,
                     into: &pendingRequests
                 )
@@ -242,10 +294,14 @@ final class NotificationService {
                 }
 
                 let calendarWeekday = slot.day == 7 ? 1 : slot.day + 1
-                var dateComponents = DateComponents()
-                dateComponents.weekday = calendarWeekday
-                dateComponents.hour = hour
-                dateComponents.minute = minute
+                guard let planned = Self.weeklyDoseTrigger(
+                    weekday: calendarWeekday,
+                    hour: hour,
+                    minute: minute,
+                    now: now,
+                    calendar: calendar,
+                    isLogged: { loggedSlots.contains(Self.doseSlotKey(protocolID: proto.id, date: $0, calendar: calendar)) }
+                ) else { continue }
 
                 let content = makeContent(
                     proto: proto,
@@ -255,17 +311,19 @@ final class NotificationService {
                 )
 
                 let trigger = UNCalendarNotificationTrigger(
-                    dateMatching: dateComponents,
-                    repeats: true
+                    dateMatching: planned.components,
+                    repeats: planned.repeats
                 )
 
+                // One identifier for both shapes, so swapping between the
+                // weekly repeat and its skip-a-day one-shot replaces the
+                // pending request in place.
                 let id = "\(proto.id)-\(slot.day)-\(slot.time)"
                 let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-                let nextFire = trigger.nextTriggerDate() ?? Date.distantFuture
                 pendingRequests.append(PendingRequest(
                     request: request,
                     protocolID: proto.id,
-                    nextFireDate: nextFire
+                    nextFireDate: planned.nextFireDate
                 ))
             }
         }
@@ -310,7 +368,6 @@ final class NotificationService {
         // above, so deriving weekday/hour/minute back out of it (rather
         // than plumbing the original DateComponents through PendingRequest)
         // keeps this a read-only addition to an already-built value.
-        let calendar = Calendar.current
         doseReminderSlots = kept.map { entry in
             let comps = calendar.dateComponents([.weekday, .hour, .minute], from: entry.nextFireDate)
             return (weekday: comps.weekday ?? 1, hour: comps.hour ?? 0, minute: comps.minute ?? 0)
@@ -411,7 +468,8 @@ final class NotificationService {
 
     /// Withdraws what still nags about a dose the user just logged: any
     /// snooze of its reminder, and the reminder already sitting in
-    /// Notification Center. The repeating reminder for later days stays.
+    /// Notification Center. A reminder still to come today is dropped by
+    /// re-planning with the slot in `scheduleNotifications`' `loggedSlots`.
     func clearReminders(for entry: ProtocolEntry) async {
         let calendar = Calendar.current
         let protocolId = entry.protocolId.uuidString
@@ -674,6 +732,7 @@ final class NotificationService {
     /// stack would burn 180 of the 64 available iOS slots.
     private func appendIntervalRequestsForProtocol(
         _ proto: PeptideProtocol,
+        loggedSlots: Set<String>,
         invalidTimes: inout Set<String>,
         into requests: inout [PendingRequest]
     ) {
@@ -712,7 +771,9 @@ final class NotificationService {
                     var components = calendar.dateComponents([.year, .month, .day], from: day)
                     components.hour = hour
                     components.minute = minute
-                    guard let fireDate = calendar.date(from: components), fireDate > Date() else { continue }
+                    guard let fireDate = calendar.date(from: components), fireDate > Date(),
+                          !loggedSlots.contains(Self.doseSlotKey(protocolID: proto.id, date: fireDate, calendar: calendar))
+                    else { continue }
                     slots[fireDate, default: []].append(peptide)
                 }
             }
@@ -745,6 +806,7 @@ final class NotificationService {
     private func appendCycleBoundedWeeklyRequests(
         _ proto: PeptideProtocol,
         grouped: [TimeslotKey: [Peptide]],
+        loggedSlots: Set<String>,
         invalidTimes: inout Set<String>,
         into requests: inout [PendingRequest]
     ) {
@@ -767,7 +829,9 @@ final class NotificationService {
                 var components = calendar.dateComponents([.year, .month, .day], from: day)
                 components.hour = hour
                 components.minute = minute
-                guard let fireDate = calendar.date(from: components), fireDate > Date() else { continue }
+                guard let fireDate = calendar.date(from: components), fireDate > Date(),
+                      !loggedSlots.contains(Self.doseSlotKey(protocolID: proto.id, date: fireDate, calendar: calendar))
+                else { continue }
 
                 let content = makeContent(proto: proto, peptides: peptides, hour: hour, minute: minute)
                 let trigger = UNCalendarNotificationTrigger(
