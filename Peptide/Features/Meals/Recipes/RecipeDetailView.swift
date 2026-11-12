@@ -3,7 +3,8 @@ import SwiftUI
 /// One library recipe: an edge-to-edge hero photo with a heart (or a
 /// double tap) to save it, per-serving facts, nutrition for the servings
 /// being cooked, an ingredient list the user ticks off against what is at
-/// home, numbered steps, and one tap to log a serving to today's diary.
+/// home, the method as a checklist with per-step amounts and timers (or a
+/// full-screen cooking mode), and one tap to log a serving to today's diary.
 struct RecipeDetailView: View {
     let recipe: LibraryRecipe
 
@@ -14,6 +15,10 @@ struct RecipeDetailView: View {
     @State private var loggedSlot: MealCategory?
     @State private var showsTitle = false
     @State private var heartBurst = false
+    @State private var steps: [RecipeStepEngine.Step] = []
+    @State private var doneSteps: Set<Int> = []
+    @State private var timers = CookingTimers()
+    @State private var showsCookingMode = false
 
     init(recipe: LibraryRecipe) {
         self.recipe = recipe
@@ -36,7 +41,7 @@ struct RecipeDetailView: View {
                     quickFacts
                     nutritionCard
                     ingredientsCard
-                    stepsCard
+                    if !steps.isEmpty { methodCard }
                     Text("General guidance, not medical or dietetic advice.")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
@@ -60,6 +65,18 @@ struct RecipeDetailView: View {
         // Over the photo the bar stays clear; once the title moves into it,
         // the bar gets its backdrop so steps don't scroll legibly under it.
         .toolbarBackground(showsTitle ? .visible : .hidden, for: .navigationBar)
+        // Step amounts follow the servings stepper.
+        .task(id: servings) {
+            steps = RecipeStepEngine.steps(for: recipe, servings: servings, locale: locale)
+        }
+        .fullScreenCover(isPresented: $showsCookingMode) {
+            CookingModeView(
+                recipeName: recipe.displayName(locale: locale),
+                steps: steps,
+                done: $doneSteps,
+                timers: timers
+            )
+        }
         .pinnedFooter {
             logButton
                 .padding(.horizontal, Spacing.screenPadding)
@@ -319,34 +336,15 @@ struct RecipeDetailView: View {
         Haptics.impact(.light)
     }
 
-    // MARK: - Steps
+    // MARK: - Method
 
-    private var stepsCard: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("Method")
-                .font(AppFont.title3)
-                .foregroundStyle(AppColor.textPrimary)
-            ForEach(Array(recipe.displaySteps(locale: locale).enumerated()), id: \.offset) { index, step in
-                HStack(alignment: .firstTextBaseline, spacing: Spacing.md) {
-                    Text("\(index + 1)")
-                        .font(AppFont.chipText)
-                        .monospacedDigit()
-                        .foregroundStyle(AppColor.accentInkOnWash)
-                        .frame(width: 26, height: 26)
-                        .background(AppColor.accentPrimary.opacity(0.18), in: Circle())
-                        .accessibilityHidden(true)
-                    Text(step)
-                        .font(AppFont.body)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text("Step \(index + 1): \(step)"))
-            }
-        }
-        .padding(Spacing.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+    private var methodCard: some View {
+        RecipeMethodCard(
+            steps: steps,
+            done: $doneSteps,
+            timers: timers,
+            startCooking: { showsCookingMode = true }
+        )
     }
 
     // MARK: - Log

@@ -48954,6 +48954,136 @@
           }
         }
       }
+    },
+    "Cook step by step": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laga steg för steg"
+          }
+        }
+      }
+    },
+    "Marks the step as done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markerar steget som klart"
+          }
+        }
+      }
+    },
+    "Timer done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timern är klar"
+          }
+        }
+      }
+    },
+    "Timer, %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timer, %@"
+          }
+        }
+      }
+    },
+    "Stops the timer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stoppar timern"
+          }
+        }
+      }
+    },
+    "Starts the timer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startar timern"
+          }
+        }
+      }
+    },
+    "Close cooking mode": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stäng laga-läget"
+          }
+        }
+      }
+    },
+    "Step %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steg %lld"
+          }
+        }
+      }
+    },
+    "Goes to that step": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Går till det steget"
+          }
+        }
+      }
+    },
+    "Previous step": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föregående steg"
+          }
+        }
+      }
+    },
+    "Finish cooking": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt klart"
+          }
+        }
+      }
+    },
+    "Next step": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa steg"
+          }
+        }
+      }
+    },
+    "You need": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du behöver"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
