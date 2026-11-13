@@ -14,10 +14,15 @@
 #
 # Fail-open like the Fastfile guard: if App Store Connect can't be
 # reached, the floor is used and the guard still checks the upload.
+# One exception fails closed: an expired or unsigned Apple agreement.
+# The upload would be refused with the same error after a ~20 minute
+# archive, so the run stops here with the fix spelled out instead.
 
 require "rubygems"
 
 module AutoVersion
+  class AgreementMissing < StandardError; end
+
   def self.pick(floor:, ceiling:, build:)
     base = [floor, ceiling].compact.max
     major, minor = base.segments
@@ -46,15 +51,30 @@ module AutoVersion
 
     (prerelease + [live]).compact.map { |v| Gem::Version.new(v) }.max
   rescue StandardError => e
+    raise AgreementMissing, e.message if agreement_missing?(e)
+
     warn "auto_version: App Store Connect lookup failed (#{e.class}: #{e.message}); using the floor"
     nil
+  end
+
+  def self.agreement_missing?(error)
+    error.class.name.to_s.end_with?("ProgramLicenseAgreementUpdated") ||
+      error.message.include?("required agreement is missing or has expired")
   end
 end
 
 if $PROGRAM_NAME == __FILE__
+  begin
+    ceiling = AutoVersion.apple_ceiling
+  rescue AutoVersion::AgreementMissing => e
+    puts "::error::App Store Connect refused the API key: #{e.message} " \
+         "The Account Holder must accept the updated agreement at " \
+         "https://appstoreconnect.apple.com/business (Agreements), then re-run."
+    exit 1
+  end
   puts AutoVersion.pick(
     floor:   Gem::Version.new(ENV.fetch("AUTO_VERSION_FLOOR")),
-    ceiling: AutoVersion.apple_ceiling,
+    ceiling: ceiling,
     build:   Integer(ENV.fetch("BUILD"))
   )
 end
