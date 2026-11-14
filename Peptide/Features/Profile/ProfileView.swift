@@ -5,7 +5,6 @@ struct ProfileView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
     @State private var storeService = StoreService.shared
-    @State private var achievementService = AchievementService.shared
     @AppStorage(HealthSyncSettings.enabledKey) private var healthActivitySync = false
     @AppStorage(HealthSyncSettings.nutritionEnabledKey) private var healthNutritionWrite = false
     /// Set when turning on a Health write toggle came back refused.
@@ -63,14 +62,11 @@ struct ProfileView: View {
                     .appAnimation(AppAnimation.springSmooth, value: storeService.isProUser)
                     .sectionAppear(index: 1)
 
-                    // Earned Atlas Score — the rewards identity, sitting
-                    // above the achievement badges it sums up. Taps open
-                    // the full progress view.
+                    // Earned Atlas Score — the rewards identity. Taps open
+                    // the full progress view, where the achievement badges
+                    // it sums up live.
                     AtlasScoreCard(onTap: { showProgress = true })
                         .sectionAppear(index: 2)
-
-                    AchievementsSection(achievements: achievementService.achievements)
-                        .scrollReveal()
 
                     CycleCardShareSection()
                         .scrollReveal()
@@ -115,19 +111,6 @@ struct ProfileView: View {
                         }
                     }
                     .scrollReveal()
-
-                    // The way into Settings at the foot of Profile; the
-                    // toolbar gear goes to the same place.
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        GlassEntryRowLabel(
-                            icon: "gearshape.fill",
-                            title: "Settings",
-                            subtitle: Text("Training, reminders, appearance, data, account and about.")
-                        )
-                    }
-                    .buttonStyle(ScalePressStyle(pressedScale: 0.98))
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
