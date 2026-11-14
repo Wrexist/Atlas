@@ -129,11 +129,14 @@ struct HeroMetricDetailSheet: View {
 
     // MARK: - Hero
 
+    /// Ring over its name and lines, on the sheet's centre line: beside
+    /// the ring the copy pushed the arc against the left edge (its stroke
+    /// sits half outside its frame) and left the right half empty.
     private var heroBlock: some View {
-        HStack(alignment: .center, spacing: Spacing.lg) {
+        VStack(spacing: Spacing.md) {
             MetricRing(
                 progress: valueForRing.progress,
-                diameter: 140,
+                diameter: 168,
                 strokeWidth: 12,
                 gradient: kind.gradient(active: valueForRing.isAvailable),
                 appearAnimated: true
@@ -145,14 +148,14 @@ struct HeroMetricDetailSheet: View {
                         .accessibilityHidden(true)
                     if valueForRing.isAvailable {
                         Text("\(valueForRing.displayPercent)%")
-                            .font(AppFont.scaled(36, weight: .light, relativeTo: .largeTitle))
+                            .font(AppFont.scaled(40, weight: .light, relativeTo: .largeTitle))
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
                     } else {
                         Text("—")
-                            .font(AppFont.scaled(36, weight: .bold, relativeTo: .largeTitle))
+                            .font(AppFont.scaled(40, weight: .bold, relativeTo: .largeTitle))
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -163,30 +166,20 @@ struct HeroMetricDetailSheet: View {
             // deleted rather than defaulted off for the same reason. The
             // ring is the hero here on size and stroke weight instead.
 
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                // Beside a 140pt ring, "Återhämtning" breaks mid-word at
-                // larger sizes; shrink it instead.
-                Text(kind.label)
-                    .font(AppFont.title)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                if let line = supportingLine {
-                    Text(line)
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if let line = targetLine {
-                    Text(line)
-                        .font(AppFont.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(ringTint)
-                }
+            // The target lives in the stat row below; repeating it here
+            // said the same number three times on one screen.
+            if let line = supportingLine {
+                // Sleep's line is a number ("8.1 h last night"); the
+                // others are a sentence and stay quieter.
+                Text(line)
+                    .font(kind == .sleep ? AppFont.headline : AppFont.subheadline)
+                    .foregroundStyle(kind == .sleep ? AppColor.textPrimary : AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 0)
         }
+        .padding(.top, Spacing.sm)
+        .frame(maxWidth: .infinity)
     }
 
     /// The metric's single colour, taken off the head of its own ring
@@ -223,15 +216,6 @@ struct HeroMetricDetailSheet: View {
             }
             return String(localized: "\(hours.formatted(.number.precision(.fractionLength(1)))) h last night")
         }
-    }
-
-    /// Sleep is the only metric with a target the user is measured
-    /// against, and it earns its own tinted line rather than a "· target
-    /// 8 h" tail nobody reads.
-    private var targetLine: String? {
-        guard case .sleep = kind,
-              let hours = context.lastSleepHours, hours > 0 else { return nil }
-        return String(localized: "Target \(context.sleepTargetHours.formatted(.number.precision(.fractionLength(0)))) h")
     }
 
     // MARK: - Explainer
