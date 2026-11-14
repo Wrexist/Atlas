@@ -67,6 +67,7 @@ struct BioAgeHeroSection: View {
         Text("Biological Age")
             .font(AppFont.scaled(16, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary)
+            .padding(.bottom, Spacing.sm)
             .accessibilityAddTraits(.isHeader)
     }
 

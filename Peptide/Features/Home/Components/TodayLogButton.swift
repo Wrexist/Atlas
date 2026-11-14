@@ -22,16 +22,28 @@ struct TodayLogButton: View {
         } label: {
             // Rotating "+" 45° draws the "×"; under Reduce Motion the
             // glyph swaps instead so nothing spins.
-            Image(systemName: isOpen && reduceMotion ? "xmark" : "plus")
-                .font(AppFont.scaled(16, weight: .semibold))
-                .rotationEffect(.degrees(isOpen && !reduceMotion ? 45 : 0))
-                .animation(
-                    AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion),
-                    value: isOpen
-                )
-                .foregroundStyle(AppColor.textPrimary)
-                .frame(width: 44, height: 44)
-                .glassControl(.circle, interactive: false)
+            // A filled, labelled pill so the day's one primary action
+            // never reads as a second avatar next to the profile button.
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: isOpen && reduceMotion ? "xmark" : "plus")
+                    .rotationEffect(.degrees(isOpen && !reduceMotion ? 45 : 0))
+                    .animation(
+                        AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion),
+                        value: isOpen
+                    )
+                Text("Log")
+            }
+            .font(AppFont.scaled(16, weight: .semibold))
+            .foregroundStyle(AppColor.inverseInk)
+            .padding(.horizontal, Spacing.md)
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .background {
+                Capsule().fill(LinearGradient(
+                    colors: [AppColor.ctaGradientStart, AppColor.ctaGradientEnd],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ))
+            }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.9, pressedOpacity: 0.85))
         .accessibilityLabel("Log")
