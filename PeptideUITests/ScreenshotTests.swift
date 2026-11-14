@@ -241,6 +241,36 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["recap-done"].tap()
     }
 
+    /// A saved workout gaining a forgotten set and exercise: the editor,
+    /// one more set on the first exercise, the picker, and the result.
+    func test_captureEditSavedWorkout() {
+        openCompletedFixture(appearance: "dark")
+        app.buttons["Edit"].tap()
+        let addSet = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recap-add-set-")).firstMatch
+        XCTAssertTrue(addSet.waitForExistence(timeout: 5))
+        capture(named: "edit-saved-01-editor")
+        addSet.tap()
+        capture(named: "edit-saved-02-set-added")
+        let addExercise = app.buttons["recap-add-exercise"]
+        for _ in 0..<8 where !addExercise.isHittable { app.swipeUp() }
+        addExercise.tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        search.typeText("Dumbbell Flyes")
+        let fly = app.staticTexts["Dumbbell Flyes"].firstMatch
+        XCTAssertTrue(fly.waitForExistence(timeout: 10))
+        fly.tap()
+        capture(named: "edit-saved-03-picker")
+        app.buttons["Add (1)"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Dumbbell Flyes"].firstMatch.waitForExistence(timeout: 5))
+        capture(named: "edit-saved-04-exercise-added")
+        app.buttons["save-workout-edits"].tap()
+        XCTAssertTrue(app.staticTexts["Workout saved"].waitForExistence(timeout: 5))
+        capture(named: "edit-saved-05-recap")
+        app.buttons["recap-done"].tap()
+    }
+
     func test_captureWorkoutCompletionSaveError() {
         launch(appearance: "dark", extraArguments: ["--completion-fixture", "--completion-save-failure"])
         app.dismissOverlaysIfNeeded()
