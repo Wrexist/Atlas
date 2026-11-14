@@ -424,6 +424,41 @@ final class ScreenshotTests: XCTestCase {
         capture(named: "premium-05-training-trends")
     }
 
+    /// Apple Health workouts in the history: a dive Health typed, one it
+    /// left as a plain "Workout", the type picker, and the row after the
+    /// pick. Ends by handing the type back to Health so reruns start clean.
+    func test_captureWorkoutTypes() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance, extraArguments: ["--health-workouts-fixture"])
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+            app.dismissOverlaysIfNeeded()
+            app.tabBars.buttons["Train"].tap()
+            app.dismissOverlaysIfNeeded()
+            app.buttons["History"].firstMatch.tap()
+            let untyped = app.buttons.containing(.staticText, identifier: "Choose type").firstMatch
+            XCTAssertTrue(untyped.waitForExistence(timeout: 10))
+            capture(named: "types-\(appearance)-01-history")
+            untyped.tap()
+            let typeMenu = app.buttons["workout-type-menu"]
+            XCTAssertTrue(typeMenu.waitForExistence(timeout: 5))
+            capture(named: "types-\(appearance)-02-sheet")
+            typeMenu.tap()
+            let diving = app.buttons["Diving"].firstMatch
+            XCTAssertTrue(diving.waitForExistence(timeout: 5))
+            capture(named: "types-\(appearance)-03-menu")
+            diving.tap()
+            capture(named: "types-\(appearance)-04-picked")
+            app.buttons["Done"].firstMatch.tap()
+            capture(named: "types-\(appearance)-05-history-after")
+            // Newest first: the picked one is the second dive.
+            app.buttons.containing(.staticText, identifier: "Diving").element(boundBy: 1).tap()
+            XCTAssertTrue(typeMenu.waitForExistence(timeout: 5))
+            typeMenu.tap()
+            app.buttons["Use Apple Health's type"].firstMatch.tap()
+            app.terminate()
+        }
+    }
+
     func test_captureExerciseRollout() {
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)

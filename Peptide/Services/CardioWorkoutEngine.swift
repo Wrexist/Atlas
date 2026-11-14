@@ -6,6 +6,20 @@ enum CardioWorkoutEngine {
     /// How far back the history looks. Fetched on each visit, never stored.
     static let historyWindowDays = 30
 
+    /// The types the type picker lists first. Diving leads because the
+    /// Health app's own label for a dive often reads as a plain "Workout".
+    static let suggestedTypes: [CardioActivity] = [
+        .diving, .strength, .swimming, .running, .walking, .cycling, .hiit, .yoga,
+    ]
+
+    /// Every other pickable type, alphabetical in the user's language.
+    /// `.other` is left out: picking "Workout" is what the user is undoing.
+    static func moreTypes() -> [CardioActivity] {
+        CardioActivity.allCases
+            .filter { $0 != .other && !suggestedTypes.contains($0) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
     /// Kilometres or miles, following the user's unit setting. Nil when
     /// the workout recorded no distance.
     static func distance(meters: Double?, unit: MeasurementUnit) -> Measurement<UnitLength>? {

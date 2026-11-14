@@ -19,16 +19,31 @@ struct ImportedCardioWorkout: Identifiable, Hashable, Sendable {
     let sourceName: String
 
     var end: Date { start.addingTimeInterval(duration) }
+
+    /// The same workout shown as `activity` — the type the user picked
+    /// when Health's own type was wrong or too vague.
+    func categorized(as activity: CardioActivity) -> ImportedCardioWorkout {
+        ImportedCardioWorkout(
+            id: id,
+            activity: activity,
+            start: start,
+            duration: duration,
+            distanceMeters: distanceMeters,
+            activeKilocalories: activeKilocalories,
+            averageHeartRate: averageHeartRate,
+            sourceName: sourceName
+        )
+    }
 }
 
 /// The kinds of workout the history tells apart. HealthKit has ~80
 /// activity types; the long tail lands in `.other`.
 enum CardioActivity: String, CaseIterable, Sendable {
-    case running, walking, hiking, cycling, swimming, rowing, elliptical
+    case running, walking, hiking, cycling, swimming, diving, waterSports, rowing, elliptical
     case stairs, hiit, mixedCardio, crossTraining, jumpRope, dance
     case yoga, pilates, coreTraining, flexibility, cooldown, strength
     case boxing, martialArts, climbing, downhillSkiing, crossCountrySkiing
-    case snowboarding, paddling, surfing, tennis, racketSports, soccer
+    case snowboarding, skating, paddling, surfing, tennis, racketSports, soccer
     case basketball, teamSports, golf, wheelchair, other
 
     init(_ type: HKWorkoutActivityType) {
@@ -38,6 +53,8 @@ enum CardioActivity: String, CaseIterable, Sendable {
         case .hiking: self = .hiking
         case .cycling, .handCycling: self = .cycling
         case .swimming: self = .swimming
+        case .underwaterDiving: self = .diving
+        case .waterFitness, .waterPolo, .waterSports: self = .waterSports
         case .rowing: self = .rowing
         case .elliptical: self = .elliptical
         case .stairClimbing, .stairs, .stepTraining: self = .stairs
@@ -58,6 +75,7 @@ enum CardioActivity: String, CaseIterable, Sendable {
         case .downhillSkiing, .snowSports: self = .downhillSkiing
         case .crossCountrySkiing: self = .crossCountrySkiing
         case .snowboarding: self = .snowboarding
+        case .skatingSports: self = .skating
         case .paddleSports, .sailing: self = .paddling
         case .surfingSports: self = .surfing
         case .tennis: self = .tennis
@@ -80,6 +98,8 @@ enum CardioActivity: String, CaseIterable, Sendable {
         case .hiking: String(localized: "Hiking")
         case .cycling: String(localized: "Cycling")
         case .swimming: String(localized: "Swimming")
+        case .diving: String(localized: "Diving")
+        case .waterSports: String(localized: "Water sports")
         case .rowing: String(localized: "Rowing")
         case .elliptical: String(localized: "Elliptical")
         case .stairs: String(localized: "Stair climbing")
@@ -100,6 +120,7 @@ enum CardioActivity: String, CaseIterable, Sendable {
         case .downhillSkiing: String(localized: "Downhill skiing")
         case .crossCountrySkiing: String(localized: "Cross-country skiing")
         case .snowboarding: String(localized: "Snowboarding")
+        case .skating: String(localized: "Skating")
         case .paddling: String(localized: "Paddling")
         case .surfing: String(localized: "Surfing")
         case .tennis: String(localized: "Tennis")
@@ -121,6 +142,8 @@ enum CardioActivity: String, CaseIterable, Sendable {
         case .hiking: "figure.hiking"
         case .cycling: "figure.outdoor.cycle"
         case .swimming: "figure.pool.swim"
+        case .diving: "water.waves.and.arrow.down"
+        case .waterSports: "figure.water.fitness"
         case .rowing: "figure.rower"
         case .elliptical: "figure.elliptical"
         case .stairs: "figure.stair.stepper"
@@ -141,6 +164,7 @@ enum CardioActivity: String, CaseIterable, Sendable {
         case .downhillSkiing: "figure.skiing.downhill"
         case .crossCountrySkiing: "figure.skiing.crosscountry"
         case .snowboarding: "figure.snowboarding"
+        case .skating: "figure.skating"
         case .paddling: "oar.2.crossed"
         case .surfing: "figure.surfing"
         case .tennis: "figure.tennis"

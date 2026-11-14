@@ -54,6 +54,28 @@ final class CardioWorkoutEngineTests: XCTestCase {
         XCTAssertEqual(CardioActivity(.rugby), .teamSports)
     }
 
+    func test_underwaterDiving_mapsToDiving() {
+        XCTAssertEqual(CardioActivity(.underwaterDiving), .diving)
+    }
+
+    func test_waterAndSkatingTypes_haveTheirOwnActivity() {
+        XCTAssertEqual(CardioActivity(.waterPolo), .waterSports)
+        XCTAssertEqual(CardioActivity(.waterFitness), .waterSports)
+        XCTAssertEqual(CardioActivity(.skatingSports), .skating)
+    }
+
+    // MARK: - Type picker
+
+    func test_typePicker_listsEveryTypeButWorkoutExactlyOnce() {
+        let listed = CardioWorkoutEngine.suggestedTypes + CardioWorkoutEngine.moreTypes()
+        XCTAssertEqual(listed.count, Set(listed).count)
+        XCTAssertEqual(Set(listed), Set(CardioActivity.allCases).subtracting([.other]))
+    }
+
+    func test_typePicker_suggestsDivingFirst() {
+        XCTAssertEqual(CardioWorkoutEngine.suggestedTypes.first, .diving)
+    }
+
     func test_unlistedType_mapsToOther() {
         XCTAssertEqual(CardioActivity(.archery), .other)
         XCTAssertEqual(CardioActivity(.fishing), .other)
