@@ -480,7 +480,8 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["Add (1)"].tap()
             XCTAssertTrue(app.buttons["Add set"].waitForExistence(timeout: 10))
             scrollToTop()
-            _ = app.buttons["Animation of Hanging Leg Raise"].waitForExistence(timeout: 30)
+            _ = app.buttons["How to do Hanging Leg Raise"].waitForExistence(timeout: 30)
+            Thread.sleep(forTimeInterval: 1.5)
             capture(named: "howto-\(appearance)-01-workout")
 
             let howTo = app.buttons["How to do it"].firstMatch
@@ -496,13 +497,19 @@ final class ScreenshotTests: XCTestCase {
             let library = app.searchFields.firstMatch
             XCTAssertTrue(library.waitForExistence(timeout: 10))
             library.tap()
-            library.typeText("3/4 Sit-Up\n")
-            let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "3/4 Sit-Up")).firstMatch
+            library.typeText("Dumbbell Bicep Curl\n")
+            let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Dumbbell Bicep Curl")).firstMatch
             XCTAssertTrue(row.waitForExistence(timeout: 10))
             row.tap()
             _ = app.buttons["Movement"].firstMatch.waitForExistence(timeout: 30)
             Thread.sleep(forTimeInterval: 1.5)
             capture(named: "howto-\(appearance)-03-exercise-page")
+            let play = app.buttons["Play video"].firstMatch
+            if play.waitForExistence(timeout: 10) {
+                play.tap()
+                Thread.sleep(forTimeInterval: 1.5)
+                capture(named: "howto-\(appearance)-04-video")
+            }
             app.terminate()
         }
     }
