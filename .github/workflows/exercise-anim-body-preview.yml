@@ -27,7 +27,7 @@ jobs:
       SHARD: ${{ matrix.shard }}
       ATLAS_RES: 896x1120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install system packages
         run: |
           sudo apt-get update -q
