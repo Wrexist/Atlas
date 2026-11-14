@@ -142,12 +142,13 @@ struct HabitsView: View {
                     Button {
                         editing = .new
                     } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(AppFont.scaled(20, weight: .semibold))
-                            .foregroundStyle(AppColor.accentPrimary)
+                        Image(systemName: "plus")
+                            .font(AppFont.scaled(20, weight: .regular))
+                            .foregroundStyle(AppColor.textPrimary)
                     }
                     .accessibilityLabel("Add habit")
                 }
+                ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
             }
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()

@@ -599,7 +599,7 @@ struct PeptideApp: App {
             Tab("Biology", systemImage: "heart.fill", value: .biology) {
                 BiologyView().tint(AppColor.accentPrimary)
             }
-            Tab("Habits", systemImage: "star.fill", value: .habits) {
+            Tab("Habits", systemImage: "checkmark.circle.fill", value: .habits) {
                 HabitsView().tint(AppColor.accentPrimary)
             }
         }
