@@ -1,34 +1,28 @@
 import AVFoundation
 import SwiftUI
 
-/// The top of the exercise page: the reviewed step pictures (start, peak),
-/// each with its cue, and the looping clip one tap away, with a Movement /
-/// Muscles switch to the interactive body map. While the clip downloads,
-/// placeholders hold the pictures' place, so the page doesn't read as "no
-/// animation" and then jump. An exercise without a reviewed guide (custom,
-/// not rendered, or its clip failed review) shows the body map alone and no
+/// The top of the exercise page: the rendered animation standing straight
+/// on the card (a transparent clip has no video box; an opaque one is shown
+/// as a rounded dark panel until the transparent set is published), with a
+/// Movement / Muscles switch to the interactive body map. While a listed
+/// clip downloads, a placeholder holds its place, so the page doesn't read
+/// as "no animation" and then jump. An exercise without a clip (custom, not
+/// rendered yet, offline on first view) shows the body map alone and no
 /// switch.
 struct ExerciseShowcaseCard: View {
     let exercise: Exercise
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.locale) private var locale
     @State private var clip: ExerciseClipStore.Clip?
     /// The exercise `clip` belongs to, so coming back to the same page keeps
-    /// the pictures up while the lookup reruns instead of flashing the map.
+    /// the animation up while the lookup reruns instead of flashing the map.
     @State private var clipExerciseID: String?
     /// The index lists a clip for this exercise; true before the video is in.
     @State private var hasClip = false
-    @State private var images: [CGImage]?
     @State private var mode: Mode = .movement
-    @State private var showsVideo = false
     @State private var paused = false
 
     enum Mode: Hashable, CaseIterable {
         case movement, muscles
-    }
-
-    private var guide: ExerciseStepGuide.Guide? {
-        ExerciseStepGuide.guide(for: exercise.id, locale: locale)
     }
 
     var body: some View {
@@ -37,8 +31,11 @@ struct ExerciseShowcaseCard: View {
                 if hasClip {
                     GlassSegmentedControl(options: Mode.allCases, selected: $mode, label: label)
                 }
-                if let guide, hasClip, mode == .movement {
-                    movement(guide)
+                if let clip, mode == .movement {
+                    movement(clip)
+                        .transition(.opacity)
+                } else if hasClip, mode == .movement {
+                    loadingMovement
                         .transition(.opacity)
                 } else {
                     MuscleActivationMap(exercise: exercise)
@@ -46,18 +43,16 @@ struct ExerciseShowcaseCard: View {
                 }
             }
         }
+        .appAnimation(AppAnimation.fadeIn, value: clip)
         .appAnimation(AppAnimation.fadeIn, value: hasClip)
         .appAnimation(AppAnimation.quick, value: mode)
-        .appAnimation(AppAnimation.quick, value: showsVideo)
         .task(id: exercise.id) {
             if clipExerciseID != exercise.id {
                 clip = nil
-                images = nil
                 hasClip = false
-                showsVideo = false
             }
             clipExerciseID = exercise.id
-            guard !exercise.isCustom, let guide else { return }
+            guard !exercise.isCustom else { return }
             let store = ExerciseClipStore.shared
             // A cancelled lookup (page left, exercise changed) writes nothing:
             // the store's index load outlives it and would answer for the
@@ -71,16 +66,9 @@ struct ExerciseShowcaseCard: View {
             }
             let found = await store.clip(for: exercise.id)
             guard !Task.isCancelled else { return }
-            guard let found else {
-                // The download failed: fall back to the body map, no dead switch.
-                hasClip = false
-                return
-            }
             clip = found
-            let cut = await ExerciseStepImageStore.shared.images(from: found.url, guide: guide)
-            guard !Task.isCancelled else { return }
-            images = cut
-            if cut == nil { hasClip = false }
+            // The download failed: fall back to the body map, no dead switch.
+            if found == nil { hasClip = false }
         }
     }
 
@@ -91,54 +79,32 @@ struct ExerciseShowcaseCard: View {
         }
     }
 
-    private func movement(_ guide: ExerciseStepGuide.Guide) -> some View {
+    private func movement(_ clip: ExerciseClipStore.Clip) -> some View {
         VStack(spacing: Spacing.md) {
-            if showsVideo, let clip {
-                video(clip)
-                    .transition(.opacity)
-            } else {
-                Button { showsVideo = true } label: {
-                    ExerciseStepPictures(guide: guide, images: images)
-                        .contentShape(Rectangle())
+            LoopingVideo(url: clip.url, isTransparent: clip.isTransparent, playing: !reduceMotion && !paused)
+                .id(clip.url)
+                .aspectRatio(4 / 5, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: clip.isTransparent ? 0 : Spacing.controlCornerRadius, style: .continuous))
+                .frame(maxWidth: .infinity)
+                .overlay(alignment: .bottomTrailing) {
+                    if !reduceMotion { pauseButton }
                 }
-                .buttonStyle(ScalePressStyle())
-                .disabled(clip == nil)
-                .accessibilityHint(Text("Plays the movement as a video"))
-                .transition(.opacity)
-            }
-            toggleButton
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(Text("Animation of \(exercise.name)"))
             MuscleChips(rows: MuscleInvolvementEngine.rows(for: exercise))
         }
     }
 
-    private func video(_ clip: ExerciseClipStore.Clip) -> some View {
-        LoopingVideo(url: clip.url, isTransparent: clip.isTransparent, playing: !reduceMotion && !paused)
-            .id(clip.url)
+    /// The video's 4:5 footprint, so the card barely moves when it lands
+    /// (only the muscle chips under it are added).
+    private var loadingMovement: some View {
+        RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
+            .fill(AppColor.track)
             .aspectRatio(4 / 5, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: clip.isTransparent ? 0 : Spacing.controlCornerRadius, style: .continuous))
+            .shimmer()
             .frame(maxWidth: .infinity)
-            .overlay(alignment: .bottomTrailing) {
-                if !reduceMotion { pauseButton }
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(Text("Animation of \(exercise.name)"))
-    }
-
-    /// Steps first; the video is one tap away and back.
-    private var toggleButton: some View {
-        Button {
-            showsVideo.toggle()
-        } label: {
-            Label(showsVideo ? "Show steps" : "Play video", systemImage: showsVideo ? "square.grid.2x2" : "play.fill")
-                .font(AppFont.chipText)
-                .foregroundStyle(AppColor.textPrimary)
-                .padding(.horizontal, Spacing.md)
-                .frame(minHeight: Spacing.minimumHitTarget)
-                .glassControl(.capsule)
-        }
-        .buttonStyle(.plain)
-        .disabled(clip == nil)
-        .opacity(clip == nil ? 0.5 : 1)
+            .accessibilityElement()
+            .accessibilityLabel(Text("Loading animation"))
     }
 
     private var pauseButton: some View {
