@@ -452,9 +452,8 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    /// The workout hero's clip, the "How to do it" sheet and an exercise page
-    /// with its clip. Clips stream from GitHub, so each capture waits for the
-    /// Movement switch or the animation instead of a fixed delay.
+    /// The workout hero, the "How to do it" sheet and an exercise page, each
+    /// showing the muscle map.
     func test_captureExerciseHowTo() {
         for appearance in ["dark", "light"] {
             launch(appearance: appearance)
@@ -480,13 +479,11 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["Add (1)"].tap()
             XCTAssertTrue(app.buttons["Add set"].waitForExistence(timeout: 10))
             scrollToTop()
-            _ = app.buttons["Animation of Hanging Leg Raise"].waitForExistence(timeout: 30)
             capture(named: "howto-\(appearance)-01-workout")
 
             let howTo = app.buttons["How to do it"].firstMatch
             reveal(howTo)
             howTo.tap()
-            _ = app.buttons["Movement"].firstMatch.waitForExistence(timeout: 30)
             Thread.sleep(forTimeInterval: 1.5)
             capture(named: "howto-\(appearance)-02-sheet")
             app.buttons["Done"].firstMatch.tap()
@@ -500,7 +497,6 @@ final class ScreenshotTests: XCTestCase {
             let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "3/4 Sit-Up")).firstMatch
             XCTAssertTrue(row.waitForExistence(timeout: 10))
             row.tap()
-            _ = app.buttons["Movement"].firstMatch.waitForExistence(timeout: 30)
             Thread.sleep(forTimeInterval: 1.5)
             capture(named: "howto-\(appearance)-03-exercise-page")
             app.terminate()

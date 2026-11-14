@@ -24,7 +24,7 @@ struct WorkoutFocusView: View {
                 VStack(spacing: Spacing.md) {
                     adjustmentBanner
                     if let entry {
-                        WorkoutExerciseHero(exercise: exercise, isVisible: detailExercise == nil) { detailExercise = exercise }
+                        WorkoutExerciseHero(exercise: exercise)
                             .id(exercise?.id)
                             .transition(.opacity)
                             .frame(height: heroHeight(available: geometry.size.height))
