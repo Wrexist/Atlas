@@ -67,6 +67,11 @@ enum AppColor {
     static let trainingComplete = Color(light: 0x19843D, dark: 0x238943)
     static let trainingPrimaryMuscle = Color(light: 0xB84813, dark: 0xFFAC73)
     static let trainingSecondaryMuscle = Color(light: 0x2465DF, dark: 0x80ADFF)
+    /// Tints multiplied onto the grey body figure. Brighter than the text
+    /// colours above because a multiply darkens them to the orange and blue
+    /// the exercise pictures use (#F2782E / #3E82F5) in both modes.
+    static let trainingPrimaryMuscleTint = Color(light: 0xFF9C3B, dark: 0xFF9C3B)
+    static let trainingSecondaryMuscleTint = Color(light: 0x50A7FF, dark: 0x50A7FF)
 
     // MARK: - Bar plates
 
