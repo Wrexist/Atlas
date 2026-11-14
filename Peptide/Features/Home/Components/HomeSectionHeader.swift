@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Eyebrow + title pair that breaks the merged Today scroll into
+/// Section title, with an optional eyebrow above it, that breaks the merged Today scroll into
 /// legible chunks (Doses / Meals / Wellness / Movement / Stack /
 /// Smart suggestions). Phase 33 lifted this out of the now-deleted
 /// `LifestyleView.sectionHeader` so every Today section consumes
@@ -10,18 +10,32 @@ import SwiftUI
 /// an inline "Edit targets" button on the right without forking
 /// the API for the simple no-trailing case.
 struct HomeSectionHeader<Trailing: View>: View {
-    let eyebrow: LocalizedStringKey
+    /// Today's sections leave it out: one plain title per section reads
+    /// faster than an eyebrow restating the title above it.
+    let eyebrow: LocalizedStringKey?
     let title: LocalizedStringKey
-    @ViewBuilder var trailing: () -> Trailing
+    let trailing: () -> Trailing
+
+    init(
+        eyebrow: LocalizedStringKey? = nil,
+        title: LocalizedStringKey,
+        @ViewBuilder trailing: @escaping () -> Trailing
+    ) {
+        self.eyebrow = eyebrow
+        self.title = title
+        self.trailing = trailing
+    }
 
     var body: some View {
         HStack(alignment: .lastTextBaseline) {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                HStack(spacing: Spacing.sm) {
-                    AccentMarker()
-                    Text(eyebrow)
-                        .font(AppFont.footnote.weight(.medium))
-                        .foregroundStyle(AppColor.textSecondary)
+                if let eyebrow {
+                    HStack(spacing: Spacing.sm) {
+                        AccentMarker()
+                        Text(eyebrow)
+                            .font(AppFont.footnote.weight(.medium))
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
                 }
                 Text(title)
                     .font(AppFont.sectionTitle)
@@ -44,7 +58,7 @@ struct HomeSectionHeader<Trailing: View>: View {
 }
 
 extension HomeSectionHeader where Trailing == EmptyView {
-    init(eyebrow: LocalizedStringKey, title: LocalizedStringKey) {
+    init(eyebrow: LocalizedStringKey? = nil, title: LocalizedStringKey) {
         self.init(eyebrow: eyebrow, title: title) { EmptyView() }
     }
 }

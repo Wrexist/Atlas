@@ -20,7 +20,7 @@ struct HomeMovementSection: View {
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
-            HomeSectionHeader(eyebrow: "Movement", title: "Training")
+            HomeSectionHeader(title: "Training")
 
             WorkoutCard(
                 sessionCountToday: summary.count,

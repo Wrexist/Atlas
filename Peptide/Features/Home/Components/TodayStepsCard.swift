@@ -14,7 +14,7 @@ struct TodayStepsCard: View {
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
-            HomeSectionHeader(eyebrow: "Movement", title: "Steps")
+            HomeSectionHeader(title: "Steps")
 
             GlassCard {
                 HStack(spacing: Spacing.lg) {

@@ -25,6 +25,9 @@ struct HomeView: View {
     /// step with the user's finger. Handed down as a binding and never
     /// read here, so scroll frames re-render only the header.
     @State private var stickyProgress: Double = 0
+    /// Device-local on purpose: the "Today shows less now" hint is for
+    /// whoever is holding this phone, and nothing synced can bring it back.
+    @AppStorage("today.hasOpenedEditToday") private var hasOpenedEditToday = false
     /// State of the Sunday-recap card on Today. Loads on the first
     /// appear of each weekend; cached entries pre-fill the .ready
     /// branch so re-appears don't refire the network call.
@@ -54,16 +57,7 @@ struct HomeView: View {
     /// handler can count every other exit — "Decide later" or a
     /// swipe-down — as a dismissal toward auto-completion.
     @State private var completionPromptResolved = false
-    /// Tracks which jump-bar section is currently nearest the top of
-    /// the viewport so the corresponding chip highlights. Driven by
-    /// per-section preference reads in `.onScrollGeometryChange` —
-    /// effectively free since the scroll geometry callback is already
-    /// firing for the sticky-header progress.
-    @State private var activeJumpAnchor: TodayJumpBar.SectionAnchor?
-    /// The chip the user just tapped. Holds the highlight while the jump
-    /// scroll animates past other sections, until the user scrolls again.
-    @State private var pendingJumpAnchor: TodayJumpBar.SectionAnchor?
-    /// Routes the chip-bar "+ Log" button. The sheet flag controls
+    /// Routes the greeting's "+" log button. The sheet flag controls
     /// the picker; the action enum drives which sheet actually mounts.
     @State private var showQuickLogSheet = false
     @State private var quickLogAction: QuickLogAction?
@@ -395,7 +389,12 @@ struct HomeView: View {
                             // pivot; the shared flag opens the app-level
                             // sheet from here and every other tab alike.
                             appState.showProfile = true
-                        }
+                        },
+                        logButton: shows(.quickActions) ? TodayLogButton(
+                            isOpen: showQuickLogSheet,
+                            includesDose: dataStore.nextDose != nil,
+                            action: openQuickLog
+                        ) : nil
                     )
                     .sectionAppear(index: 0)
                     .scrollHandOff()
@@ -421,31 +420,6 @@ struct HomeView: View {
                     // the trio's adherence ring restated, and its
                     // streak/weekly strip is analysis, which lives in
                     // the adherence detail sheet.
-
-                    // Quick-jump chips — scroll shortcuts to the
-                    // sections below plus the "+ Log" quick-log
-                    // button, reachable above the fold. Tab
-                    // destinations were dropped from the chip row;
-                    // the tab bar already does that job.
-                    if shows(.quickActions) {
-                        TodayJumpBar(
-                            activeAnchor: activeJumpAnchor,
-                            showsDoses: showsDoseSection,
-                            hiddenAnchors: hiddenJumpAnchors,
-                            onSelect: { anchor in handleJump(to: anchor, proxy: proxy) },
-                            isQuickLogOpen: showQuickLogSheet,
-                            quickLogIncludesDose: dataStore.nextDose != nil,
-                            onQuickLog: {
-                                // A one-row menu is just an extra tap.
-                                if dataStore.nextDose == nil {
-                                    quickLogAction = .meal
-                                } else {
-                                    showQuickLogSheet = true
-                                }
-                            }
-                        )
-                        .sectionAppear(index: 1)
-                    }
 
                     // Observed via the @State notificationService so the banner
                     // re-renders when a reschedule writes a fresh report. Reading
@@ -491,24 +465,6 @@ struct HomeView: View {
                 return min(raw / 60, 1.0)
             } action: { _, newValue in
                 stickyProgress = newValue
-            }
-            .onScrollPhaseChange { _, newPhase in
-                if newPhase == .interacting { pendingJumpAnchor = nil }
-            }
-            // Scroll-tracked jump-bar active anchor. Each tagged
-            // section publishes its frame via SectionAnchorFrameKey;
-            // ActiveSectionPicker reduces the dictionary to the
-            // anchor whose top edge is closest to (but not past)
-            // the header inset. Only writes when the picked anchor
-            // actually changes — keeps the chip-bar from re-
-            // rendering on every scroll tick.
-            .coordinateSpace(name: "HomeScroll")
-            .onPreferenceChange(SectionAnchorFrameKey.self) { frames in
-                guard pendingJumpAnchor == nil else { return }
-                let picked = ActiveSectionPicker.pick(from: frames)
-                if picked != activeJumpAnchor {
-                    activeJumpAnchor = picked
-                }
             }
             .pageBackground()
             .navigationBarTitleDisplayMode(.inline)
@@ -812,12 +768,6 @@ struct HomeView: View {
 
     // MARK: - Sections
 
-    /// Jump chips whose section the user hid — nothing for them to scroll to.
-    private var hiddenJumpAnchors: Set<TodayJumpBar.SectionAnchor> {
-        let shown = Set(dataStore.profile.todayLayout.visibleSections)
-        return Set(TodayJumpBar.SectionAnchor.allCases.filter { !shown.contains($0.todaySection) })
-    }
-
     private var todayLayoutBinding: Binding<TodayLayout> {
         Binding(
             get: { dataStore.profile.todayLayout },
@@ -862,7 +812,7 @@ struct HomeView: View {
     private var atAGlanceSection: some View {
         if showsAtAGlance {
             VStack(spacing: Spacing.sm) {
-                HomeSectionHeader(eyebrow: "Today", title: "At a glance")
+                HomeSectionHeader(title: "At a glance")
 
                 // Bevel-style hero trio — Adherence / Recovery /
                 // Sleep. Three at-a-glance numbers mapping to the
@@ -978,7 +928,7 @@ struct HomeView: View {
     private var dosesSection: some View {
         if showsDoseSection, let plan = derived.plan, isViewingToday || plan.hasAny {
             VStack(spacing: Spacing.sm) {
-                HomeSectionHeader(eyebrow: "Protocols", title: isViewingToday ? "Today's doses" : "Doses") {
+                HomeSectionHeader(title: isViewingToday ? "Today's doses" : "Doses") {
                     Button {
                         Haptics.impact(.light)
                         appState.pendingProtocolList = true
@@ -1008,23 +958,20 @@ struct HomeView: View {
                     DailyPlanCard(plan: plan, hasActiveProtocols: !dataStore.activeProtocols.isEmpty)
                 }
             }
-            .id(TodayJumpBar.SectionAnchor.doses)
-            .trackSectionAnchor(.doses)
+            .id(TodaySection.doses)
             .scrollReveal()
         }
     }
 
     private var wellnessSection: some View {
         HomeWellnessSection()
-            .id(TodayJumpBar.SectionAnchor.wellness)
-            .trackSectionAnchor(.wellness)
+            .id(TodaySection.wellness)
             .scrollReveal()
     }
 
     private var movementSection: some View {
         HomeMovementSection(summary: derived.workoutSummary, isPastDay: !isViewingToday)
-            .id(TodayJumpBar.SectionAnchor.movement)
-            .trackSectionAnchor(.movement)
+            .id(TodaySection.movement)
             .scrollReveal()
     }
 
@@ -1046,7 +993,7 @@ struct HomeView: View {
             // Headed like every other Today section, so the grid reads as
             // its own group rather than a stray card.
             VStack(spacing: Spacing.sm) {
-                HomeSectionHeader(eyebrow: "Lifestyle", title: "Overview")
+                HomeSectionHeader(title: "Overview")
                 overviewCard(overview, proxy: proxy)
             }
             .scrollReveal()
@@ -1087,7 +1034,7 @@ struct HomeView: View {
     private var momentumSection: some View {
         if GoalCountdownCard.isShown(goalDate: dataStore.profile.goalDate) {
             VStack(spacing: Spacing.sm) {
-                HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
+                HomeSectionHeader(title: "Your goal")
 
                 GoalCountdownCard(
                     goalDate: dataStore.profile.goalDate,
@@ -1153,36 +1100,50 @@ struct HomeView: View {
     }
 
     /// Opens "Edit Today". Sits at the end of the scroll — the place a
-    /// user who wants a different Today has just reached.
+    /// user who wants a different Today has just reached. Until it's
+    /// first tapped, a line above it says where the sections that now
+    /// start off went, so a returning user isn't left hunting for them.
     private var customizeTodayButton: some View {
-        Button {
-            Haptics.impact(.light)
-            showEditToday = true
-        } label: {
-            Label("Customize Today", systemImage: "slider.horizontal.3")
-                .font(AppFont.chipText)
-                .foregroundStyle(AppColor.textSecondary)
-                .padding(.horizontal, Spacing.lg)
-                .frame(minHeight: Spacing.minimumHitTarget)
-                .glassControl(.capsule, interactive: false)
+        VStack(spacing: Spacing.sm) {
+            if !hasOpenedEditToday {
+                Text("Today shows less now. Turn on Steps, Your day and more here.")
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            Button {
+                Haptics.impact(.light)
+                hasOpenedEditToday = true
+                showEditToday = true
+            } label: {
+                Label("Customize Today", systemImage: "slider.horizontal.3")
+                    .font(AppFont.chipText)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .padding(.horizontal, Spacing.lg)
+                    .frame(minHeight: Spacing.minimumHitTarget)
+                    .glassControl(.capsule, interactive: false)
+            }
+            .buttonStyle(ScalePressStyle())
         }
-        .buttonStyle(ScalePressStyle())
     }
 
     // MARK: - Quick-log routing
 
-    /// Routes a jump-bar chip tap to a scroll target or a tab switch.
-    /// `.biology` jumps to the Biology tab via `AppState`; every
-    /// other anchor scrolls within Today's existing `ScrollViewReader`.
-    private func handleJump(to anchor: TodayJumpBar.SectionAnchor, proxy: ScrollViewProxy) {
-        // Every chip scrolls within Today now — the Meals and Biology
-        // chips that duplicated the tab bar were dropped (Product
-        // Architecture 07: no duplicate destinations).
+    /// Scrolls Today to one of its sections.
+    private func scroll(to section: TodaySection, proxy: ScrollViewProxy) {
         AppAnimation.with(AppAnimation.settle) {
-            proxy.scrollTo(anchor, anchor: .top)
+            proxy.scrollTo(section, anchor: .top)
         }
-        pendingJumpAnchor = anchor
-        activeJumpAnchor = anchor
+    }
+
+    /// The "+" log button: a one-row menu is just an extra tap, so with
+    /// no dose pending it goes straight to the meal scanner.
+    private func openQuickLog() {
+        if dataStore.nextDose == nil {
+            quickLogAction = .meal
+        } else {
+            showQuickLogSheet = true
+        }
     }
 
     private func handleCoachingAction(_ action: CoachingMessageEngine.CoachingMessage.Action, proxy: ScrollViewProxy) {
@@ -1196,7 +1157,7 @@ struct HomeView: View {
             }
         case .scrollToDoses:
             Haptics.impact(.light)
-            handleJump(to: .doses, proxy: proxy)
+            scroll(to: .doses, proxy: proxy)
         }
     }
 
@@ -1234,7 +1195,7 @@ struct HomeView: View {
         case .mealStreak:
             appState.selectedTab = .meals
         case .checkIn:
-            handleJump(to: .wellness, proxy: proxy)
+            scroll(to: .wellness, proxy: proxy)
         case .water:
             logWaterGlass()
         }
@@ -1248,7 +1209,7 @@ struct HomeView: View {
         case .workout:
             appState.selectedTab = .train
         case .checkIn:
-            handleJump(to: .wellness, proxy: proxy)
+            scroll(to: .wellness, proxy: proxy)
         }
     }
 

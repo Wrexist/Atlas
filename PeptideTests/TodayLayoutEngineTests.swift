@@ -83,26 +83,51 @@ final class TodayLayoutEngineTests: XCTestCase {
 
     // MARK: - Hidden
 
+    private var defaultVisible: [TodaySection] {
+        TodaySection.allCases.filter(\.isShownByDefault)
+    }
+
+    func test_visibleSections_freshLayout_showsOnlyDefaultSections() {
+        let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: [])
+        XCTAssertEqual(visible, defaultVisible)
+        XCTAssertEqual(visible.first, .coaching)
+        XCTAssertFalse(visible.contains(.healthMonitor))
+        XCTAssertFalse(visible.contains(.timeline))
+    }
+
     func test_visibleSections_hiddenSections_areSkipped() {
-        let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: ["weeklyRecap", "explore"])
+        let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: ["weeklyRecap", "habits"])
         XCTAssertFalse(visible.contains(.weeklyRecap))
-        XCTAssertFalse(visible.contains(.explore))
-        XCTAssertEqual(visible.count, TodaySection.allCases.count - 2)
+        XCTAssertFalse(visible.contains(.habits))
+        XCTAssertEqual(visible.count, defaultVisible.count - 2)
     }
 
     func test_visibleSections_unknownHiddenId_isIgnored() {
         let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: ["retiredSection"])
-        XCTAssertEqual(visible, TodaySection.allCases)
+        XCTAssertEqual(visible, defaultVisible)
+    }
+
+    func test_visibleSections_shownExtra_appearsInItsOrderSlot() {
+        let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: [], shownExtras: ["timeline"])
+        XCTAssertEqual(visible, TodaySection.allCases.filter { $0.isShownByDefault || $0 == .timeline })
+    }
+
+    func test_visibleSections_extraInHiddenOnly_staysOff() {
+        // A layout saved before opt-in sections existed lists only what
+        // the user hid; an extra it never hid still starts off.
+        let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: ["doses"])
+        XCTAssertFalse(visible.contains(.explore))
+        XCTAssertFalse(visible.contains(.doses))
     }
 
     func test_visibleSections_newSection_isShownByDefault() {
-        let defaults: [TodaySection] = [.atAGlance, .habits, .timeline]
+        let defaults: [TodaySection] = [.atAGlance, .habits, .checklist]
         let visible = TodayLayoutEngine.visibleSections(
             storedOrder: ["habits", "atAGlance"],
             hidden: ["atAGlance"],
             defaults: defaults
         )
-        XCTAssertEqual(visible, [.habits, .timeline])
+        XCTAssertEqual(visible, [.habits, .checklist])
     }
 
     // MARK: - TodayLayout edits
@@ -127,6 +152,20 @@ final class TodayLayoutEngineTests: XCTestCase {
         XCTAssertEqual(layout, .default)
     }
 
+    func test_setHidden_extraSection_togglesShownExtras() {
+        var layout = TodayLayout.default
+        XCTAssertTrue(layout.isHidden(.timeline))
+
+        layout.setHidden(.timeline, false)
+        layout.setHidden(.timeline, false)
+        XCTAssertEqual(layout.shownExtras, ["timeline"])
+        XCTAssertTrue(layout.hidden.isEmpty)
+        XCTAssertTrue(layout.visibleSections.contains(.timeline))
+
+        layout.setHidden(.timeline, true)
+        XCTAssertEqual(layout, .default)
+    }
+
     func test_hiddenSection_keepsItsPlaceInOrder() {
         var layout = TodayLayout.default
         layout.setHidden(.doses, true)
@@ -145,8 +184,20 @@ final class TodayLayoutEngineTests: XCTestCase {
         let json = #"{"order":["futureSection","timeline"],"hidden":["futureSection"]}"#
         let layout = try JSONDecoder().decode(TodayLayout.self, from: Data(json.utf8))
         XCTAssertEqual(layout.sections, TodayLayoutEngine.sections(storedOrder: ["timeline"]))
-        XCTAssertEqual(layout.visibleSections, layout.sections)
+        XCTAssertEqual(layout.visibleSections, layout.sections.filter(\.isShownByDefault))
         XCTAssertFalse(layout.sections.map(\.rawValue).contains("futureSection"))
+    }
+
+    func test_decode_layoutFromOlderBuild_hasNoExtrasAndRoundTrips() throws {
+        let json = #"{"order":[],"hidden":["habits"]}"#
+        let layout = try JSONDecoder().decode(TodayLayout.self, from: Data(json.utf8))
+        XCTAssertTrue(layout.shownExtras.isEmpty)
+        XCTAssertFalse(layout.visibleSections.contains(.habits))
+
+        var withExtra = layout
+        withExtra.setHidden(.steps, false)
+        let decoded = try JSONDecoder().decode(TodayLayout.self, from: JSONEncoder().encode(withExtra))
+        XCTAssertEqual(decoded, withExtra)
     }
 
     func test_decode_layoutMissingKeys_isDefault() throws {

@@ -19,7 +19,7 @@ struct TodayTimelineCard: View {
             EmptyView()
         } else {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                HomeSectionHeader(eyebrow: "Timeline", title: "Your day")
+                HomeSectionHeader(title: "Your day")
 
                 VStack(spacing: 0) {
                     ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
