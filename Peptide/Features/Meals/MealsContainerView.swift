@@ -73,7 +73,7 @@ struct MealsContainerView: View {
 
     private var planningTools: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            HomeSectionHeader(eyebrow: "Tools", title: "Plan ahead")
+            HomeSectionHeader(title: "Plan and cook")
             NavigationLink {
                 FridgeView()
             } label: {

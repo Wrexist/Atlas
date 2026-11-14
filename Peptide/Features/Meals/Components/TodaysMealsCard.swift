@@ -63,17 +63,11 @@ struct TodaysMealsCard: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(dayTitle.map { String(localized: "Meals · \($0)") } ?? String(localized: "Today's meals"))
-                    .font(AppFont.eyebrow)
-                    .tracking(0.8)
-                    .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight)
-                Text(entries.isEmpty ? LocalizedStringKey("Nothing logged yet") : "^[\(entries.count) entry](inflect: true)")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .contentTransition(.numericText())
-            }
+            Text(dayTitle.map { String(localized: "Meals · \($0)") } ?? String(localized: "Today's meals"))
+                .font(AppFont.sectionTitle)
+                .foregroundStyle(AppColor.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityValue(Text("^[\(entries.count) entry](inflect: true)"))
             Spacer(minLength: 0)
             copyMenu(for: nil)
         }
@@ -86,7 +80,7 @@ struct TodaysMealsCard: View {
                     .font(AppFont.scaled(24, weight: .light))
                     .foregroundStyle(AppColor.textSecondary)
                 Text("Log a meal to see it here. Tap any entry afterwards to edit or remove it.")
-                    .font(AppFont.scaled(11))
+                    .font(AppFont.footnote)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)

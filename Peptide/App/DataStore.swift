@@ -1527,7 +1527,7 @@ final class DataStore {
     }
 
     /// Per-category breakdown for today (or any day). Used by the
-    /// `MealCategoriesCard` on the Meals tab.
+    /// Meals tab's macro rings.
     func mealsByCategory(for date: Date = Date()) -> LifestyleDataLogic.CategoryBreakdown {
         LifestyleDataLogic.mealsByCategory(in: profile, for: date)
     }

@@ -49385,6 +49385,46 @@
           }
         }
       }
+    },
+    "Log food": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga mat"
+          }
+        }
+      }
+    },
+    "Search foods": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök livsmedel"
+          }
+        }
+      }
+    },
+    "Choose a photo, a search, a barcode or the whole table.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj foto, sökning, streckkod eller hela bordet."
+          }
+        }
+      }
+    },
+    "Plan and cook": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planera och laga"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
