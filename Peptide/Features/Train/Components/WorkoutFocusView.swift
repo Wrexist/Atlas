@@ -143,6 +143,13 @@ struct WorkoutFocusView: View {
         .accessibilityLabel(Text(library.displayName(for: item.exerciseID)))
         .accessibilityValue(complete ? Text("status.complete") : Text("Sets done: \(workingDone) of \(working.count)"))
         .accessibilityAddTraits(selected ? .isSelected : [])
+        // Any lift in the session, not just the current one, is a long
+        // press away from its animation and steps.
+        .contextMenu {
+            if let exercise {
+                Button("How to do it", systemImage: "info.circle") { detailExercise = exercise }
+            }
+        }
     }
 
     private func setPanel(_ entry: WorkoutExerciseEntry) -> some View {

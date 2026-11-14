@@ -68,6 +68,33 @@ final class ExerciseClipStoreTests: XCTestCase {
         XCTAssertEqual(requests.value, 2, "only the two indexes are fetched")
     }
 
+    func test_hasClip_listedInEitherIndex_isTrueWithoutDownloadingTheVideo() async {
+        let requests = AttemptCounter()
+        let store = store(serving: ["clips.txt": Data("Pushups\n".utf8), "index.txt": Data("Barbell_Squat\n".utf8)],
+                          requests: requests)
+
+        let pushups = await store.hasClip(for: "Pushups")
+        let squat = await store.hasClip(for: "Barbell_Squat")
+        let lunge = await store.hasClip(for: "Barbell_Lunge")
+
+        XCTAssertTrue(pushups)
+        XCTAssertTrue(squat)
+        XCTAssertFalse(lunge)
+        XCTAssertEqual(requests.value, 2, "only the two indexes are fetched")
+    }
+
+    func test_hasClip_offline_isTrueOnlyForACachedClip() async {
+        let online = store(serving: ["index.txt": Data("Pushups\n".utf8), "Pushups.mp4": Data([1])])
+        _ = await online.clip(for: "Pushups")
+
+        let offline = store(serving: [:])
+        let pushups = await offline.hasClip(for: "Pushups")
+        let squat = await offline.hasClip(for: "Barbell_Squat")
+
+        XCTAssertTrue(pushups)
+        XCTAssertFalse(squat)
+    }
+
     func test_remoteURL_versionedClip_carriesTheVersionSoTheCDNServesTheNewBytes() {
         let url = ExerciseClipStore.remoteURL("Pushups", version: "bbbb", in: transparent)
         XCTAssertEqual(url.absoluteString, "https://clips.test/alpha/Pushups.mov?v=bbbb")

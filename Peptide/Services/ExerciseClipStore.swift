@@ -84,6 +84,14 @@ final class ExerciseClipStore {
         return clip
     }
 
+    /// Whether the exercise has a clip, from the indexes alone, so a screen
+    /// can hold the clip's place while the video itself downloads. Offline,
+    /// a cached clip counts.
+    func hasClip(for exerciseID: String) async -> Bool {
+        guard let indexes = await indexes() else { return cachedClip(for: exerciseID) != nil }
+        return indexes.contains { $0.ids[exerciseID] != nil }
+    }
+
     /// One line per exercise id, optionally followed by whitespace and a
     /// version; blank lines and surrounding whitespace are ignored.
     nonisolated static func parseIndex(_ text: String) -> [String: String] {

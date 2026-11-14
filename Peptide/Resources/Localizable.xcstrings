@@ -20130,6 +20130,16 @@
         }
       }
     },
+    "Loading animation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laddar animation"
+          }
+        }
+      }
+    },
     "How to do it": {
       "localizations": {
         "sv": {
