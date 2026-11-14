@@ -20120,16 +20120,6 @@
         }
       }
     },
-    "Loading animation": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Laddar animation"
-          }
-        }
-      }
-    },
     "How to do it": {
       "localizations": {
         "sv": {
@@ -49372,6 +49362,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gå igenom dina måltider de senaste 7 dagarna med AI"
+          }
+        }
+      }
+    },
+    "Play video": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spela video"
+          }
+        }
+      }
+    },
+    "Show steps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa steg"
+          }
+        }
+      }
+    },
+    "Plays the movement as a video": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spelar rörelsen som video"
+          }
+        }
+      }
+    },
+    "Step %lld: %@. %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steg %lld: %@. %@"
+          }
+        }
+      }
+    },
+    "How to do %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Så gör du %@"
           }
         }
       }
