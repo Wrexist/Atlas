@@ -49425,6 +49425,26 @@
           }
         }
       }
+    },
+    "Why this number": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varför detta tal"
+          }
+        }
+      }
+    },
+    "Shows what moved your Biological Age and how it's calculated": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar vad som påverkat din biologiska ålder och hur den räknas ut"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

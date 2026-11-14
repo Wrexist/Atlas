@@ -1,18 +1,29 @@
 import SwiftUI
 
-/// What the number on the dial actually means, reachable from the info
-/// button under it. The estimate is directional rather than clinical, and
+/// What the number on the dial actually means, reachable from the "Why
+/// this number" button under it. The estimate is directional rather than clinical, and
 /// a user who can't see how it was built has no reason to act on it — so
 /// this names the signals, the anchor, and the cap, in that order.
-struct BioAgeExplainerSheet: View {
+///
+/// `personal` leads with the user's own numbers — what moved theirs, how
+/// it has moved, what it was built from — so the Biology page itself can
+/// stay on the dial and the biomarkers.
+struct BioAgeExplainerSheet<Personal: View>: View {
     @Environment(\.dismiss) private var dismiss
 
     private let signals = PerformanceAgeEngine.Driver.Kind.allCases
+    private let personal: Personal
+
+    init(@ViewBuilder personal: () -> Personal) {
+        self.personal = personal()
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
+                    personal
+
                     Text("Your Biological Age starts at your real age, then moves up or down with up to \(signals.count) signals from Apple Health and your profile. Each one can only move it a few years.")
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textPrimary)
@@ -50,7 +61,7 @@ struct BioAgeExplainerSheet: View {
                 .readableContentWidth()
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle("How Biological Age works")
+            .navigationTitle("Why this number")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -89,4 +100,10 @@ struct BioAgeExplainerSheet: View {
 
 #Preview {
     BioAgeExplainerSheet()
+}
+
+extension BioAgeExplainerSheet where Personal == EmptyView {
+    init() {
+        self.init { EmptyView() }
+    }
 }

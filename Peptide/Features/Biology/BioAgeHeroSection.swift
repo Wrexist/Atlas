@@ -24,10 +24,6 @@ struct BioAgeHeroSection: View {
     /// read access denied, or no Watch. Waiting won't help, so the
     /// building state says so instead of counting days.
     var noHealthData = false
-    /// Metrics offered in the header pill's menu alongside Biological Age.
-    /// Selecting one opens its history; the host owns that routing.
-    var metricShortcuts: [Biomarker] = []
-    var onSelectMetric: (Biomarker) -> Void = { _ in }
     var onExplainTapped: () -> Void = {}
     /// Opens where the age is entered. Nil hides the button.
     var onAddAge: (() -> Void)?
@@ -64,51 +60,14 @@ struct BioAgeHeroSection: View {
 
     // MARK: - Header
 
-    /// The screen's subject, as a control rather than a caption. Tapping
-    /// it lists the other metrics the user tracks.
+    /// The screen's subject. A plain title: the biomarkers sit right
+    /// below the dial, so a menu repeating them here was a second, hidden
+    /// way to the same place.
     private var header: some View {
-        metricPill
-    }
-
-    private var metricPill: some View {
-        Menu {
-            Section {
-                Button {
-                    // Already the hero — the item exists to show what the
-                    // checkmark is attached to.
-                } label: {
-                    Label("Biological Age", systemImage: "checkmark")
-                }
-                .disabled(true)
-            }
-            if !metricShortcuts.isEmpty {
-                Section("Your biomarkers") {
-                    ForEach(metricShortcuts, id: \.self) { biomarker in
-                        Button {
-                            onSelectMetric(biomarker)
-                        } label: {
-                            Label(biomarker.displayName, systemImage: biomarker.icon)
-                        }
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "gauge.with.needle")
-                    .font(AppFont.scaled(13, weight: .semibold))
-                Text("Biological Age")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                Image(systemName: "chevron.down")
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .foregroundStyle(AppColor.textSecondary)
-            }
+        Text("Biological Age")
+            .font(AppFont.scaled(16, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.sm)
-            .glassControl(.capsule)
-            .minimumHitArea()
-        }
-        .accessibilityLabel("Biological Age. Choose a metric")
+            .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: - Dial + centre content
@@ -122,7 +81,7 @@ struct BioAgeHeroSection: View {
             )
             centreContent
                 // The dial is a fixed 280pt; past AX2 the number, unit and
-                // info button outgrow its interior and overlap the arc.
+                // "Why this number" button outgrow its interior and overlap the arc.
                 // `AppFont.scaled` ignores this clamp, so the centre fonts
                 // also scale for `centreTypeSize`.
                 .dynamicTypeSize(...Self.centreTypeSizeLimit)
@@ -212,16 +171,16 @@ struct BioAgeHeroSection: View {
         }
     }
 
-    /// How the number was arrived at, one tap away.
+    /// The page's one action: what moved the number and how it's built.
     private var explainButton: some View {
         Button(action: onExplainTapped) {
-            Image(systemName: "info.circle")
-                .font(AppFont.scaled(16, weight: .regular, in: centreTypeSize))
-                .foregroundStyle(AppColor.textTertiary)
+            Text("Why this number")
+                .font(AppFont.scaled(13, weight: .semibold, in: centreTypeSize))
+                .foregroundStyle(AppColor.accentPrimary)
                 .minimumHitArea()
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("How Biological Age is calculated")
+        .accessibilityHint("Shows what moved your Biological Age and how it's calculated")
     }
 
     // MARK: - State affordance
