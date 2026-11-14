@@ -482,12 +482,13 @@ struct TrainOverviewView: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
-                    if !sessions.isEmpty {
-                        NavigationLink(value: TrainNavigation.workoutHistory) {
-                            Text("View all").font(AppFont.subheadline).minimumHitArea()
-                        }
-                        .accessibilityLabel("View workout history")
+                    // Always offered: the history also lists Apple Health
+                    // workouts (Watch dives, runs), which exist even before
+                    // the first Atlas session.
+                    NavigationLink(value: TrainNavigation.workoutHistory) {
+                        Text("View all").font(AppFont.subheadline).minimumHitArea()
                     }
+                    .accessibilityLabel("View workout history")
                 }
 
                 if sessions.isEmpty {
