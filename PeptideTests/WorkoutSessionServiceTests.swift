@@ -618,8 +618,8 @@ final class WorkoutSessionServiceTests: XCTestCase {
     }
 
     /// The lowered sets' undo record is written to disk as it is made, so a
-    /// relaunch mid-rest keeps it, and ending the workout drops it.
-    func test_shortSet_savesItsEffect_andFinishingClearsIt() throws {
+    /// relaunch mid-rest keeps it, and ending the workout drops it with the seed.
+    func test_shortSet_savesItsEffect_andFinishingClearsTheWorkoutMemory() throws {
         let saved = DataStore.current
         DataStore.current = nil
         defer { DataStore.current = saved }
@@ -638,10 +638,12 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(stored.entryID, entry.id)
         XCTAssertEqual(stored.setID, logged.id)
         XCTAssertFalse(stored.moves.isEmpty)
+        XCTAssertEqual(SeedRoutine.load()?.sessionID, session.id)
 
         service.finishWorkout()
 
         XCTAssertNil(SetCompletionEffect.load())
+        XCTAssertNil(SeedRoutine.load())
     }
 
     /// Correcting the reps during rest re-decides: a short set fixed to the

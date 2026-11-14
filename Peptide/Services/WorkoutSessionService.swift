@@ -207,6 +207,7 @@ final class WorkoutSessionService {
         let detections = PRDetectionEngine.shared.ingest(session: session)
         activeSession = nil
         lastCompletion = nil
+        seedRoutine = nil
         invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.finish(session)
         if HealthSyncSettings.isEnabled {
@@ -234,6 +235,7 @@ final class WorkoutSessionService {
         SwiftDataRepository.shared.deleteWorkoutSession(id: session.id)
         activeSession = nil
         lastCompletion = nil
+        seedRoutine = nil
         invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.endAll()
         DataStore.current?.refreshTrainingGlanceables()
