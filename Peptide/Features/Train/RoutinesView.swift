@@ -195,7 +195,7 @@ struct RoutinesView: View {
                     }
                 )
 
-                // Secondary: the empty state's "Build a routine" is the one
+                // Secondary: the empty state's "New routine" is the one
                 // painted action here.
                 GlassButton(title: "Create a program", icon: "calendar", style: .secondary, isFullWidth: true) {
                     buildingProgram = true

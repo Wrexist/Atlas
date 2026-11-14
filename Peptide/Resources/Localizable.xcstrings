@@ -49196,16 +49196,6 @@
         }
       }
     },
-    "Review your last 7 days of eating": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gå igenom dina senaste 7 dagars mat"
-          }
-        }
-      }
-    },
     "Ask Atlas. Ask about a compound or a study and get answers with citations.": {
       "localizations": {
         "sv": {
@@ -49241,7 +49231,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Skapa passet"
+            "value": "Skapa pass"
           }
         }
       }
@@ -49261,7 +49251,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Skapa programmet"
+            "value": "Skapa program"
           }
         }
       }
@@ -49272,6 +49262,96 @@
           "stringUnit": {
             "state": "translated",
             "value": "Återhämtning (HRV)"
+          }
+        }
+      }
+    },
+    "Ask Atlas, meal photo and text logging, package scans, Fill with AI, barcode price estimates and the weekly recap send what you submit to Claude, by Anthropic, through Atlas's server — only when you use them, and only after you allow it. Turning sharing off also turns off the weekly recap.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga Atlas, loggning med matfoto och text, förpackningsskanning, Fyll i med AI, prisuppskattning via streckkod och veckosammanfattningen skickar det du skickar in till Claude, från Anthropic, via Atlas server – bara när du använder dem och bara efter att du har tillåtit det. Stänger du av delningen stängs även veckosammanfattningen av."
+          }
+        }
+      }
+    },
+    "Ask Atlas isn't available right now. Update Atlas or try again later.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga Atlas är inte tillgänglig just nu. Uppdatera Atlas eller försök igen senare."
+          }
+        }
+      }
+    },
+    "Couldn't connect to Ask Atlas. Update Atlas to the latest version, or contact support if you're already up to date.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte ansluta till Fråga Atlas. Uppdatera Atlas till den senaste versionen, eller kontakta supporten om du redan har den."
+          }
+        }
+      }
+    },
+    "You're offline — Ask Atlas needs an internet connection. Reconnect and try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du är offline – Fråga Atlas kräver internetanslutning. Anslut igen och försök på nytt."
+          }
+        }
+      }
+    },
+    "Ask Atlas is temporarily offline. Try again in a few minutes.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga Atlas är tillfälligt offline. Försök igen om några minuter."
+          }
+        }
+      }
+    },
+    "Something went wrong reaching Ask Atlas. Check your connection and try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Något gick fel när Fråga Atlas skulle nås. Kontrollera anslutningen och försök igen."
+          }
+        }
+      }
+    },
+    "Ask Atlas anything about your health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga Atlas om allt kring din hälsa"
+          }
+        }
+      }
+    },
+    "Open Ask Atlas": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna Fråga Atlas"
+          }
+        }
+      }
+    },
+    "Review your last 7 days of meals with AI": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gå igenom dina måltider de senaste 7 dagarna med AI"
           }
         }
       }

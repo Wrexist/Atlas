@@ -57,7 +57,7 @@ struct AIResearchView: View {
                 composer
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle(navigationTitle)
+            .navigationTitle("Ask Atlas")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -107,7 +107,7 @@ struct AIResearchView: View {
                     lastFailedPrompt = nil
                 }
             } message: {
-                Text(errorText ?? "Something went wrong reaching the research assistant. Check your connection and try again.")
+                Text(errorText ?? "Something went wrong reaching Ask Atlas. Check your connection and try again.")
             }
         }
         .presentationSizing(.page)
@@ -191,13 +191,6 @@ struct AIResearchView: View {
         }
     }
 
-    private var navigationTitle: LocalizedStringKey {
-        switch brief?.topic {
-        case .nutrition: "Ask Atlas"
-        case .biology:   "Ask Atlas"
-        case nil:        "Ask Atlas"
-        }
-    }
 
     private var hasConsent: Bool {
         AIDataConsent.allowsSend(attaching: brief?.topic)
