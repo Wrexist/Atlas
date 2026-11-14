@@ -196,7 +196,7 @@ struct TrainOverviewView: View {
     private var startWorkoutButton: some View {
         if sessionService.activeSession == nil {
             VStack(spacing: Spacing.sm) {
-                PrimaryCTAButton(title: "Build workout", icon: "wand.and.stars", shape: .rounded) {
+                PrimaryCTAButton(title: "Plan a workout", icon: "wand.and.stars", shape: .rounded) {
                     Haptics.impact(.medium)
                     showsSessionBuilder = true
                 }

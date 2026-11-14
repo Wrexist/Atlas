@@ -103,8 +103,8 @@ struct MealsContainerView: View {
             )
             GlassEntryRow(
                 icon: "sparkles",
-                title: "Ask the diet coach",
-                subtitle: Text("Review your last 7 days of eating with AI"),
+                title: "Ask Atlas",
+                subtitle: Text("Review your last 7 days of eating"),
                 badge: storeService.canAccessAIFeatures ? nil : Badge("Pro"),
                 action: openCoach
             )

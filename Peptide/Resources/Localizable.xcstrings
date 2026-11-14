@@ -49195,6 +49195,86 @@
           }
         }
       }
+    },
+    "Review your last 7 days of eating": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gå igenom dina senaste 7 dagars mat"
+          }
+        }
+      }
+    },
+    "Ask Atlas. Ask about a compound or a study and get answers with citations.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga Atlas. Fråga om ett ämne eller en studie och få svar med källor."
+          }
+        }
+      }
+    },
+    "Opens Ask Atlas": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Fråga Atlas"
+          }
+        }
+      }
+    },
+    "Plan a workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planera ett pass"
+          }
+        }
+      }
+    },
+    "Create workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skapa passet"
+          }
+        }
+      }
+    },
+    "Create a program": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skapa ett program"
+          }
+        }
+      }
+    },
+    "Create program": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skapa programmet"
+          }
+        }
+      }
+    },
+    "Recovery (HRV)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återhämtning (HRV)"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Build workout": tap a muscle on the body, keep the companions the
+/// "Plan a workout": tap a muscle on the body, keep the companions the
 /// engine suggests, and get a hypertrophy session sized to your time.
 /// The map shows fatigue until a muscle is picked, then the session's
 /// primary and supporting muscles.
@@ -43,7 +43,7 @@ struct SessionBuilderSheet: View {
                 }
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle(routine == nil ? "Build workout" : "Your workout")
+            .navigationTitle(routine == nil ? "Plan a workout" : "Your workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
             .pinnedFooter { footer }
@@ -248,7 +248,7 @@ struct SessionBuilderSheet: View {
                     PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
                 }
             } else {
-                GlassButton(title: "Build workout", icon: "wand.and.stars", isFullWidth: true) { build() }
+                GlassButton(title: "Create workout", icon: "wand.and.stars", isFullWidth: true) { build() }
                     .disabled(focus == nil || !library.isLoaded)
             }
         }
@@ -334,7 +334,7 @@ struct SessionBuilderSheet: View {
     }
 }
 
-#Preview("Build workout") {
+#Preview("Plan a workout") {
     SessionBuilderSheet { _, _ in }
         .environment(DataStore(seedSampleData: true))
 }

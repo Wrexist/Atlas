@@ -29,10 +29,10 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
     var displayName: String {
         switch self {
         case .weight:           String(localized: "Weight")
-        case .hrvBaseline:      String(localized: "HRV baseline")
-        case .rhrBaseline:      String(localized: "Resting HR baseline")
-        case .sleepBaseline:    String(localized: "Sleep baseline")
-        case .stepsBaseline:    String(localized: "Steps baseline")
+        case .hrvBaseline:      String(localized: "Recovery (HRV)")
+        case .rhrBaseline:      String(localized: "Resting heart rate")
+        case .sleepBaseline:    String(localized: "Sleep")
+        case .stepsBaseline:    String(localized: "Daily steps")
         case .bodyTemperature:  String(localized: "Body temperature")
         case .bodyFat:          String(localized: "Body fat")
         case .waist:            String(localized: "Waist")

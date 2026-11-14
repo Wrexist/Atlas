@@ -193,9 +193,9 @@ struct AIResearchView: View {
 
     private var navigationTitle: LocalizedStringKey {
         switch brief?.topic {
-        case .nutrition: "Diet coach"
+        case .nutrition: "Ask Atlas"
         case .biology:   "Ask Atlas"
-        case nil:        "Research assistant"
+        case nil:        "Ask Atlas"
         }
     }
 

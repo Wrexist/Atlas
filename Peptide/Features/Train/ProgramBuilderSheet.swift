@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Build my program": five answers in, a week of routines out. The form
+/// "Create a program": five answers in, a week of routines out. The form
 /// opens prefilled from onboarding, `ProgramGeneratorEngine` does the
 /// building, and the preview lets the user swap any exercise for another
 /// that does the same job before `onSave` hands the days to the library.
@@ -40,7 +40,7 @@ struct ProgramBuilderSheet: View {
                 }
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle(program == nil ? "Build my program" : "Your program")
+            .navigationTitle(program == nil ? "Create a program" : "Your program")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -230,7 +230,7 @@ struct ProgramBuilderSheet: View {
     private var footer: some View {
         VStack(spacing: Spacing.sm) {
             if program == nil {
-                GlassButton(title: "Build my program", icon: "wand.and.stars", isFullWidth: true) {
+                GlassButton(title: "Create program", icon: "calendar", isFullWidth: true) {
                     build()
                 }
                 .disabled(!library.isLoaded)
@@ -295,7 +295,7 @@ struct ProgramBuilderSheet: View {
     }
 }
 
-#Preview("Build my program") {
+#Preview("Create a program") {
     ProgramBuilderSheet { _ in }
         .environment(DataStore(seedSampleData: true))
 }
