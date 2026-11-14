@@ -27,7 +27,7 @@ struct HomeWellnessSection: View {
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
-            HomeSectionHeader(eyebrow: "Wellness", title: "How you're feeling")
+            HomeSectionHeader(title: "How you're feeling")
 
             DailyCheckInCard(
                 todayEntry: dataStore.outcome(),

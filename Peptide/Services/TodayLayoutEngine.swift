@@ -30,14 +30,24 @@ enum TodayLayoutEngine {
         return result
     }
 
-    /// `sections(storedOrder:defaults:)` without the hidden ones.
+    /// `sections(storedOrder:defaults:)` without the ones that don't
+    /// show: default sections the user hid, and opt-in sections the
+    /// user never turned on.
     static func visibleSections(
         storedOrder: [String],
         hidden: [String],
+        shownExtras: [String] = [],
         defaults: [TodaySection] = TodaySection.allCases
     ) -> [TodaySection] {
         let hiddenIds = Set(hidden)
+        let extraIds = Set(shownExtras)
         return sections(storedOrder: storedOrder, defaults: defaults)
-            .filter { !hiddenIds.contains($0.rawValue) }
+            .filter { isShown($0, hidden: hiddenIds, shownExtras: extraIds) }
+    }
+
+    static func isShown(_ section: TodaySection, hidden: Set<String>, shownExtras: Set<String>) -> Bool {
+        section.isShownByDefault
+            ? !hidden.contains(section.rawValue)
+            : shownExtras.contains(section.rawValue)
     }
 }

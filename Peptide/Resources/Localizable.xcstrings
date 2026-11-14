@@ -49375,6 +49375,16 @@
           }
         }
       }
+    },
+    "Today shows less now. Turn on Steps, Your day and more here.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idag visar mindre nu. Slå på Steg, Din dag och mer här."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

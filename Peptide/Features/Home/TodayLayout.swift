@@ -3,13 +3,14 @@ import SwiftUI
 /// A block of the Today scroll the user can move or hide from the
 /// "Edit Today" sheet. Raw values are persisted on the profile, so they
 /// are stable ids — rename a case freely, never its raw value. Case
-/// order is the default layout.
+/// order is the default layout, and `isShownByDefault` decides which
+/// of them a fresh layout shows.
 ///
-/// The welcome header, jump bar and reminder banner are not here: they
+/// The welcome header, day switcher and reminder banner are not here: they
 /// are Today's chrome and stay pinned above the sections.
 enum TodaySection: String, CaseIterable, Identifiable, Sendable {
-    case atAGlance = "atAGlance"
     case coaching = "coaching"
+    case atAGlance = "atAGlance"
     case weeklyRecap = "weeklyRecap"
     case habits = "habits"
     case checklist = "checklist"
@@ -65,6 +66,19 @@ enum TodaySection: String, CaseIterable, Identifiable, Sendable {
 }
 
 extension TodaySection {
+    /// Today answers "what do I do now" with the coaching card, the
+    /// day's status and the things to tick off. Everything else repeats
+    /// another tab or is analysis, so it starts off and the user turns
+    /// it on from Edit Today.
+    var isShownByDefault: Bool {
+        switch self {
+        case .coaching, .atAGlance, .weeklyRecap, .habits, .checklist, .doses, .wellness:
+            true
+        case .movement, .steps, .overview, .momentum, .explore, .timeline, .healthMonitor:
+            false
+        }
+    }
+
     /// The same block in `TodayDayEngine`'s terms, which decides whether
     /// it shows on a browsed past day.
     var dayEngineSection: TodayDayEngine.Section {
@@ -94,9 +108,17 @@ extension TodaySection {
 /// written by a newer build — with a section this build doesn't know —
 /// still decodes; `TodayLayoutEngine` drops the unknown ids on read.
 /// An empty `order` means "never rearranged" and reads as the default.
+///
+/// `hidden` hides a section that shows by default; `shownExtras` turns
+/// on one that doesn't. Kept as two lists, rather than migrating saved
+/// layouts, so every layout picks up the shorter default without a
+/// one-time rewrite that an older build syncing the profile back would
+/// undo, and a fresh profile still equals `.default` for the merge.
+/// Builds that predate `shownExtras` drop it and show every section.
 struct TodayLayout: Codable, Hashable, Sendable {
     var order: [String] = []
     var hidden: [String] = []
+    var shownExtras: [String] = []
 
     static let `default` = TodayLayout()
 
@@ -107,16 +129,21 @@ struct TodayLayout: Codable, Hashable, Sendable {
 
     /// The sections Today renders, in order.
     var visibleSections: [TodaySection] {
-        TodayLayoutEngine.visibleSections(storedOrder: order, hidden: hidden)
+        TodayLayoutEngine.visibleSections(storedOrder: order, hidden: hidden, shownExtras: shownExtras)
     }
 
     func isHidden(_ section: TodaySection) -> Bool {
-        hidden.contains(section.rawValue)
+        !TodayLayoutEngine.isShown(section, hidden: Set(hidden), shownExtras: Set(shownExtras))
     }
 
     mutating func setHidden(_ section: TodaySection, _ isHidden: Bool) {
         hidden.removeAll { $0 == section.rawValue }
-        if isHidden { hidden.append(section.rawValue) }
+        shownExtras.removeAll { $0 == section.rawValue }
+        if section.isShownByDefault {
+            if isHidden { hidden.append(section.rawValue) }
+        } else if !isHidden {
+            shownExtras.append(section.rawValue)
+        }
     }
 
     /// Writes the full resolved order back, so sections this build
@@ -137,5 +164,6 @@ extension TodayLayout {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         order = try c.decodeIfPresent([String].self, forKey: .order) ?? []
         hidden = try c.decodeIfPresent([String].self, forKey: .hidden) ?? []
+        shownExtras = try c.decodeIfPresent([String].self, forKey: .shownExtras) ?? []
     }
 }

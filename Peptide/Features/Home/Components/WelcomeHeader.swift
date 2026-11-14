@@ -6,6 +6,8 @@ struct WelcomeHeader: View {
     let date: String
     var avatarImageData: Data? = nil
     var onAvatarTap: (() -> Void)? = nil
+    /// Today's quick-log button, shown left of the avatar when set.
+    var logButton: TodayLogButton? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasGreeted = false
@@ -41,7 +43,10 @@ struct WelcomeHeader: View {
 
             Spacer()
 
-            avatarButton
+            HStack(spacing: Spacing.sm) {
+                if let logButton { logButton }
+                avatarButton
+            }
         }
         .padding(.top, Spacing.sm)
     }

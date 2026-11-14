@@ -29,7 +29,7 @@ struct TodayChecklistCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            HomeSectionHeader(eyebrow: dayTitle.map { LocalizedStringKey($0) } ?? "Today", title: "Daily checklist") {
+            HomeSectionHeader(eyebrow: dayTitle.map { LocalizedStringKey($0) }, title: "Daily checklist") {
                 Text("\(completedCount)/\(totalCount)")
                     .font(AppFont.scaled(16, weight: .semibold))
                     .monospacedDigit()
