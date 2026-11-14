@@ -83,6 +83,16 @@ final class ExerciseClipStoreTests: XCTestCase {
         XCTAssertEqual(requests.value, 2, "only the two indexes are fetched")
     }
 
+    func test_hasClip_listedButVideoMissing_clipIsNilSoTheScreenFallsBack() async {
+        let store = store(serving: ["index.txt": Data("Pushups\n".utf8)])
+
+        let listed = await store.hasClip(for: "Pushups")
+        let clip = await store.clip(for: "Pushups")
+
+        XCTAssertTrue(listed)
+        XCTAssertNil(clip)
+    }
+
     func test_hasClip_offline_isTrueOnlyForACachedClip() async {
         let online = store(serving: ["index.txt": Data("Pushups\n".utf8), "Pushups.mp4": Data([1])])
         _ = await online.clip(for: "Pushups")

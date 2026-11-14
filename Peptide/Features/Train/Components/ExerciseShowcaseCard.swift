@@ -54,11 +54,21 @@ struct ExerciseShowcaseCard: View {
             clipExerciseID = exercise.id
             guard !exercise.isCustom else { return }
             let store = ExerciseClipStore.shared
-            hasClip = await store.hasClip(for: exercise.id)
-            guard hasClip else { return }
-            clip = await store.clip(for: exercise.id)
+            // A cancelled lookup (page left, exercise changed) writes nothing:
+            // the store's index load outlives it and would answer for the
+            // old exercise.
+            let listed = await store.hasClip(for: exercise.id)
+            guard !Task.isCancelled else { return }
+            hasClip = listed
+            guard listed else {
+                clip = nil
+                return
+            }
+            let found = await store.clip(for: exercise.id)
+            guard !Task.isCancelled else { return }
+            clip = found
             // The download failed: fall back to the body map, no dead switch.
-            if clip == nil { hasClip = false }
+            if found == nil { hasClip = false }
         }
     }
 
@@ -85,7 +95,8 @@ struct ExerciseShowcaseCard: View {
         }
     }
 
-    /// Same footprint as the video, so the card doesn't resize when it lands.
+    /// The video's 4:5 footprint, so the card barely moves when it lands
+    /// (only the muscle chips under it are added).
     private var loadingMovement: some View {
         RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
             .fill(AppColor.track)
