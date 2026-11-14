@@ -64,7 +64,7 @@ struct WorkoutHistoryView: View {
             CardioWorkoutDetailSheet(
                 workout: workout,
                 unit: unit,
-                isTypeOverridden: WorkoutTypeOverrideStore.shared.activity(for: workout.id) != nil,
+                isTypeOverridden: isTypeOverridden(workout),
                 onPickType: { setType($0, for: workout.id) }
             )
         }
@@ -191,7 +191,7 @@ struct WorkoutHistoryView: View {
                     .contextMenu {
                         WorkoutTypeMenuItems(
                             current: workout.activity,
-                            isOverridden: WorkoutTypeOverrideStore.shared.activity(for: workout.id) != nil,
+                            isOverridden: isTypeOverridden(workout),
                             onPick: { setType($0, for: workout.id) }
                         )
                     }
@@ -268,11 +268,17 @@ struct WorkoutHistoryView: View {
         cardio = WorkoutTypeOverrideStore.shared.applied(to: healthWorkouts)
     }
 
-    /// Saves the picked type (nil = Health's own) and shows it at once,
-    /// in the list and in the open sheet.
+    /// Shown as something other than what Health recorded.
+    private func isTypeOverridden(_ workout: ImportedCardioWorkout) -> Bool {
+        healthWorkouts.first { $0.id == workout.id }.map { $0.activity != workout.activity } ?? false
+    }
+
+    /// Saves the picked type and shows it at once, in the list and in the
+    /// open sheet. Picking Health's own type (or nil) clears the pick.
     private func setType(_ activity: CardioActivity?, for workoutID: UUID) {
         Haptics.selection()
-        WorkoutTypeOverrideStore.shared.set(activity, for: workoutID)
+        let recorded = healthWorkouts.first { $0.id == workoutID }?.activity
+        WorkoutTypeOverrideStore.shared.set(activity == recorded ? nil : activity, for: workoutID)
         cardio = WorkoutTypeOverrideStore.shared.applied(to: healthWorkouts)
         if inspectedCardio?.id == workoutID {
             inspectedCardio = cardio.first { $0.id == workoutID }

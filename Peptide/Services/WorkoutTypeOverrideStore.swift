@@ -6,7 +6,14 @@ import Foundation
 /// laid over every fetch.
 @MainActor
 final class WorkoutTypeOverrideStore {
-    static let shared = WorkoutTypeOverrideStore()
+    static let shared: WorkoutTypeOverrideStore = {
+        let store = WorkoutTypeOverrideStore()
+        #if DEBUG
+        // Screenshot runs start from Health's own types every launch.
+        if HealthWorkoutsFixture.isRequested { store.defaults.removeObject(forKey: store.key) }
+        #endif
+        return store
+    }()
 
     private let defaults: UserDefaults
     private let key = "workoutTypeOverrides.v1"
@@ -19,7 +26,8 @@ final class WorkoutTypeOverrideStore {
         stored[workoutID.uuidString].flatMap(CardioActivity.init(rawValue:))
     }
 
-    /// Nil goes back to the type Health recorded.
+    /// Nil goes back to the type Health recorded. Callers pass nil, not
+    /// Health's own type, so a stored pick always differs from Health's.
     func set(_ activity: CardioActivity?, for workoutID: UUID) {
         var overrides = stored
         overrides[workoutID.uuidString] = activity?.rawValue

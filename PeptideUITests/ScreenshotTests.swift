@@ -426,7 +426,7 @@ final class ScreenshotTests: XCTestCase {
 
     /// Apple Health workouts in the history: a dive Health typed, one it
     /// left as a plain "Workout", the type picker, and the row after the
-    /// pick. Ends by handing the type back to Health so reruns start clean.
+    /// pick. The fixture clears earlier picks at launch, so reruns start clean.
     func test_captureWorkoutTypes() {
         for appearance in ["dark", "light"] {
             launch(appearance: appearance, extraArguments: ["--health-workouts-fixture"])
@@ -435,7 +435,7 @@ final class ScreenshotTests: XCTestCase {
             app.tabBars.buttons["Train"].tap()
             app.dismissOverlaysIfNeeded()
             app.buttons["History"].firstMatch.tap()
-            let untyped = app.buttons.containing(.staticText, identifier: "Choose type").firstMatch
+            let untyped = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Choose type")).firstMatch
             XCTAssertTrue(untyped.waitForExistence(timeout: 10))
             capture(named: "types-\(appearance)-01-history")
             untyped.tap()
@@ -443,18 +443,20 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(typeMenu.waitForExistence(timeout: 5))
             capture(named: "types-\(appearance)-02-sheet")
             typeMenu.tap()
-            let diving = app.buttons["Diving"].firstMatch
+            // A menu's picker option is a button or a menu item by iOS
+            // version; rows behind the sheet only carry "Diving" in a
+            // longer combined label, so an exact label match is the option.
+            let diving = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label == %@ AND (elementType == %d OR elementType == %d)",
+                                      "Diving", XCUIElement.ElementType.button.rawValue,
+                                      XCUIElement.ElementType.menuItem.rawValue))
+                .firstMatch
             XCTAssertTrue(diving.waitForExistence(timeout: 5))
             capture(named: "types-\(appearance)-03-menu")
             diving.tap()
             capture(named: "types-\(appearance)-04-picked")
             app.buttons["Done"].firstMatch.tap()
             capture(named: "types-\(appearance)-05-history-after")
-            // Newest first: the picked one is the second dive.
-            app.buttons.containing(.staticText, identifier: "Diving").element(boundBy: 1).tap()
-            XCTAssertTrue(typeMenu.waitForExistence(timeout: 5))
-            typeMenu.tap()
-            app.buttons["Use Apple Health's type"].firstMatch.tap()
             app.terminate()
         }
     }
