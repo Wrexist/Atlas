@@ -6,8 +6,8 @@ import SwiftUI
 /// shows the final state at once.
 struct StagedMuscleMap: View {
     let highlights: [AnatomicalMuscle: MuscleHighlight]
-    var primaryColor: Color = AppColor.trainingPrimaryMuscle
-    var secondaryColor: Color = AppColor.trainingSecondaryMuscle
+    var primaryColor: Color = AppColor.trainingPrimaryMuscleTint
+    var secondaryColor: Color = AppColor.trainingSecondaryMuscleTint
     var identifiesOnTap: Bool = true
     var onIdentify: ((AnatomicalMuscle) -> Void)? = nil
     var selectedMuscle: AnatomicalMuscle? = nil

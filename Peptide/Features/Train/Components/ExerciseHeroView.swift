@@ -17,8 +17,8 @@ struct ExerciseHeroView: View {
             VStack(spacing: Spacing.sm) {
                 MuscleMapView(
                     highlights: highlights,
-                    primaryColor: AppColor.trainingPrimaryMuscle,
-                    secondaryColor: AppColor.trainingSecondaryMuscle,
+                    primaryColor: AppColor.trainingPrimaryMuscleTint,
+                    secondaryColor: AppColor.trainingSecondaryMuscleTint,
                     identifiesOnTap: interactive
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -102,8 +102,8 @@ struct ExerciseMuscleThumbnail: View {
             MuscleMapView(
                 highlights: highlights,
                 orientation: side == .front ? .front : .back,
-                primaryColor: AppColor.trainingPrimaryMuscle,
-                secondaryColor: AppColor.trainingSecondaryMuscle,
+                primaryColor: AppColor.trainingPrimaryMuscleTint,
+                secondaryColor: AppColor.trainingSecondaryMuscleTint,
                 identifiesOnTap: false
             )
             .frame(width: width, height: height)

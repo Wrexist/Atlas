@@ -4,8 +4,8 @@ import SwiftUI
 /// to select every trained muscle. Shared by session and history cards.
 struct TrainingBodyExplorer: View {
     let highlights: [AnatomicalMuscle: MuscleHighlight]
-    var primaryColor: Color = AppColor.trainingPrimaryMuscle
-    var secondaryColor: Color = AppColor.trainingSecondaryMuscle
+    var primaryColor: Color = AppColor.trainingPrimaryMuscleTint
+    var secondaryColor: Color = AppColor.trainingSecondaryMuscleTint
     var legend: Legend = .roles
     let onIdentify: (AnatomicalMuscle) -> Void
 

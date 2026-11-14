@@ -191,8 +191,8 @@ struct RecapAnatomy: View {
                 .accessibilityHidden(true)
         } else if TrainingAnatomy.isAvailable, !muscles.isEmpty {
             MuscleMapView(highlights: RecapMuscles.highlights(muscles),
-                          primaryColor: AppColor.trainingPrimaryMuscle,
-                          secondaryColor: AppColor.trainingSecondaryMuscle,
+                          primaryColor: AppColor.trainingPrimaryMuscleTint,
+                          secondaryColor: AppColor.trainingSecondaryMuscleTint,
                           identifiesOnTap: false)
                 .accessibilityHidden(true)
         } else {

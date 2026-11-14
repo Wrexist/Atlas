@@ -78,8 +78,8 @@ struct SessionBuilderSheet: View {
             VStack(spacing: Spacing.sm) {
                 MuscleMapView(
                     highlights: mapHighlights,
-                    primaryColor: AppColor.trainingPrimaryMuscle,
-                    secondaryColor: AppColor.trainingSecondaryMuscle,
+                    primaryColor: AppColor.trainingPrimaryMuscleTint,
+                    secondaryColor: AppColor.trainingSecondaryMuscleTint,
                     onIdentify: { select(Target($0)) }
                 )
                 .frame(maxWidth: .infinity)
