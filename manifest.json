@@ -1,0 +1,62 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "649588AC-92B4-4080-8F2F-29D21F8A9E08.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "howto-light-03-exercise-page_0_05C8050F-319B-4296-B646-B72822A39303.png",
+        "timestamp" : 1794699814.136
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "CBAB06D7-0D0B-4DFD-865A-511B9E677232.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "howto-light-02-sheet_0_6F201DB3-332B-4EC5-99EE-84BFC4283DF7.png",
+        "timestamp" : 1794699793.293
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "2904E47F-63FC-47AF-9D95-880135E23C27.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "howto-light-01-workout_0_FF9A7EAE-A7FF-400B-89E7-ECAC02AF979D.png",
+        "timestamp" : 1794699787.504
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "11B23268-EE9D-4DF6-A074-E5F54801C87B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "howto-dark-03-exercise-page_0_91C296EE-AC40-4B58-B4C2-1561EB8CD0A0.png",
+        "timestamp" : 1794699732.884
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "050591C9-8CCD-467C-809B-794C393601CF.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "howto-dark-02-sheet_0_C3599CDE-12BF-4F2C-8101-EAB4D5439773.png",
+        "timestamp" : 1794699711.721
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "94412D6C-C2A1-43B3-AECD-894428EB729F.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "howto-dark-01-workout_0_E5BF0986-189A-44A0-BAD1-270EAC3D1A8B.png",
+        "timestamp" : 1794699706.205
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureExerciseHowTo()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureExerciseHowTo"
+  }
+]
