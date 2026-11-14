@@ -81,8 +81,6 @@ struct HabitsView: View {
                             HabitRowCard(
                                 habit: row.habit,
                                 summary: row.summary,
-                                heatmapColumns: row.columns,
-                                heatmapStart: row.heatmapStart,
                                 onToggleToday: {
                                     dataStore.toggleHabitEntry(habitId: row.habit.id)
                                 },
@@ -181,7 +179,7 @@ struct HabitsView: View {
                             dataStore.addHabit(habit)
                         } onDelete: { _ in }
                     case .existing(let habit):
-                        HabitEditSheet(editing: habit) { updated in
+                        HabitEditSheet(editing: habit, history: history(for: habit)) { updated in
                             dataStore.updateHabit(updated)
                         } onDelete: { id in
                             dataStore.deleteHabit(id: id)
@@ -190,6 +188,14 @@ struct HabitsView: View {
                 }
                 .liquidGlassPresentation()
             }
+        }
+    }
+
+    /// The editor shows the habit's half-year heatmap and stats; the
+    /// list rows stay a checklist.
+    private func history(for habit: Habit) -> HabitEditSheet.History? {
+        rows.first { $0.id == habit.id }.map {
+            HabitEditSheet.History(summary: $0.summary, columns: $0.columns, start: $0.heatmapStart)
         }
     }
 
@@ -207,16 +213,15 @@ struct HabitsView: View {
     }
 
     /// At-a-glance header for the tab root: today's completion ring, best
-    /// active streak, and the Atlas Score level. Reuses the per-habit
-    /// summaries already built into `rows` (no extra walk) plus the cheap
-    /// `dataStore.momentum` arithmetic.
+    /// active streak. Reuses the per-habit summaries already built into
+    /// `rows` (no extra walk). The Atlas Score level lives in Progress —
+    /// on a checklist it was one more number to read.
     private func habitsSummaryHeader(rows: [Row]) -> some View {
         let due = rows.filter { $0.summary.isDueToday }.count
         let done = rows.filter { $0.summary.isDueToday && $0.summary.isCompletedToday }.count
         // Weekly habits count weeks; the header's figure is days.
         let best = rows.filter { !$0.habit.schedule.countsStreakInWeeks }.map(\.summary.currentStreak).max() ?? 0
         let progress = due > 0 ? min(1, Double(done) / Double(due)) : 0
-        let momentum = dataStore.momentum
 
         return HStack(spacing: Spacing.lg) {
             MetricRing(
@@ -262,14 +267,6 @@ struct HabitsView: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                 }
-                HStack(spacing: 4) {
-                    Image(systemName: "bolt.fill")
-                        .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.accentLight)
-                    Text("Level \(momentum.level) · ^[\(momentum.score) point](inflect: true)")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                }
             }
 
             Spacer(minLength: 0)
@@ -284,16 +281,15 @@ struct HabitsView: View {
                 .stroke(AppColor.glassBorder, lineWidth: 0.5)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(summaryAccessibilityLabel(done: done, due: due, best: best, momentum: momentum))
+        .accessibilityLabel(summaryAccessibilityLabel(done: done, due: due, best: best))
     }
 
-    private func summaryAccessibilityLabel(done: Int, due: Int, best: Int, momentum: MomentumEngine.Snapshot) -> Text {
+    private func summaryAccessibilityLabel(done: Int, due: Int, best: Int) -> Text {
         let today = due > 0
             ? Text("\(done) of ^[\(due) habit](inflect: true) done today")
             : Text("No habits due today")
         let streak = best > 0 ? Text(", ^[\(best) day](inflect: true) streak") : Text(verbatim: "")
         return today + streak
-            + Text(", Atlas Score level \(momentum.level), ^[\(momentum.score) point](inflect: true)")
     }
 
     /// Shown when a streak is at risk and a monthly freeze is available —
