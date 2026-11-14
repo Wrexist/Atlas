@@ -159,12 +159,22 @@ final class ExerciseClipStore {
         return loaded
     }
 
+    /// Both indexes load side by side: one after the other, the 404 of an
+    /// unpublished source sat in front of every first clip.
     private func fetchIndex() async -> [LoadedIndex]? {
-        var loaded: [LoadedIndex] = []
-        for source in sources {
-            if let data = await fetch(source.baseURL.appending(path: source.indexName)) {
-                loaded.append(LoadedIndex(source: source, ids: Self.parseIndex(String(decoding: data, as: UTF8.self))))
+        let bodies = await withTaskGroup(of: (Int, Data?).self) { group in
+            for (rank, source) in sources.enumerated() {
+                let url = source.baseURL.appending(path: source.indexName)
+                group.addTask { (rank, await self.fetch(url)) }
             }
+            var bodies: [Int: Data] = [:]
+            for await (rank, data) in group {
+                bodies[rank] = data
+            }
+            return bodies
+        }
+        let loaded = sources.enumerated().compactMap { rank, source in
+            bodies[rank].map { LoadedIndex(source: source, ids: Self.parseIndex(String(decoding: $0, as: UTF8.self))) }
         }
         return loaded.isEmpty ? nil : loaded
     }
