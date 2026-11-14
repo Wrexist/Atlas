@@ -437,8 +437,10 @@ final class ScreenshotTests: XCTestCase {
             // History is pushed from the latest workout's "View all".
             let history = app.buttons["View workout history"].firstMatch
             XCTAssertTrue(history.waitForExistence(timeout: 10))
-            reveal(history)
-            history.tap()
+            for _ in 0..<4 where !history.isHittable { app.swipeUp() }
+            // The link sits in the card header; XCUITest can report it
+            // unhittable there even on screen, so tap its centre directly.
+            history.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             let untyped = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Choose type")).firstMatch
             XCTAssertTrue(untyped.waitForExistence(timeout: 10))
             capture(named: "types-\(appearance)-01-history")
