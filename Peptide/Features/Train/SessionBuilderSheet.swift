@@ -84,10 +84,12 @@ struct SessionBuilderSheet: View {
                 )
                 .frame(maxWidth: .infinity)
                 .appAnimation(AppAnimation.quick, value: focus)
-                if focus == nil {
-                    MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
-                                     highLabel: String(localized: "Needs rest"))
-                }
+                // Kept in the layout once a muscle is picked, so the
+                // chips below don't jump up when the legend stops applying.
+                MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
+                                 highLabel: String(localized: "Needs rest"))
+                    .opacity(focus == nil ? 1 : 0)
+                    .accessibilityHidden(focus != nil)
             }
 
             section("MUSCLE") {
@@ -274,8 +276,15 @@ struct SessionBuilderSheet: View {
                     PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
                 }
             } else {
-                GlassButton(title: "Create workout", icon: "wand.and.stars", isFullWidth: true) { build() }
-                    .disabled(focus == nil || !library.isLoaded)
+                VStack(spacing: Spacing.sm) {
+                    if focus == nil {
+                        Text("Pick a muscle to start")
+                            .font(AppFont.scaled(13))
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    GlassButton(title: "Create workout", icon: "wand.and.stars", isFullWidth: true) { build() }
+                        .disabled(focus == nil || !library.isLoaded)
+                }
             }
         }
         .padding(.horizontal, Spacing.screenPadding)

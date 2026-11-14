@@ -6826,6 +6826,16 @@
         }
       }
     },
+    "Pick a muscle to start": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en muskel för att börja"
+          }
+        }
+      }
+    },
     "Pick another day to copy from.": {
       "localizations": {
         "sv": {

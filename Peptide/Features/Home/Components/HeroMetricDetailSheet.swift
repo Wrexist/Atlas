@@ -271,7 +271,10 @@ struct HeroMetricDetailSheet: View {
         switch kind {
         case .adherence: adherenceList
         case .recovery:  recoveryBreakdown
-        case .sleep:     sleepDetail
+        case .sleep:
+            // Three tiles of dashes read as broken; the line under the
+            // ring already says there is no data yet.
+            if let hours = context.lastSleepHours, hours > 0 { sleepDetail }
         }
     }
 
