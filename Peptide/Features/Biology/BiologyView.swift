@@ -50,8 +50,6 @@ struct BiologyView: View {
                             ?? BioAgeStateResolver.chronologicalAgeFallback,
                         noHealthData: dataStore.profile.healthConnected
                             && resolved?.inputs?.healthDataDays == 0,
-                        metricShortcuts: visibleBiomarkers,
-                        onSelectMetric: { openDetail(for: $0) },
                         onExplainTapped: { showBioAgeExplainer = true },
                         onAddAge: { appState.showProfile = true }
                     )
@@ -70,8 +68,6 @@ struct BiologyView: View {
                     }
 
                     healthPrompt
-
-                    bioAgeDetail
 
                     BiomarkerListSection(
                         visibleBiomarkers: visibleBiomarkers,
@@ -154,8 +150,9 @@ struct BiologyView: View {
                     .liquidGlassPresentation()
             }
             .sheet(isPresented: $showBioAgeExplainer) {
-                BioAgeExplainerSheet()
-                    .liquidGlassPresentation(detents: [.medium, .large])
+                BioAgeExplainerSheet { bioAgeDetail }
+                    .environment(dataStore)
+                    .liquidGlassPresentation(detents: [.large])
             }
             .onAppear { consumePendingLabsDeepLink() }
             .onChange(of: appState.pendingLabsOpen) { _, _ in
@@ -238,9 +235,9 @@ struct BiologyView: View {
         needsHealthConnection ? 2 : (needsHealthUpgrade ? 1 : 0)
     }
 
-    /// The estimate's explanation, below the hero: what moved it, how it
-    /// has moved, and what it was built from. Only once there is
-    /// something to explain — locked and loading show none of it.
+    /// The estimate's explanation, at the top of "Why this number": what
+    /// moved it, how it has moved, and what it was built from. Only once
+    /// there is something to explain — locked and loading show none of it.
     @ViewBuilder
     private var bioAgeDetail: some View {
         if let resolved {
@@ -266,8 +263,7 @@ struct BiologyView: View {
     /// lapse so the user's selection survives a re-up — but they're filtered
     /// out of every visible surface while `!isProUser` (audit Biology MED 11).
     /// `EditBiomarkersSheet` already blocks *adding* new Pro entries; this
-    /// closes the rendering side of the gate, for both the list and the
-    /// hero's metric menu.
+    /// closes the rendering side of the gate for the list.
     private var visibleBiomarkers: [Biomarker] {
         dataStore.profile.biologyConfig.visibleBiomarkers
             .filter { storeService.isProUser || !$0.requiresPro }
