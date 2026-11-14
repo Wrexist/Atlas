@@ -455,6 +455,71 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// The sheets Isac flagged for symmetry on build 157: the daily
+    /// check-in, the Sleep detail, and Plan a workout before and after a
+    /// muscle is picked. Each step skips rather than fails when its entry
+    /// point isn't on screen, so one moved button can't sink the rest.
+    func test_captureSymmetrySheets() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+
+            let checkIn = app.buttons.matching(NSPredicate(
+                format: "label BEGINSWITH 'Daily check-in' OR label BEGINSWITH \"Today's check-in\""
+            )).firstMatch
+            if findByScrolling(checkIn) {
+                checkIn.tap()
+                capture(named: "sym-\(appearance)-01-checkin")
+                closeSheet("Cancel")
+            }
+
+            scrollToTop()
+            let sleep = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Sleep,'")).firstMatch
+            if findByScrolling(sleep) {
+                sleep.tap()
+                capture(named: "sym-\(appearance)-02-sleep")
+                closeSheet("Done")
+            }
+
+            let train = app.tabBars.buttons["Train"]
+            XCTAssertTrue(train.waitForExistence(timeout: 10))
+            train.tap()
+            app.dismissOverlaysIfNeeded()
+            discardLeftoverWorkout()
+            let plan = app.buttons["Plan a workout"].firstMatch
+            if findByScrolling(plan) {
+                plan.tap()
+                XCTAssertTrue(app.navigationBars["Plan a workout"].waitForExistence(timeout: 10))
+                capture(named: "sym-\(appearance)-03-builder")
+                let back = app.buttons.matching(NSPredicate(format: "label == 'Back'")).firstMatch
+                if back.waitForExistence(timeout: 5) {
+                    back.tap()
+                    capture(named: "sym-\(appearance)-04-builder-picked")
+                    app.swipeUp()
+                    capture(named: "sym-\(appearance)-05-builder-bottom")
+                }
+                closeSheet("Cancel")
+            }
+            app.terminate()
+        }
+    }
+
+    /// Scrolls the current screen until `element` is hittable.
+    private func findByScrolling(_ element: XCUIElement) -> Bool {
+        for _ in 0..<8 {
+            if element.exists && element.isHittable { return true }
+            app.swipeUp()
+        }
+        return element.exists && element.isHittable
+    }
+
+    private func closeSheet(_ title: String) {
+        let button = app.buttons[title].firstMatch
+        if button.waitForExistence(timeout: 3) { button.tap() }
+        Thread.sleep(forTimeInterval: 0.6)
+    }
+
     func test_captureMuscleTraining() {
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)
