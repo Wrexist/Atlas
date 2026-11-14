@@ -434,7 +434,11 @@ final class ScreenshotTests: XCTestCase {
             app.dismissOverlaysIfNeeded()
             app.tabBars.buttons["Train"].tap()
             app.dismissOverlaysIfNeeded()
-            app.buttons["History"].firstMatch.tap()
+            // History is pushed from the latest workout's "View all".
+            let history = app.buttons["View workout history"].firstMatch
+            XCTAssertTrue(history.waitForExistence(timeout: 10))
+            reveal(history)
+            history.tap()
             let untyped = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Choose type")).firstMatch
             XCTAssertTrue(untyped.waitForExistence(timeout: 10))
             capture(named: "types-\(appearance)-01-history")
