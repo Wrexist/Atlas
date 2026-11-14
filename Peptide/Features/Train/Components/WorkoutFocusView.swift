@@ -24,7 +24,7 @@ struct WorkoutFocusView: View {
                 VStack(spacing: Spacing.md) {
                     adjustmentBanner
                     if let entry {
-                        ExerciseHeroView(exercise: exercise)
+                        WorkoutExerciseHero(exercise: exercise) { detailExercise = exercise }
                             .id(exercise?.id)
                             .transition(.opacity)
                             .frame(height: heroHeight(available: geometry.size.height))
@@ -156,8 +156,16 @@ struct WorkoutFocusView: View {
                     .foregroundStyle(AppColor.textPrimary)
                 Spacer(minLength: Spacing.xs)
                 Button { detailExercise = exercise } label: {
-                    Image(systemName: "info.circle").minimumHitArea()
+                    Label("How to do it", systemImage: "info.circle")
+                        .font(AppFont.chipText)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.sm)
+                        .glassControl(.capsule, interactive: false)
+                        .fixedSize()
+                        .minimumHitArea()
                 }
+                .buttonStyle(ScalePressStyle())
                 .accessibilityLabel("Exercise instructions")
                 .disabled(exercise == nil)
             }

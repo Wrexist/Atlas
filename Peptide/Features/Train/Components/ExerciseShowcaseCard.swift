@@ -117,7 +117,7 @@ private struct MuscleChips: View {
 /// A transparent clip is HEVC with alpha: the layer asks for BGRA frames and
 /// has no background of its own, so the card shows through around the
 /// figure. An opaque clip keeps the cheaper native frame format.
-private struct LoopingVideo: UIViewRepresentable {
+struct LoopingVideo: UIViewRepresentable {
     let url: URL
     let isTransparent: Bool
     let playing: Bool

@@ -6956,6 +6956,16 @@
         }
       }
     },
+    "Shows how to perform the exercise": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar hur du utför övningen"
+          }
+        }
+      }
+    },
     "Sleep debt, last 7 nights": {
       "localizations": {
         "sv": {
@@ -20116,6 +20126,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Så räknas de"
+          }
+        }
+      }
+    },
+    "How to do it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Så gör du"
           }
         }
       }
