@@ -13,6 +13,7 @@ struct WorkoutExerciseHero: View {
     let onShowInstructions: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The focus view gives each lift its own hero (`.id`), so this never
     /// carries one exercise's clip over to the next.
     @State private var clip: ExerciseClipStore.Clip?
@@ -29,7 +30,9 @@ struct WorkoutExerciseHero: View {
                 }
                 ExerciseHeroView(exercise: exercise, showsLegend: false)
             }
-            if let exercise {
+            // At accessibility sizes the hero is 120 pt: the legend would leave
+            // no room for the figures. VoiceOver reads the names off the map.
+            if let exercise, !dynamicTypeSize.isAccessibilitySize {
                 ExerciseMuscleLegend(highlights: ExerciseAnatomyEngine.highlights(for: exercise))
             }
         }
@@ -39,8 +42,9 @@ struct WorkoutExerciseHero: View {
             guard let exercise, !exercise.isCustom else { return }
             let store = ExerciseClipStore.shared
             let listed = await store.hasClip(for: exercise.id)
-            guard !Task.isCancelled, listed else { return }
-            hasClip = true
+            guard !Task.isCancelled else { return }
+            hasClip = listed
+            guard listed else { return }
             let found = await store.clip(for: exercise.id)
             guard !Task.isCancelled else { return }
             clip = found

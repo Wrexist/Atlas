@@ -17698,16 +17698,6 @@
         }
       }
     },
-    "Exercise instructions": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Instruktioner för övningen"
-          }
-        }
-      }
-    },
     "Exercise metadata is unavailable. Your saved sets are still shown.": {
       "localizations": {
         "sv": {
