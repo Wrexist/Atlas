@@ -24,7 +24,7 @@ struct WorkoutFocusView: View {
                 VStack(spacing: Spacing.md) {
                     adjustmentBanner
                     if let entry {
-                        ExerciseHeroView(exercise: exercise)
+                        WorkoutExerciseHero(exercise: exercise, isVisible: detailExercise == nil) { detailExercise = exercise }
                             .id(exercise?.id)
                             .transition(.opacity)
                             .frame(height: heroHeight(available: geometry.size.height))
@@ -143,6 +143,35 @@ struct WorkoutFocusView: View {
         .accessibilityLabel(Text(library.displayName(for: item.exerciseID)))
         .accessibilityValue(complete ? Text("status.complete") : Text("Sets done: \(workingDone) of \(working.count)"))
         .accessibilityAddTraits(selected ? .isSelected : [])
+        // Any lift in the session, not just the current one, is a long
+        // press away from its animation and steps.
+        .contextMenu {
+            if let exercise {
+                Button("How to do it", systemImage: "info.circle") { detailExercise = exercise }
+            }
+        }
+    }
+
+    private var exerciseTitle: some View {
+        Text(exercise?.name ?? String(localized: "Unknown exercise"))
+            .font(AppFont.title3)
+            .foregroundStyle(AppColor.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var howToButton: some View {
+        Button { detailExercise = exercise } label: {
+            Label("How to do it", systemImage: "info.circle")
+                .font(AppFont.chipText)
+                .foregroundStyle(AppColor.textPrimary)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .glassControl(.capsule, interactive: false)
+                .fixedSize()
+                .minimumHitArea()
+        }
+        .buttonStyle(ScalePressStyle())
+        .disabled(exercise == nil)
     }
 
     private func setPanel(_ entry: WorkoutExerciseEntry) -> some View {
@@ -150,16 +179,18 @@ struct WorkoutFocusView: View {
             for: entry.sets, previous: service.previousSessionSets(forExerciseID: entry.exerciseID)
         )
         return VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(alignment: .top) {
-                Text(exercise?.name ?? String(localized: "Unknown exercise"))
-                    .font(AppFont.title3)
-                    .foregroundStyle(AppColor.textPrimary)
-                Spacer(minLength: Spacing.xs)
-                Button { detailExercise = exercise } label: {
-                    Image(systemName: "info.circle").minimumHitArea()
+            // Name and pill share a row while both fit whole; a long name or
+            // a large text size puts the pill on its own line under it.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) {
+                    exerciseTitle
+                    Spacer(minLength: Spacing.xs)
+                    howToButton
                 }
-                .accessibilityLabel("Exercise instructions")
-                .disabled(exercise == nil)
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    exerciseTitle
+                    howToButton
+                }
             }
             if let letter = session.supersetLetter(for: entry.id) {
                 Label(supersetCaption(letter: letter, entryID: entry.id), systemImage: "link")

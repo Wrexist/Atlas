@@ -4,9 +4,11 @@ import SwiftUI
 /// The top of the exercise page: the rendered animation standing straight
 /// on the card (a transparent clip has no video box; an opaque one is shown
 /// as a rounded dark panel until the transparent set is published), with a
-/// Movement / Muscles switch to the interactive body map. An exercise
-/// without a clip (custom, not rendered yet, offline on first view) shows
-/// the body map alone and no switch.
+/// Movement / Muscles switch to the interactive body map. While a listed
+/// clip downloads, a placeholder holds its place, so the page doesn't read
+/// as "no animation" and then jump. An exercise without a clip (custom, not
+/// rendered yet, offline on first view) shows the body map alone and no
+/// switch.
 struct ExerciseShowcaseCard: View {
     let exercise: Exercise
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -14,6 +16,8 @@ struct ExerciseShowcaseCard: View {
     /// The exercise `clip` belongs to, so coming back to the same page keeps
     /// the animation up while the lookup reruns instead of flashing the map.
     @State private var clipExerciseID: String?
+    /// The index lists a clip for this exercise; true before the video is in.
+    @State private var hasClip = false
     @State private var mode: Mode = .movement
     @State private var paused = false
 
@@ -24,11 +28,14 @@ struct ExerciseShowcaseCard: View {
     var body: some View {
         GlassCard {
             VStack(spacing: Spacing.md) {
-                if clip != nil {
+                if hasClip {
                     GlassSegmentedControl(options: Mode.allCases, selected: $mode, label: label)
                 }
                 if let clip, mode == .movement {
                     movement(clip)
+                        .transition(.opacity)
+                } else if hasClip, mode == .movement {
+                    loadingMovement
                         .transition(.opacity)
                 } else {
                     MuscleActivationMap(exercise: exercise)
@@ -37,12 +44,31 @@ struct ExerciseShowcaseCard: View {
             }
         }
         .appAnimation(AppAnimation.fadeIn, value: clip)
+        .appAnimation(AppAnimation.fadeIn, value: hasClip)
         .appAnimation(AppAnimation.quick, value: mode)
         .task(id: exercise.id) {
-            if clipExerciseID != exercise.id { clip = nil }
+            if clipExerciseID != exercise.id {
+                clip = nil
+                hasClip = false
+            }
             clipExerciseID = exercise.id
             guard !exercise.isCustom else { return }
-            clip = await ExerciseClipStore.shared.clip(for: exercise.id)
+            let store = ExerciseClipStore.shared
+            // A cancelled lookup (page left, exercise changed) writes nothing:
+            // the store's index load outlives it and would answer for the
+            // old exercise.
+            let listed = await store.hasClip(for: exercise.id)
+            guard !Task.isCancelled else { return }
+            hasClip = listed
+            guard listed else {
+                clip = nil
+                return
+            }
+            let found = await store.clip(for: exercise.id)
+            guard !Task.isCancelled else { return }
+            clip = found
+            // The download failed: fall back to the body map, no dead switch.
+            if found == nil { hasClip = false }
         }
     }
 
@@ -67,6 +93,18 @@ struct ExerciseShowcaseCard: View {
                 .accessibilityLabel(Text("Animation of \(exercise.name)"))
             MuscleChips(rows: MuscleInvolvementEngine.rows(for: exercise))
         }
+    }
+
+    /// The video's 4:5 footprint, so the card barely moves when it lands
+    /// (only the muscle chips under it are added).
+    private var loadingMovement: some View {
+        RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
+            .fill(AppColor.track)
+            .aspectRatio(4 / 5, contentMode: .fit)
+            .shimmer()
+            .frame(maxWidth: .infinity)
+            .accessibilityElement()
+            .accessibilityLabel(Text("Loading animation"))
     }
 
     private var pauseButton: some View {
@@ -117,7 +155,7 @@ private struct MuscleChips: View {
 /// A transparent clip is HEVC with alpha: the layer asks for BGRA frames and
 /// has no background of its own, so the card shows through around the
 /// figure. An opaque clip keeps the cheaper native frame format.
-private struct LoopingVideo: UIViewRepresentable {
+struct LoopingVideo: UIViewRepresentable {
     let url: URL
     let isTransparent: Bool
     let playing: Bool
