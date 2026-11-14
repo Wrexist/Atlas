@@ -850,6 +850,12 @@ struct WorkoutAccessoryView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Spacer()
+            // The strip is a button; the chevron says so and balances the
+            // icon on the leading edge.
+            Image(systemName: "chevron.right")
+                .font(AppFont.caption2.weight(.semibold))
+                .foregroundStyle(AppColor.textTertiary)
+                .accessibilityHidden(true)
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
