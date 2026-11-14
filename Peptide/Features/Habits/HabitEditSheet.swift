@@ -12,6 +12,16 @@ struct HabitEditSheet: View {
     let editing: Habit?
     let onSave: (Habit) -> Void
     let onDelete: ((UUID) -> Void)?
+    /// An existing habit's record, shown above its settings: the list
+    /// rows only carry today's check, so this is where the streaks and
+    /// the half-year heatmap live.
+    let history: History?
+
+    struct History {
+        let summary: HabitsService.Summary
+        let columns: [[HabitsService.HeatmapStatus?]]
+        let start: Date?
+    }
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -47,10 +57,12 @@ struct HabitEditSheet: View {
 
     init(
         editing: Habit?,
+        history: History? = nil,
         onSave: @escaping (Habit) -> Void,
         onDelete: ((UUID) -> Void)? = nil
     ) {
         self.editing = editing
+        self.history = history
         self.onSave = onSave
         self.onDelete = onDelete
 
@@ -88,11 +100,46 @@ struct HabitEditSheet: View {
         _reminderTime = State(initialValue: base.reminderTime ?? HabitReminderSlot.morning.time())
     }
 
+    private func historyCard(_ history: History) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            HStack(spacing: Spacing.lg) {
+                stat(value: history.summary.currentStreak, label: "Streak")
+                stat(value: history.summary.bestStreak, label: "Best")
+                stat(value: history.summary.totalCompletedDays, label: "Days done")
+                Spacer(minLength: 0)
+            }
+            HabitHeatmap(
+                columns: history.columns,
+                tint: HabitTintCatalog.color(for: tintHex),
+                firstColumnStart: history.start
+            )
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+    }
+
+    private func stat(value: Int, label: LocalizedStringKey) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Text("\(value)")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+            Text(label)
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.xl) {
                     medallion
+                    if let history {
+                        historyCard(history)
+                    }
                     nameField
                     scheduleSection
                     customizeRow

@@ -49445,6 +49445,16 @@
           }
         }
       }
+    },
+    "Days done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagar klara"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

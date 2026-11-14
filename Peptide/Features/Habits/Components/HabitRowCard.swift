@@ -1,14 +1,12 @@
 import SwiftUI
 
-/// Full-width habit card matching the loggd.life layout — icon +
-/// name + frequency badge on the header row, three stat chips
-/// (streak / best / total), and the heatmap underneath. Tappable
-/// surface advances to the habit detail.
+/// One habit as a checklist row: icon, name, schedule and streak in a
+/// line under it, and the check button. The half-year heatmap and the
+/// best/total stats live in the habit's editor, so a list of five
+/// habits reads as five things to tick, not five dashboards.
 struct HabitRowCard: View {
     let habit: Habit
     let summary: HabitsService.Summary
-    let heatmapColumns: [[HabitsService.HeatmapStatus?]]
-    let heatmapStart: Date?
     let onToggleToday: () -> Void
     let onTap: () -> Void
 
@@ -19,24 +17,16 @@ struct HabitRowCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                header
-                statRow
-                HabitHeatmap(
-                    columns: heatmapColumns,
-                    tint: habit.tint,
-                    firstColumnStart: heatmapStart
+            header
+                .padding(Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .fill(AppColor.surfaceSecondary.opacity(0.6))
                 )
-            }
-            .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .stroke(AppColor.glassBorder, lineWidth: 0.5)
-            )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .stroke(AppColor.glassBorder, lineWidth: 0.5)
+                )
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         // A sibling of the card's Button rather than nested in its label,
@@ -74,13 +64,19 @@ struct HabitRowCard: View {
                 trigger: completionTrigger,
                 playsOnArrival: false
             )
-            Text(habit.name)
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textPrimary)
-                .lineLimit(2)
-                .layoutPriority(1)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(habit.name)
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(2)
+                Text(detailLine)
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(2)
+                    .contentTransition(.numericText())
+            }
+            .layoutPriority(1)
             Spacer(minLength: Spacing.sm)
-            scheduleBadge
             Color.clear
                 .frame(width: Self.todayButtonSize, height: Self.todayButtonSize)
                 .anchorPreference(key: TodayButtonSlotKey.self, value: .bounds) { $0 }
@@ -103,17 +99,11 @@ struct HabitRowCard: View {
         String(localized: "\(summary.totalCompletedDays) days total")
     }
 
-    private var scheduleBadge: some View {
-        Text(habit.schedule.displayName)
-            .font(AppFont.scaled(11, weight: .bold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .foregroundStyle(AppColor.accentLight)
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 3)
-            .background(
-                Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-            )
+    /// "Daily · 5 day streak" — the schedule as plain text instead of a
+    /// tinted badge, with the streak only once there is one.
+    private var detailLine: String {
+        guard summary.currentStreak > 0 else { return habit.schedule.displayName }
+        return "\(habit.schedule.displayName) · \(streakLabel)"
     }
 
     private var todayButton: some View {
@@ -167,31 +157,6 @@ struct HabitRowCard: View {
     private var todayButtonValue: Text {
         guard let target = habit.targetValue else { return Text("") }
         return Text("\(summary.todayValue) of \(target)")
-    }
-
-    private var statRow: some View {
-        HStack(spacing: Spacing.md) {
-            statChip(icon: "flame.fill",       value: "\(summary.currentStreak)", label: "streak", tint: AppColor.streak)
-            statChip(icon: "trophy.fill",      value: "\(summary.bestStreak)",    label: "best",   tint: AppColor.achievement)
-            statChip(icon: "checkmark.circle", value: "\(summary.totalCompletedDays)", label: summary.totalCompletedDays == 1 ? "day" : "days", tint: AppColor.positive)
-            Spacer(minLength: 0)
-        }
-    }
-
-    private func statChip(icon: String, value: String, label: LocalizedStringKey, tint: Color) -> some View {
-        HStack(spacing: Spacing.xs) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(tint)
-            Text(value)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(AppColor.textPrimary)
-            Text(label)
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(AppColor.textSecondary)
-        }
     }
 }
 
