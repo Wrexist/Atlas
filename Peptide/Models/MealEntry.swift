@@ -1,10 +1,9 @@
 import Foundation
 import SwiftUI
 
-/// Which meal of the day a `MealEntry` belongs to. Drives the per-
-/// category breakdown card on the Meals tab (via
-/// `HomeMealsSection.MealCategoriesCard`) and the (eventual)
-/// HealthKit meal-type tagging.
+/// Which meal of the day a `MealEntry` belongs to. Drives the diary's
+/// meal sections on the Meals tab and the (eventual) HealthKit
+/// meal-type tagging.
 ///
 /// Time-of-day auto-classification lives on `MealCategory.auto(for:)`
 /// — used by the review screens as the default when the user hasn't

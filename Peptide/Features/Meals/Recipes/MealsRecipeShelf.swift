@@ -23,7 +23,6 @@ struct MealsRecipeShelf: View {
         let favorites = self.favorites
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HomeSectionHeader(
-                eyebrow: "Recipes",
                 title: favorites.isEmpty ? "Picked for now" : "Your favorites"
             ) {
                 NavigationLink {

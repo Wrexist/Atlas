@@ -75,56 +75,14 @@ struct HomeMealsSection: View {
 
     var body: some View {
         VStack(spacing: Spacing.xl) {
-            HomeSectionHeader(
-                eyebrow: "Meals",
-                title: "Capture what you ate"
-            )
-            .sectionAppear(index: 0)
-
             MealDaySwitcher(offset: $dayOffset)
-                .sectionAppear(index: 1)
-
-            FoodLibraryEntryCard(onTap: { showFoodLibrary = true })
-                .sectionAppear(index: 2)
-
-            LogMealEntryPicker(
-                onScanBarcode: { showBarcodeScan = true },
-                onSnapPhoto: { showMealScan = true },
-                onScanTable: { showTableScan = true }
-            )
-            .sectionAppear(index: 3)
+                .sectionAppear(index: 0)
 
             let dayEntries = dataStore.mealEntries(for: selectedDay)
-            if let table = latestTable(in: dayEntries) {
-                LatestTableCard(moment: table.moment, dishes: table.dishes) {
-                    openTable = TableRoute(id: table.moment.id)
-                }
-                .scrollReveal()
-            }
 
             if dataStore.profile.nutritionTargets == nil {
                 targetsPrompt
             }
-
-            HomeSectionHeader(
-                eyebrow: "Daily rings",
-                title: "Nutrition",
-                trailing: {
-                    Button {
-                        showTargetsEditor = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "slider.horizontal.3")
-                                .font(AppFont.scaled(11, weight: .semibold))
-                            Text("Edit targets")
-                                .font(AppFont.scaled(11, weight: .semibold))
-                        }
-                        .foregroundStyle(AppColor.accentLight)
-                        .minimumHitArea()
-                    }
-                    .buttonStyle(.plain)
-                }
-            )
 
             let dailyBreakdown = dataStore.mealsByCategory(for: selectedDay)
             let dailyConsumption = dataStore.consumption(for: selectedDay)
@@ -141,26 +99,19 @@ struct HomeMealsSection: View {
                     showTargetsEditor = true
                 }
             }
-            .sectionAppear(index: 4)
+            .sectionAppear(index: 1)
 
-            MealStreakBadge(
-                currentStreak: dataStore.mealLoggingStreak,
-                bestStreak: dataStore.bestMealLoggingStreak
-            )
-            .scrollReveal()
-
-            if !dayEntries.isEmpty {
-                DailyMealNutrientsCard(entries: dayEntries, fiberTargetG: dataStore.profile.nutritionTargets?.fiberG)
-                    .scrollReveal()
-                DailyMicronutrientsCard(entries: dayEntries)
-                    .scrollReveal()
+            VStack(spacing: Spacing.sm) {
+                logFoodMenu
+                editTargetsButton
             }
-            if dailyConsumption.caloriesKcal > 0 || !dayEntries.isEmpty {
-                MealCategoriesCard(
-                    breakdown: dailyBreakdown,
-                    dayTitle: dayOffset == 0 ? nil : MealDaySwitcher.title(for: selectedDay)
-                )
-                    .scrollReveal()
+            .sectionAppear(index: 2)
+
+            if let table = latestTable(in: dayEntries) {
+                LatestTableCard(moment: table.moment, dishes: table.dishes) {
+                    openTable = TableRoute(id: table.moment.id)
+                }
+                .scrollReveal()
             }
 
             // Always shown: its empty state is the "nothing logged" answer
@@ -187,6 +138,19 @@ struct HomeMealsSection: View {
                 .padding(.top, Spacing.sm)
             }
             .scrollReveal()
+
+            MealStreakBadge(
+                currentStreak: dataStore.mealLoggingStreak,
+                bestStreak: dataStore.bestMealLoggingStreak
+            )
+            .scrollReveal()
+
+            if !dayEntries.isEmpty {
+                DailyMealNutrientsCard(entries: dayEntries, fiberTargetG: dataStore.profile.nutritionTargets?.fiberG)
+                    .scrollReveal()
+                DailyMicronutrientsCard(entries: dayEntries)
+                    .scrollReveal()
+            }
         }
         .onAppear { dataStore.refreshAdaptiveTargets() }
         .sheet(isPresented: $showMealScan) {
@@ -403,6 +367,40 @@ struct HomeMealsSection: View {
     private func handleLibraryHandoff(_ next: PendingLibraryHandoff) {
         pendingFromLibrary = next
         showFoodLibrary = false
+    }
+
+    /// The tab's one painted action. Every way to log a meal sits behind
+    /// it, camera first — the fastest log for a plate — instead of four
+    /// equal tiles competing above the diary.
+    private var logFoodMenu: some View {
+        Menu {
+            Button("Scan meal photo", systemImage: "camera.fill") { showMealScan = true }
+            Button("Search foods", systemImage: "magnifyingglass") { showFoodLibrary = true }
+            Button("Scan barcode", systemImage: "barcode.viewfinder") { showBarcodeScan = true }
+            Button("Scan the whole table", systemImage: "square.grid.2x2") { showTableScan = true }
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "plus")
+                    .font(AppFont.scaled(16, weight: .bold))
+                    .accessibilityHidden(true)
+                Text("Log food")
+                    .font(AppFont.scaled(16, weight: .bold))
+            }
+            .primaryCTAChrome(shape: .rounded)
+        }
+        .accessibilityHint(Text("Choose a photo, a search, a barcode or the whole table."))
+    }
+
+    /// Targets are edited from here only; the empty-targets prompt
+    /// stands in for it until there are targets to edit.
+    @ViewBuilder
+    private var editTargetsButton: some View {
+        if dataStore.profile.nutritionTargets != nil {
+            Button("Edit targets") { showTargetsEditor = true }
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.textSecondary)
+                .minimumHitArea()
+        }
     }
 
     private var targetsPrompt: some View {

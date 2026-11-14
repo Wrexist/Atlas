@@ -11,8 +11,8 @@ struct WidgetDoseSlot: Codable, Hashable, Sendable {
 }
 
 /// Per-meal-category breakdown surfaced on the Medium nutrition
-/// widget. Mirrors the `MealCategoriesCard` totals from the Meals
-/// tab (computed via `LifestyleDataLogic.CategoryTotals`) stripped
+/// widget. Mirrors the per-meal totals the Meals tab's diary shows
+/// (computed via `LifestyleDataLogic.CategoryTotals`) stripped
 /// to the fields the widget actually renders so the
 /// shared-container payload stays compact.
 struct WidgetMealSlot: Codable, Hashable, Sendable {
