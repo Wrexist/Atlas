@@ -5,6 +5,8 @@ struct WorkoutSavedEditor: View {
     let unit: MeasurementUnit
     let onSave: (WorkoutSession) throws -> Void
     private let original: WorkoutSession
+    /// A new workout being logged needs a set before Save means anything.
+    private let requiresSets: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var draft: WorkoutSession
     @State private var error: String?
@@ -17,10 +19,16 @@ struct WorkoutSavedEditor: View {
     @State private var expandedSets: Set<UUID> = []
     @FocusState private var focusedField: String?
 
-    init(session: WorkoutSession, unit: MeasurementUnit, onSave: @escaping (WorkoutSession) throws -> Void) {
+    init(
+        session: WorkoutSession,
+        unit: MeasurementUnit,
+        requiresSets: Bool = false,
+        onSave: @escaping (WorkoutSession) throws -> Void
+    ) {
         self.unit = unit
         self.onSave = onSave
         self.original = session
+        self.requiresSets = requiresSets
         _draft = State(initialValue: session)
     }
 
@@ -138,6 +146,9 @@ struct WorkoutSavedEditor: View {
 
     private var validationIssue: String? {
         if !invalidFields.isEmpty { return String(localized: "Correct the highlighted number fields before saving.") }
+        if requiresSets && draft.completedSetCount == 0 {
+            return String(localized: "Add at least one exercise to log this workout.")
+        }
         return WorkoutEditValidation.issue(in: draft, original: original)
     }
 

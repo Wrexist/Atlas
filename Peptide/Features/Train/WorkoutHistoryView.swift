@@ -47,7 +47,7 @@ struct WorkoutHistoryView: View {
             if !hasLoaded {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if groupedSessions.isEmpty && cardio.isEmpty && !needsWorkoutAccess {
+            } else if groupedSessions.isEmpty && shownCardio.isEmpty && !needsWorkoutAccess {
                 EmptyStateView(
                     icon: "calendar",
                     title: "No workouts logged yet",
@@ -206,7 +206,7 @@ struct WorkoutHistoryView: View {
         } header: {
             sectionHeader(
                 String(localized: "From Apple Health"),
-                detail: cardio.isEmpty ? nil : Text("\(CardioWorkoutEngine.minutesThisWeek(cardio)) min this week")
+                detail: shownCardio.isEmpty ? nil : Text("\(CardioWorkoutEngine.minutesThisWeek(shownCardio)) min this week")
             )
         }
     }

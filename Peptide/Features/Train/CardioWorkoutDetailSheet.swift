@@ -70,7 +70,7 @@ struct CardioWorkoutDetailSheet: View {
             }
         }
         .sheet(item: $loggingSession, onDismiss: { if didLog { dismiss() } }) { session in
-            WorkoutSavedEditor(session: session, unit: unit) { edited in
+            WorkoutSavedEditor(session: session, unit: unit, requiresSets: true) { edited in
                 try save(edited, startedAs: session)
             }
         }
@@ -101,9 +101,6 @@ struct CardioWorkoutDetailSheet: View {
     /// Saves the lifts as an Atlas workout. History then shows that
     /// workout in place of this one (`CardioWorkoutEngine.unlogged`).
     private func save(_ edited: WorkoutSession, startedAs original: WorkoutSession) throws {
-        guard edited.completedSetCount > 0 else {
-            throw WorkoutEditValidation.InvalidDraft(message: String(localized: "Add at least one exercise to log this workout."))
-        }
         try WorkoutEditValidation.validate(edited, original: original)
         try SwiftDataRepository.shared.saveWorkoutDurably(edited)
         didLog = true

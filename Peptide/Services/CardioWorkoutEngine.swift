@@ -45,7 +45,9 @@ enum CardioWorkoutEngine {
 
     /// The Health workouts not already logged in Atlas. One whose start
     /// matches an Atlas workout's to the second had its exercises logged
-    /// from here, and the Atlas workout now shows it.
+    /// from here, and the Atlas workout now shows it. Holds because a saved
+    /// workout's start is never edited; only sessions history has loaded
+    /// are checked, which covers the 30-day Health window.
     static func unlogged(_ workouts: [ImportedCardioWorkout], sessions: [WorkoutSession]) -> [ImportedCardioWorkout] {
         let starts = Set(sessions.map { Int($0.startedAt.timeIntervalSinceReferenceDate.rounded()) })
         return workouts.filter { !starts.contains(Int($0.start.timeIntervalSinceReferenceDate.rounded())) }
