@@ -82,6 +82,10 @@ struct WorkoutSessionDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !session.isActive {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") { showingEditor = true }
+                        .accessibilityIdentifier("edit-saved-workout")
+                }
                 ToolbarItem(placement: .topBarTrailing) { optionsMenu }
             }
         }
@@ -112,7 +116,6 @@ struct WorkoutSessionDetailView: View {
     private var optionsMenu: some View {
         Menu {
             Button("View summary", systemImage: "checkmark.circle") { showingSummary = true }
-            Button("Edit workout", systemImage: "pencil") { showingEditor = true }
             Button {
                 repeatWorkout()
             } label: {

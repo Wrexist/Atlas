@@ -10,6 +10,7 @@ struct WorkoutSavedEditor: View {
     @State private var error: String?
     @State private var saving = false
     @State private var invalidFields: Set<String> = []
+    @State private var pickingExercise = false
     @FocusState private var focusedField: String?
 
     init(session: WorkoutSession, unit: MeasurementUnit, onSave: @escaping (WorkoutSession) throws -> Void) {
@@ -29,14 +30,29 @@ struct WorkoutSavedEditor: View {
                         .focused($focusedField, equals: "notes")
                 }
                 ForEach($draft.exercises) { $entry in
-                    Section(ExerciseLibrary.shared.displayName(for: entry.exerciseID)) {
+                    Section {
                         ForEach($entry.sets) { $set in
                             DisclosureGroup("Set \(set.index) · \(RecapFormat.set(set, unit: unit))") {
                                 RecapSetEditor(set: $set, unit: unit, invalidFields: $invalidFields, focusedField: $focusedField)
                             }
                             .accessibilityIdentifier("recap-edit-set-\(set.id.uuidString)")
                         }
+                        .onDelete { offsets in
+                            draft.removeLoggedSets(atOffsets: offsets, fromEntry: entry.id)
+                        }
+                        Button("Add set", systemImage: "plus") {
+                            draft.appendLoggedSet(toEntry: entry.id)
+                        }
+                        .accessibilityIdentifier("recap-add-set-\(entry.id.uuidString)")
+                    } header: {
+                        exerciseHeader(entry)
                     }
+                }
+                Section {
+                    Button("Add exercise", systemImage: "plus.circle.fill") { pickingExercise = true }
+                        .accessibilityIdentifier("recap-add-exercise")
+                } footer: {
+                    Text("Swipe a set to delete it. Added sets count as done when the workout finished.")
                 }
                 Section {
                     Text("Only completed working sets contribute to recap totals. Changing a load convention changes recorded volume; existing records keep their original meaning until you explicitly change it.")
@@ -60,7 +76,30 @@ struct WorkoutSavedEditor: View {
                 }
             }
             .interactiveDismissDisabled(saving)
+            .sheet(isPresented: $pickingExercise) {
+                ExercisePickerSheet(existingIDs: Set(draft.exercises.map(\.exerciseID))) { exercise in
+                    draft.appendLoggedExercise(
+                        exercise.id,
+                        seed: WorkoutSessionService.shared.lastCompletedSet(forExerciseID: exercise.id)
+                    )
+                }
+            }
         }.tint(AppColor.accentPrimary)
+    }
+
+    private func exerciseHeader(_ entry: WorkoutExerciseEntry) -> some View {
+        let name = ExerciseLibrary.shared.displayName(for: entry.exerciseID)
+        return HStack {
+            Text(name)
+            Spacer(minLength: Spacing.sm)
+            Button("Remove \(name)", systemImage: "minus.circle", role: .destructive) {
+                draft.removeLoggedExercise(entryID: entry.id)
+            }
+            .labelStyle(.iconOnly)
+            .foregroundStyle(AppColor.destructive)
+            .minimumHitArea()
+            .accessibilityIdentifier("recap-remove-exercise-\(entry.id.uuidString)")
+        }
     }
 
     private var validationIssue: String? {
