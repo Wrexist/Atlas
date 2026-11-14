@@ -111,6 +111,16 @@
         }
       }
     },
+    "%@ kcal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kcal"
+          }
+        }
+      }
+    },
     "%@ mg/L": {
       "localizations": {
         "sv": {
@@ -137,6 +147,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ ± %2$@"
+          }
+        }
+      }
+    },
+    "%@, %lld of %lld sets this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld av %3$lld set denna vecka"
           }
         }
       }
@@ -6796,6 +6816,16 @@
         }
       }
     },
+    "per 100 g": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "per 100 g"
+          }
+        }
+      }
+    },
     "Pick another day to copy from.": {
       "localizations": {
         "sv": {
@@ -6952,6 +6982,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Visa alla"
+          }
+        }
+      }
+    },
+    "sets this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "set denna vecka"
           }
         }
       }

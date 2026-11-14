@@ -132,23 +132,49 @@ struct SessionBuilderSheet: View {
         return map
     }
 
+    /// Name and readiness on the left, this week's sets on the right,
+    /// and the week's progress as one bar across the card's full width.
     private func statusCard(for target: Target) -> some View {
         let state = states[target]
         let goal = Int(MuscleVolumeTargets.weeklySets(for: profileRequest.experience).lowerBound)
+        let done = Int(state?.weeklySets ?? 0)
+        let fraction = goal > 0 ? min(1, CGFloat(done) / CGFloat(goal)) : 0
         return GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(target.displayName)
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(statusText(state?.recovery))
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.textSecondary)
-                Text("\(Int(state?.weeklySets ?? 0)) of \(goal) sets this week")
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.textSecondary)
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.md) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(target.displayName)
+                            .font(AppFont.scaled(16, weight: .semibold))
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text(statusText(state?.recovery))
+                            .font(AppFont.scaled(13))
+                            .foregroundStyle(AppColor.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: Spacing.sm)
+                    VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                        Text("\(done) / \(goal)")
+                            .font(AppFont.scaled(16, weight: .semibold))
+                            .foregroundStyle(AppColor.textPrimary)
+                            .monospacedDigit()
+                        Text("sets this week")
+                            .font(AppFont.scaled(13))
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                }
+                Capsule()
+                    .fill(AppColor.track)
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(AppColor.trainingPrimaryMuscle)
+                            .scaleEffect(x: fraction, anchor: .leading)
+                    }
+                    .frame(height: 6)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(target.displayName))
+            .accessibilityValue(Text("\(statusText(state?.recovery)), \(done) of \(goal) sets this week"))
         }
     }
 
@@ -253,7 +279,9 @@ struct SessionBuilderSheet: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        .padding(.top, Spacing.md)
+        // Deeper than the footer's fade, so the fade ends above the
+        // button instead of letting the section headers show through it.
+        .padding(.top, Spacing.xl)
         .padding(.bottom, Spacing.sm)
     }
 
