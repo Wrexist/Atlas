@@ -11,6 +11,9 @@ struct AtlasProgressView: View {
     /// Engine passes (history sort, per-habit streaks, two completion-rate
     /// windows), computed once per store revision instead of in `body`.
     @State private var derived = Derived()
+    /// The badges the Atlas Score sums up, shown under the streaks rather
+    /// than on Profile, so Profile stays about the person and settings.
+    @State private var achievementService = AchievementService.shared
 
     private struct Derived {
         var history: [MomentumDayPoint] = []
@@ -27,10 +30,12 @@ struct AtlasProgressView: View {
                         .sectionAppear(index: 0)
                     streaksSection
                         .sectionAppear(index: 1)
-                    consistencySection
+                    AchievementsSection(achievements: achievementService.achievements)
                         .sectionAppear(index: 2)
-                    ProgressPhotosCard()
+                    consistencySection
                         .sectionAppear(index: 3)
+                    ProgressPhotosCard()
+                        .sectionAppear(index: 4)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.vertical, Spacing.lg)
