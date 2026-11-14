@@ -7,12 +7,9 @@ import SwiftUI
 ///      muscles the user actually trained over the past 7 days. The
 ///      whole body stays visible at a low baseline so the surface
 ///      reads even on a fresh install.
-///   2. **Top muscles** — three pills under the map calling out the
-///      most-worked regions, with the working-set count.
-///   3. **Recent workouts** — the last three sessions with date, set
-///      count and total volume, tappable into the (future) detail
-///      view.
-///   4. **Month calendar** — heat-by-day grid for the current month.
+///   2. **Latest workout** — the most recent session, with "View all"
+///      pushing the full history.
+///   3. **Month calendar** — heat-by-day grid for the current month.
 ///      Days the user trained pulse with the accent colour; rest days
 ///      stay calm. Mirrors the shape of the existing peptide
 ///      compliance calendar so the visual language is consistent
@@ -32,7 +29,7 @@ struct TrainOverviewView: View {
     /// Memoised result of `WeeklyMuscleHeatmap.frequencies` — the
     /// underlying scan is O(sessions × exercises × muscles) and was
     /// previously recomputed on every body re-evaluation because the
-    /// `weekHasTraining` and `weeklyMuscleCard`/`topMusclesRow` paths
+    /// `weekHasTraining` and `weeklyMuscleCard` paths
     /// both touched the computed property. Recomputed only when
     /// `refresh()` runs (i.e. when sessions actually change).
     @State private var frequencies: [AnatomicalMuscle: Double] = [:]
@@ -89,10 +86,6 @@ struct TrainOverviewView: View {
                     .sectionAppear(index: 2)
                 weeklyMuscleCard
                     .sectionAppear(index: 3)
-                if weekHasTraining {
-                    topMusclesRow
-                        .sectionAppear(index: 4)
-                }
                 trainingDetails
                     .scrollReveal()
             }
@@ -189,25 +182,40 @@ struct TrainOverviewView: View {
         .accessibilityIdentifier("training-trends-disclosure")
     }
 
-    /// Primary CTA — kicks off an empty workout. Hidden when one's
-    /// already in progress (the container surfaces a "Resume" banner
-    /// in that case so we don't show two competing actions).
+    /// One painted action: start the routine that comes next in the
+    /// rotation, or plan a workout when there's no routine yet. The other
+    /// ways in sit under it as two quiet buttons instead of three equal
+    /// ones. Hidden while a workout is in progress — the container's
+    /// "Resume" banner is the action then.
     @ViewBuilder
     private var startWorkoutButton: some View {
         if sessionService.activeSession == nil {
+            let nextRoutine = Self.suggestedRoutine(from: routineStore.routines, history: sessions)
             VStack(spacing: Spacing.sm) {
-                PrimaryCTAButton(title: "Plan a workout", icon: "wand.and.stars", shape: .rounded) {
-                    Haptics.impact(.medium)
-                    showsSessionBuilder = true
+                if let nextRoutine {
+                    PrimaryCTAButton(title: "Start \(nextRoutine.name)", icon: "play.fill", shape: .rounded) {
+                        Haptics.impact(.medium)
+                        routineStore.startWorkout(from: nextRoutine)
+                    }
+                    .accessibilityIdentifier("train-start-next-routine")
+                } else {
+                    planWorkoutCTA
                 }
-                .accessibilityIdentifier("train-build-workout")
                 // Side by side only while both titles fit on one line each.
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: Spacing.sm) { startButtons }
-                    VStack(spacing: Spacing.sm) { startButtons }
+                    HStack(spacing: Spacing.sm) { otherStarts(showsPlan: nextRoutine != nil) }
+                    VStack(spacing: Spacing.sm) { otherStarts(showsPlan: nextRoutine != nil) }
                 }
             }
         }
+    }
+
+    private var planWorkoutCTA: some View {
+        PrimaryCTAButton(title: "Plan a workout", icon: "wand.and.stars", shape: .rounded) {
+            Haptics.impact(.medium)
+            showsSessionBuilder = true
+        }
+        .accessibilityIdentifier("train-build-workout")
     }
 
     private func startBuiltWorkout() {
@@ -217,20 +225,17 @@ struct TrainOverviewView: View {
     }
 
     @ViewBuilder
-    private var startButtons: some View {
-        GlassButton(title: "Empty workout", icon: "play.fill", style: .secondary, isFullWidth: true) {
+    private func otherStarts(showsPlan: Bool) -> some View {
+        GlassButton(title: "Empty workout", icon: "play", style: .secondary, isFullWidth: true) {
             Haptics.impact(.medium)
             sessionService.startWorkout()
         }
-        // The routine that comes next in the user's rotation, one
-        // tap from here instead of via the Routines tab.
-        if let routine = Self.suggestedRoutine(from: routineStore.routines, history: sessions) {
-            GlassButton(title: "Start \(routine.name)", icon: "list.bullet.rectangle.portrait",
-                        style: .secondary, isFullWidth: true) {
+        if showsPlan {
+            GlassButton(title: "Plan a workout", icon: "wand.and.stars", style: .secondary, isFullWidth: true) {
                 Haptics.impact(.medium)
-                routineStore.startWorkout(from: routine)
+                showsSessionBuilder = true
             }
-            .accessibilityIdentifier("train-start-next-routine")
+            .accessibilityIdentifier("train-build-workout")
         }
     }
 
@@ -465,70 +470,6 @@ struct TrainOverviewView: View {
         inspectedDays = selectedPeriod.rawValue
         inspectedPeriodLabel = selectedPeriod.detail
         inspectedMuscle = muscle
-    }
-
-    // MARK: - Top muscles row
-
-    private var topMusclesRow: some View {
-        let top = topMuscleGroups()
-        return ViewThatFits(in: .horizontal) {
-            HStack(spacing: Spacing.sm) {
-                ForEach(top, id: \.muscle) { item in
-                    topMusclePill(for: item.muscle, count: item.count)
-                }
-                Spacer(minLength: 0)
-            }
-            VStack(spacing: Spacing.sm) {
-                ForEach(top, id: \.muscle) { item in
-                    topMusclePill(for: item.muscle, count: item.count)
-                }
-            }
-        }
-    }
-
-    /// Collapse the per-head frequency map into per-group totals — so the
-    /// row shows one "Quads" pill summing all three heads rather than three
-    /// identical pills — and return the three most-trained groups.
-    private func topMuscleGroups() -> [(muscle: AnatomicalMuscle, count: Double)] {
-        var byGroup: [String: (muscle: AnatomicalMuscle, count: Double)] = [:]
-        for (muscle, count) in frequencies {
-            if let existing = byGroup[muscle.displayName] {
-                byGroup[muscle.displayName] = (existing.muscle, existing.count + count)
-            } else {
-                byGroup[muscle.displayName] = (muscle, count)
-            }
-        }
-        return byGroup.values
-            .sorted { lhs, rhs in
-                lhs.count != rhs.count ? lhs.count > rhs.count
-                                       : lhs.muscle.displayName < rhs.muscle.displayName
-            }
-            .prefix(3)
-            .map { (muscle: $0.muscle, count: $0.count) }
-    }
-
-    private func topMusclePill(for muscle: AnatomicalMuscle, count: Double) -> some View {
-        let score = Int(count.rounded())
-        return Button {
-            inspectRecentMuscle(muscle)
-        } label: {
-            VStack(spacing: Spacing.xs) {
-                Text(muscle.displayName)
-                    .font(AppFont.chipText)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text("Score \(score)")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.sm)
-            .glassSurface(cornerRadius: Spacing.smallCornerRadius)
-        }
-        .buttonStyle(ScalePressStyle())
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Shows the exercises you logged for this muscle")
     }
 
     // MARK: - Recent workouts

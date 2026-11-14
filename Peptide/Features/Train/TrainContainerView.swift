@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// Train-tab root. Hosts a segmented switcher between the four
-/// surface modes — Overview (the muscle heatmap + recent workouts),
-/// Routines (saved templates, one tap to start), Exercises (the
-/// searchable library), and History (finished workouts by month).
+/// Train-tab root. Hosts a segmented switcher between the three
+/// surface modes — Overview (start, the muscle heatmap and the latest
+/// workout), Routines (saved templates, one tap to start) and Exercises
+/// (the searchable library). History is pushed from the latest
+/// workout's "View all" rather than being a fourth peer: it's a record
+/// to look back at, not a place to start from.
 /// The single `path` lets every sub-screen push the same destination
 /// types (`TrainNavigation`) without each tab re-creating its own stack.
 struct TrainContainerView: View {
@@ -32,7 +34,7 @@ struct TrainContainerView: View {
     @State private var staleNoticeMessage: LocalizedStringResource = ""
 
     enum Section: String, CaseIterable, Identifiable {
-        case overview, routines, exercises, history
+        case overview, routines, exercises
         var id: String { rawValue }
 
         var displayName: LocalizedStringKey {
@@ -40,7 +42,6 @@ struct TrainContainerView: View {
             case .overview:  "Overview"
             case .routines:  "Routines"
             case .exercises: "Exercises"
-            case .history:   "History"
             }
         }
     }
@@ -174,7 +175,7 @@ struct TrainContainerView: View {
             // without forcing the caller to hold the value.
             workoutDetailDestination(for: id)
         case .workoutHistory:
-            // Pushed from "View all"; as a section it sits under "Train".
+            // Pushed from the latest workout's "View all"; not a section of its own.
             WorkoutHistoryView()
                 .navigationTitle("History")
         case .routineBuilder(let id):
@@ -270,7 +271,7 @@ struct TrainContainerView: View {
         // under one word does not. `.segmented` Picker still reads too
         // "system settings" for this surface.
         //
-        // Four pills fit an iPhone at default sizes; at the largest
+        // Three pills fit an iPhone at default sizes; at the largest
         // Dynamic Type sizes they don't, so the row falls back to scrolling
         // and keeps the chosen section in view rather than clipping it.
         ViewThatFits(in: .horizontal) {
@@ -325,8 +326,6 @@ struct TrainContainerView: View {
             RoutinesView(path: $path)
         case .exercises:
             ExerciseLibraryView(browsing: exerciseBrowsing, transitionNamespace: zoomsIntoExercises ? exerciseTransition : nil)
-        case .history:
-            WorkoutHistoryView()
         }
     }
 

@@ -110,23 +110,6 @@ enum WeeklyMuscleHeatmap {
         return (primary, secondary)
     }
 
-    /// Convenience: list the top N muscles by frequency for the
-    /// "most trained" callout under the heatmap. Returns muscles
-    /// in descending order. Stable tie-break by the muscle's raw
-    /// value so the order doesn't jitter between renders.
-    static func topMuscles(
-        from frequencies: [AnatomicalMuscle: Double],
-        limit: Int = 3
-    ) -> [(muscle: AnatomicalMuscle, count: Double)] {
-        frequencies
-            .sorted { lhs, rhs in
-                if lhs.value != rhs.value { return lhs.value > rhs.value }
-                return lhs.key.rawValue < rhs.key.rawValue
-            }
-            .prefix(limit)
-            .map { (muscle: $0.key, count: $0.value) }
-    }
-
     /// The exercises the user actually logged that worked a given muscle
     /// head over the past `days`, newest first — drives the tap-to-inspect
     /// sheet on the muscle map. A movement counts when its name-weighted
