@@ -6956,6 +6956,16 @@
         }
       }
     },
+    "Shows how to perform the exercise": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar hur du utför övningen"
+          }
+        }
+      }
+    },
     "Sleep debt, last 7 nights": {
       "localizations": {
         "sv": {
@@ -17688,16 +17698,6 @@
         }
       }
     },
-    "Exercise instructions": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Instruktioner för övningen"
-          }
-        }
-      }
-    },
     "Exercise metadata is unavailable. Your saved sets are still shown.": {
       "localizations": {
         "sv": {
@@ -20116,6 +20116,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Så räknas de"
+          }
+        }
+      }
+    },
+    "Loading animation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laddar animation"
+          }
+        }
+      }
+    },
+    "How to do it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Så gör du"
           }
         }
       }

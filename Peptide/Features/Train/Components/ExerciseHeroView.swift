@@ -8,6 +8,8 @@ struct ExerciseHeroView: View {
     let exercise: Exercise?
     /// Share canvases render through ImageRenderer: no tap targets, no legend.
     var interactive = true
+    /// The workout hero sets the legend full width under the clip instead.
+    var showsLegend = true
 
     var body: some View {
         if let exercise {
@@ -23,7 +25,7 @@ struct ExerciseHeroView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text("Muscle map for \(exercise.name)"))
                 .accessibilityValue(Text(ExerciseMuscleLegend.summary(for: highlights)))
-                if interactive {
+                if interactive && showsLegend {
                     ExerciseMuscleLegend(highlights: highlights)
                 }
             }
