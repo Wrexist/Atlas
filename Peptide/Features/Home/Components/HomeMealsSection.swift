@@ -396,10 +396,13 @@ struct HomeMealsSection: View {
     @ViewBuilder
     private var editTargetsButton: some View {
         if dataStore.profile.nutritionTargets != nil {
-            Button("Edit targets") { showTargetsEditor = true }
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.textSecondary)
-                .minimumHitArea()
+            Button { showTargetsEditor = true } label: {
+                Label("Edit targets", systemImage: "slider.horizontal.3")
+                    .font(AppFont.footnote.weight(.semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                    .minimumHitArea()
+            }
+            .buttonStyle(.plain)
         }
     }
 
