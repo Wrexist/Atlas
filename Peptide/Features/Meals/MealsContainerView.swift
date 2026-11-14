@@ -18,7 +18,7 @@ import SwiftUI
 /// "Fridge" heads the tools: what is at home, use-by dates, and recipes
 /// that cook from it.
 ///
-/// The fasting tracker, "Plan my day" and the diet coach live only
+/// The fasting tracker, "Plan my day" and Ask Atlas live only
 /// here, not on the Today instance of the section — they are nutrition
 /// tools, and Today stays curated.
 ///
@@ -103,8 +103,8 @@ struct MealsContainerView: View {
             )
             GlassEntryRow(
                 icon: "sparkles",
-                title: "Ask the diet coach",
-                subtitle: Text("Review your last 7 days of eating with AI"),
+                title: "Ask Atlas",
+                subtitle: Text("Review your last 7 days of meals with AI"),
                 badge: storeService.canAccessAIFeatures ? nil : Badge("Pro"),
                 action: openCoach
             )

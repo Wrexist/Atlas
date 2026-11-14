@@ -18,7 +18,7 @@ struct ResearchAssistantRow: View {
                 IconTile("sparkles", size: 32, silhouette: .circle)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Research assistant")
+                    Text("Ask Atlas")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Ask about a compound or a study and get answers with citations.")
@@ -38,8 +38,8 @@ struct ResearchAssistantRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Research assistant. Ask about a compound or a study and get answers with citations.")
-        .accessibilityHint(isLocked ? "Opens Atlas Pro" : "Opens the AI research assistant")
+        .accessibilityLabel("Ask Atlas. Ask about a compound or a study and get answers with citations.")
+        .accessibilityHint(isLocked ? "Opens Atlas Pro" : "Opens Ask Atlas")
     }
 }
 

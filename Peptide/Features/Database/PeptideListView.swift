@@ -292,7 +292,7 @@ struct PeptideListView: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
-            .accessibilityLabel("Open AI research assistant")
+            .accessibilityLabel("Open Ask Atlas")
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button {

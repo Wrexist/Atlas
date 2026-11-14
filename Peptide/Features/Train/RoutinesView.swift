@@ -148,7 +148,7 @@ struct RoutinesView: View {
     }
 
     private var buildProgramButton: some View {
-        GlassButton(title: "Build program", icon: "wand.and.stars", style: .secondary, isFullWidth: true) {
+        GlassButton(title: "Create a program", icon: "calendar", style: .secondary, isFullWidth: true) {
             buildingProgram = true
         }
     }
@@ -190,14 +190,14 @@ struct RoutinesView: View {
                     icon: "list.bullet.rectangle.portrait.fill",
                     title: "No routines yet",
                     message: "Save your lifts once — start every session in one tap.",
-                    action: .init(title: "Build a routine", icon: "plus") {
+                    action: .init(title: "New routine", icon: "plus") {
                         open(store.createDraft().id)
                     }
                 )
 
-                // Secondary: the empty state's "Build a routine" is the one
+                // Secondary: the empty state's "New routine" is the one
                 // painted action here.
-                GlassButton(title: "Build my program", icon: "wand.and.stars", style: .secondary, isFullWidth: true) {
+                GlassButton(title: "Create a program", icon: "calendar", style: .secondary, isFullWidth: true) {
                     buildingProgram = true
                 }
 

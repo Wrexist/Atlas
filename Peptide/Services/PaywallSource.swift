@@ -32,7 +32,7 @@ enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
         case .performanceAge: return String(localized: "See your Biological Age")
         case .weeklyRecap:    return String(localized: "Get your weekly AI recap")
         case .export:         return String(localized: "Export your full history")
-        case .aiResearch:     return String(localized: "Ask the AI research assistant")
+        case .aiResearch:     return String(localized: "Ask Atlas anything about your health")
         case .communityStack: return String(localized: "Use this as your protocol")
         case .mealScanLimit:  return String(localized: "Unlimited AI meal scans")
         case .labScan:        return String(localized: "Scan your lab reports")

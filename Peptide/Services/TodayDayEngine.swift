@@ -26,7 +26,7 @@ enum TodayDayEngine {
         case overview
         /// Goal countdown and Atlas Score — where the user stands now.
         case momentum
-        /// Research assistant and protocol discovery rows.
+        /// Ask Atlas and protocol discovery rows.
         case explore
         case timeline
         /// Rolling personal-range HRV / RHR / sleep grid.
