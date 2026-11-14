@@ -11,6 +11,7 @@ struct WorkoutSavedEditor: View {
     @State private var saving = false
     @State private var invalidFields: Set<String> = []
     @State private var pickingExercise = false
+    @State private var confirmingDiscard = false
     @FocusState private var focusedField: String?
 
     init(session: WorkoutSession, unit: MeasurementUnit, onSave: @escaping (WorkoutSession) throws -> Void) {
@@ -38,6 +39,7 @@ struct WorkoutSavedEditor: View {
                             .accessibilityIdentifier("recap-edit-set-\(set.id.uuidString)")
                         }
                         .onDelete { offsets in
+                            forgetFields(of: offsets.map { entry.sets[$0] })
                             draft.removeLoggedSets(atOffsets: offsets, fromEntry: entry.id)
                         }
                         Button("Add set", systemImage: "plus") {
@@ -65,7 +67,16 @@ struct WorkoutSavedEditor: View {
             .disabled(saving)
             .navigationTitle("Edit workout").navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        if draft == original { dismiss() } else { confirmingDiscard = true }
+                    }
+                    .disabled(saving)
+                    .confirmationDialog("Discard your changes?", isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                        Button("Discard changes", role: .destructive) { dismiss() }
+                        Button("Keep editing", role: .cancel) {}
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? "Saving…" : "Save") { save() }.disabled(saving || validationIssue != nil)
                         .accessibilityIdentifier("save-workout-edits")
@@ -75,7 +86,7 @@ struct WorkoutSavedEditor: View {
                     Button("Done") { focusedField = nil }
                 }
             }
-            .interactiveDismissDisabled(saving)
+            .interactiveDismissDisabled(saving || draft != original)
             .sheet(isPresented: $pickingExercise) {
                 ExercisePickerSheet(existingIDs: Set(draft.exercises.map(\.exerciseID))) { exercise in
                     draft.appendLoggedExercise(
@@ -93,6 +104,7 @@ struct WorkoutSavedEditor: View {
             Text(name)
             Spacer(minLength: Spacing.sm)
             Button("Remove \(name)", systemImage: "minus.circle", role: .destructive) {
+                forgetFields(of: entry.sets)
                 draft.removeLoggedExercise(entryID: entry.id)
             }
             .labelStyle(.iconOnly)
@@ -100,6 +112,13 @@ struct WorkoutSavedEditor: View {
             .minimumHitArea()
             .accessibilityIdentifier("recap-remove-exercise-\(entry.id.uuidString)")
         }
+    }
+
+    /// A removed set's fields can't be corrected any more, so they must
+    /// not keep Save blocked.
+    private func forgetFields(of sets: [SetEntry]) {
+        let ids = sets.map(\.id.uuidString)
+        invalidFields = invalidFields.filter { field in !ids.contains { field.hasPrefix($0) } }
     }
 
     private var validationIssue: String? {

@@ -262,8 +262,13 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(fly.waitForExistence(timeout: 10))
         fly.tap()
         capture(named: "edit-saved-03-picker")
+        let removeButtons = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "recap-remove-exercise-"))
+        let exercisesBefore = removeButtons.count
         app.buttons["Add (1)"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Dumbbell Flyes"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(search.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(removeButtons.count, exercisesBefore + 1)
+        let added = removeButtons.element(boundBy: exercisesBefore)
+        for _ in 0..<8 where !added.isHittable { app.swipeUp() }
         capture(named: "edit-saved-04-exercise-added")
         app.buttons["save-workout-edits"].tap()
         XCTAssertTrue(app.staticTexts["Workout saved"].waitForExistence(timeout: 5))

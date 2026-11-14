@@ -49605,6 +49605,16 @@
           }
         }
       }
+    },
+    "Discard your changes?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vill du slänga ändringarna?"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
