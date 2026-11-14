@@ -455,6 +455,57 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// The workout hero, the "How to do it" sheet and an exercise page, each
+    /// showing the muscle map.
+    func test_captureExerciseHowTo() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            app.dismissOverlaysIfNeeded()
+            let train = app.tabBars.buttons["Train"]
+            XCTAssertTrue(train.waitForExistence(timeout: 10))
+            train.tap()
+            app.dismissOverlaysIfNeeded()
+            discardLeftoverWorkout()
+            let start = app.buttons["Empty workout"]
+            reveal(start)
+            start.tap()
+            let add = app.buttons["Add exercise"].firstMatch
+            XCTAssertTrue(add.waitForExistence(timeout: 10))
+            add.tap()
+            let search = app.searchFields.firstMatch
+            XCTAssertTrue(search.waitForExistence(timeout: 10))
+            search.tap()
+            search.typeText("Hanging Leg Raise")
+            let result = app.staticTexts["Hanging Leg Raise"].firstMatch
+            XCTAssertTrue(result.waitForExistence(timeout: 10))
+            result.tap()
+            app.buttons["Add (1)"].tap()
+            XCTAssertTrue(app.buttons["Add set"].waitForExistence(timeout: 10))
+            scrollToTop()
+            capture(named: "howto-\(appearance)-01-workout")
+
+            let howTo = app.buttons["How to do it"].firstMatch
+            reveal(howTo)
+            howTo.tap()
+            Thread.sleep(forTimeInterval: 1.5)
+            capture(named: "howto-\(appearance)-02-sheet")
+            app.buttons["Done"].firstMatch.tap()
+            discardActiveWorkout()
+
+            app.buttons["Exercises"].firstMatch.tap()
+            let library = app.searchFields.firstMatch
+            XCTAssertTrue(library.waitForExistence(timeout: 10))
+            library.tap()
+            library.typeText("3/4 Sit-Up\n")
+            let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "3/4 Sit-Up")).firstMatch
+            XCTAssertTrue(row.waitForExistence(timeout: 10))
+            row.tap()
+            Thread.sleep(forTimeInterval: 1.5)
+            capture(named: "howto-\(appearance)-03-exercise-page")
+            app.terminate()
+        }
+    }
+
     func test_captureMuscleTraining() {
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)
