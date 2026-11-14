@@ -53,8 +53,12 @@ final class WorkoutSessionService {
     }
 
     /// What the most recent set completion did to its exercise's pending
-    /// sets, so editing or unchecking that set can take it back.
-    @ObservationIgnored private var lastCompletion: SetCompletionEffect?
+    /// sets, so editing or unchecking that set can take it back. Saved so a
+    /// correction after a relaunch mid-rest still re-decides the lowered sets.
+    /// Entry ids are unique per workout, so a stale record never matches.
+    @ObservationIgnored private var lastCompletion: SetCompletionEffect? = SetCompletionEffect.load() {
+        didSet { SetCompletionEffect.save(lastCompletion) }
+    }
 
     /// How recently a session must have started for a second `startWorkout`
     /// to be treated as a duplicate tap rather than a fresh workout. Roughly
@@ -964,7 +968,7 @@ enum PreviousSetEngine {
 /// the moved load are restored; a set the user changed since keeps its value.
 /// One slot: it covers the most recent completion, which is the set a
 /// focus-loss commit, a correction during rest or "Undo set" targets.
-struct SetCompletionEffect: Equatable {
+struct SetCompletionEffect: Codable, Equatable {
     let entryID: UUID
     let setID: UUID
     /// The completed set's load before it was logged — what the carry-forward
@@ -972,7 +976,7 @@ struct SetCompletionEffect: Equatable {
     let fromKg: Double
     let moves: [UUID: Move]
 
-    struct Move: Equatable {
+    struct Move: Codable, Equatable {
         let fromKg: Double
         let toKg: Double
     }
@@ -1048,14 +1052,38 @@ struct SeedRoutine: Codable, Equatable {
     static let defaultsKey = "workout.seedRoutine.v1"
 
     static func load(from defaults: UserDefaults = .standard) -> SeedRoutine? {
-        defaults.data(forKey: defaultsKey).flatMap { try? JSONDecoder().decode(SeedRoutine.self, from: $0) }
+        DeviceSessionMemory.load(SeedRoutine.self, key: defaultsKey, from: defaults)
     }
 
     static func save(_ seed: SeedRoutine?, to defaults: UserDefaults = .standard) {
-        guard let seed, let data = try? JSONEncoder().encode(seed) else {
-            defaults.removeObject(forKey: defaultsKey)
+        DeviceSessionMemory.save(seed, key: defaultsKey, to: defaults)
+    }
+}
+
+extension SetCompletionEffect {
+    static let defaultsKey = "workout.lastCompletion.v1"
+
+    static func load(from defaults: UserDefaults = .standard) -> SetCompletionEffect? {
+        DeviceSessionMemory.load(SetCompletionEffect.self, key: defaultsKey, from: defaults)
+    }
+
+    static func save(_ effect: SetCompletionEffect?, to defaults: UserDefaults = .standard) {
+        DeviceSessionMemory.save(effect, key: defaultsKey, to: defaults)
+    }
+}
+
+/// JSON in UserDefaults for in-workout state that must outlive the process
+/// but not leave the device. Nil removes the key.
+enum DeviceSessionMemory {
+    static func load<Value: Decodable>(_ type: Value.Type, key: String, from defaults: UserDefaults) -> Value? {
+        defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(type, from: $0) }
+    }
+
+    static func save<Value: Encodable>(_ value: Value?, key: String, to defaults: UserDefaults) {
+        guard let value, let data = try? JSONEncoder().encode(value) else {
+            defaults.removeObject(forKey: key)
             return
         }
-        defaults.set(data, forKey: defaultsKey)
+        defaults.set(data, forKey: key)
     }
 }

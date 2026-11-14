@@ -617,6 +617,33 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(sets.map(\.weightKg), [planned, planned, planned])
     }
 
+    /// The lowered sets' undo record is written to disk as it is made, so a
+    /// relaunch mid-rest keeps it, and ending the workout drops it.
+    func test_shortSet_savesItsEffect_andFinishingClearsIt() throws {
+        let saved = DataStore.current
+        DataStore.current = nil
+        defer { DataStore.current = saved }
+        logBenchWorkout(weightKg: 80, reps: 8)
+
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 3, targetReps: 8),
+        ]))
+        let entry = session.exercises[0]
+        var logged = entry.sets[0]
+        logged.reps = entry.sets[0].reps - 2
+        logged.completed = true
+        service.updateSet(logged, inExerciseEntryID: entry.id)
+
+        let stored = try XCTUnwrap(SetCompletionEffect.load())
+        XCTAssertEqual(stored.entryID, entry.id)
+        XCTAssertEqual(stored.setID, logged.id)
+        XCTAssertFalse(stored.moves.isEmpty)
+
+        service.finishWorkout()
+
+        XCTAssertNil(SetCompletionEffect.load())
+    }
+
     /// Correcting the reps during rest re-decides: a short set fixed to the
     /// target no longer lowers the rest, and a set the user edited by hand
     /// keeps its value.
