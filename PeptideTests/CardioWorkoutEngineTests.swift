@@ -76,6 +76,42 @@ final class CardioWorkoutEngineTests: XCTestCase {
         XCTAssertEqual(CardioWorkoutEngine.suggestedTypes.first, .diving)
     }
 
+    // MARK: - Logging exercises on a Health workout
+
+    func test_gymLikeTypes_canLogExercises_cardioCannot() {
+        XCTAssertTrue(CardioWorkoutEngine.canLogExercises(.strength))
+        XCTAssertTrue(CardioWorkoutEngine.canLogExercises(.other))
+        XCTAssertFalse(CardioWorkoutEngine.canLogExercises(.running))
+        XCTAssertFalse(CardioWorkoutEngine.canLogExercises(.diving))
+    }
+
+    func test_loggedSession_takesTheHealthWorkoutsExactTime() {
+        let watch = workout(start: october(7, 10), minutes: 25)
+
+        let session = CardioWorkoutEngine.session(loggingExercisesFor: watch.categorized(as: .strength))
+
+        XCTAssertEqual(session.startedAt, watch.start)
+        XCTAssertEqual(session.finishedAt, watch.end)
+        XCTAssertEqual(session.name, CardioActivity.strength.name)
+        XCTAssertTrue(session.exercises.isEmpty)
+    }
+
+    func test_untypedHealthWorkout_logsAnUnnamedSession() {
+        let watch = workout(start: october(7, 10), minutes: 25).categorized(as: .other)
+        XCTAssertNil(CardioWorkoutEngine.session(loggingExercisesFor: watch).name)
+    }
+
+    func test_healthWorkoutWithLoggedExercises_leavesTheHealthList() {
+        let logged = workout(start: october(7, 10), minutes: 25)
+        let other = workout(start: october(8, 10), minutes: 40)
+        let session = WorkoutSession(startedAt: logged.start, finishedAt: logged.end)
+        let unrelated = WorkoutSession(startedAt: october(8, 12), finishedAt: october(8, 13))
+
+        let shown = CardioWorkoutEngine.unlogged([logged, other], sessions: [session, unrelated])
+
+        XCTAssertEqual(shown.map(\.id), [other.id])
+    }
+
     func test_unlistedType_mapsToOther() {
         XCTAssertEqual(CardioActivity(.archery), .other)
         XCTAssertEqual(CardioActivity(.fishing), .other)

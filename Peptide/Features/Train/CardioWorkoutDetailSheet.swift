@@ -10,6 +10,10 @@ struct CardioWorkoutDetailSheet: View {
     /// Nil returns to Health's own type.
     let onPickType: (CardioActivity?) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(DataStore.self) private var dataStore
+    /// The Atlas workout being filled in for this one, until it's saved.
+    @State private var loggingSession: WorkoutSession?
+    @State private var didLog = false
 
     private struct Stat {
         let label: String
@@ -35,6 +39,12 @@ struct CardioWorkoutDetailSheet: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header
                     typeMenu
+                    if CardioWorkoutEngine.canLogExercises(workout.activity) {
+                        GlassButton(title: "Log exercises", icon: "plus", isFullWidth: true) {
+                            loggingSession = CardioWorkoutEngine.session(loggingExercisesFor: workout)
+                        }
+                        .accessibilityIdentifier("log-health-workout-exercises")
+                    }
                     LazyVGrid(
                         columns: [GridItem(.flexible(), spacing: Spacing.md), GridItem(.flexible())],
                         spacing: Spacing.md
@@ -57,6 +67,11 @@ struct CardioWorkoutDetailSheet: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.accentPrimary)
                 }
+            }
+        }
+        .sheet(item: $loggingSession, onDismiss: { if didLog { dismiss() } }) { session in
+            WorkoutSavedEditor(session: session, unit: unit) { edited in
+                try save(edited, startedAs: session)
             }
         }
         .presentationDetents([.medium, .large])
@@ -83,7 +98,19 @@ struct CardioWorkoutDetailSheet: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// The sheet's one control. An untyped workout asks for a type in
+    /// Saves the lifts as an Atlas workout. History then shows that
+    /// workout in place of this one (`CardioWorkoutEngine.unlogged`).
+    private func save(_ edited: WorkoutSession, startedAs original: WorkoutSession) throws {
+        guard edited.completedSetCount > 0 else {
+            throw WorkoutEditValidation.InvalidDraft(message: String(localized: "Add at least one exercise to log this workout."))
+        }
+        try WorkoutEditValidation.validate(edited, original: original)
+        try SwiftDataRepository.shared.saveWorkoutDurably(edited)
+        didLog = true
+        dataStore.workoutWasEdited(exerciseIDs: Set(edited.exercises.map(\.exerciseID)))
+    }
+
+    /// The sheet's type control. An untyped workout asks for a type in
     /// the accent colour; a typed one shows its type and can be changed.
     private var typeMenu: some View {
         let isUntyped = workout.activity == .other

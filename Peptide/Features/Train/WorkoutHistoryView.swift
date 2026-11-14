@@ -26,6 +26,12 @@ struct WorkoutHistoryView: View {
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
 
+    /// Health workouts minus those whose exercises were logged in Atlas,
+    /// which appear as Atlas workouts below instead.
+    private var shownCardio: [ImportedCardioWorkout] {
+        CardioWorkoutEngine.unlogged(cardio, sessions: groupedSessions.flatMap(\.sessions))
+    }
+
     /// Explicit type rather than a `.init` shorthand inside the call —
     /// leading-dot syntax in an optional-typed ternary is the kind of
     /// inference that reads fine and resolves badly.
@@ -76,7 +82,7 @@ struct WorkoutHistoryView: View {
     private var content: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Spacing.lg, pinnedViews: [.sectionHeaders]) {
-                if !cardio.isEmpty || needsWorkoutAccess {
+                if !shownCardio.isEmpty || needsWorkoutAccess {
                     cardioSection
                 }
                 ForEach(groupedSessions, id: \.month) { group in
@@ -181,7 +187,7 @@ struct WorkoutHistoryView: View {
                     )
                     .accessibilityHint("Asks Apple Health for access to workouts")
                 }
-                ForEach(cardio) { workout in
+                ForEach(shownCardio) { workout in
                     Button {
                         inspectedCardio = workout
                     } label: {

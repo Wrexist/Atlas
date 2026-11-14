@@ -49615,6 +49615,26 @@
           }
         }
       }
+    },
+    "Log exercises": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga övningar"
+          }
+        }
+      }
+    },
+    "Add at least one exercise to log this workout.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till minst en övning för att logga passet."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
