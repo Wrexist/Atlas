@@ -442,7 +442,7 @@ final class ScreenshotTests: XCTestCase {
             // unhittable there even on screen, so tap its centre directly.
             history.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             let untyped = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Choose type")).firstMatch
-            XCTAssertTrue(untyped.waitForExistence(timeout: 10))
+            XCTAssertTrue(untyped.waitForExistence(timeout: 10), app.debugDescription)
             capture(named: "types-\(appearance)-01-history")
             untyped.tap()
             let typeMenu = app.buttons["workout-type-menu"]
