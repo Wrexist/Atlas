@@ -129,6 +129,10 @@ jobs:
           ASC_ISSUER_ID:  ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8:     ${{ secrets.ASC_KEY_P8 }}
         run: |
+          # Without pipefail a failing auto_version.rb (expired Apple
+          # agreement) would be masked by `tail` and surface as an empty
+          # version string instead of its own error.
+          set -o pipefail
           if [ -z "$INPUT_VERSION" ]; then
             # Derived from what Apple already has, so a version uploaded by
             # hand (1.5.0 stranded the old fixed 1.2.<run_number> line) can
