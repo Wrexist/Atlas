@@ -28,6 +28,11 @@ struct HomeView: View {
     /// Device-local on purpose: the "Today shows less now" hint is for
     /// whoever is holding this phone, and nothing synced can bring it back.
     @AppStorage("today.hasOpenedEditToday") private var hasOpenedEditToday = false
+    /// The build that started most Today sections off. Only members from
+    /// before it had the longer Today, so only they need the hint.
+    private static let todaySimplifiedOn = DateComponents(
+        calendar: Calendar(identifier: .gregorian), timeZone: .gmt, year: 2026, month: 11, day: 15
+    ).date ?? .distantPast
     /// State of the Sunday-recap card on Today. Loads on the first
     /// appear of each weekend; cached entries pre-fill the .ready
     /// branch so re-appears don't refire the network call.
@@ -344,8 +349,8 @@ struct HomeView: View {
         notificationService.lastReport.hasAnyIssue && !notificationBannerDismissed
     }
 
-    /// Gates both the doses section and its jump chip, so the chip never
-    /// scrolls to a section that isn't rendered.
+    /// Gates the doses section, so a coaching action never scrolls to a
+    /// section that isn't rendered.
     private var showsDoseSection: Bool {
         !dataStore.protocols.isEmpty && derived.plan != nil
     }
@@ -1105,7 +1110,7 @@ struct HomeView: View {
     /// start off went, so a returning user isn't left hunting for them.
     private var customizeTodayButton: some View {
         VStack(spacing: Spacing.sm) {
-            if !hasOpenedEditToday {
+            if !hasOpenedEditToday && dataStore.profile.memberSince < Self.todaySimplifiedOn {
                 Text("Today shows less now. Turn on Steps, Your day and more here.")
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.textSecondary)

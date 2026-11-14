@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Today's quick-log menu, opened from the jump bar's "+ Log" control.
+/// Today's quick-log menu, opened from the "+" beside the avatar.
 /// Replaces a system confirmation dialog with the same actions, but each
 /// row says what it does so the choice reads at a glance. The sheet only
 /// reports the pick — the presenter dismisses it and mounts the follow-up

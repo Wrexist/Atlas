@@ -44,7 +44,7 @@ struct WelcomeHeader: View {
             Spacer()
 
             HStack(spacing: Spacing.sm) {
-                logButton
+                if let logButton { logButton }
                 avatarButton
             }
         }

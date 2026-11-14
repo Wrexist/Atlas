@@ -6,7 +6,7 @@ import SwiftUI
 /// order is the default layout, and `isShownByDefault` decides which
 /// of them a fresh layout shows.
 ///
-/// The welcome header, jump bar and reminder banner are not here: they
+/// The welcome header, day switcher and reminder banner are not here: they
 /// are Today's chrome and stay pinned above the sections.
 enum TodaySection: String, CaseIterable, Identifiable, Sendable {
     case coaching = "coaching"

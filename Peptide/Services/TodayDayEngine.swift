@@ -8,7 +8,7 @@ import Foundation
 enum TodayDayEngine {
     /// Every block of the Today scroll that can come and go with the day.
     enum Section: CaseIterable, Sendable {
-        /// Jump chips and the "+ Log" quick-log button.
+        /// The "+" quick-log button beside the avatar.
         case quickActions
         case notificationBanner
         /// Live HealthKit trio — latest recovery and last night's sleep.
