@@ -49626,12 +49626,12 @@
         }
       }
     },
-    "Add at least one exercise to log this workout.": {
+    "Add what you lifted. It counts toward records and weekly volume.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lägg till minst en övning för att logga passet."
+            "value": "Lägg till det du lyfte. Det räknas in i rekord och veckovolym."
           }
         }
       }

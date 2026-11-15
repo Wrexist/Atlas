@@ -67,10 +67,16 @@ struct WorkoutSavedEditor: View {
                     Button("Add exercise", systemImage: "plus.circle.fill") { pickingExercise = true }
                         .accessibilityIdentifier("recap-add-exercise")
                 } footer: {
-                    Text("Swipe a set to delete it. Added sets count as done when the workout finished.")
+                    if draft.exercises.isEmpty {
+                        Text("Add what you lifted. It counts toward records and weekly volume.")
+                    } else {
+                        Text("Swipe a set to delete it. Added sets count as done when the workout finished.")
+                    }
                 }
-                Section {
-                    Text("Only completed working sets contribute to recap totals. Changing a load convention changes recorded volume; existing records keep their original meaning until you explicitly change it.")
+                if !draft.exercises.isEmpty {
+                    Section {
+                        Text("Only completed working sets contribute to recap totals. Changing a load convention changes recorded volume; existing records keep their original meaning until you explicitly change it.")
+                    }
                 }
                 if let error { Section { Text(error).foregroundStyle(AppColor.destructive).accessibilityIdentifier("workout-edit-error") } }
                 if let validationIssue {
@@ -78,7 +84,7 @@ struct WorkoutSavedEditor: View {
                 }
             }
             .disabled(saving)
-            .navigationTitle("Edit workout").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(requiresSets ? "Log exercises" : "Edit workout").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -91,7 +97,7 @@ struct WorkoutSavedEditor: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(saving ? "Saving…" : "Save") { save() }.disabled(saving || validationIssue != nil)
+                    Button(saving ? "Saving…" : "Save") { save() }.disabled(saving || validationIssue != nil || missingSets)
                         .accessibilityIdentifier("save-workout-edits")
                 }
                 ToolbarItemGroup(placement: .keyboard) {
@@ -146,14 +152,14 @@ struct WorkoutSavedEditor: View {
 
     private var validationIssue: String? {
         if !invalidFields.isEmpty { return String(localized: "Correct the highlighted number fields before saving.") }
-        if requiresSets && draft.completedSetCount == 0 {
-            return String(localized: "Add at least one exercise to log this workout.")
-        }
         return WorkoutEditValidation.issue(in: draft, original: original)
     }
 
+    /// Only holds Save back: an empty log is the starting point, not a mistake.
+    private var missingSets: Bool { requiresSets && draft.completedSetCount == 0 }
+
     private func save() {
-        guard !saving, validationIssue == nil else { return }
+        guard !saving, validationIssue == nil, !missingSets else { return }
         focusedField = nil
         saving = true
         Task { @MainActor in
