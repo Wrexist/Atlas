@@ -78,16 +78,18 @@ struct SessionBuilderSheet: View {
             VStack(spacing: Spacing.sm) {
                 MuscleMapView(
                     highlights: mapHighlights,
-                    primaryColor: AppColor.trainingPrimaryMuscle,
-                    secondaryColor: AppColor.trainingSecondaryMuscle,
+                    primaryColor: AppColor.trainingPrimaryMuscleTint,
+                    secondaryColor: AppColor.trainingSecondaryMuscleTint,
                     onIdentify: { select(Target($0)) }
                 )
                 .frame(maxWidth: .infinity)
                 .appAnimation(AppAnimation.quick, value: focus)
-                if focus == nil {
-                    MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
-                                     highLabel: String(localized: "Needs rest"))
-                }
+                // Kept in the layout once a muscle is picked, so the
+                // chips below don't jump up when the legend stops applying.
+                MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
+                                 highLabel: String(localized: "Needs rest"))
+                    .opacity(focus == nil ? 1 : 0)
+                    .accessibilityHidden(focus != nil)
             }
 
             section("MUSCLE") {
@@ -132,23 +134,49 @@ struct SessionBuilderSheet: View {
         return map
     }
 
+    /// Name and readiness on the left, this week's sets on the right,
+    /// and the week's progress as one bar across the card's full width.
     private func statusCard(for target: Target) -> some View {
         let state = states[target]
         let goal = Int(MuscleVolumeTargets.weeklySets(for: profileRequest.experience).lowerBound)
+        let done = Int(state?.weeklySets ?? 0)
+        let fraction = goal > 0 ? min(1, CGFloat(done) / CGFloat(goal)) : 0
         return GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(target.displayName)
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(statusText(state?.recovery))
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.textSecondary)
-                Text("\(Int(state?.weeklySets ?? 0)) of \(goal) sets this week")
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.textSecondary)
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.md) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(target.displayName)
+                            .font(AppFont.scaled(16, weight: .semibold))
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text(statusText(state?.recovery))
+                            .font(AppFont.scaled(13))
+                            .foregroundStyle(AppColor.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: Spacing.sm)
+                    VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                        Text("\(done) / \(goal)")
+                            .font(AppFont.scaled(16, weight: .semibold))
+                            .foregroundStyle(AppColor.textPrimary)
+                            .monospacedDigit()
+                        Text("sets this week")
+                            .font(AppFont.scaled(13))
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                }
+                Capsule()
+                    .fill(AppColor.track)
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(AppColor.trainingPrimaryMuscle)
+                            .scaleEffect(x: fraction, anchor: .leading)
+                    }
+                    .frame(height: 6)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(target.displayName))
+            .accessibilityValue(Text("\(statusText(state?.recovery)), \(done) of \(goal) sets this week"))
         }
     }
 
@@ -248,12 +276,21 @@ struct SessionBuilderSheet: View {
                     PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
                 }
             } else {
-                GlassButton(title: "Create workout", icon: "wand.and.stars", isFullWidth: true) { build() }
-                    .disabled(focus == nil || !library.isLoaded)
+                VStack(spacing: Spacing.sm) {
+                    if focus == nil {
+                        Text("Pick a muscle to start")
+                            .font(AppFont.scaled(13))
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    GlassButton(title: "Create workout", icon: "wand.and.stars", isFullWidth: true) { build() }
+                        .disabled(focus == nil || !library.isLoaded)
+                }
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        .padding(.top, Spacing.md)
+        // Deeper than the footer's fade, so the fade ends above the
+        // button instead of letting the section headers show through it.
+        .padding(.top, Spacing.xl)
         .padding(.bottom, Spacing.sm)
     }
 

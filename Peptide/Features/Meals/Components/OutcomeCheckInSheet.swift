@@ -187,16 +187,27 @@ private struct OutcomeLevelRow: View {
     private static let barGap: CGFloat = 6
     private static let range = 1...5
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: Spacing.md) {
-                label
-                Spacer(minLength: Spacing.sm)
-                bars
-            }
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                label
-                bars
+        // One shape for every row, so the five icons, names and bar sets
+        // line up in columns. `ViewThatFits` dropped only the row whose
+        // name was a few points too wide ("Återhämtning") into a centred
+        // stack, breaking the card's grid; the name shrinks instead, and
+        // only accessibility text sizes stack the bars under the label.
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    label
+                    bars
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(spacing: Spacing.md) {
+                    label
+                    Spacer(minLength: Spacing.xs)
+                    bars
+                }
             }
         }
         .padding(.vertical, Spacing.sm)
@@ -223,6 +234,8 @@ private struct OutcomeLevelRow: View {
                 Text(dimension.displayName)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Text(Self.word(for: value))
                     .font(AppFont.footnote)
                     .foregroundStyle(dimension.tint)

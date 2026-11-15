@@ -177,8 +177,8 @@ struct MuscleMapView: View {
     /// lightly-trained muscle is a faint wash and a hammered one saturated.
     private func tintStrength(for highlight: MuscleHighlight) -> Double {
         switch highlight {
-        case .primary:           return 0.9
-        case .secondary:         return 0.5
+        case .primary:           return 1.0
+        case .secondary:         return 0.8
         case .intensity(let v):  return 0.3 + min(max(v, 0), 1) * 0.7
         }
     }
@@ -206,19 +206,18 @@ struct MuscleMapView: View {
 // MARK: - Heat scale
 
 extension MuscleMapView {
-    /// Training-load colour ramp for `.intensity` highlights: green for a
-    /// muscle the user has only just started hitting, through yellow,
-    /// orange and red, to purple for the absolute most-trained muscle.
+    /// Training-load colour ramp for `.intensity` highlights, in the same
+    /// orange the exercise pictures use: a pale peach for a muscle the user
+    /// has only just started hitting, deepening to a burnt red-orange for
+    /// the most-trained muscle.
     private static let heatStops: [(position: Double, r: Double, g: Double, b: Double)] = [
-        (0.00, 0.20, 0.78, 0.35),  // green
-        (0.25, 0.95, 0.80, 0.20),  // yellow
-        (0.50, 0.97, 0.55, 0.15),  // orange
-        (0.75, 0.93, 0.23, 0.23),  // red
-        (1.00, 0.62, 0.27, 0.90),  // purple
+        (0.00, 1.00, 0.80, 0.62),  // peach
+        (0.50, 1.00, 0.55, 0.22),  // exercise-picture orange
+        (1.00, 0.86, 0.27, 0.10),  // burnt orange
     ]
 
     /// Colour on the load ramp for a normalised intensity (0…1),
-    /// linearly interpolated between the five stops.
+    /// linearly interpolated between the stops.
     static func heatColor(for intensity: Double) -> Color {
         let v = max(0, min(1, intensity))
         for i in 0..<(heatStops.count - 1) {

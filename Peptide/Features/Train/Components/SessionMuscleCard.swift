@@ -23,8 +23,8 @@ struct SessionMuscleCard: View {
                     .foregroundStyle(AppColor.textSecondary)
                 TrainingBodyExplorer(
                     highlights: highlights,
-                    primaryColor: AppColor.trainingPrimaryMuscle,
-                    secondaryColor: AppColor.trainingSecondaryMuscle,
+                    primaryColor: AppColor.trainingPrimaryMuscleTint,
+                    secondaryColor: AppColor.trainingSecondaryMuscleTint,
                     onIdentify: { inspectedMuscle = $0 }
                 )
                 .frame(maxWidth: .infinity)
