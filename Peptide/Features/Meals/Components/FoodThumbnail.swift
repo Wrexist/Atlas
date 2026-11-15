@@ -124,9 +124,9 @@ struct FoodArtwork: Equatable {
     ]
 }
 
-/// A food's picture at a fixed size: the product cut out of its photo on
-/// the food's own tint, the whole photo on a white card when Vision found
-/// no clean edge, the plate of the library recipe it was logged from,
+/// A food's picture at a fixed size: the product cut out of its photo and
+/// set straight on the card, as large as the frame allows; the whole photo
+/// on a white card when Vision found no clean edge; the plate of the library recipe it was logged from,
 /// else its `FoodArtwork`.
 ///
 /// A diary entry only remembers its barcode, so `barcode` looks the
@@ -149,18 +149,14 @@ struct FoodThumbnail: View {
 
     var body: some View {
         Group {
-            if let photo {
-                picture(photo)
-            } else if let recipe = RecipeLibraryEngine.recipe(named: name) {
-                RecipeCutout(recipe: recipe)
-                    .padding(size * 0.06)
-                    .background { tint(RecipeImage.artwork(for: recipe).tint) }
+            if let photo, photo.isCutout {
+                cutout(photo.image)
             } else {
-                artwork
+                tile
+                    .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
         .appAnimation(AppAnimation.fadeIn, value: photo?.isCutout)
         .task(id: [imageURL?.absoluteString, barcode]) {
             guard let url = await resolvedURL() else {
@@ -182,22 +178,41 @@ struct FoodThumbnail: View {
         return await BarcodeProductCache.shared.read(barcode: barcode)?.imageURL
     }
 
-    /// A cut-out sits on the same tint as the artwork so a row of them
-    /// reads as one set; a whole packshot comes on any background, so it
-    /// gets a white card with a little margin instead.
-    private func picture(_ photo: ProductPhoto) -> some View {
-        Image(uiImage: photo.image)
+    @ViewBuilder
+    private var tile: some View {
+        if let photo {
+            packshot(photo.image)
+        } else if let recipe = RecipeLibraryEngine.recipe(named: name) {
+            RecipeCutout(recipe: recipe)
+                .padding(size * 0.06)
+                .background { tint(RecipeImage.artwork(for: recipe).tint) }
+        } else {
+            artwork
+        }
+    }
+
+    /// The product alone, filling the frame on its longest side. No tile:
+    /// the pack itself is the picture, and a contact shadow keeps a dark
+    /// pack readable on the dark card and a white one on the light card.
+    private func cutout(_ image: UIImage) -> some View {
+        Image(uiImage: image)
             .resizable()
             .scaledToFit()
-            .padding(size * (photo.isCutout ? 0.12 : 0.1))
+            .padding(size * 0.02)
+            .appShadow(AppShadow.tileContact)
+            .appShadow(AppShadow.tileDrop)
+            .transition(.opacity)
+    }
+
+    /// A whole packshot comes on any background, so it gets a white card
+    /// with a little margin.
+    private func packshot(_ image: UIImage) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .padding(size * 0.1)
             .frame(width: size, height: size)
-            .background {
-                if photo.isCutout {
-                    tint(FoodArtwork.match(name).tint)
-                } else {
-                    AppColor.onAccent
-                }
-            }
+            .background { AppColor.onAccent }
             .transition(.opacity)
     }
 
