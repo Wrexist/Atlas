@@ -261,17 +261,22 @@ enum AppColor {
     static let perceivedEffort = Color(light: 0xB2740F, dark: 0xFFB347)
 
     /// Canonical macro colors. Match the rings + legend on the Nutrition card
-    /// so the same idea reads consistently across the app.
+    /// so the same idea reads consistently across the app. Every ring and
+    /// bar on that card owns exactly one hue, so no two metrics share one.
+    /// Calories are the default brand emerald the Watch and widgets
+    /// already use (`WatchPalette.calories`).
+    static let macroCalories = Color(light: 0x077A55, dark: 0x10B981)
+    static let macroCaloriesLight = Color(light: 0x1A9A6E, dark: 0x6EE7B7)
     static let macroProtein = Color(light: 0xB56F0B, dark: 0xEF9F27)
     static let macroProteinLight = Color(light: 0xB8791E, dark: 0xF5C56C)
     static let macroWater = Color(light: 0x1F6FC0, dark: 0x378ADD)
     static let macroWaterLight = Color(light: 0x3F8BD6, dark: 0x7CC5FF)
     /// Carbs and fat. Protein already had a token; these two did not, so any
     /// surface breaking a meal into P/C/F had no colours to do it with.
-    /// Chosen to stay clear of `macroProtein`'s amber and `macroWater`'s
-    /// blue, and darkened in light mode like every other ink here so they
+    /// Chosen to stay clear of `macroCalories`' emerald, `macroProtein`'s
+    /// amber and `macroWater`'s blue, and darkened in light mode like every other ink here so they
     /// clear 4.5:1 on all three surfaces.
-    static let macroCarbs = Color(light: 0x2A6F55, dark: 0x5FD3A0)
+    static let macroCarbs = Color(light: 0x6D4FC2, dark: 0xA78BFA)
     static let macroFat = Color(light: 0x9E4055, dark: 0xE8899F)
 
     /// Meal categories, warm to cool through the day: sunrise orange,
