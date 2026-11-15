@@ -669,10 +669,10 @@ final class ScreenshotTests: XCTestCase {
     /// later step.
     func test_captureRecipeSteps() {
         for appearance in ["dark", "light"] {
-            launch(appearance: appearance)
+            launch(appearance: appearance, extraArguments: ["--recipe-fixture", "prep-meatballs-cream-sauce"])
             XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
             app.dismissOverlaysIfNeeded()
-            openRecipe(named: "Meatballs in cream sauce")
+            openRecipe(named: "Meatballs in cream sauce with potatoes")
 
             let method = app.staticTexts["Method"].firstMatch
             XCTAssertTrue(findByScrolling(method))
@@ -715,32 +715,13 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    /// Meals tab → See all → search → the recipe's card.
+    /// The Meals tab, which `--recipe-fixture` has opened on the recipe.
     private func openRecipe(named name: String) {
         let meals = app.tabBars.buttons["Meals"]
         XCTAssertTrue(meals.waitForExistence(timeout: 10))
         meals.tap()
         app.dismissOverlaysIfNeeded()
-        // Slow drags: a swipe flings straight past the recipe shelf.
-        let seeAll = app.buttons["See all"].firstMatch
-        for _ in 0..<16 where !(seeAll.exists && seeAll.isHittable) {
-            drag(by: -350)
-        }
-        XCTAssertTrue(seeAll.isHittable)
-        seeAll.tap()
-        XCTAssertTrue(app.navigationBars["Recipes & meal prep"].waitForExistence(timeout: 10))
-        // The search bar sits in the navigation drawer, hidden until the
-        // list is pulled down.
-        let search = app.searchFields.firstMatch
-        for _ in 0..<3 where !search.exists {
-            drag(by: 200)
-        }
-        XCTAssertTrue(search.waitForExistence(timeout: 5))
-        search.tap()
-        search.typeText(name)
-        let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
-        XCTAssertTrue(card.waitForExistence(timeout: 10))
-        card.tap()
+        XCTAssertTrue(app.staticTexts[name].firstMatch.waitForExistence(timeout: 10))
     }
 
     /// Scrolls the current screen until `element` is hittable.
