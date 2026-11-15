@@ -637,6 +637,74 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// A recipe's method list and cooking mode, for before/after shots of
+    /// the step layout: the list untouched, then with step 1 ticked, then
+    /// cooking mode on a step with a timer (idle and running) and on a
+    /// later step.
+    func test_captureRecipeSteps() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+            openRecipe(named: "Meatballs in cream sauce")
+
+            let method = app.staticTexts["Method"].firstMatch
+            XCTAssertTrue(findByScrolling(method))
+            let top = app.windows.firstMatch.frame.minY + 120
+            drag(by: top - method.frame.minY)
+            capture(named: "recipe-\(appearance)-01-method")
+
+            let stepOne = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Step 1:'")).firstMatch
+            if stepOne.waitForExistence(timeout: 3) {
+                stepOne.tap()
+                capture(named: "recipe-\(appearance)-02-method-step1-done")
+                stepOne.tap()
+            }
+            drag(by: -400)
+            capture(named: "recipe-\(appearance)-03-method-bottom")
+
+            let cook = app.buttons["Cook step by step"].firstMatch
+            XCTAssertTrue(findByScrolling(cook))
+            cook.tap()
+            capture(named: "recipe-\(appearance)-04-cook-step1")
+            let timer = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Timer'")).firstMatch
+            if timer.waitForExistence(timeout: 3) {
+                timer.tap()
+                capture(named: "recipe-\(appearance)-05-cook-timer-running")
+            }
+            let next = app.buttons["Next step"].firstMatch
+            if next.waitForExistence(timeout: 3) {
+                next.tap()
+                capture(named: "recipe-\(appearance)-06-cook-step2")
+                next.tap()
+                next.tap()
+                next.tap()
+                capture(named: "recipe-\(appearance)-07-cook-last")
+            }
+            app.terminate()
+        }
+    }
+
+    /// Meals tab → See all → search → the recipe's card.
+    private func openRecipe(named name: String) {
+        let meals = app.tabBars.buttons["Meals"]
+        XCTAssertTrue(meals.waitForExistence(timeout: 10))
+        meals.tap()
+        app.dismissOverlaysIfNeeded()
+        let seeAll = app.buttons["See all"].firstMatch
+        XCTAssertTrue(findByScrolling(seeAll))
+        seeAll.tap()
+        let search = app.searchFields.firstMatch
+        if search.waitForExistence(timeout: 5) {
+            search.tap()
+            search.typeText(name)
+        }
+        let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        if app.keyboards.firstMatch.exists { app.swipeDown() }
+        card.tap()
+    }
+
     /// Scrolls the current screen until `element` is hittable.
     private func findByScrolling(_ element: XCUIElement) -> Bool {
         for _ in 0..<8 {
