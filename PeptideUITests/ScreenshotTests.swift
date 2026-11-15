@@ -637,9 +637,7 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    /// The Meals tab's nutrition rings, on demo data (under every goal)
-    /// and again after lowering the protein target so its ring laps past
-    /// the goal.
+    /// The Meals tab's nutrition rings on demo data, in both appearances.
     func test_captureNutritionRings() {
         for appearance in ["dark", "light"] {
             launch(appearance: appearance)
