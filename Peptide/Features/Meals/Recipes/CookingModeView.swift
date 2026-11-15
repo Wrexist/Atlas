@@ -69,7 +69,8 @@ struct CookingModeView: View {
         .padding(.top, Spacing.sm)
     }
 
-    /// One segment per step: ticked steps solid, the open one outlined.
+    /// One segment per step: the one you're on in full accent, ticked ones
+    /// in a softer accent, the rest as track.
     private var progress: some View {
         HStack(spacing: Spacing.xs) {
             ForEach(steps) { step in
@@ -84,8 +85,8 @@ struct CookingModeView: View {
     }
 
     private func segmentFill(for id: Int) -> Color {
-        if done.contains(id) { return AppColor.positive }
-        return id == index ? AppColor.accentPrimary : AppColor.track
+        if id == index { return AppColor.accentPrimary }
+        return done.contains(id) ? AppColor.accentPrimary.opacity(0.4) : AppColor.track
     }
 
     /// Timers started on other steps stay in sight, so the pasta doesn't
@@ -104,6 +105,8 @@ struct CookingModeView: View {
                                 Image(systemName: "timer")
                                     .accessibilityHidden(true)
                                 Text("Step \(entry.key.step + 1)")
+                                Text(verbatim: "·")
+                                    .accessibilityHidden(true)
                                 TimelineView(.periodic(from: .now, by: 1)) { context in
                                     Text(CookingTimers.clock(entry.end.timeIntervalSince(context.date)))
                                         .monospacedDigit()
@@ -133,10 +136,12 @@ struct CookingModeView: View {
                 Haptics.selection()
             }
             .disabled(index == 0)
-            .opacity(index == 0 ? 0.4 : 1)
+            // Hidden, not dimmed, on the first step: a faint button reads as
+            // broken. It keeps its place so Next doesn't jump.
+            .opacity(index == 0 ? 0 : 1)
+            .accessibilityHidden(index == 0)
             GlassButton(
                 title: isLast ? "Finish cooking" : "Next step",
-                icon: isLast ? "checkmark" : "arrow.right",
                 style: .primary,
                 isFullWidth: true,
                 action: advance

@@ -117,7 +117,8 @@ private struct RecipeStepRow: View {
                                 StepTimerChip(
                                     key: CookingTimers.Key(step: step.id, index: index),
                                     seconds: timer.seconds,
-                                    timers: timers
+                                    timers: timers,
+                                    isQuiet: state != .current
                                 )
                             }
                         }
@@ -132,7 +133,7 @@ private struct RecipeStepRow: View {
         .background(alignment: .topLeading) {
             if !isLast {
                 Capsule(style: .continuous)
-                    .fill(state == .done ? AppColor.positive.opacity(0.5) : AppColor.track)
+                    .fill(AppColor.track)
                     .frame(width: 2)
                     .padding(.top, (slot + diameter) / 2 + Spacing.xs)
                     .padding(.bottom, Spacing.xs - (slot - diameter) / 2)
@@ -153,7 +154,8 @@ private struct RecipeStepRow: View {
 }
 
 /// The step number: filled in the accent for the step you're on, an
-/// outline for the ones ahead, a green check once it's done.
+/// outline for the ones ahead, a quiet grey check once it's done, so the
+/// accent only ever marks where you are.
 struct StepCheck: View {
     enum State { case current, upcoming, done }
 
@@ -174,7 +176,7 @@ struct StepCheck: View {
             if state == .done {
                 Image(systemName: "checkmark")
                     .font(AppFont.scaled(diameter * 0.45, weight: .bold, relativeTo: .caption1))
-                    .foregroundStyle(AppColor.onAccent)
+                    .foregroundStyle(AppColor.textSecondary)
                     .transition(.scale(scale: 0.5).combined(with: .opacity))
             } else {
                 Text("\(number)")
@@ -196,7 +198,7 @@ struct StepCheck: View {
         switch state {
         case .current: AppColor.accentFill
         case .upcoming: Color.clear
-        case .done: AppColor.positive
+        case .done: AppColor.track
         }
     }
 }
@@ -239,6 +241,9 @@ struct StepTimerChip: View {
     let key: CookingTimers.Key
     let seconds: Int
     let timers: CookingTimers
+    /// On a step you haven't reached: grey, so only the current step's
+    /// timer draws the eye.
+    var isQuiet = false
 
     private var isRunning: Bool { timers.isRunning(key) }
     private var hasRung: Bool { timers.finished.contains(key) }
@@ -252,16 +257,28 @@ struct StepTimerChip: View {
                 label
             }
             .font(AppFont.subheadline.weight(.semibold))
-            .foregroundStyle(hasRung ? AppColor.positive : AppColor.accentInkOnWash)
+            .foregroundStyle(ink)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.xs + Spacing.xxs)
-            .background(AppColor.accentPrimary.opacity(isRunning ? 0.24 : 0.14), in: Capsule(style: .continuous))
+            .background(wash, in: Capsule(style: .continuous))
             .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.94))
         .appAnimation(AppAnimation.springSnappy, value: isRunning)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(isRunning ? Text("Stops the timer") : Text("Starts the timer"))
+    }
+
+    /// Quiet only while idle: a running or rung timer always shows.
+    private var showsQuiet: Bool { isQuiet && !isRunning && !hasRung }
+
+    private var ink: Color {
+        if hasRung { return AppColor.positive }
+        return showsQuiet ? AppColor.textSecondary : AppColor.accentInkOnWash
+    }
+
+    private var wash: Color {
+        showsQuiet ? AppColor.track : AppColor.accentPrimary.opacity(isRunning ? 0.24 : 0.14)
     }
 
     @ViewBuilder
