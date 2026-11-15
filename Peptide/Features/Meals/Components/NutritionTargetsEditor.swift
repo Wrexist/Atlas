@@ -442,7 +442,7 @@ struct NutritionTargetsEditor: View {
         GlassCard {
             inputRow(
                 icon: .symbol("flame.fill"),
-                tint: AppColor.accentLight,
+                tint: AppColor.macroCalories,
                 title: "Calories",
                 unit: "kcal",
                 text: $calories,

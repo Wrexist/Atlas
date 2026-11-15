@@ -25,7 +25,7 @@ enum WidgetPalette {
 
     /// `AppColor.macroProtein`, `.macroCarbs`, `.macroFat`.
     static let protein = dynamic(light: 0xB56F0B, dark: WatchPalette.protein)
-    static let carbs = dynamic(light: 0x2A6F55, dark: 0x5FD3A0)
+    static let carbs = dynamic(light: 0x6D4FC2, dark: 0xA78BFA)
     static let fat = dynamic(light: 0x9E4055, dark: 0xE8899F)
 
     /// `AppColor.mealBreakfast`, `.mealLunch`, `.mealDinner`, `.mealSnack`.
