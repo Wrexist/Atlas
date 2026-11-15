@@ -49,27 +49,48 @@ struct MacroGlyph: Shape {
     }
 
     private static var wheatEar: Path {
-        var ear = bar(centre: CGPoint(x: 12, y: 15), width: 1.5, height: 14, degrees: 0)
-            .union(oval(centre: CGPoint(x: 12, y: 4.6), radiusX: 1.55, radiusY: 3))
+        var ear = bar(centre: CGPoint(x: 12, y: 15), width: 1.8, height: 14, degrees: 0)
+            .union(oval(centre: CGPoint(x: 12, y: 4.6), radiusX: 1.85, radiusY: 3.1))
         for y: CGFloat in [9.0, 13.6, 18.2] {
             ear = ear
-                .union(oval(centre: CGPoint(x: 9.4, y: y), radiusX: 1.55, radiusY: 3, degrees: -32))
-                .union(oval(centre: CGPoint(x: 14.6, y: y), radiusX: 1.55, radiusY: 3, degrees: 32))
+                .union(oval(centre: CGPoint(x: 9.1, y: y), radiusX: 1.85, radiusY: 3.1, degrees: -34))
+                .union(oval(centre: CGPoint(x: 14.9, y: y), radiusX: 1.85, radiusY: 3.1, degrees: 34))
         }
         return ear
     }
 
+    /// A tilted halved avocado: skin, a gap, the flesh, and the pit cut
+    /// out. Upright and without the skin line it read as a water drop.
     private static var avocadoHalf: Path {
-        var flesh = Path()
-        flesh.move(to: CGPoint(x: 12, y: 2))
-        flesh.addCurve(to: CGPoint(x: 16.4, y: 7.0), control1: CGPoint(x: 14.6, y: 2), control2: CGPoint(x: 15.6, y: 4.4))
-        flesh.addCurve(to: CGPoint(x: 19.2, y: 15.0), control1: CGPoint(x: 17.0, y: 9.0), control2: CGPoint(x: 19.2, y: 11.0))
-        flesh.addCurve(to: CGPoint(x: 12, y: 22), control1: CGPoint(x: 19.2, y: 19.2), control2: CGPoint(x: 16.0, y: 22))
-        flesh.addCurve(to: CGPoint(x: 4.8, y: 15.0), control1: CGPoint(x: 8.0, y: 22), control2: CGPoint(x: 4.8, y: 19.2))
-        flesh.addCurve(to: CGPoint(x: 7.6, y: 7.0), control1: CGPoint(x: 4.8, y: 11.0), control2: CGPoint(x: 7.0, y: 9.0))
-        flesh.addCurve(to: CGPoint(x: 12, y: 2), control1: CGPoint(x: 8.4, y: 4.4), control2: CGPoint(x: 9.4, y: 2))
-        flesh.closeSubpath()
-        return flesh.subtracting(oval(centre: CGPoint(x: 12, y: 15.2), radiusX: 3.6, radiusY: 3.6))
+        let skin = avocadoOutline(scale: 1.08)
+            .subtracting(avocadoOutline(scale: 0.86))
+        let pitCentre = CGPoint(x: 12 - 3 * sin(avocadoTilt), y: 12 + 3 * cos(avocadoTilt))
+        let flesh = avocadoOutline(scale: 0.74)
+            .subtracting(oval(centre: pitCentre, radiusX: 3.3, radiusY: 3.3))
+        return skin.union(flesh)
+    }
+
+    private static let avocadoTilt: CGFloat = 35 * .pi / 180
+
+    /// The pear silhouette, scaled about its middle and tilted about the
+    /// grid's centre.
+    private static func avocadoOutline(scale: CGFloat) -> Path {
+        var pear = Path()
+        pear.move(to: CGPoint(x: 12, y: 2))
+        pear.addCurve(to: CGPoint(x: 16.4, y: 7.0), control1: CGPoint(x: 14.6, y: 2), control2: CGPoint(x: 15.6, y: 4.4))
+        pear.addCurve(to: CGPoint(x: 19.2, y: 15.0), control1: CGPoint(x: 17.0, y: 9.0), control2: CGPoint(x: 19.2, y: 11.0))
+        pear.addCurve(to: CGPoint(x: 12, y: 22), control1: CGPoint(x: 19.2, y: 19.2), control2: CGPoint(x: 16.0, y: 22))
+        pear.addCurve(to: CGPoint(x: 4.8, y: 15.0), control1: CGPoint(x: 8.0, y: 22), control2: CGPoint(x: 4.8, y: 19.2))
+        pear.addCurve(to: CGPoint(x: 7.6, y: 7.0), control1: CGPoint(x: 4.8, y: 11.0), control2: CGPoint(x: 7.0, y: 9.0))
+        pear.addCurve(to: CGPoint(x: 12, y: 2), control1: CGPoint(x: 8.4, y: 4.4), control2: CGPoint(x: 9.4, y: 2))
+        pear.closeSubpath()
+        let resize = CGAffineTransform(translationX: -12, y: -12.5)
+            .concatenating(CGAffineTransform(scaleX: scale, y: scale))
+            .concatenating(CGAffineTransform(translationX: 12, y: 12.5))
+        let tilt = CGAffineTransform(translationX: -12, y: -12)
+            .concatenating(CGAffineTransform(rotationAngle: avocadoTilt))
+            .concatenating(CGAffineTransform(translationX: 12, y: 12))
+        return pear.applying(resize.concatenating(tilt))
     }
 
     private static func oval(centre: CGPoint, radiusX: CGFloat, radiusY: CGFloat, degrees: CGFloat = 0) -> Path {

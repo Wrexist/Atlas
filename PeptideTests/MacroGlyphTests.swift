@@ -21,7 +21,8 @@ final class MacroGlyphTests: XCTestCase {
 
     func test_avocadoPit_isCutOut() {
         let path = MacroGlyph(kind: .fat).path(in: CGRect(x: 0, y: 0, width: 24, height: 24))
-        XCTAssertFalse(path.contains(CGPoint(x: 12, y: 15.2)))
-        XCTAssertTrue(path.contains(CGPoint(x: 12, y: 9)))
+        // The pit sits 3 points down the avocado's 35° tilted axis.
+        XCTAssertFalse(path.contains(CGPoint(x: 10.28, y: 14.46)))
+        XCTAssertTrue(path.contains(CGPoint(x: 13.72, y: 9.54)))
     }
 }

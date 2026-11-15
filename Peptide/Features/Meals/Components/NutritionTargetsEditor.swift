@@ -146,9 +146,9 @@ struct NutritionTargetsEditor: View {
                 macroSumCheck
 
                 HStack(spacing: Spacing.lg) {
-                    macroLegend("Protein", grams: intValue(protein), tint: AppColor.macroProtein)
-                    macroLegend("Carbs", grams: intValue(carbs), tint: AppColor.macroCarbs)
-                    macroLegend("Fat", grams: intValue(fat), tint: AppColor.macroFat)
+                    macroLegend(.protein, "Protein", grams: intValue(protein), tint: AppColor.macroProtein)
+                    macroLegend(.carbs, "Carbs", grams: intValue(carbs), tint: AppColor.macroCarbs)
+                    macroLegend(.fat, "Fat", grams: intValue(fat), tint: AppColor.macroFat)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -193,10 +193,11 @@ struct NutritionTargetsEditor: View {
         Capsule().fill(tint.opacity(0.9)).frame(width: max(0, width))
     }
 
-    private func macroLegend(_ label: LocalizedStringKey, grams: Int, tint: Color) -> some View {
+    private func macroLegend(_ kind: MacroKind, _ label: LocalizedStringKey, grams: Int, tint: Color) -> some View {
         VStack(spacing: 2) {
             HStack(spacing: 4) {
-                Circle().fill(tint).frame(width: 7, height: 7)
+                MacroIcon(kind, size: 12)
+                    .foregroundStyle(tint)
                 Text(label)
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
@@ -240,13 +241,13 @@ struct NutritionTargetsEditor: View {
                             .font(AppFont.scaled(11, weight: .semibold))
                     }
                     recChip("\(rec.proteinG)", spoken: Text("\(rec.proteinG) grams protein"), tint: AppColor.macroProtein) {
-                        MacroIcon(.protein, size: 13)
+                        recLabel(.protein, "Protein")
                     }
                     recChip("\(rec.carbsG)", spoken: Text("\(rec.carbsG) grams carbs"), tint: AppColor.macroCarbs) {
-                        MacroIcon(.carbs, size: 13)
+                        recLabel(.carbs, "Carbs")
                     }
                     recChip("\(rec.fatG)", spoken: Text("\(rec.fatG) grams fat"), tint: AppColor.macroFat) {
-                        MacroIcon(.fat, size: 13)
+                        recLabel(.fat, "Fat")
                     }
                 }
 
@@ -322,6 +323,17 @@ struct NutritionTargetsEditor: View {
             return Text("Adaptive, based on \(estimate.intakeDays) days of logged meals and weigh-ins")
         case .formula:
             return Text("Formula — log meals and weigh in for 2 weeks to switch to adaptive")
+        }
+    }
+
+    /// Icon plus the macro's name, so the tile reads on first sight.
+    private func recLabel(_ kind: MacroKind, _ name: LocalizedStringKey) -> some View {
+        HStack(spacing: 3) {
+            MacroIcon(kind, size: 12)
+            Text(name)
+                .font(AppFont.scaled(11, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
     }
 
