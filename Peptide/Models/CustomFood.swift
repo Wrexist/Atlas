@@ -54,6 +54,11 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
     /// light one also counts as water. Optional so saved foods decode.
     var isDrink: Bool?
 
+    /// The package barcode this food was saved or corrected from, so the
+    /// next scan of it opens the user's version instead of the database
+    /// record. Nil for foods typed by hand.
+    var barcode: String?
+
     /// Stamp on create / edit. Used to sort the "My Foods" tab so the
     /// food you just added lands at the top.
     var updatedAt: Date
@@ -68,6 +73,7 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
         pricePer100g: FoodPriceEstimate? = nil,
         imageURL: URL? = nil,
         isDrink: Bool? = nil,
+        barcode: String? = nil,
         updatedAt: Date = Date()
     ) {
         self.id = id
@@ -79,6 +85,7 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
         self.pricePer100g = pricePer100g
         self.imageURL = imageURL
         self.isDrink = isDrink
+        self.barcode = barcode
         self.updatedAt = updatedAt
     }
 }
@@ -94,9 +101,11 @@ extension CustomFood {
     /// sheet stays single-source. The synthetic `foodID` is passed as
     /// the barcode; downstream code that round-trips IDs back to a
     /// concrete food matches against the `custom:` prefix.
-    func toScannedProduct(fetchedAt: Date = Date()) -> ScannedProduct {
+    /// `barcode` files a scan of the real package under its code, so
+    /// history and re-scans line up with it.
+    func toScannedProduct(barcode: String? = nil, fetchedAt: Date = Date()) -> ScannedProduct {
         ScannedProduct(
-            barcode: foodID,
+            barcode: barcode ?? foodID,
             name: name,
             brand: brand?.trimmingCharacters(in: .whitespacesAndNewlines)
                 .nilIfEmpty,
@@ -109,7 +118,8 @@ extension CustomFood {
             nutriScore: nil,
             novaGroup: nil,
             fetchedAt: fetchedAt,
-            isDrink: isDrink
+            isDrink: isDrink,
+            nameMissing: false
         )
     }
 }

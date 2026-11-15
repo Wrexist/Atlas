@@ -79,9 +79,10 @@ enum SmartFoodLogic {
 
     /// A barcode product saved to My Foods, so it can be found and
     /// re-logged from the library without the barcode or the network.
-    static func customFood(from product: ScannedProduct, pricePer100g: FoodPriceEstimate?) -> CustomFood {
+    static func customFood(from product: ScannedProduct, pricePer100g: FoodPriceEstimate?, id: UUID = UUID()) -> CustomFood {
         let serving = product.oneServingGrams
         return CustomFood(
+            id: id,
             name: product.name,
             brand: product.brand,
             per100g: product.per100g,
@@ -92,8 +93,36 @@ enum SmartFoodLogic {
                     : nil),
             pricePer100g: pricePer100g,
             imageURL: product.imageURL,
-            isDrink: product.isDrink
+            isDrink: product.isDrink,
+            barcode: product.barcode.allSatisfy(\.isNumber) ? product.barcode : nil
         )
+    }
+
+    /// The user's own food for a scanned barcode, newest first, so a
+    /// product they saved or corrected wins over the database record.
+    static func myFood(forBarcode barcode: String, in foods: [CustomFood]) -> CustomFood? {
+        foods.filter { $0.barcode == barcode }.max { $0.updatedAt < $1.updatedAt }
+    }
+
+    /// A barcode product with the nutrition the user typed in for one
+    /// portion, as a My Foods entry under that barcode. Reuses `existing`'s
+    /// id so a second correction replaces the first. Nil when the portion
+    /// has no weight to scale from.
+    static func correctedFood(
+        _ product: ScannedProduct, portionGrams: Double, typed: LoggableMeal, existing: CustomFood?
+    ) -> CustomFood? {
+        guard portionGrams.isFinite, portionGrams > 0 else { return nil }
+        let scale = 100 / portionGrams
+        var food = customFood(from: product, pricePer100g: existing?.pricePer100g, id: existing?.id ?? UUID())
+        food.per100g = ScannedProduct.Nutriments(
+            calories: (Double(typed.calories) * scale).rounded(),
+            proteinG: (Double(typed.proteinG) * scale * 10).rounded() / 10,
+            carbsG: (Double(typed.carbsG) * scale * 10).rounded() / 10,
+            fatG: (Double(typed.fatG) * scale * 10).rounded() / 10,
+            fiberG: nil,
+            sugarsG: nil
+        )
+        return food
     }
 
     /// Exact smart-scan values when present; else derived from the rounded
