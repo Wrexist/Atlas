@@ -673,6 +673,8 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
             app.dismissOverlaysIfNeeded()
             openRecipe(named: "Meatballs in cream sauce with potatoes")
+            app.swipeUp()
+            capture(named: "recipe-\(appearance)-00-serving")
 
             let method = app.staticTexts["Method"].firstMatch
             XCTAssertTrue(findByScrolling(method))
