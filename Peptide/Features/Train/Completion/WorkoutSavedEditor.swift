@@ -10,6 +10,11 @@ struct WorkoutSavedEditor: View {
     @State private var error: String?
     @State private var saving = false
     @State private var invalidFields: Set<String> = []
+    @State private var pickingExercise = false
+    @State private var confirmingDiscard = false
+    /// Sets shown open. An added exercise's first set opens so its
+    /// guessed load and reps are checked before they count.
+    @State private var expandedSets: Set<UUID> = []
     @FocusState private var focusedField: String?
 
     init(session: WorkoutSession, unit: MeasurementUnit, onSave: @escaping (WorkoutSession) throws -> Void) {
@@ -29,14 +34,32 @@ struct WorkoutSavedEditor: View {
                         .focused($focusedField, equals: "notes")
                 }
                 ForEach($draft.exercises) { $entry in
-                    Section(ExerciseLibrary.shared.displayName(for: entry.exerciseID)) {
+                    Section {
                         ForEach($entry.sets) { $set in
-                            DisclosureGroup("Set \(set.index) · \(RecapFormat.set(set, unit: unit))") {
+                            DisclosureGroup(isExpanded: expansion(of: set.id)) {
                                 RecapSetEditor(set: $set, unit: unit, invalidFields: $invalidFields, focusedField: $focusedField)
+                            } label: {
+                                Text("Set \(set.index) · \(RecapFormat.set(set, unit: unit))")
                             }
                             .accessibilityIdentifier("recap-edit-set-\(set.id.uuidString)")
                         }
+                        .onDelete { offsets in
+                            forgetFields(of: offsets.map { entry.sets[$0] })
+                            draft.removeLoggedSets(atOffsets: offsets, fromEntry: entry.id)
+                        }
+                        Button("Add set", systemImage: "plus") {
+                            draft.appendLoggedSet(toEntry: entry.id)
+                        }
+                        .accessibilityIdentifier("recap-add-set-\(entry.id.uuidString)")
+                    } header: {
+                        exerciseHeader(entry)
                     }
+                }
+                Section {
+                    Button("Add exercise", systemImage: "plus.circle.fill") { pickingExercise = true }
+                        .accessibilityIdentifier("recap-add-exercise")
+                } footer: {
+                    Text("Swipe a set to delete it. Added sets count as done when the workout finished.")
                 }
                 Section {
                     Text("Only completed working sets contribute to recap totals. Changing a load convention changes recorded volume; existing records keep their original meaning until you explicitly change it.")
@@ -49,7 +72,16 @@ struct WorkoutSavedEditor: View {
             .disabled(saving)
             .navigationTitle("Edit workout").navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        if draft == original { dismiss() } else { confirmingDiscard = true }
+                    }
+                    .disabled(saving)
+                    .confirmationDialog("Discard your changes?", isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                        Button("Discard changes", role: .destructive) { dismiss() }
+                        Button("Keep editing", role: .cancel) {}
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? "Saving…" : "Save") { save() }.disabled(saving || validationIssue != nil)
                         .accessibilityIdentifier("save-workout-edits")
@@ -59,8 +91,49 @@ struct WorkoutSavedEditor: View {
                     Button("Done") { focusedField = nil }
                 }
             }
-            .interactiveDismissDisabled(saving)
+            .interactiveDismissDisabled(saving || draft != original)
+            .sheet(isPresented: $pickingExercise) {
+                ExercisePickerSheet(existingIDs: Set(draft.exercises.map(\.exerciseID))) { exercise in
+                    draft.appendLoggedExercise(
+                        exercise.id,
+                        seed: WorkoutSessionService.shared.lastCompletedSet(forExerciseID: exercise.id)
+                    )
+                    if let added = draft.exercises.last?.sets.first { expandedSets.insert(added.id) }
+                }
+            }
         }.tint(AppColor.accentPrimary)
+    }
+
+    private func expansion(of setID: UUID) -> Binding<Bool> {
+        Binding(
+            get: { expandedSets.contains(setID) },
+            set: { open in
+                if open { expandedSets.insert(setID) } else { expandedSets.remove(setID) }
+            }
+        )
+    }
+
+    private func exerciseHeader(_ entry: WorkoutExerciseEntry) -> some View {
+        let name = ExerciseLibrary.shared.displayName(for: entry.exerciseID)
+        return HStack {
+            Text(name)
+            Spacer(minLength: Spacing.sm)
+            Button("Remove \(name)", systemImage: "minus.circle", role: .destructive) {
+                forgetFields(of: entry.sets)
+                draft.removeLoggedExercise(entryID: entry.id)
+            }
+            .labelStyle(.iconOnly)
+            .foregroundStyle(AppColor.destructive)
+            .minimumHitArea()
+            .accessibilityIdentifier("recap-remove-exercise-\(entry.id.uuidString)")
+        }
+    }
+
+    /// A removed set's fields can't be corrected any more, so they must
+    /// not keep Save blocked.
+    private func forgetFields(of sets: [SetEntry]) {
+        let ids = sets.map(\.id.uuidString)
+        invalidFields = invalidFields.filter { field in !ids.contains { field.hasPrefix($0) } }
     }
 
     private var validationIssue: String? {

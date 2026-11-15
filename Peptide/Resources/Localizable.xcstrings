@@ -49585,6 +49585,36 @@
           }
         }
       }
+    },
+    "Remove %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta bort %@"
+          }
+        }
+      }
+    },
+    "Swipe a set to delete it. Added sets count as done when the workout finished.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Svep på ett set för att ta bort det. Tillagda set räknas som gjorda när passet avslutades."
+          }
+        }
+      }
+    },
+    "Discard your changes?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vill du slänga ändringarna?"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
