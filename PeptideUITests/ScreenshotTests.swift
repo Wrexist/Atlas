@@ -721,8 +721,12 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(meals.waitForExistence(timeout: 10))
         meals.tap()
         app.dismissOverlaysIfNeeded()
+        // Slow drags: a swipe flings straight past the recipe shelf.
         let seeAll = app.buttons["See all"].firstMatch
-        XCTAssertTrue(findByScrolling(seeAll))
+        for _ in 0..<16 where !(seeAll.exists && seeAll.isHittable) {
+            drag(by: -350)
+        }
+        XCTAssertTrue(seeAll.isHittable)
         seeAll.tap()
         XCTAssertTrue(app.navigationBars["Recipes & meal prep"].waitForExistence(timeout: 10))
         // The search bar sits in the navigation drawer, hidden until the
