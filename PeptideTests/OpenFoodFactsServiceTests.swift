@@ -483,9 +483,23 @@ final class OpenFoodFactsServiceTests: XCTestCase {
             servingSizeText: nil, servingGrams: nil, packageGrams: 500,
             per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date()
         ))
-        MockURLProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
+        let attempts = AttemptCounter()
+        MockURLProtocol.handler = { _ in
+            attempts.bump()
+            throw URLError(.notConnectedToInternet)
+        }
         let result = try await service.fetch(barcode: "7310070765028")
         XCTAssertEqual(result.name, "Cached")
+        // Let the background refresh finish here, so it can't land on the
+        // next test's mock handler.
+        let deadline = Date().addingTimeInterval(10)
+        while attempts.value == 0, Date() < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(attempts.value, 1)
+        let kept = await cache.read(barcode: "7310070765028")
+        XCTAssertEqual(kept?.name, "Cached")
     }
 
     func test_remember_packageReadProduct_isServedOnRescanWithoutNetwork() async throws {
@@ -617,7 +631,11 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         ))
         let callCount = SendableBox<Int>(0)
         MockURLProtocol.handler = { request in
-            callCount.set(callCount.value + 1)
+            // Count only this barcode: a refresh another test started can
+            // still be in flight on the shared mock.
+            if request.url?.path.contains("5449000000996") == true {
+                callCount.set(callCount.value + 1)
+            }
             return (Self.ok(for: request), Data(Fixtures.cocaCola.utf8))
         }
 
