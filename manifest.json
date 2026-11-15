@@ -1,0 +1,89 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "DBA11FBE-C570-4768-AE4F-7AD3D9C2035D.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "macro-light-05-targets-macros_0_92F09BD6-4B9D-4482-A372-CE3D84A39E96.png",
+        "timestamp" : 1794741587.035
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "E561F3D7-9D70-4FD8-B8F7-B93C5DDD03B7.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "macro-light-04-targets_0_B25054FD-1060-4206-8B80-ED66BED52C63.png",
+        "timestamp" : 1794741583.525
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "A6EC0371-C1FA-44A9-A7F4-6DF1768AD400.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "macro-light-03-library_0_A0E96A91-9705-4BC4-A80F-1F7061302CFB.png",
+        "timestamp" : 1794741563.348
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "F801AB13-41CD-44FA-BE48-B1CF5A255E9E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "macro-light-02-diary_0_2A50C2E8-FEA7-419D-811E-EB1015A696B3.png",
+        "timestamp" : 1794741546.517
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "A8413014-8460-48F3-A039-0BB58010EA04.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "macro-light-01-meals_0_91A8D137-5A1A-42D5-BA1D-D9C7EFDB4D3F.png",
+        "timestamp" : 1794741540.077
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "B348EA4C-8F5A-48D6-80EF-D52D2C45CD79.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "macro-dark-05-targets-macros_0_76D2F661-8F25-4FAF-ADC0-D537F5D01E51.png",
+        "timestamp" : 1794741507.4
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "8BECE6CD-D013-4B19-BE3F-CF6AFC6BEA77.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "macro-dark-04-targets_0_AA67B3A9-E2E2-4835-834C-E49DF53EE00E.png",
+        "timestamp" : 1794741502.958
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "8396AD99-FCAB-4D85-925C-EAF87A45B04C.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "macro-dark-03-library_0_1CBBD828-BA15-4A04-A575-E40645FA6F10.png",
+        "timestamp" : 1794741483.143
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "E2B817C6-8E53-4EFB-8DB1-99E69B11F3A6.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "macro-dark-01-meals_0_0F61DF12-D007-4609-B696-5B3D4CA42D8C.png",
+        "timestamp" : 1794741434.88
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureMacroIcons()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureMacroIcons"
+  }
+]
