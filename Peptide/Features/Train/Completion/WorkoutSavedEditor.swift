@@ -12,6 +12,9 @@ struct WorkoutSavedEditor: View {
     @State private var invalidFields: Set<String> = []
     @State private var pickingExercise = false
     @State private var confirmingDiscard = false
+    /// Sets shown open. An added exercise's first set opens so its
+    /// guessed load and reps are checked before they count.
+    @State private var expandedSets: Set<UUID> = []
     @FocusState private var focusedField: String?
 
     init(session: WorkoutSession, unit: MeasurementUnit, onSave: @escaping (WorkoutSession) throws -> Void) {
@@ -33,8 +36,10 @@ struct WorkoutSavedEditor: View {
                 ForEach($draft.exercises) { $entry in
                     Section {
                         ForEach($entry.sets) { $set in
-                            DisclosureGroup("Set \(set.index) · \(RecapFormat.set(set, unit: unit))") {
+                            DisclosureGroup(isExpanded: expansion(of: set.id)) {
                                 RecapSetEditor(set: $set, unit: unit, invalidFields: $invalidFields, focusedField: $focusedField)
+                            } label: {
+                                Text("Set \(set.index) · \(RecapFormat.set(set, unit: unit))")
                             }
                             .accessibilityIdentifier("recap-edit-set-\(set.id.uuidString)")
                         }
@@ -93,9 +98,19 @@ struct WorkoutSavedEditor: View {
                         exercise.id,
                         seed: WorkoutSessionService.shared.lastCompletedSet(forExerciseID: exercise.id)
                     )
+                    if let added = draft.exercises.last?.sets.first { expandedSets.insert(added.id) }
                 }
             }
         }.tint(AppColor.accentPrimary)
+    }
+
+    private func expansion(of setID: UUID) -> Binding<Bool> {
+        Binding(
+            get: { expandedSets.contains(setID) },
+            set: { open in
+                if open { expandedSets.insert(setID) } else { expandedSets.remove(setID) }
+            }
+        )
     }
 
     private func exerciseHeader(_ entry: WorkoutExerciseEntry) -> some View {
