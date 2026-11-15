@@ -701,7 +701,6 @@ final class ScreenshotTests: XCTestCase {
         }
         let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10))
-        if app.keyboards.firstMatch.exists { app.swipeDown() }
         card.tap()
     }
 
