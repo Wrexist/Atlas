@@ -663,6 +663,61 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// A recipe's method list and cooking mode, for before/after shots of
+    /// the step layout: the list untouched, then with step 1 ticked, then
+    /// cooking mode on a step with a timer (idle and running) and on a
+    /// later step.
+    func test_captureRecipeSteps() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance, extraArguments: ["--recipe-fixture", "prep-meatballs-cream-sauce"])
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+            openRecipe(named: "Meatballs in cream sauce with potatoes")
+            app.swipeUp()
+            capture(named: "recipe-\(appearance)-00-serving")
+            app.swipeDown()
+
+            let method = app.staticTexts["Method"].firstMatch
+            XCTAssertTrue(findByScrolling(method))
+            let top = app.windows.firstMatch.frame.minY + 120
+            drag(by: top - method.frame.minY)
+            capture(named: "recipe-\(appearance)-01-method")
+
+            let stepOne = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Step 1:'")).firstMatch
+            if stepOne.waitForExistence(timeout: 3) {
+                stepOne.tap()
+                capture(named: "recipe-\(appearance)-02-method-step1-done")
+                stepOne.tap()
+            }
+            drag(by: -400)
+            capture(named: "recipe-\(appearance)-03-method-bottom")
+
+            let cook = app.buttons["Cook step by step"].firstMatch
+            XCTAssertTrue(findByScrolling(cook))
+            // Lift it clear of the floating Log button and tab bar, which
+            // would otherwise take the tap.
+            let midline = app.windows.firstMatch.frame.midY
+            if cook.frame.midY > midline { drag(by: midline - cook.frame.midY) }
+            cook.tap()
+            capture(named: "recipe-\(appearance)-04-cook-step1")
+            let timer = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Timer'")).firstMatch
+            if timer.waitForExistence(timeout: 3) {
+                timer.tap()
+                capture(named: "recipe-\(appearance)-05-cook-timer-running")
+            }
+            let next = app.buttons["Next step"].firstMatch
+            if next.waitForExistence(timeout: 3) {
+                next.tap()
+                capture(named: "recipe-\(appearance)-06-cook-step2")
+                next.tap()
+                next.tap()
+                next.tap()
+                capture(named: "recipe-\(appearance)-07-cook-last")
+            }
+            app.terminate()
+        }
+    }
+
     /// Every surface that shows the protein / carbs / fat icons: the
     /// diary rows, the food library, and the targets editor.
     func test_captureMacroIcons() {
@@ -724,6 +779,15 @@ final class ScreenshotTests: XCTestCase {
 
             app.terminate()
         }
+    }
+
+    /// The Meals tab, which `--recipe-fixture` has opened on the recipe.
+    private func openRecipe(named name: String) {
+        let meals = app.tabBars.buttons["Meals"]
+        XCTAssertTrue(meals.waitForExistence(timeout: 10))
+        meals.tap()
+        app.dismissOverlaysIfNeeded()
+        XCTAssertTrue(app.staticTexts[name].firstMatch.waitForExistence(timeout: 10))
     }
 
     /// Scrolls the current screen until `element` is hittable.

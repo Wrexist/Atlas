@@ -33,6 +33,9 @@ struct MealsContainerView: View {
     @State private var showCoach = false
     /// The diary day being viewed, shared by the diary and the recipe shelf.
     @State private var mealDayOffset = 0
+    #if DEBUG
+    @State private var fixtureRecipe = RecipeFixture.recipe
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -55,6 +58,9 @@ struct MealsContainerView: View {
             .overlay { TableSaveToast() }
             .navigationTitle("Meals")
             .navigationBarTitleDisplayMode(.large)
+            #if DEBUG
+            .navigationDestination(item: $fixtureRecipe) { RecipeDetailView(recipe: $0) }
+            #endif
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
             }

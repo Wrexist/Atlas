@@ -27,8 +27,14 @@ enum RecipeStepEngine {
     static func steps(for recipe: LibraryRecipe, servings: Int, locale: Locale) -> [Step] {
         let swedish = LibraryRecipe.isSwedish(locale)
         let names = recipe.ingredients.map { $0.displayName(locale: locale) }
+        // Each ingredient is listed on the step that first uses it: that's
+        // when it's weighed out, and a later "pack with the potatoes"
+        // repeating 900 g reads as needing more.
+        var gathered: Set<Int> = []
         return recipe.displaySteps(locale: locale).enumerated().map { index, text in
-            let used = ingredientIndices(in: text, names: names, swedish: swedish).map { position in
+            let firstUses = ingredientIndices(in: text, names: names, swedish: swedish).filter { !gathered.contains($0) }
+            gathered.formUnion(firstUses)
+            let used = firstUses.map { position in
                 let ingredient = recipe.ingredients[position]
                 return StepIngredient(
                     name: names[position],
@@ -59,6 +65,9 @@ enum RecipeStepEngine {
                 found.formUnion(exact)
                 continue
             }
+            // Only Swedish builds names from compounds; in English a prefix
+            // match is noise ("but" is not "butter").
+            guard swedish else { continue }
             found.formUnion(names.indices.filter { index in
                 nameStems[index].contains { isCompoundPart(stepStems, of: $0) }
             })
