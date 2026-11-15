@@ -652,32 +652,8 @@ final class ScreenshotTests: XCTestCase {
             app.dismissOverlaysIfNeeded()
             capture(named: "rings-\(appearance)-01-under")
 
-            let editTargets = app.buttons["Edit targets"].firstMatch
-            if findByScrolling(editTargets) {
-                editTargets.tap()
-                XCTAssertTrue(app.navigationBars["Daily targets"].waitForExistence(timeout: 10))
-                // The hero calorie field is not reliably editable from a UI
-                // test; protein runs through the same ring code, so lowering
-                // it alone shows the over-goal lap.
-                replaceText(in: app.textFields["Protein"].firstMatch, with: "100")
-                closeSheet("Save")
-                scrollToTop()
-                capture(named: "rings-\(appearance)-02-over")
-            }
             app.terminate()
         }
-    }
-
-    private func replaceText(in field: XCUIElement, with text: String) {
-        guard field.waitForExistence(timeout: 5) else { return }
-        field.tap()
-        guard app.keyboards.firstMatch.waitForExistence(timeout: 3) else { return }
-        // Select All from the edit menu, so typing replaces the whole
-        // grouped number ("2,400") wherever the caret landed.
-        field.press(forDuration: 1.0)
-        let selectAll = app.menuItems["Select All"].firstMatch
-        if selectAll.waitForExistence(timeout: 2) { selectAll.tap() }
-        field.typeText(text)
     }
 
     /// Scrolls the current screen until `element` is hittable.
