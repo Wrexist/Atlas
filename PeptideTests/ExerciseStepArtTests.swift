@@ -12,7 +12,9 @@ final class ExerciseStepArtTests: XCTestCase {
             "Goblet_Squat", "Incline_Dumbbell_Press", "Leg_Extensions", "Front_Dumbbell_Raise",
             "Hyperextensions_Back_Extensions", "Leg_Press", "Pushups", "Seated_Calf_Raise",
             "Side_Lateral_Raise", "Wide-Grip_Lat_Pulldown", "Hammer_Curls", "Preacher_Curl",
-            "Pullups", "Seated_Cable_Rows", "Seated_Dumbbell_Press", "Sumo_Deadlift"
+            "Pullups", "Seated_Cable_Rows", "Seated_Dumbbell_Press", "Sumo_Deadlift", "Barbell_Curl",
+            "Barbell_Shrug", "Concentration_Curls", "Romanian_Deadlift", "Straight-Arm_Pulldown",
+            "Triceps_Pushdown_-_Rope_Attachment", "Upright_Barbell_Row"
         ]
         for id in illustrated {
             XCTAssertNotNil(ExerciseLibrary.shared.lookup(id: id), "\(id) is not in the library")
