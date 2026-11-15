@@ -49635,6 +49635,116 @@
           }
         }
       }
+    },
+    "Glass": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glas"
+          }
+        }
+      }
+    },
+    "Can 33 cl": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Burk 33 cl"
+          }
+        }
+      }
+    },
+    "Bottle 50 cl": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flaska 50 cl"
+          }
+        }
+      }
+    },
+    "1 l": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 l"
+          }
+        }
+      }
+    },
+    "ml": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ml"
+          }
+        }
+      }
+    },
+    "1 package = %lld ml": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 förpackning = %lld ml"
+          }
+        }
+      }
+    },
+    "Millilitres": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Milliliter"
+          }
+        }
+      }
+    },
+    "Portion in millilitres": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portion i milliliter"
+          }
+        }
+      }
+    },
+    "Enter exact millilitres": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange exakt antal ml"
+          }
+        }
+      }
+    },
+    "Last logged amount: %@ ml": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast loggade mängd: %@ ml"
+          }
+        }
+      }
+    },
+    "Also counts as %lld ml water": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas även som %lld ml vatten"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

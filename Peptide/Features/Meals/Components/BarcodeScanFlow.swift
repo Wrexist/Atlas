@@ -107,6 +107,8 @@ struct BarcodeScanFlow: View {
         let date: Date
         let barcode: String
         let portion: ScannedProduct.Portion
+        /// Water a hydrating drink added, so Undo takes it back too.
+        let waterMillilitres: Double?
     }
 
     var body: some View {
@@ -193,7 +195,7 @@ struct BarcodeScanFlow: View {
         // a label lists; typing it is the precise path, as in the library.
         .sheet(isPresented: $editingExactPortion) {
             if let product, let component = product.loggable(for: portion)?.components?.first {
-                FoodPortionEditor(component: component) { portion = .grams($0) }
+                FoodPortionEditor(component: component, isDrink: product.isDrink == true) { portion = .grams($0) }
             }
         }
     }
@@ -508,8 +510,9 @@ struct BarcodeScanFlow: View {
                     .foregroundStyle(AppColor.textSecondary)
 
                 PortionPicker(product: product, portion: $portion)
-                Button("Enter exact grams") { editingExactPortion = true }
+                Button(product.isDrink == true ? "Enter exact millilitres" : "Enter exact grams") { editingExactPortion = true }
                     .minimumHitArea()
+                WaterCreditNote(millilitres: product.waterMillilitres(for: portion))
             }
         }
     }
@@ -1006,6 +1009,15 @@ struct BarcodeScanFlow: View {
     // MARK: - Actions
 
     private func preflightCheck() async {
+        #if DEBUG
+        if BarcodeDrinkFixture.isRequested {
+            let fixture = BarcodeDrinkFixture.product()
+            product = fixture
+            portion = .grams(330)
+            phase = .review
+            return
+        }
+        #endif
         let outcome = await CameraAuthorization.resolve()
         switch outcome {
         case .granted:
@@ -1359,6 +1371,10 @@ struct BarcodeScanFlow: View {
             date: loggedAt
         )
         dataStore.logMealEntry(entry)
+        let waterMillilitres = product.waterMillilitres(for: portion)
+        if let waterMillilitres {
+            dataStore.logWater(fluidOunces: LifestyleDataLogic.fluidOunces(millilitres: waterMillilitres), date: loggedAt)
+        }
         // .logCommitted carries a heavier impact than the lookup
         // success — the user feels "I just logged a meal" as a
         // distinct beat from "I just scanned a barcode".
@@ -1369,7 +1385,8 @@ struct BarcodeScanFlow: View {
             calories: meal.calories,
             date: loggedAt,
             barcode: product.barcode,
-            portion: portion
+            portion: portion,
+            waterMillilitres: waterMillilitres
         )
         // Record the scan + portion choice in history so the recents
         // row re-ranks and the next re-scan of this product preselects
@@ -1397,6 +1414,9 @@ struct BarcodeScanFlow: View {
         }
         phase = .review
         dataStore.unlogMealEntry(id: snapshot.entryID)
+        if let water = snapshot.waterMillilitres {
+            dataStore.logWater(fluidOunces: -LifestyleDataLogic.fluidOunces(millilitres: water), date: snapshot.date)
+        }
         // Roll back the scan-history record too so an undone scan
         // doesn't inflate the recents ranking or preselect the wrong
         // portion next time. Fire-and-forget — UI is closing anyway.

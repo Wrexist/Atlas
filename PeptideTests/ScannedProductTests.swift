@@ -190,4 +190,51 @@ final class ScannedProductTests: XCTestCase {
     func test_gramsFor_grams_isIdentity() {
         XCTAssertEqual(cokeLike().grams(for: .grams(123.4)), 123.4)
     }
+
+    // MARK: - Drinks
+
+    private func sparklingWater(isDrink: Bool? = true, kcal: Double = 0) -> ScannedProduct {
+        ScannedProduct(
+            barcode: "7310070000000",
+            name: "Loka Päron",
+            brand: "Loka",
+            imageURL: nil,
+            servingSizeText: nil,
+            servingGrams: nil,
+            packageGrams: 500,
+            per100g: .init(calories: kcal, proteinG: 0, carbsG: 0, fatG: 0, fiberG: nil, sugarsG: nil),
+            nutriScore: nil,
+            novaGroup: nil,
+            fetchedAt: Date(timeIntervalSince1970: 0),
+            isDrink: isDrink
+        )
+    }
+
+    func test_waterMillilitres_sparklingWaterBottle_countsWholeVolume() {
+        XCTAssertEqual(sparklingWater().waterMillilitres(for: .wholePackage), 500)
+        XCTAssertEqual(sparklingWater().waterMillilitres(for: .grams(330)), 330)
+    }
+
+    func test_waterMillilitres_sugaryDrink_doesNotCountAsWater() {
+        XCTAssertNil(sparklingWater(kcal: 42).waterMillilitres(for: .wholePackage))
+        XCTAssertFalse(cokeLike().countsAsWater)
+    }
+
+    func test_waterMillilitres_food_neverCountsAsWater() {
+        XCTAssertNil(sparklingWater(isDrink: nil).waterMillilitres(for: .wholePackage))
+    }
+
+    func test_waterMillilitres_drinkMissingNutrition_doesNotCountYet() {
+        var unknown = sparklingWater()
+        unknown.nutritionMissing = true
+        XCTAssertNil(unknown.waterMillilitres(for: .wholePackage))
+    }
+
+    func test_isDrink_decodesMissingAsNil_forOlderCacheEntries() throws {
+        let data = try JSONEncoder().encode(cokeLike())
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        json.removeValue(forKey: "isDrink")
+        let decoded = try JSONDecoder().decode(ScannedProduct.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertNil(decoded.isDrink)
+    }
 }

@@ -57,6 +57,11 @@ struct ScannedProduct: Codable, Hashable, Sendable {
     /// its "Read from the package" badge. Optional so cache entries
     /// written before it existed still decode.
     var readFromPackage: Bool?
+
+    /// True for a drink — from Open Food Facts' beverage categories, a
+    /// liquid net quantity, or Atlas AI calling it one — so the portion
+    /// picker speaks millilitres. Optional so older cache entries decode.
+    var isDrink: Bool?
 }
 
 extension ScannedProduct {
@@ -137,6 +142,22 @@ extension ScannedProduct {
     /// so nothing defaults to logging the entire package.
     var oneServingGrams: Double? {
         servingGrams ?? (wholePackageIsOneMeal ? packageGrams : nil)
+    }
+
+    /// A drink this light hydrates rather than feeds: water, sparkling
+    /// or flavoured water, coffee, tea, zero sodas. Logging one also adds
+    /// its volume to the day's water.
+    var countsAsWater: Bool {
+        isDrink == true && hasNutrition && per100g.calories <= Self.hydratingCaloriesPer100ml
+    }
+
+    static let hydratingCaloriesPer100ml: Double = 20
+
+    /// Millilitres of water a log of `portion` adds, or nil when this
+    /// isn't a hydrating drink.
+    func waterMillilitres(for portion: Portion) -> Double? {
+        guard countsAsWater, let ml = grams(for: portion), ml.isFinite, ml > 0 else { return nil }
+        return ml
     }
 
     private var wholePackageIsOneMeal: Bool {
