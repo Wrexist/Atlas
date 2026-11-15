@@ -670,8 +670,11 @@ final class ScreenshotTests: XCTestCase {
         guard field.waitForExistence(timeout: 5) else { return }
         field.tap()
         guard app.keyboards.firstMatch.waitForExistence(timeout: 3) else { return }
-        // A double tap selects the whole number, so typing replaces it.
-        field.doubleTap()
+        // Select All from the edit menu, so typing replaces the whole
+        // grouped number ("2,400") wherever the caret landed.
+        field.press(forDuration: 1.0)
+        let selectAll = app.menuItems["Select All"].firstMatch
+        if selectAll.waitForExistence(timeout: 2) { selectAll.tap() }
         field.typeText(text)
     }
 
