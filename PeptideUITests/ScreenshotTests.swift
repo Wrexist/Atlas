@@ -637,6 +637,42 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// The Meals tab's nutrition rings, on demo data (under every goal)
+    /// and again after lowering the calorie and protein targets so both
+    /// rings lap past their goal.
+    func test_captureNutritionRings() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+
+            let meals = app.tabBars.buttons["Meals"]
+            XCTAssertTrue(meals.waitForExistence(timeout: 10))
+            meals.tap()
+            app.dismissOverlaysIfNeeded()
+            capture(named: "rings-\(appearance)-01-under")
+
+            let editTargets = app.buttons["Edit targets"].firstMatch
+            if findByScrolling(editTargets) {
+                editTargets.tap()
+                XCTAssertTrue(app.navigationBars["Daily targets"].waitForExistence(timeout: 10))
+                replaceText(in: app.textFields["Calories"].firstMatch, with: "1200")
+                replaceText(in: app.textFields["Protein"].firstMatch, with: "100")
+                closeSheet("Save")
+                scrollToTop()
+                capture(named: "rings-\(appearance)-02-over")
+            }
+            app.terminate()
+        }
+    }
+
+    private func replaceText(in field: XCUIElement, with text: String) {
+        guard field.waitForExistence(timeout: 5) else { return }
+        field.tap()
+        let current = (field.value as? String) ?? ""
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count + 2) + text)
+    }
+
     /// Scrolls the current screen until `element` is hittable.
     private func findByScrolling(_ element: XCUIElement) -> Bool {
         for _ in 0..<8 {
