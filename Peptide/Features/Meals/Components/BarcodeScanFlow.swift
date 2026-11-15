@@ -65,6 +65,9 @@ struct BarcodeScanFlow: View {
     /// True when `product` came from a package photo rather than the
     /// food database — changes the source badge and the logged source.
     @State private var productReadByAI = false
+    /// True when `product` is the user's own saved or corrected version
+    /// of this barcode from My Foods rather than the database record.
+    @State private var productFromMyFoods = false
     /// Grows with the Nutri-Score letter so it never clips its circle.
     @ScaledMetric(relativeTo: .body) private var nutriScoreDiameter: CGFloat = 28
     @State private var nutritionEstimatedByAI = false
@@ -443,6 +446,7 @@ struct BarcodeScanFlow: View {
     }
 
     private func sourceLabel(for product: ScannedProduct) -> LocalizedStringKey {
+        if productFromMyFoods { return "Your saved values from My Foods" }
         if productReadByAI { return "Read from the package by Atlas AI" }
         if nutritionEstimatedByAI { return "Nutrition estimated by Atlas AI" }
         return "Open Food Facts · \(Self.relativeAge(product.fetchedAt))"
@@ -460,6 +464,11 @@ struct BarcodeScanFlow: View {
                 Text("Portion picker is paused while edits are active.")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
+                if let product, Self.hasRealBarcode(product), product.nameMissing != true {
+                    Text("Saved to My Foods when you log, so the next scan uses your values.")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
             }
             Spacer(minLength: 0)
             Button("Reset") {
@@ -901,7 +910,11 @@ struct BarcodeScanFlow: View {
         Button {
             let item = insight?.items.first
             let pricePer100g = item.flatMap { $0.price?.scaled(by: 100 / $0.grams) }
-            dataStore.saveCustomFood(SmartFoodLogic.customFood(from: product, pricePer100g: pricePer100g))
+            // Saving a barcode twice updates the one entry instead of a duplicate.
+            let existing = SmartFoodLogic.myFood(forBarcode: product.barcode, in: dataStore.profile.customFoods)
+            dataStore.saveCustomFood(SmartFoodLogic.customFood(
+                from: product, pricePer100g: pricePer100g ?? existing?.pricePer100g, id: existing?.id ?? UUID()
+            ))
             savedToMyFoods = true
             Haptics.success()
         } label: {
@@ -1159,7 +1172,15 @@ struct BarcodeScanFlow: View {
     /// One round-trip for one GTIN form. Throws so the walk above can
     /// decide whether a miss is worth another form or is the final word.
     private func lookupOne(barcode: String) async throws {
-        let result = try await OpenFoodFactsService.shared.fetch(barcode: barcode)
+        let mine = await MainActor.run {
+            SmartFoodLogic.myFood(forBarcode: barcode, in: dataStore.profile.customFoods)
+        }
+        let result: ScannedProduct
+        if let mine {
+            result = mine.toScannedProduct(barcode: barcode)
+        } else {
+            result = try await OpenFoodFactsService.shared.fetch(barcode: barcode)
+        }
         // History-aware default: if the user has logged this barcode
         // before, restore their previous portion choice. Falls through
         // to the product's own default for first-time scans. The lookup
@@ -1169,6 +1190,7 @@ struct BarcodeScanFlow: View {
         try Task.checkCancellation()
         await MainActor.run {
             product = result
+            productFromMyFoods = mine != nil
             productReadByAI = result.readFromPackage == true
             portion = remembered ?? result.defaultPortion
             category = MealCategory.auto(for: LifestyleDataLogic.logTimestamp(on: logDay))
@@ -1315,6 +1337,7 @@ struct BarcodeScanFlow: View {
         insight = nil
         isLoadingInsight = false
         productReadByAI = false
+        productFromMyFoods = false
         nutritionEstimatedByAI = false
         savedToMyFoods = false
         identity = nil
@@ -1379,6 +1402,7 @@ struct BarcodeScanFlow: View {
             date: loggedAt
         )
         dataStore.logMealEntry(entry)
+        rememberCorrection(product: product)
         let waterMillilitres = product.waterMillilitres(for: portion)
         if let waterMillilitres {
             dataStore.logWater(fluidOunces: LifestyleDataLogic.fluidOunces(millilitres: waterMillilitres), date: loggedAt)
@@ -1413,6 +1437,24 @@ struct BarcodeScanFlow: View {
             }
         }
         phase = .logged
+    }
+
+    /// A nutrition fix the user typed for a real barcode is kept in My
+    /// Foods under that code, so the next scan opens their values.
+    private func rememberCorrection(product: ScannedProduct) {
+        // A record still without a name would be saved as "Unknown
+        // product" and then shadow every later rename.
+        guard let typed = manualOverride, Self.hasRealBarcode(product), product.nameMissing != true,
+              let grams = product.grams(for: portion),
+              let food = SmartFoodLogic.correctedFood(
+                  product, portionGrams: grams, typed: typed,
+                  existing: SmartFoodLogic.myFood(forBarcode: product.barcode, in: dataStore.profile.customFoods)
+              ) else { return }
+        dataStore.saveCustomFood(food)
+    }
+
+    private static func hasRealBarcode(_ product: ScannedProduct) -> Bool {
+        !product.barcode.isEmpty && product.barcode.allSatisfy(\.isNumber)
     }
 
     private func undoLastLog() {

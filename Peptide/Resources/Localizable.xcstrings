@@ -49716,6 +49716,26 @@
         }
       }
     },
+    "Your saved values from My Foods": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sparade värden från Mina livsmedel"
+          }
+        }
+      }
+    },
+    "Saved to My Foods when you log, so the next scan uses your values.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparas i Mina livsmedel när du loggar, så nästa skanning använder dina värden."
+          }
+        }
+      }
+    },
     "Timer": {
       "localizations": {
         "sv": {
