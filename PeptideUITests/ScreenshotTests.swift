@@ -668,9 +668,11 @@ final class ScreenshotTests: XCTestCase {
 
     private func replaceText(in field: XCUIElement, with text: String) {
         guard field.waitForExistence(timeout: 5) else { return }
-        // Tap the trailing edge so the caret lands after the last digit.
-        field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + text)
+        field.tap()
+        guard app.keyboards.firstMatch.waitForExistence(timeout: 3) else { return }
+        // A double tap selects the whole number, so typing replaces it.
+        field.doubleTap()
+        field.typeText(text)
     }
 
     /// Scrolls the current screen until `element` is hittable.
