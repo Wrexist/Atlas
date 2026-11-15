@@ -668,9 +668,9 @@ final class ScreenshotTests: XCTestCase {
 
     private func replaceText(in field: XCUIElement, with text: String) {
         guard field.waitForExistence(timeout: 5) else { return }
-        field.tap()
-        let current = (field.value as? String) ?? ""
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count + 2) + text)
+        // Tap the trailing edge so the caret lands after the last digit.
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + text)
     }
 
     /// Scrolls the current screen until `element` is hittable.
