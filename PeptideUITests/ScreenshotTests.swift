@@ -424,6 +424,43 @@ final class ScreenshotTests: XCTestCase {
         capture(named: "premium-05-training-trends")
     }
 
+    /// Apple Health workouts in the history: a dive Health typed, one it
+    /// left as a plain "Workout", the type picker, and the row after the
+    /// pick. The fixture clears earlier picks at launch, so reruns start clean.
+    func test_captureWorkoutTypes() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance, extraArguments: ["--health-workouts-fixture"])
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+            app.dismissOverlaysIfNeeded()
+            // The fixture opens Train on the workout history.
+            app.tabBars.buttons["Train"].tap()
+            app.dismissOverlaysIfNeeded()
+            let untyped = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Choose type")).firstMatch
+            XCTAssertTrue(untyped.waitForExistence(timeout: 10), app.debugDescription)
+            capture(named: "types-\(appearance)-01-history")
+            untyped.tap()
+            let typeMenu = app.buttons["workout-type-menu"]
+            XCTAssertTrue(typeMenu.waitForExistence(timeout: 5))
+            capture(named: "types-\(appearance)-02-sheet")
+            typeMenu.tap()
+            // A menu's picker option is a button or a menu item by iOS
+            // version; rows behind the sheet only carry "Diving" in a
+            // longer combined label, so an exact label match is the option.
+            let diving = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label == %@ AND (elementType == %d OR elementType == %d)",
+                                      "Diving", XCUIElement.ElementType.button.rawValue,
+                                      XCUIElement.ElementType.menuItem.rawValue))
+                .firstMatch
+            XCTAssertTrue(diving.waitForExistence(timeout: 5))
+            capture(named: "types-\(appearance)-03-menu")
+            diving.tap()
+            capture(named: "types-\(appearance)-04-picked")
+            app.buttons["Done"].firstMatch.tap()
+            capture(named: "types-\(appearance)-05-history-after")
+            app.terminate()
+        }
+    }
+
     func test_captureExerciseRollout() {
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)

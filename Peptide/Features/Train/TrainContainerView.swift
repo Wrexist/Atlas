@@ -105,6 +105,17 @@ struct TrainContainerView: View {
                 .navigationDestination(for: TrainNavigation.self) { trainDestination(for: $0) }
                 .safeAreaInset(edge: .bottom) { workoutBannerSlot }
         }
+        .onAppear(perform: openHealthWorkoutsFixture)
+    }
+
+    /// Screenshot runs that hand the history Health workouts open it
+    /// directly, so the capture never depends on scrolling to a link.
+    private func openHealthWorkoutsFixture() {
+        #if DEBUG
+        if HealthWorkoutsFixture.isRequested && path.isEmpty {
+            path.append(.workoutHistory)
+        }
+        #endif
     }
 
     /// A sidebar link replaces the detail stack's root and a link inside

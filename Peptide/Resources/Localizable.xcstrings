@@ -44221,16 +44221,6 @@
         }
       }
     },
-    "Edit or delete this workout in the Health app.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ändra eller ta bort passet i appen Hälsa."
-          }
-        }
-      }
-    },
     "Elliptical": {
       "localizations": {
         "sv": {
@@ -49502,6 +49492,96 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dagar klara"
+          }
+        }
+      }
+    },
+    "Diving": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dykning"
+          }
+        }
+      }
+    },
+    "Water sports": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vattensport"
+          }
+        }
+      }
+    },
+    "Skating": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skridsko"
+          }
+        }
+      }
+    },
+    "Workout type": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ av pass"
+          }
+        }
+      }
+    },
+    "More types": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fler typer"
+          }
+        }
+      }
+    },
+    "Use Apple Health's type": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd Apple Hälsas typ"
+          }
+        }
+      }
+    },
+    "Choose type": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj typ"
+          }
+        }
+      }
+    },
+    "Changes what this workout is shown as in Atlas": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ändrar vad passet visas som i Atlas"
+          }
+        }
+      }
+    },
+    "The type only changes in Atlas. Edit or delete the workout itself in the Health app.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typen ändras bara i Atlas. Ändra eller ta bort själva passet i appen Hälsa."
           }
         }
       }

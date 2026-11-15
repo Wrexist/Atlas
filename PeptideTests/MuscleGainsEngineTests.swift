@@ -17,8 +17,8 @@ final class MuscleGainsEngineTests: XCTestCase {
     }
 
     private func session(daysAgo: Double, exerciseID: String,
-                         workingSets: Int) -> WorkoutSession {
-        let started = Date().addingTimeInterval(-daysAgo * 86_400)
+                         workingSets: Int, now: Date = Date()) -> WorkoutSession {
+        let started = now.addingTimeInterval(-daysAgo * 86_400)
         var sets: [SetEntry] = []
         for _ in 0..<workingSets {
             sets.append(SetEntry(index: sets.count + 1, weightKg: 80, reps: 8,
@@ -69,11 +69,17 @@ final class MuscleGainsEngineTests: XCTestCase {
     }
 
     func test_weeklyRegularity_sameWeekSessionsCountOnce() throws {
+        // A fixed Wednesday noon, so a run just after a week boundary
+        // can't split the two sessions across weeks.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 11, day: 11, hour: 12)))
         let sessions = [
-            session(daysAgo: 0.01, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3),
-            session(daysAgo: 0.02, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3),
+            session(daysAgo: 0.01, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3, now: now),
+            session(daysAgo: 0.02, exerciseID: "Barbell_Bench_Press_-_Medium_Grip", workingSets: 3, now: now),
         ]
-        let regularity = MuscleGainsEngine.weeklyRegularity(from: sessions, library: library)
+        let regularity = MuscleGainsEngine.weeklyRegularity(from: sessions, library: library,
+                                                            now: now, calendar: calendar)
         XCTAssertEqual(try XCTUnwrap(regularity[.pecSternal]), 1.0 / 12.0, accuracy: 0.0001,
                        "Two sessions in the same week are one trained week, not two")
     }

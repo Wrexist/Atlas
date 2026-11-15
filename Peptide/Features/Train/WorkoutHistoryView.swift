@@ -12,8 +12,10 @@ struct WorkoutHistoryView: View {
     @State private var fetchLimit = SwiftDataRepository.workoutHistoryFetchLimit
     @State private var hasOlderSessions = false
     @State private var sessionService = WorkoutSessionService.shared
-    /// Workouts other apps saved to Apple Health, newest first. Empty
-    /// unless Health is connected on this device.
+    /// Workouts other apps saved to Apple Health, newest first, as Health
+    /// typed them. Empty unless Health is connected on this device.
+    @State private var healthWorkouts: [ImportedCardioWorkout] = []
+    /// `healthWorkouts` with the types the user picked laid over them.
     @State private var cardio: [ImportedCardioWorkout] = []
     /// Health was connected before workouts joined the read types, so
     /// the user hasn't been asked for them yet.
@@ -59,7 +61,12 @@ struct WorkoutHistoryView: View {
         .onChange(of: dataStore.revision) { _, _ in reload() }
         .task(id: dataStore.profile.healthConnected) { await loadCardio() }
         .sheet(item: $inspectedCardio) { workout in
-            CardioWorkoutDetailSheet(workout: workout, unit: unit)
+            CardioWorkoutDetailSheet(
+                workout: workout,
+                unit: unit,
+                isTypeOverridden: isTypeOverridden(workout),
+                onPickType: { setType($0, for: workout.id) }
+            )
         }
     }
 
@@ -181,6 +188,13 @@ struct WorkoutHistoryView: View {
                         cardioRow(for: workout)
                     }
                     .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+                    .contextMenu {
+                        WorkoutTypeMenuItems(
+                            current: workout.activity,
+                            isOverridden: isTypeOverridden(workout),
+                            onPick: { setType($0, for: workout.id) }
+                        )
+                    }
                 }
             }
         } header: {
@@ -205,6 +219,12 @@ struct WorkoutHistoryView: View {
                 Text(workout.activity.name)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
+                if workout.activity == .other {
+                    Text("Choose type")
+                        .font(AppFont.footnote)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.accentLight)
+                }
                 Text(CardioWorkoutEngine.summary(of: workout, unit: unit))
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.textSecondary)
@@ -229,14 +249,40 @@ struct WorkoutHistoryView: View {
     /// Reads only while Health is connected here, so a user who never
     /// connected sees nothing new.
     private func loadCardio() async {
+        #if DEBUG
+        if HealthWorkoutsFixture.isRequested {
+            healthWorkouts = HealthWorkoutsFixture.workouts()
+            cardio = WorkoutTypeOverrideStore.shared.applied(to: healthWorkouts)
+            return
+        }
+        #endif
         let health = HealthKitService.shared
         guard dataStore.profile.healthConnected, health.isAvailable else {
+            healthWorkouts = []
             cardio = []
             needsWorkoutAccess = false
             return
         }
         needsWorkoutAccess = await health.hasUnrequestedWorkoutReadTypes()
-        cardio = await health.externalWorkouts(days: CardioWorkoutEngine.historyWindowDays)
+        healthWorkouts = await health.externalWorkouts(days: CardioWorkoutEngine.historyWindowDays)
+        cardio = WorkoutTypeOverrideStore.shared.applied(to: healthWorkouts)
+    }
+
+    /// Shown as something other than what Health recorded.
+    private func isTypeOverridden(_ workout: ImportedCardioWorkout) -> Bool {
+        healthWorkouts.first { $0.id == workout.id }.map { $0.activity != workout.activity } ?? false
+    }
+
+    /// Saves the picked type and shows it at once, in the list and in the
+    /// open sheet. Picking Health's own type (or nil) clears the pick.
+    private func setType(_ activity: CardioActivity?, for workoutID: UUID) {
+        Haptics.selection()
+        let recorded = healthWorkouts.first { $0.id == workoutID }?.activity
+        WorkoutTypeOverrideStore.shared.set(activity == recorded ? nil : activity, for: workoutID)
+        cardio = WorkoutTypeOverrideStore.shared.applied(to: healthWorkouts)
+        if inspectedCardio?.id == workoutID {
+            inspectedCardio = cardio.first { $0.id == workoutID }
+        }
     }
 
     private func requestWorkoutAccess() {
