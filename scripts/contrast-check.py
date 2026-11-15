@@ -149,7 +149,7 @@ UI_INKS = [
     "destructive", "warning", "positive", "negative", "belowRange", "recap",
     "streak", "achievement", "perceivedEffort",
     "macroProtein", "macroProteinLight", "macroWater", "macroWaterLight",
-    "macroCarbs", "macroFat",
+    "macroCarbs", "macroFat", "macroCalories",
     "metricHeartRate", "metricHRV", "metricSleep", "metricActivity",
     "ringRecoveryStart", "ringRecoveryEnd", "ringSleepStart", "ringSleepEnd",
     "mealBreakfast", "mealLunch", "mealDinner", "mealSnack",

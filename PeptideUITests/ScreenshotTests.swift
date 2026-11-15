@@ -68,6 +68,32 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(app.buttons["meal-scan-log"].waitForExistence(timeout: 10))
     }
 
+    /// A scanned Loka Päron: the portion picker in millilitres with glass,
+    /// can and bottle picks, and the water it also adds.
+    func test_captureBarcodeDrink() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance, extraArguments: ["--barcode-drink-fixture"])
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+            let mealsTab = app.tabBars.buttons["Meals"]
+            XCTAssertTrue(mealsTab.waitForExistence(timeout: 10))
+            mealsTab.tap()
+            let logFood = app.buttons["Log food"].firstMatch
+            XCTAssertTrue(logFood.waitForExistence(timeout: 10))
+            logFood.tap()
+            let scanBarcode = app.buttons["Scan barcode"].firstMatch
+            XCTAssertTrue(scanBarcode.waitForExistence(timeout: 5))
+            scanBarcode.tap()
+            XCTAssertTrue(app.staticTexts["Loka Päron"].waitForExistence(timeout: 10))
+            capture(named: "drink-\(appearance)-01-ml")
+            let package = app.buttons["Package"].firstMatch
+            if package.waitForExistence(timeout: 3) {
+                package.tap()
+                capture(named: "drink-\(appearance)-02-package")
+            }
+        }
+    }
+
     func test_captureTableScan() {
         captureTableScan(appearance: "dark")
     }
@@ -633,6 +659,23 @@ final class ScreenshotTests: XCTestCase {
                 }
                 closeSheet("Cancel")
             }
+            app.terminate()
+        }
+    }
+
+    /// The Meals tab's nutrition rings on demo data, in both appearances.
+    func test_captureNutritionRings() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+
+            let meals = app.tabBars.buttons["Meals"]
+            XCTAssertTrue(meals.waitForExistence(timeout: 10))
+            meals.tap()
+            app.dismissOverlaysIfNeeded()
+            capture(named: "rings-\(appearance)-01-under")
+
             app.terminate()
         }
     }

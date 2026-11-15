@@ -96,6 +96,36 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(product.name, "Unknown product")
     }
 
+    func test_isDrink_beverageCategory_isDrink() {
+        XCTAssertTrue(OpenFoodFactsService.isDrink(
+            categories: ["en:beverages", "en:waters", "en:flavored-waters"], quantity: "50 cl", caloriesPer100: 0
+        ))
+    }
+
+    func test_isDrink_foodCategory_isNotDrink_evenSoldByVolume() {
+        XCTAssertFalse(OpenFoodFactsService.isDrink(
+            categories: ["en:fats", "en:vegetable-oils"], quantity: "500 ml", caloriesPer100: 900
+        ))
+    }
+
+    func test_isDrink_noCategories_fallsBackToLiquidQuantity() {
+        XCTAssertTrue(OpenFoodFactsService.isDrink(categories: [], quantity: "33 cl", caloriesPer100: nil))
+        XCTAssertTrue(OpenFoodFactsService.isDrink(categories: [], quantity: "1,5 l", caloriesPer100: 40))
+        XCTAssertFalse(OpenFoodFactsService.isDrink(categories: [], quantity: "500 ml", caloriesPer100: 884))
+        XCTAssertFalse(OpenFoodFactsService.isDrink(categories: [], quantity: "400 g", caloriesPer100: 20))
+        XCTAssertFalse(OpenFoodFactsService.isDrink(categories: [], quantity: nil, caloriesPer100: 0))
+    }
+
+    func test_fetch_beverageRecord_mapsAsDrink() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.flavouredWater.utf8))
+        }
+        let product = try await service.fetch(barcode: "7310070000000")
+        XCTAssertEqual(product.isDrink, true)
+        XCTAssertEqual(product.packageGrams, 500)
+        XCTAssertTrue(product.countsAsWater)
+    }
+
     func test_fetch_decodesNumericFieldsServedAsStrings() async throws {
         MockURLProtocol.handler = { request in
             (Self.ok(for: request), Data(Fixtures.stringyNumerics.utf8))
@@ -652,6 +682,25 @@ private enum Fixtures {
       "product": {
         "nutriments": {
           "energy-kcal_100g": 150
+        }
+      }
+    }
+    """
+
+    static let flavouredWater = """
+    {
+      "status": 1,
+      "code": "7310070000000",
+      "product": {
+        "product_name": "Loka Päron",
+        "brands": "Loka",
+        "quantity": "50 cl",
+        "categories_tags": ["en:beverages", "en:waters", "en:flavored-waters"],
+        "nutriments": {
+          "energy-kcal_100g": 0,
+          "proteins_100g": 0,
+          "carbohydrates_100g": 0,
+          "fat_100g": 0
         }
       }
     }

@@ -19,6 +19,8 @@ enum FoodPortionInput {
 struct FoodPortionEditor: View {
     let component: MealFoodComponent
     let onSave: (Double) -> Void
+    /// Shows the amount in millilitres; the value is still grams-equal.
+    var isDrink = false
     @Environment(\.dismiss) private var dismiss
     @State private var amount: String
     @FocusState private var amountFocused: Bool
@@ -27,8 +29,9 @@ struct FoodPortionEditor: View {
         self.init(component: item.component, onSave: onSave)
     }
 
-    init(component: MealFoodComponent, onSave: @escaping (Double) -> Void) {
+    init(component: MealFoodComponent, isDrink: Bool = false, onSave: @escaping (Double) -> Void) {
         self.component = component
+        self.isDrink = isDrink
         self.onSave = onSave
         _amount = State(initialValue: component.grams.formatted(.number.grouping(.never).precision(.fractionLength(0...3))))
     }
@@ -47,15 +50,15 @@ struct FoodPortionEditor: View {
                     Text(component.name).font(AppFont.headline)
                     HStack {
                         Text("Amount")
-                        TextField("Grams", text: $amount)
+                        TextField(isDrink ? "Millilitres" : "Grams", text: $amount)
                             .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
                             .focused($amountFocused).monospacedDigit()
-                            .accessibilityLabel("Portion in grams")
-                        Text("g").foregroundStyle(AppColor.textSecondary)
+                            .accessibilityLabel(isDrink ? "Portion in millilitres" : "Portion in grams")
+                        Text(isDrink ? "ml" : "g").foregroundStyle(AppColor.textSecondary)
                     }
                     factorChips
                 } footer: {
-                    Text("\(FoodPortionInput.gramsRange.lowerBound.formatted())–\(FoodPortionInput.gramsRange.upperBound.formatted()) g")
+                    Text(verbatim: "\(FoodPortionInput.gramsRange.lowerBound.formatted())–\(FoodPortionInput.gramsRange.upperBound.formatted()) \(isDrink ? "ml" : "g")")
                 }
                 Section("For this portion") {
                     if let preview {
