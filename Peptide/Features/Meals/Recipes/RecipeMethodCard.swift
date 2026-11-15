@@ -217,7 +217,7 @@ struct StepIngredientLine: View {
                 .accessibilityHidden(true)
             ingredients.enumerated().reduce(Text(verbatim: "")) { line, entry in
                 let (position, ingredient) = entry
-                let separator = position == 0 ? Text(verbatim: "") : Text(verbatim: "  ·  ").foregroundStyle(AppColor.textTertiary)
+                let separator = position == 0 ? Text(verbatim: "") : Text(verbatim: "\u{00A0}\u{00A0}·  ").foregroundStyle(AppColor.textTertiary)
                 return line + separator
                     + Text(verbatim: Self.unbroken(ingredient.name)).foregroundStyle(AppColor.textSecondary)
                     + Text(verbatim: Self.unbroken(" \(ingredient.grams) g")).foregroundStyle(AppColor.textTertiary).monospacedDigit()
