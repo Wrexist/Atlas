@@ -217,13 +217,19 @@ struct StepIngredientLine: View {
                 let (position, ingredient) = entry
                 let separator = position == 0 ? Text(verbatim: "") : Text(verbatim: "  ·  ").foregroundStyle(AppColor.textTertiary)
                 return line + separator
-                    + Text(verbatim: ingredient.name).foregroundStyle(AppColor.textSecondary)
-                    + Text(verbatim: " \(ingredient.grams) g").foregroundStyle(AppColor.textTertiary).monospacedDigit()
+                    + Text(verbatim: Self.unbroken(ingredient.name)).foregroundStyle(AppColor.textSecondary)
+                    + Text(verbatim: Self.unbroken(" \(ingredient.grams) g")).foregroundStyle(AppColor.textTertiary).monospacedDigit()
             }
             .font(AppFont.subheadline)
             .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    /// No-break spaces, so the line only wraps between ingredients and
+    /// "Onion 70 g" never splits into "Onion" / "70 g".
+    private static func unbroken(_ text: String) -> String {
+        text.replacingOccurrences(of: " ", with: "\u{00A0}")
     }
 }
 

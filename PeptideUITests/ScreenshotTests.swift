@@ -691,6 +691,10 @@ final class ScreenshotTests: XCTestCase {
 
             let cook = app.buttons["Cook step by step"].firstMatch
             XCTAssertTrue(findByScrolling(cook))
+            // Lift it clear of the floating Log button and tab bar, which
+            // would otherwise take the tap.
+            let midline = app.windows.firstMatch.frame.midY
+            if cook.frame.midY > midline { drag(by: midline - cook.frame.midY) }
             cook.tap()
             capture(named: "recipe-\(appearance)-04-cook-step1")
             let timer = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Timer'")).firstMatch
