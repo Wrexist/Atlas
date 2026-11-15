@@ -675,6 +675,7 @@ final class ScreenshotTests: XCTestCase {
             openRecipe(named: "Meatballs in cream sauce with potatoes")
             app.swipeUp()
             capture(named: "recipe-\(appearance)-00-serving")
+            app.swipeDown()
 
             let method = app.staticTexts["Method"].firstMatch
             XCTAssertTrue(findByScrolling(method))
