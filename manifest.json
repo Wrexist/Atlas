@@ -1,0 +1,53 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "43E6D8E9-CB6C-4D36-B3EC-6041E308D33E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "edit-saved-05-recap_0_8B0BA473-C019-457F-B85F-E006BEBBC5CC.png",
+        "timestamp" : 1794707084.486
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "B0139DE9-7BC0-4532-9DF8-057F06A56BC0.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "edit-saved-04-exercise-added_0_C5B11FF3-7AE7-4E8E-B07D-C07CB80A18C6.png",
+        "timestamp" : 1794707080.097
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "9D154FD8-7295-4072-9E5C-41A847E8F8C6.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "edit-saved-03-picker_0_6BE931D5-5D5C-48B8-BE8A-09B145C97F80.png",
+        "timestamp" : 1794707072.718
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "0A6687F3-C261-41DD-8FBB-9BF510A33492.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "edit-saved-02-set-added_0_D14DCB6D-A6A2-4003-8EE2-D8803D6C905F.png",
+        "timestamp" : 1794707038.932
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "C78C4468-6442-4583-BF52-E11C4ECF3FB0.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "edit-saved-01-editor_0_F7F63860-8531-4A84-9EFB-0F4A921AF000.png",
+        "timestamp" : 1794707035.86
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureEditSavedWorkout()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureEditSavedWorkout"
+  }
+]
