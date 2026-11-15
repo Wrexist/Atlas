@@ -1,0 +1,107 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "14B4EB6A-4785-4279-B2DE-5CE43D84D208.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-light-07-cook-last_0_59DC339A-2358-4D03-B28D-83F564C6FBAE.png",
+        "timestamp" : 1794746199.015
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "727F1C72-CDAA-422F-9BDB-601849303521.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-light-06-cook-step2_0_D3610B66-67E1-442E-BDA2-C43CE4B97ABE.png",
+        "timestamp" : 1794746193.722
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "307B2312-69A3-49D6-B780-BA3844D34DCA.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-light-05-cook-timer-running_0_66807C09-FDE6-42F9-A4E7-393945151445.png",
+        "timestamp" : 1794746189.93
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "8AEC2798-7D3A-4A64-8A9D-4ACEF6E6510E.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-light-04-cook-step1_0_45A8C586-2714-4904-97E3-49813CB00B14.png",
+        "timestamp" : 1794746183.676
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "8985B3CC-80F3-466F-B142-4ECFE4F21FFC.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-light-03-method-bottom_0_69D90BDF-F8FB-4C96-BAD7-709C0B1FACE3.png",
+        "timestamp" : 1794746168.602
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "13FBE929-6F0C-423C-9FD8-3E97FD68E552.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-light-02-method-step1-done_0_985AC922-F9B2-4923-AE68-7A5950B56234.png",
+        "timestamp" : 1794746158.575
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "92256F60-7318-4F75-B287-D8BC7666B3FB.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-light-01-method_0_9281CA8E-B459-43EB-BDFD-4B564633C91B.png",
+        "timestamp" : 1794746153.011
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "890DEF7E-D7FA-4BF3-80BC-310395CB0DE7.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-dark-04-cook-step1_0_D39C06F5-A6A7-46BE-B02F-043917899828.png",
+        "timestamp" : 1794746059.664
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "1F93CE1A-C178-412C-ABCD-699CC40691E3.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-dark-03-method-bottom_0_209A36AC-7ABF-4C55-8C25-FF607B080EC2.png",
+        "timestamp" : 1794746052.579
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "0FC69B6E-6CB2-43B7-81CE-307CDD7DC644.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-dark-02-method-step1-done_0_2AA45065-8A38-42E6-9ABD-C5C00A377481.png",
+        "timestamp" : 1794746043.791
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "2FEACF5E-886C-4FB8-A137-C571FBA5CF5C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "BB1E3216-2084-45FF-BD17-9A302180A8B7.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "recipe-dark-01-method_0_CDCA284D-4A68-4A72-B9A9-513954C1DE98.png",
+        "timestamp" : 1794746037.21
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureRecipeSteps()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureRecipeSteps"
+  }
+]
