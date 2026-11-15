@@ -1190,7 +1190,15 @@ struct BarcodeScanFlow: View {
         isLoadingInsight = true
         let corrections = ScanCorrectionMemory.shared.recent
         insightTask = Task {
-            let scan = try? await MealScannerService.shared.describeProduct(.init(product: result), corrections: corrections)
+            let query = MealScannerService.ProductQuery(product: result)
+            var scan = try? await MealScannerService.shared.describeProduct(query, corrections: corrections)
+            // A packshot the AI can't fetch fails the whole request; the
+            // facts alone still name and price most products.
+            if scan == nil, query.imageURL != nil, !Task.isCancelled {
+                var factsOnly = query
+                factsOnly.imageURL = nil
+                scan = try? await MealScannerService.shared.describeProduct(factsOnly, corrections: corrections)
+            }
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 isLoadingInsight = false

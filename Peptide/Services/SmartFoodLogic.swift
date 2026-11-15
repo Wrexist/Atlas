@@ -55,10 +55,13 @@ enum SmartFoodLogic {
         let package = scan.package
         var nutriments = product.hasNutrition ? product.per100g : scan.items.first.map(Self.per100g(of:)) ?? product.per100g
         if nutriments.micros == nil { nutriments.micros = scan.items.first?.per100g?.micros }
+        // A database record with no product name is titled with its brand
+        // or "Unknown product"; Atlas AI's identification reads better.
+        let identified = product.nameMissing == true ? scan.items.first : nil
         return ScannedProduct(
             barcode: product.barcode,
-            name: product.name,
-            brand: product.brand,
+            name: identified?.name ?? product.name,
+            brand: product.brand ?? identified?.brand,
             imageURL: product.imageURL,
             servingSizeText: product.servingGrams == nil ? (package?.servingLabel ?? product.servingSizeText) : product.servingSizeText,
             servingGrams: product.servingGrams ?? package?.servingGrams,
@@ -69,7 +72,8 @@ enum SmartFoodLogic {
             fetchedAt: product.fetchedAt,
             nutritionMissing: !product.hasNutrition && scan.items.isEmpty,
             readFromPackage: product.readFromPackage,
-            isDrink: product.isDrink == true || scan.insight.kind == .drink
+            isDrink: product.isDrink == true || scan.insight.kind == .drink,
+            nameMissing: identified == nil ? product.nameMissing : false
         )
     }
 

@@ -34,6 +34,10 @@ final class OpenFoodFactsService: Sendable {
     /// and the decoder stay in sync.
     private static let requestedFields = [
         "product_name",
+        "product_name_sv",
+        "product_name_en",
+        "generic_name",
+        "generic_name_sv",
         "brands",
         "image_front_url",
         "image_front_small_url",
@@ -185,7 +189,9 @@ final class OpenFoodFactsService: Sendable {
             // Entries cached before the printed `quantity` was read have
             // no package weight; refresh those too so the Package tab
             // shows up on a later scan — once a day, not on every scan.
-            if Self.isStale(cached) || Self.needsPackageWeightRefresh(cached) {
+            // Entries cached before names and drinks were read refresh
+            // once too, so a Swedish name or the ml picker shows next scan.
+            if Self.isStale(cached) || Self.needsPackageWeightRefresh(cached) || Self.predatesNameFields(cached) {
                 // No [weak self] — the service is a long-lived shared
                 // instance, so a strong capture for the refresh task
                 // is correct and avoids silently dropping work if a
@@ -398,6 +404,12 @@ final class OpenFoodFactsService: Sendable {
         Date().timeIntervalSince(product.fetchedAt) > staleAfter
     }
 
+    /// An Open Food Facts entry cached before `nameMissing` existed. A
+    /// package read by Atlas AI has no database record to refetch.
+    static func predatesNameFields(_ product: ScannedProduct) -> Bool {
+        product.nameMissing == nil && product.readFromPackage != true
+    }
+
     static func needsPackageWeightRefresh(_ product: ScannedProduct) -> Bool {
         product.packageGrams == nil && Date().timeIntervalSince(product.fetchedAt) > missingPackageRefreshAfter
     }
@@ -420,6 +432,11 @@ final class OpenFoodFactsService: Sendable {
               let unit = group(3)?.lowercased(),
               let gramsPerUnit = gramsPerUnit[unit] else { return nil }
         return (count * amount * gramsPerUnit).positiveOrNil
+    }
+
+    /// The first non-blank name, or nil when the record has none.
+    static func bestName(among names: [String?]) -> String? {
+        names.lazy.compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty }.first
     }
 
     /// A drink by Open Food Facts' own taxonomy. Records without
@@ -633,6 +650,13 @@ private extension OpenFoodFactsService {
         /// scannable barcode. Decoded from OFF's `_id` field.
         let id: String?
         let productName: String?
+        /// Language-specific names. Swedish records often carry only
+        /// `product_name_sv`, which left `product_name` empty and the
+        /// review titled "Unknown product".
+        let productNameSV: String?
+        let productNameEN: String?
+        let genericName: String?
+        let genericNameSV: String?
         let brands: String?
         /// The 400 px front packshot, sharp enough to cut the product
         /// out of; the 200 px one is the fallback for older records.
@@ -655,6 +679,10 @@ private extension OpenFoodFactsService {
             case code               = "code"
             case id                 = "_id"
             case productName        = "product_name"
+            case productNameSV      = "product_name_sv"
+            case productNameEN      = "product_name_en"
+            case genericName        = "generic_name"
+            case genericNameSV      = "generic_name_sv"
             case brands             = "brands"
             case imageFrontURL      = "image_front_url"
             case imageFrontSmallURL = "image_front_small_url"
@@ -668,10 +696,20 @@ private extension OpenFoodFactsService {
             case categoriesTags     = "categories_tags"
         }
 
+        /// Names in the order the user reads best: their own language's
+        /// product name, the main one, English, then the generic names.
+        var localizedNames: [String?] {
+            let swedishFirst = Locale.current.language.languageCode?.identifier == "sv"
+            let product = swedishFirst ? [productNameSV, productName, productNameEN]
+                : [productName, productNameEN, productNameSV]
+            let generic = swedishFirst ? [genericNameSV, genericName] : [genericName, genericNameSV]
+            return product + generic
+        }
+
         func toScannedProduct(barcode: String, fetchedAt: Date) -> ScannedProduct {
-            let resolvedName = [productName, brands]
-                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .first(where: { !$0.isEmpty })
+            let productTitle = OpenFoodFactsService.bestName(among: localizedNames)
+            let resolvedName = productTitle
+                ?? brands?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
                 ?? String(localized: "Unknown product")
 
             let n = nutriments
@@ -718,7 +756,8 @@ private extension OpenFoodFactsService {
                 nutritionMissing: [calories, protein, carbs, fat].allSatisfy { $0 == nil },
                 isDrink: OpenFoodFactsService.isDrink(
                     categories: categoriesTags ?? [], quantity: quantity, caloriesPer100: calories
-                )
+                ),
+                nameMissing: productTitle == nil
             )
         }
     }

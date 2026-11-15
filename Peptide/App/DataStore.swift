@@ -1526,12 +1526,6 @@ final class DataStore {
         save()
     }
 
-    /// Per-category breakdown for today (or any day). Used by the
-    /// Meals tab's macro rings.
-    func mealsByCategory(for date: Date = Date()) -> LifestyleDataLogic.CategoryBreakdown {
-        LifestyleDataLogic.mealsByCategory(in: profile, for: date)
-    }
-
     /// Individual meal entries logged on a specific day, newest first.
     /// Populates the meal-history list views.
     func mealEntries(for date: Date = Date()) -> [MealEntry] {

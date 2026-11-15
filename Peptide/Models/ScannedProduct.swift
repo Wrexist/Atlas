@@ -62,6 +62,11 @@ struct ScannedProduct: Codable, Hashable, Sendable {
     /// liquid net quantity, or Atlas AI calling it one — so the portion
     /// picker speaks millilitres. Optional so older cache entries decode.
     var isDrink: Bool?
+
+    /// True when Open Food Facts had no product name and `name` is the
+    /// brand or "Unknown product", so Atlas AI's identification may
+    /// replace it. Optional so older cache entries decode.
+    var nameMissing: Bool?
 }
 
 extension ScannedProduct {

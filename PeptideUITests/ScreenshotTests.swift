@@ -715,6 +715,23 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// The Meals tab's nutrition rings on demo data, in both appearances.
+    func test_captureNutritionRings() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+
+            let meals = app.tabBars.buttons["Meals"]
+            XCTAssertTrue(meals.waitForExistence(timeout: 10))
+            meals.tap()
+            app.dismissOverlaysIfNeeded()
+            capture(named: "rings-\(appearance)-01-under")
+
+            app.terminate()
+        }
+    }
+
     /// The Meals tab, which `--recipe-fixture` has opened on the recipe.
     private func openRecipe(named name: String) {
         let meals = app.tabBars.buttons["Meals"]

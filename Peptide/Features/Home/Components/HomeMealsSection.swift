@@ -84,12 +84,10 @@ struct HomeMealsSection: View {
                 targetsPrompt
             }
 
-            let dailyBreakdown = dataStore.mealsByCategory(for: selectedDay)
             let dailyConsumption = dataStore.consumption(for: selectedDay)
             MacroSummaryRow(
                 targets: targets,
                 consumed: dailyConsumption,
-                breakdown: dailyBreakdown,
                 unit: dataStore.profile.bodyMetrics.unit,
                 onAddWater: logWater,
                 onUndoWater: lastWaterLog == nil ? nil : { undoWater() }
