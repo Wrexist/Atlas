@@ -694,11 +694,16 @@ final class ScreenshotTests: XCTestCase {
         let seeAll = app.buttons["See all"].firstMatch
         XCTAssertTrue(findByScrolling(seeAll))
         seeAll.tap()
+        XCTAssertTrue(app.navigationBars["Recipes & meal prep"].waitForExistence(timeout: 10))
+        // The search bar sits in the navigation drawer, hidden until the
+        // list is pulled down.
         let search = app.searchFields.firstMatch
-        if search.waitForExistence(timeout: 5) {
-            search.tap()
-            search.typeText(name)
+        for _ in 0..<3 where !search.exists {
+            drag(by: 200)
         }
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText(name)
         let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         card.tap()
