@@ -541,6 +541,7 @@ struct CustomFoodEditorSheet: View {
             pricePer100g: pricePer100g,
             imageURL: initial.imageURL,
             isDrink: initial.isDrink,
+            barcode: initial.barcode,
             updatedAt: Date()
         )
         onSave(saved)
