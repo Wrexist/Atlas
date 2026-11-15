@@ -4,12 +4,33 @@ import SwiftUI
 /// screens: a segmented switch between serving, package and grams,
 /// over the matching detail — a servings stepper, the package weight, or
 /// a gram slider with quick picks. One copy so the two flows can't drift.
+/// A drink reads in millilitres with glass, can and bottle picks; a
+/// millilitre counts as a gram, close enough for anything drinkable.
 struct PortionPicker: View {
     let product: ScannedProduct
     @Binding var portion: ScannedProduct.Portion
 
     static let gramsStep: Double = 5
     static let quickGrams: [Double] = [50, 100, 200, 500]
+
+    struct QuickPick: Sendable {
+        let amount: Double
+        let label: LocalizedStringResource
+    }
+
+    static let foodPicks: [QuickPick] = quickGrams.map {
+        QuickPick(amount: $0, label: "\(Int($0)) g")
+    }
+
+    static let drinkPicks: [QuickPick] = [
+        QuickPick(amount: 250, label: LocalizedStringResource("Glass", comment: "Drink quick pick, 25 cl")),
+        QuickPick(amount: 330, label: LocalizedStringResource("Can 33 cl", comment: "Drink quick pick")),
+        QuickPick(amount: 500, label: LocalizedStringResource("Bottle 50 cl", comment: "Drink quick pick")),
+        QuickPick(amount: 1000, label: LocalizedStringResource("1 l", comment: "Drink quick pick, one litre")),
+    ]
+
+    private var isDrink: Bool { product.isDrink == true }
+    private var unit: LocalizedStringKey { isDrink ? "ml" : "g" }
 
     private enum Mode: Hashable {
         case serving, wholePack, grams
@@ -62,7 +83,7 @@ struct PortionPicker: View {
         switch mode {
         case .serving: "Serving"
         case .wholePack: "Package"
-        case .grams: "Grams"
+        case .grams: isDrink ? "ml" : "Grams"
         }
     }
 
@@ -123,7 +144,7 @@ struct PortionPicker: View {
             }
             .frame(minHeight: Spacing.minimumHitTarget)
             if let grams = product.packageGrams {
-                Text("1 package = \(Int(grams.rounded())) g")
+                Text(isDrink ? "1 package = \(Int(grams.rounded())) ml" : "1 package = \(Int(grams.rounded())) g")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
@@ -139,7 +160,7 @@ struct PortionPicker: View {
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText(value: grams))
-                Text("g")
+                Text(unit)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
@@ -150,23 +171,23 @@ struct PortionPicker: View {
                 step: Self.gramsStep
             )
             .tint(AppColor.accentPrimary)
-            .accessibilityLabel("Grams")
+            .accessibilityLabel(isDrink ? "Millilitres" : "Grams")
             // A tick every 25 g so dragging has a feel without buzzing
             // on each 5 g step.
             .appSensoryFeedback(.selection, trigger: Int(grams / 25))
             HStack(spacing: Spacing.xs) {
-                ForEach(Self.quickGrams, id: \.self) { quick in
-                    quickPick(quick, isActive: grams == quick)
+                ForEach(isDrink ? Self.drinkPicks : Self.foodPicks, id: \.amount) { quick in
+                    quickPick(quick, isActive: grams == quick.amount)
                 }
             }
         }
     }
 
-    private func quickPick(_ grams: Double, isActive: Bool) -> some View {
+    private func quickPick(_ pick: QuickPick, isActive: Bool) -> some View {
         Button {
-            AppAnimation.with(AppAnimation.quick) { portion = .grams(grams) }
+            AppAnimation.with(AppAnimation.quick) { portion = .grams(pick.amount) }
         } label: {
-            Text("\(Int(grams)) g")
+            Text(pick.label)
                 .font(AppFont.caption2)
                 .fontWeight(isActive ? .semibold : .regular)
                 .lineLimit(1)

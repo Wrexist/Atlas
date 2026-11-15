@@ -4,8 +4,8 @@ import UIKit
 /// A food's product photo, lifted off its background when Vision could.
 struct ProductPhoto: Sendable {
     let image: UIImage
-    /// The background is gone, so the thumbnail sets the product on the
-    /// food's own tint instead of a white card.
+    /// The background is gone, so the thumbnail sets the product straight
+    /// on the card instead of on a white one.
     let isCutout: Bool
 }
 
