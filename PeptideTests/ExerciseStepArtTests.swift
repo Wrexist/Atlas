@@ -9,7 +9,9 @@ final class ExerciseStepArtTests: XCTestCase {
         let illustrated = [
             "Barbell_Squat", "Dumbbell_Bicep_Curl", "Barbell_Bench_Press_-_Medium_Grip", "Plank",
             "Cable_Crossover", "Dumbbell_Bench_Press", "Dumbbell_Flyes", "Front_Squat_Clean_Grip",
-            "Goblet_Squat", "Incline_Dumbbell_Press", "Leg_Extensions"
+            "Goblet_Squat", "Incline_Dumbbell_Press", "Leg_Extensions", "Front_Dumbbell_Raise",
+            "Hyperextensions_Back_Extensions", "Leg_Press", "Pushups", "Seated_Calf_Raise",
+            "Side_Lateral_Raise", "Wide-Grip_Lat_Pulldown"
         ]
         for id in illustrated {
             XCTAssertNotNil(ExerciseLibrary.shared.lookup(id: id), "\(id) is not in the library")
