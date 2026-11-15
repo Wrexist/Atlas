@@ -11284,16 +11284,6 @@
         }
       }
     },
-    "C": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "K"
-          }
-        }
-      }
-    },
     "C%lld · W%lld": {
       "localizations": {
         "sv": {
@@ -17954,16 +17944,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Förläng med 2 veckor"
-          }
-        }
-      }
-    },
-    "F": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "F"
           }
         }
       }
@@ -27004,16 +26984,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Översikt"
-          }
-        }
-      }
-    },
-    "P": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "P"
           }
         }
       }
