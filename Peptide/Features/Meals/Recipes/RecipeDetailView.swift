@@ -192,10 +192,10 @@ struct RecipeDetailView: View {
     /// scan a recipe for before reading it.
     private var quickFacts: some View {
         HStack(spacing: Spacing.sm) {
-            RecipeFact(icon: "clock.fill", value: "\(recipe.minutes)", unit: "min", tint: AppColor.accentLight)
-            RecipeFact(icon: "flame.fill", value: "\(recipe.calories)", unit: "kcal", tint: AppColor.warning)
+            RecipeFact(icon: .symbol("clock.fill"), value: "\(recipe.minutes)", unit: "min", tint: AppColor.accentLight)
+            RecipeFact(icon: .symbol("flame.fill"), value: "\(recipe.calories)", unit: "kcal", tint: AppColor.warning)
             RecipeFact(
-                icon: "bolt.heart.fill",
+                icon: .macro(.protein),
                 value: "\(Int(recipe.proteinG.rounded()))",
                 unit: String(localized: "g protein"),
                 tint: AppColor.macroProtein
@@ -255,7 +255,7 @@ struct RecipeDetailView: View {
         MacroChip.carbs(Int((recipe.carbsG * factor).rounded()))
         MacroChip.fat(Int((recipe.fatG * factor).rounded()))
         MacroChip(
-            symbol: "leaf.circle.fill",
+            icon: .symbol("leaf.circle.fill"),
             name: String(localized: "fibre"),
             grams: Int((recipe.fiberG * factor).rounded()),
             tint: AppColor.positive
@@ -394,15 +394,14 @@ struct RecipeDetailView: View {
 }
 
 private struct RecipeFact: View {
-    let icon: String
+    let icon: NutrientIcon
     let value: String
     let unit: String
     let tint: Color
 
     var body: some View {
         VStack(spacing: Spacing.xs) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(16, weight: .semibold))
+            NutrientIconView(icon: icon, size: 16)
                 .foregroundStyle(tint)
                 .accessibilityHidden(true)
             HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {

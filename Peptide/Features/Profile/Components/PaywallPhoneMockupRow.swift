@@ -172,9 +172,9 @@ private struct MealScanMock: View {
                 .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(AppColor.textPrimary)
 
-            macroRow(label: "P", fraction: 0.7, color: AppColor.macroProtein)
-            macroRow(label: "C", fraction: 0.55, color: AppColor.macroCarbs)
-            macroRow(label: "F", fraction: 0.3, color: AppColor.macroFat)
+            macroRow(.protein, fraction: 0.7, color: AppColor.macroProtein)
+            macroRow(.carbs, fraction: 0.55, color: AppColor.macroCarbs)
+            macroRow(.fat, fraction: 0.3, color: AppColor.macroFat)
 
             Spacer(minLength: 0)
         }
@@ -183,12 +183,11 @@ private struct MealScanMock: View {
         .background(AppColor.surfaceSecondary.opacity(0.6))
     }
 
-    private func macroRow(label: LocalizedStringKey, fraction: CGFloat, color: Color) -> some View {
+    private func macroRow(_ kind: MacroKind, fraction: CGFloat, color: Color) -> some View {
         HStack(spacing: 4) {
-            Text(label)
-                .font(AppFont.scaled(8, weight: .semibold))
-                .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 8, alignment: .leading)
+            MacroGlyph(kind: kind)
+                .fill(color)
+                .frame(width: 8, height: 8)
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule().fill(AppColor.surfaceElevated)

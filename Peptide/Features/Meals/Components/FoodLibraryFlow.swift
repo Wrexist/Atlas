@@ -976,17 +976,17 @@ struct FoodLibraryFlow: View {
     }
 
     /// One line, never wrapped: a kcal pill, then protein, carbs and fat
-    /// as coloured letters with grams. Narrow rows drop the letters and
-    /// keep the colour dots.
+    /// as coloured macro icons with grams. Narrow rows shrink the icons to
+    /// colour dots.
     private func macroPreview(calories: Int, protein: Int, carbs: Int, fat: Int) -> some View {
         ViewThatFits(in: .horizontal) {
-            macroLine(calories: calories, protein: protein, carbs: carbs, fat: fat, lettered: true)
-            macroLine(calories: calories, protein: protein, carbs: carbs, fat: fat, lettered: false)
+            macroLine(calories: calories, protein: protein, carbs: carbs, fat: fat, withIcons: true)
+            macroLine(calories: calories, protein: protein, carbs: carbs, fat: fat, withIcons: false)
         }
         .padding(.top, 2)
     }
 
-    private func macroLine(calories: Int, protein: Int, carbs: Int, fat: Int, lettered: Bool) -> some View {
+    private func macroLine(calories: Int, protein: Int, carbs: Int, fat: Int, withIcons: Bool) -> some View {
         HStack(spacing: Spacing.sm) {
             Text("\(calories) kcal")
                 .font(AppFont.scaled(11, weight: .bold))
@@ -995,19 +995,18 @@ struct FoodLibraryFlow: View {
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 2)
                 .background(Capsule().fill(AppColor.accentPrimary.opacity(0.18)))
-            macroValue("P", grams: protein, tint: AppColor.macroProtein, lettered: lettered)
-            macroValue("C", grams: carbs, tint: AppColor.macroCarbs, lettered: lettered)
-            macroValue("F", grams: fat, tint: AppColor.macroFat, lettered: lettered)
+            macroValue(.protein, grams: protein, tint: AppColor.macroProtein, withIcon: withIcons)
+            macroValue(.carbs, grams: carbs, tint: AppColor.macroCarbs, withIcon: withIcons)
+            macroValue(.fat, grams: fat, tint: AppColor.macroFat, withIcon: withIcons)
         }
         .lineLimit(1)
         .fixedSize()
     }
 
-    private func macroValue(_ letter: LocalizedStringKey, grams: Int, tint: Color, lettered: Bool) -> some View {
+    private func macroValue(_ kind: MacroKind, grams: Int, tint: Color, withIcon: Bool) -> some View {
         HStack(spacing: 3) {
-            if lettered {
-                Text(letter)
-                    .font(AppFont.scaled(11, weight: .semibold))
+            if withIcon {
+                MacroIcon(kind, size: 12)
                     .foregroundStyle(tint)
             } else {
                 Circle()
