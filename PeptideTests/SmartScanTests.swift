@@ -298,6 +298,46 @@ final class SmartScanTests: XCTestCase {
         XCTAssertNil(MealScannerService.ProductQuery(product: barcodeProduct(servingGrams: nil, packageGrams: nil)).payload["image_url"])
     }
 
+    func test_myFoodForBarcode_picksNewestMatch() {
+        let old = CustomFood(name: "Loka", per100g: .zero, barcode: "7310070765028", updatedAt: Date(timeIntervalSince1970: 1))
+        let new = CustomFood(name: "Loka Päron", per100g: .zero, barcode: "7310070765028", updatedAt: Date(timeIntervalSince1970: 2))
+        let other = CustomFood(name: "Oats", per100g: .zero, updatedAt: Date(timeIntervalSince1970: 3))
+        XCTAssertEqual(SmartFoodLogic.myFood(forBarcode: "7310070765028", in: [old, other, new])?.name, "Loka Päron")
+        XCTAssertNil(SmartFoodLogic.myFood(forBarcode: "1", in: [old, other, new]))
+    }
+
+    func test_correctedFood_scalesTypedPortionToPer100g_andKeepsBarcodeAndID() throws {
+        let existing = CustomFood(name: "Oats", per100g: .zero, barcode: "7310865000000")
+        let typed = LoggableMeal(calories: 150, proteinG: 5, carbsG: 27, fatG: 3)
+        let food = try XCTUnwrap(SmartFoodLogic.correctedFood(
+            barcodeProduct(servingGrams: nil, packageGrams: nil), portionGrams: 40, typed: typed, existing: existing
+        ))
+        XCTAssertEqual(food.id, existing.id)
+        XCTAssertEqual(food.barcode, "7310865000000")
+        XCTAssertEqual(food.per100g.calories, 375)
+        XCTAssertEqual(food.per100g.proteinG, 12.5)
+        XCTAssertEqual(food.per100g.carbsG, 67.5)
+        XCTAssertEqual(food.per100g.fatG, 7.5)
+        XCTAssertEqual(food.toScannedProduct(barcode: "7310865000000").barcode, "7310865000000")
+    }
+
+    func test_correctedFood_zeroPortion_isNil() {
+        XCTAssertNil(SmartFoodLogic.correctedFood(
+            barcodeProduct(servingGrams: nil, packageGrams: nil), portionGrams: 0,
+            typed: LoggableMeal(calories: 1, proteinG: 0, carbsG: 0, fatG: 0), existing: nil
+        ))
+    }
+
+    func test_customFood_savedBeforeBarcodeField_stillDecodes() throws {
+        let data = try JSONEncoder().encode(CustomFood(name: "Oats", per100g: .zero))
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        json.removeValue(forKey: "barcode")
+        json.removeValue(forKey: "isDrink")
+        let food = try JSONDecoder().decode(CustomFood.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertNil(food.barcode)
+        XCTAssertNil(food.isDrink)
+    }
+
     func test_customFoodFromProduct_largePackageWithoutServing_keepsServingEmpty() {
         let food = SmartFoodLogic.customFood(from: barcodeProduct(servingGrams: nil, packageGrams: 1000), pricePer100g: nil)
         XCTAssertNil(food.servingGrams)

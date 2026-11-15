@@ -273,16 +273,6 @@
         }
       }
     },
-    "C": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "K"
-          }
-        }
-      }
-    },
     "Calories left today, split by meal, with your macros.": {
       "localizations": {
         "sv": {
@@ -369,16 +359,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Post-ID"
-          }
-        }
-      }
-    },
-    "F": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "F"
           }
         }
       }
@@ -839,26 +819,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Försenad: %@ kl. %@"
-          }
-        }
-      }
-    },
-    "P": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "P"
-          }
-        }
-      }
-    },
-    "P %lld · C %lld · F %lld": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "P %lld · K %lld · F %lld"
           }
         }
       }

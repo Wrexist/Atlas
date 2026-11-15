@@ -11284,16 +11284,6 @@
         }
       }
     },
-    "C": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "K"
-          }
-        }
-      }
-    },
     "C%lld · W%lld": {
       "localizations": {
         "sv": {
@@ -17954,16 +17944,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Förläng med 2 veckor"
-          }
-        }
-      }
-    },
-    "F": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "F"
           }
         }
       }
@@ -27004,16 +26984,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Översikt"
-          }
-        }
-      }
-    },
-    "P": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "P"
           }
         }
       }
@@ -49742,6 +49712,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Räknas även som %lld ml vatten"
+          }
+        }
+      }
+    },
+    "Your saved values from My Foods": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sparade värden från Mina livsmedel"
+          }
+        }
+      }
+    },
+    "Saved to My Foods when you log, so the next scan uses your values.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparas i Mina livsmedel när du loggar, så nästa skanning använder dina värden."
           }
         }
       }

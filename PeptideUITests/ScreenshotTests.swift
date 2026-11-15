@@ -663,6 +663,52 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// Every surface that shows the protein / carbs / fat icons: the
+    /// diary rows, the food library, and the targets editor.
+    func test_captureMacroIcons() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+            let meals = app.tabBars.buttons["Meals"]
+            XCTAssertTrue(meals.waitForExistence(timeout: 10))
+            meals.tap()
+            app.dismissOverlaysIfNeeded()
+            capture(named: "macro-\(appearance)-01-meals")
+
+            let chip = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label CONTAINS 'grams protein'")).firstMatch
+            if findByScrolling(chip) {
+                capture(named: "macro-\(appearance)-02-diary")
+            }
+
+            scrollToTop()
+            let logFood = app.buttons["Log food"].firstMatch
+            if findByScrolling(logFood) {
+                logFood.tap()
+                let search = app.buttons["Search foods"].firstMatch
+                if search.waitForExistence(timeout: 5) {
+                    search.tap()
+                    Thread.sleep(forTimeInterval: 1.5)
+                    capture(named: "macro-\(appearance)-03-library")
+                    closeSheet("Close")
+                    closeSheet("Done")
+                }
+            }
+
+            scrollToTop()
+            let targets = app.buttons["Edit targets"].firstMatch
+            if findByScrolling(targets) {
+                targets.tap()
+                Thread.sleep(forTimeInterval: 1)
+                capture(named: "macro-\(appearance)-04-targets")
+                app.swipeUp()
+                capture(named: "macro-\(appearance)-05-targets-macros")
+            }
+            app.terminate()
+        }
+    }
+
     /// The Meals tab's nutrition rings on demo data, in both appearances.
     func test_captureNutritionRings() {
         for appearance in ["dark", "light"] {
