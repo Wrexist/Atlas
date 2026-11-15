@@ -50,6 +50,8 @@ struct FoodLibraryFlow: View {
     @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var loggedSnapshot: LoggedSnapshot?
     @State private var lastLoggedEntry: MealEntry?
+    /// Water a hydrating drink added with the last log, for Undo.
+    @State private var loggedWaterMillilitres: Double?
     @State private var mealSaveError: String?
     @State private var editingExactPortion = false
     @State private var loggedHistoryBarcode: String?
@@ -287,7 +289,7 @@ struct FoodLibraryFlow: View {
         }
         .sheet(isPresented: $editingExactPortion) {
             if let product = selectedProduct, let component = product.loggable(for: portion)?.components?.first {
-                FoodPortionEditor(component: component) { portion = .grams($0) }
+                FoodPortionEditor(component: component, isDrink: product.isDrink == true) { portion = .grams($0) }
             }
         }
         .sheet(item: $pendingRecipeLog, onDismiss: {
@@ -1218,10 +1220,11 @@ struct FoodLibraryFlow: View {
                     .foregroundStyle(AppColor.textSecondary)
 
                 PortionPicker(product: product, portion: $portion)
-                Button("Enter exact grams") { editingExactPortion = true }
+                Button(product.isDrink == true ? "Enter exact millilitres" : "Enter exact grams") { editingExactPortion = true }
                     .minimumHitArea()
+                WaterCreditNote(millilitres: product.waterMillilitres(for: portion))
                 if let grams = FoodLibraryLogic.previousGrams(for: product, history: profile.mealHistory) {
-                    Text("Last logged amount: \(grams.formatted()) g")
+                    Text(product.isDrink == true ? "Last logged amount: \(grams.formatted()) ml" : "Last logged amount: \(grams.formatted()) g")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -1373,6 +1376,10 @@ struct FoodLibraryFlow: View {
             date: logTimestamp()
         )
         guard commitLibraryEntry(entry) else { return }
+        loggedWaterMillilitres = product.waterMillilitres(for: portion)
+        if let loggedWaterMillilitres {
+            dataStore.logWater(fluidOunces: LifestyleDataLogic.fluidOunces(millilitres: loggedWaterMillilitres), date: entry.date)
+        }
         BarcodeHaptics.logCommitted()
         loggedSnapshot = LoggedSnapshot(
             foodName: product.name,
@@ -1408,6 +1415,7 @@ struct FoodLibraryFlow: View {
 
     private func showLogged(_ entry: MealEntry) {
         lastLoggedEntry = entry
+        loggedWaterMillilitres = nil
         loggedHistoryBarcode = nil
         loggedSnapshot = LoggedSnapshot(foodName: entry.name, entryID: entry.id,
                                         calories: entry.calories, date: entry.date)
@@ -1439,6 +1447,10 @@ struct FoodLibraryFlow: View {
         guard phase == .logged, let entry = lastLoggedEntry else { return }
         do {
             try dataStore.commitScannedMeals([entry], undo: true)
+            if let water = loggedWaterMillilitres {
+                dataStore.logWater(fluidOunces: -LifestyleDataLogic.fluidOunces(millilitres: water), date: entry.date)
+                loggedWaterMillilitres = nil
+            }
             if let barcode = loggedHistoryBarcode {
                 let previous = historyWriteTask
                 historyWriteTask = Task {

@@ -50,6 +50,10 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
     /// foods typed by hand.
     var imageURL: URL?
 
+    /// True for a drink, so the portion picker speaks millilitres and a
+    /// light one also counts as water. Optional so saved foods decode.
+    var isDrink: Bool?
+
     /// Stamp on create / edit. Used to sort the "My Foods" tab so the
     /// food you just added lands at the top.
     var updatedAt: Date
@@ -63,6 +67,7 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
         servingLabel: String? = nil,
         pricePer100g: FoodPriceEstimate? = nil,
         imageURL: URL? = nil,
+        isDrink: Bool? = nil,
         updatedAt: Date = Date()
     ) {
         self.id = id
@@ -73,6 +78,7 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
         self.servingLabel = servingLabel
         self.pricePer100g = pricePer100g
         self.imageURL = imageURL
+        self.isDrink = isDrink
         self.updatedAt = updatedAt
     }
 }
@@ -102,7 +108,8 @@ extension CustomFood {
             per100g: per100g,
             nutriScore: nil,
             novaGroup: nil,
-            fetchedAt: fetchedAt
+            fetchedAt: fetchedAt,
+            isDrink: isDrink
         )
     }
 }
