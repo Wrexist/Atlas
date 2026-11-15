@@ -86,7 +86,11 @@ struct TableDishSheet: View {
 
                 HStack(spacing: Spacing.lg) {
                     Label("\(dish.calories) kcal", systemImage: "flame")
-                    Label("\(dish.proteinG) g protein", systemImage: "bolt")
+                    Label {
+                        Text("\(dish.proteinG) g protein")
+                    } icon: {
+                        MacroIcon(.protein, size: 15, relativeTo: .footnote)
+                    }
                 }
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColor.textSecondary)

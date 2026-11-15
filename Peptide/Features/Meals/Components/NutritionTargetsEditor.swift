@@ -146,9 +146,9 @@ struct NutritionTargetsEditor: View {
                 macroSumCheck
 
                 HStack(spacing: Spacing.lg) {
-                    macroLegend("Protein", grams: intValue(protein), tint: AppColor.macroProtein)
-                    macroLegend("Carbs", grams: intValue(carbs), tint: AppColor.macroCarbs)
-                    macroLegend("Fat", grams: intValue(fat), tint: AppColor.macroFat)
+                    macroLegend(.protein, "Protein", grams: intValue(protein), tint: AppColor.macroProtein)
+                    macroLegend(.carbs, "Carbs", grams: intValue(carbs), tint: AppColor.macroCarbs)
+                    macroLegend(.fat, "Fat", grams: intValue(fat), tint: AppColor.macroFat)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -193,10 +193,11 @@ struct NutritionTargetsEditor: View {
         Capsule().fill(tint.opacity(0.9)).frame(width: max(0, width))
     }
 
-    private func macroLegend(_ label: LocalizedStringKey, grams: Int, tint: Color) -> some View {
+    private func macroLegend(_ kind: MacroKind, _ label: LocalizedStringKey, grams: Int, tint: Color) -> some View {
         VStack(spacing: 2) {
             HStack(spacing: 4) {
-                Circle().fill(tint).frame(width: 7, height: 7)
+                MacroIcon(kind, size: 12)
+                    .foregroundStyle(tint)
                 Text(label)
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
@@ -235,10 +236,19 @@ struct NutritionTargetsEditor: View {
                 }
 
                 HStack(spacing: Spacing.sm) {
-                    recChip("\(rec.calories)", "kcal", spoken: Text("\(rec.calories) kilocalories"), tint: AppColor.accentLight)
-                    recChip("\(rec.proteinG)", "P", spoken: Text("\(rec.proteinG) grams protein"), tint: AppColor.macroProtein)
-                    recChip("\(rec.carbsG)", "C", spoken: Text("\(rec.carbsG) grams carbs"), tint: AppColor.macroCarbs)
-                    recChip("\(rec.fatG)", "F", spoken: Text("\(rec.fatG) grams fat"), tint: AppColor.macroFat)
+                    recChip("\(rec.calories)", spoken: Text("\(rec.calories) kilocalories"), tint: AppColor.accentLight) {
+                        Text("kcal")
+                            .font(AppFont.scaled(11, weight: .semibold))
+                    }
+                    recChip("\(rec.proteinG)", spoken: Text("\(rec.proteinG) grams protein"), tint: AppColor.macroProtein) {
+                        recLabel(.protein, "Protein")
+                    }
+                    recChip("\(rec.carbsG)", spoken: Text("\(rec.carbsG) grams carbs"), tint: AppColor.macroCarbs) {
+                        recLabel(.carbs, "Carbs")
+                    }
+                    recChip("\(rec.fatG)", spoken: Text("\(rec.fatG) grams fat"), tint: AppColor.macroFat) {
+                        recLabel(.fat, "Fat")
+                    }
                 }
 
                 GlassButton(
@@ -316,14 +326,26 @@ struct NutritionTargetsEditor: View {
         }
     }
 
-    private func recChip(_ value: String, _ unit: LocalizedStringKey, spoken: Text, tint: Color) -> some View {
+    /// Icon plus the macro's name, so the tile reads on first sight.
+    private func recLabel(_ kind: MacroKind, _ name: LocalizedStringKey) -> some View {
+        HStack(spacing: 3) {
+            MacroIcon(kind, size: 12)
+            Text(name)
+                .font(AppFont.scaled(11, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+
+    /// `label` sits under the number: the unit for kcal, the macro icon
+    /// for the three macros.
+    private func recChip(_ value: String, spoken: Text, tint: Color, @ViewBuilder label: () -> some View) -> some View {
         VStack(spacing: 1) {
             Text(value)
                 .font(AppFont.scaled(16, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
-            Text(unit)
-                .font(AppFont.scaled(11, weight: .semibold))
+            label()
                 .foregroundStyle(tint.opacity(0.9))
         }
         .frame(maxWidth: .infinity)
@@ -419,7 +441,7 @@ struct NutritionTargetsEditor: View {
     private var caloriesCard: some View {
         GlassCard {
             inputRow(
-                icon: "flame.fill",
+                icon: .symbol("flame.fill"),
                 tint: AppColor.macroCalories,
                 title: "Calories",
                 unit: "kcal",
@@ -432,13 +454,13 @@ struct NutritionTargetsEditor: View {
     private var macrosCard: some View {
         GlassCard {
             VStack(spacing: 0) {
-                inputRow(icon: "p.circle.fill", tint: AppColor.macroProtein, title: "Protein", unit: "g", text: $protein, field: .protein)
+                inputRow(icon: .macro(.protein), tint: AppColor.macroProtein, title: "Protein", unit: "g", text: $protein, field: .protein)
                 rowDivider
-                inputRow(icon: "c.circle.fill", tint: AppColor.macroCarbs, title: "Carbs", unit: "g", text: $carbs, field: .carbs)
+                inputRow(icon: .macro(.carbs), tint: AppColor.macroCarbs, title: "Carbs", unit: "g", text: $carbs, field: .carbs)
                 rowDivider
-                inputRow(icon: "f.circle.fill", tint: AppColor.macroFat, title: "Fat", unit: "g", text: $fat, field: .fat)
+                inputRow(icon: .macro(.fat), tint: AppColor.macroFat, title: "Fat", unit: "g", text: $fat, field: .fat)
                 rowDivider
-                inputRow(icon: "leaf.fill", tint: AppColor.accentPrimary, title: "Fiber", unit: "g", text: $fiber, field: .fiber)
+                inputRow(icon: .symbol("leaf.fill"), tint: AppColor.accentPrimary, title: "Fiber", unit: "g", text: $fiber, field: .fiber)
             }
         }
     }
@@ -450,7 +472,7 @@ struct NutritionTargetsEditor: View {
     }
 
     private func inputRow(
-        icon: String,
+        icon: NutrientIcon,
         tint: Color,
         title: LocalizedStringKey,
         unit: LocalizedStringKey,
@@ -463,8 +485,7 @@ struct NutritionTargetsEditor: View {
                     RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                         .fill(tint.opacity(0.18))
                         .frame(width: 30, height: 30)
-                    Image(systemName: icon)
-                        .font(AppFont.scaled(13, weight: .semibold))
+                    NutrientIconView(icon: icon, size: 13)
                         .foregroundStyle(tint)
                 }
                 Text(title)

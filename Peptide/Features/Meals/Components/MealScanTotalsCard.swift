@@ -62,20 +62,19 @@ struct MealScanTotalsCard: View {
 
     private var macroGrid: some View {
         Grid(alignment: .leading, horizontalSpacing: Spacing.md, verticalSpacing: Spacing.sm) {
-            macroRow("Protein", grams: proteinG, share: shares.protein, tint: AppColor.macroProtein)
-            macroRow("Carbs", grams: carbsG, share: shares.carbs, tint: AppColor.macroCarbs)
-            macroRow("Fat", grams: fatG, share: shares.fat, tint: AppColor.macroFat)
+            macroRow(.protein, "Protein", grams: proteinG, share: shares.protein, tint: AppColor.macroProtein)
+            macroRow(.carbs, "Carbs", grams: carbsG, share: shares.carbs, tint: AppColor.macroCarbs)
+            macroRow(.fat, "Fat", grams: fatG, share: shares.fat, tint: AppColor.macroFat)
         }
     }
 
     /// One grid row: name, grams and energy share each sit in their own
     /// column, so the numbers line up whatever the label widths.
-    private func macroRow(_ title: LocalizedStringKey, grams: Int, share: Double, tint: Color) -> some View {
+    private func macroRow(_ kind: MacroKind, _ title: LocalizedStringKey, grams: Int, share: Double, tint: Color) -> some View {
         GridRow {
             HStack(spacing: Spacing.sm) {
-                Circle()
-                    .fill(tint)
-                    .frame(width: 8, height: 8)
+                MacroIcon(kind, size: 14, relativeTo: .subheadline)
+                    .foregroundStyle(tint)
                 Text(title)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)

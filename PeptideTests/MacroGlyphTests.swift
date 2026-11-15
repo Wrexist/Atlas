@@ -1,0 +1,30 @@
+import SwiftUI
+import XCTest
+@testable import Peptide
+
+@MainActor
+final class MacroGlyphTests: XCTestCase {
+    func test_eachGlyph_fillsItsFrameWithoutSpillingOver() {
+        let frame = CGRect(x: 0, y: 0, width: 48, height: 48)
+        for kind in MacroKind.allCases {
+            let bounds = MacroGlyph(kind: kind).path(in: frame).boundingRect
+            // A wheat ear is tall and narrow by design, so only the long
+            // side has to span most of the frame.
+            XCTAssertGreaterThan(max(bounds.width, bounds.height), 32, "\(kind) is too small")
+            XCTAssertGreaterThan(min(bounds.width, bounds.height), 16, "\(kind) is too thin")
+            XCTAssertTrue(frame.insetBy(dx: -0.5, dy: -0.5).contains(bounds), "\(kind) spills out: \(bounds)")
+        }
+    }
+
+    func test_wideFrame_centresTheGlyph() {
+        let bounds = MacroGlyph(kind: .fat).path(in: CGRect(x: 0, y: 0, width: 96, height: 24)).boundingRect
+        XCTAssertEqual(bounds.midX, 48, accuracy: 1)
+    }
+
+    func test_avocadoPit_isCutOut() {
+        let path = MacroGlyph(kind: .fat).path(in: CGRect(x: 0, y: 0, width: 24, height: 24))
+        // The pit sits 3 points down the avocado's 35° tilted axis.
+        XCTAssertFalse(path.contains(CGPoint(x: 10.28, y: 14.46)))
+        XCTAssertTrue(path.contains(CGPoint(x: 13.72, y: 9.54)))
+    }
+}

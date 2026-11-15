@@ -211,7 +211,7 @@ private struct CalorieCenter: View {
 private struct Macro: Identifiable {
     let id: String
     let name: LocalizedStringKey
-    let letter: LocalizedStringKey
+    let kind: MacroKind
     let grams: Int
     let target: Int
     let tint: Color
@@ -229,17 +229,17 @@ private struct Macro: Identifiable {
 
     static func all(_ entry: NutritionEntry) -> [Macro] {
         [
-            Macro(id: "p", name: "Protein", letter: "P", grams: entry.protein,
+            Macro(id: "p", name: "Protein", kind: .protein, grams: entry.protein,
                   target: entry.proteinTarget, tint: WidgetPalette.protein),
-            Macro(id: "c", name: "Carbs", letter: "C", grams: entry.carbs,
+            Macro(id: "c", name: "Carbs", kind: .carbs, grams: entry.carbs,
                   target: entry.carbsTarget, tint: WidgetPalette.carbs),
-            Macro(id: "f", name: "Fat", letter: "F", grams: entry.fat,
+            Macro(id: "f", name: "Fat", kind: .fat, grams: entry.fat,
                   target: entry.fatTarget, tint: WidgetPalette.fat),
         ]
     }
 }
 
-/// Small-widget macro: a bar over "95 P". Without a target the bar would
+/// Small-widget macro: a bar over "95" and the macro's icon. Without a target the bar would
 /// be meaningless, so it stays an empty track.
 private struct CompactMacro: View {
     let macro: Macro
@@ -251,8 +251,7 @@ private struct CompactMacro: View {
                 Text("\(macro.grams)")
                     .font(.caption2.weight(.bold).monospacedDigit())
                     .contentTransition(.numericText(value: Double(macro.grams)))
-                Text(macro.letter)
-                    .font(.caption2.weight(.semibold))
+                MacroIcon(macro.kind, size: 10, relativeTo: .caption2)
                     .foregroundStyle(macro.tint)
             }
             .lineLimit(1)
@@ -463,14 +462,26 @@ private struct RectangularNutritionView: View {
             }
             .font(.headline)
             .widgetAccentable()
-            Text("P \(entry.protein) · C \(entry.carbs) · F \(entry.fat)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .accessibilityLabel(Text("Protein \(entry.protein) grams, carbs \(entry.carbs) grams, fat \(entry.fat) grams"))
+            HStack(spacing: 6) {
+                lockScreenMacro(.protein, grams: entry.protein)
+                lockScreenMacro(.carbs, grams: entry.carbs)
+                lockScreenMacro(.fat, grams: entry.fat)
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("Protein \(entry.protein) grams, carbs \(entry.carbs) grams, fat \(entry.fat) grams"))
             Gauge(value: entry.progress) { EmptyView() }
                 .gaugeStyle(.accessoryLinearCapacity)
         }
         .lineLimit(1)
+    }
+
+    private func lockScreenMacro(_ kind: MacroKind, grams: Int) -> some View {
+        HStack(spacing: 2) {
+            MacroIcon(kind, size: 11)
+            Text("\(grams)")
+        }
     }
 }
 
