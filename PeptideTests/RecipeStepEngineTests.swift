@@ -55,6 +55,21 @@ final class RecipeStepEngineTests: XCTestCase {
         XCTAssertEqual(RecipeStepEngine.ingredientIndices(in: step, names: names, swedish: true), [0, 3])
     }
 
+    func test_ingredients_englishWordPrefix_doesNotMatch() {
+        let names = ["Butter", "Potatoes"]
+        let step = "Pack with the potatoes, but let them cool first."
+        XCTAssertEqual(RecipeStepEngine.ingredientIndices(in: step, names: names, swedish: false), [1])
+    }
+
+    func test_steps_ingredientMentionedAgain_isListedOnlyOnFirstUse() throws {
+        let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first { $0.id == "prep-meatballs-cream-sauce" })
+        let steps = RecipeStepEngine.steps(for: recipe, servings: recipe.servings, locale: Locale(identifier: "en"))
+        let names = steps.flatMap(\.ingredients).map(\.name)
+        XCTAssertEqual(names.count, Set(names).count)
+        XCTAssertTrue(try XCTUnwrap(steps.first).ingredients.map(\.name).contains("Potatoes"))
+        XCTAssertFalse(try XCTUnwrap(steps.last).ingredients.map(\.name).contains("Potatoes"))
+    }
+
     func test_steps_scaleAmountsWithServings() throws {
         let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first { recipe in
             recipe.steps.contains { !RecipeStepEngine.ingredientIndices(in: $0, names: recipe.ingredients.map(\.name), swedish: false).isEmpty }
