@@ -8,8 +8,10 @@ final class MacroGlyphTests: XCTestCase {
         let frame = CGRect(x: 0, y: 0, width: 48, height: 48)
         for kind in MacroKind.allCases {
             let bounds = MacroGlyph(kind: kind).path(in: frame).boundingRect
-            XCTAssertGreaterThan(bounds.width, 24, "\(kind) is too small")
-            XCTAssertGreaterThan(bounds.height, 24, "\(kind) is too small")
+            // A wheat ear is tall and narrow by design, so only the long
+            // side has to span most of the frame.
+            XCTAssertGreaterThan(max(bounds.width, bounds.height), 32, "\(kind) is too small")
+            XCTAssertGreaterThan(min(bounds.width, bounds.height), 16, "\(kind) is too thin")
             XCTAssertTrue(frame.insetBy(dx: -0.5, dy: -0.5).contains(bounds), "\(kind) spills out: \(bounds)")
         }
     }
