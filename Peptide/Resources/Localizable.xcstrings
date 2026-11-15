@@ -49615,6 +49615,26 @@
           }
         }
       }
+    },
+    "Log exercises": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga övningar"
+          }
+        }
+      }
+    },
+    "Add what you lifted. It counts toward records and weekly volume.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till det du lyfte. Det räknas in i rekord och veckovolym."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

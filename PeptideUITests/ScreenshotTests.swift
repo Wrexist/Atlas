@@ -477,6 +477,15 @@ final class ScreenshotTests: XCTestCase {
             let typeMenu = app.buttons["workout-type-menu"]
             XCTAssertTrue(typeMenu.waitForExistence(timeout: 5))
             capture(named: "types-\(appearance)-02-sheet")
+            let logLifts = app.buttons["log-health-workout-exercises"]
+            XCTAssertTrue(logLifts.exists, "An untyped Watch workout offers Log exercises")
+            logLifts.tap()
+            let editorCancel = app.buttons["Cancel"].firstMatch
+            XCTAssertTrue(editorCancel.waitForExistence(timeout: 5))
+            capture(named: "types-\(appearance)-02b-log-lifts")
+            // The untouched draft closes without a discard prompt.
+            editorCancel.tap()
+            XCTAssertTrue(typeMenu.waitForExistence(timeout: 5))
             typeMenu.tap()
             // A menu's picker option is a button or a menu item by iOS
             // version; rows behind the sheet only carry "Diving" in a

@@ -28,6 +28,31 @@ enum CardioWorkoutEngine {
         return Measurement(value: meters, unit: UnitLength.meters).converted(to: target)
     }
 
+    /// Gym-like types, where the Watch saw the time but not the lifts.
+    static func canLogExercises(_ activity: CardioActivity) -> Bool {
+        [.strength, .crossTraining, .coreTraining, .hiit, .other].contains(activity)
+    }
+
+    /// An Atlas workout for the lifts done during `workout`, at its exact
+    /// time, so the two are recognisably the same session.
+    static func session(loggingExercisesFor workout: ImportedCardioWorkout) -> WorkoutSession {
+        WorkoutSession(
+            name: workout.activity == .other ? nil : workout.activity.name,
+            startedAt: workout.start,
+            finishedAt: workout.end
+        )
+    }
+
+    /// The Health workouts not already logged in Atlas. One whose start
+    /// matches an Atlas workout's to the second had its exercises logged
+    /// from here, and the Atlas workout now shows it. Holds because a saved
+    /// workout's start is never edited; only sessions history has loaded
+    /// are checked, which covers the 30-day Health window.
+    static func unlogged(_ workouts: [ImportedCardioWorkout], sessions: [WorkoutSession]) -> [ImportedCardioWorkout] {
+        let starts = Set(sessions.map { Int($0.startedAt.timeIntervalSinceReferenceDate.rounded()) })
+        return workouts.filter { !starts.contains(Int($0.start.timeIntervalSinceReferenceDate.rounded())) }
+    }
+
     /// "5.23 km" — two decimals under ten, one above, so a long ride
     /// doesn't read as more precise than the GPS was.
     static func distanceLabel(meters: Double?, unit: MeasurementUnit, locale: Locale = .autoupdatingCurrent) -> String? {

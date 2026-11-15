@@ -5,6 +5,8 @@ struct WorkoutSavedEditor: View {
     let unit: MeasurementUnit
     let onSave: (WorkoutSession) throws -> Void
     private let original: WorkoutSession
+    /// A new workout being logged needs a set before Save means anything.
+    private let requiresSets: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var draft: WorkoutSession
     @State private var error: String?
@@ -17,10 +19,16 @@ struct WorkoutSavedEditor: View {
     @State private var expandedSets: Set<UUID> = []
     @FocusState private var focusedField: String?
 
-    init(session: WorkoutSession, unit: MeasurementUnit, onSave: @escaping (WorkoutSession) throws -> Void) {
+    init(
+        session: WorkoutSession,
+        unit: MeasurementUnit,
+        requiresSets: Bool = false,
+        onSave: @escaping (WorkoutSession) throws -> Void
+    ) {
         self.unit = unit
         self.onSave = onSave
         self.original = session
+        self.requiresSets = requiresSets
         _draft = State(initialValue: session)
     }
 
@@ -59,10 +67,16 @@ struct WorkoutSavedEditor: View {
                     Button("Add exercise", systemImage: "plus.circle.fill") { pickingExercise = true }
                         .accessibilityIdentifier("recap-add-exercise")
                 } footer: {
-                    Text("Swipe a set to delete it. Added sets count as done when the workout finished.")
+                    if draft.exercises.isEmpty {
+                        Text("Add what you lifted. It counts toward records and weekly volume.")
+                    } else {
+                        Text("Swipe a set to delete it. Added sets count as done when the workout finished.")
+                    }
                 }
-                Section {
-                    Text("Only completed working sets contribute to recap totals. Changing a load convention changes recorded volume; existing records keep their original meaning until you explicitly change it.")
+                if !draft.exercises.isEmpty {
+                    Section {
+                        Text("Only completed working sets contribute to recap totals. Changing a load convention changes recorded volume; existing records keep their original meaning until you explicitly change it.")
+                    }
                 }
                 if let error { Section { Text(error).foregroundStyle(AppColor.destructive).accessibilityIdentifier("workout-edit-error") } }
                 if let validationIssue {
@@ -70,7 +84,7 @@ struct WorkoutSavedEditor: View {
                 }
             }
             .disabled(saving)
-            .navigationTitle("Edit workout").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(requiresSets ? "Log exercises" : "Edit workout").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -83,7 +97,7 @@ struct WorkoutSavedEditor: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(saving ? "Saving…" : "Save") { save() }.disabled(saving || validationIssue != nil)
+                    Button(saving ? "Saving…" : "Save") { save() }.disabled(saving || validationIssue != nil || missingSets)
                         .accessibilityIdentifier("save-workout-edits")
                 }
                 ToolbarItemGroup(placement: .keyboard) {
@@ -141,8 +155,11 @@ struct WorkoutSavedEditor: View {
         return WorkoutEditValidation.issue(in: draft, original: original)
     }
 
+    /// Only holds Save back: an empty log is the starting point, not a mistake.
+    private var missingSets: Bool { requiresSets && draft.completedSetCount == 0 }
+
     private func save() {
-        guard !saving, validationIssue == nil else { return }
+        guard !saving, validationIssue == nil, !missingSets else { return }
         focusedField = nil
         saving = true
         Task { @MainActor in
