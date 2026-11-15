@@ -126,6 +126,28 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertTrue(product.countsAsWater)
     }
 
+    func test_fetch_swedishNameOnly_usesItInsteadOfUnknown() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.swedishNameOnly.utf8))
+        }
+        let product = try await service.fetch(barcode: "7310070765028")
+        XCTAssertEqual(product.name, "Loka Päron")
+        XCTAssertEqual(product.nameMissing, false)
+    }
+
+    func test_fetch_brandOnly_marksNameMissing_soAICanNameIt() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.brandOnly.utf8))
+        }
+        let product = try await service.fetch(barcode: "1111111111111")
+        XCTAssertEqual(product.nameMissing, true)
+    }
+
+    func test_bestName_skipsBlankNames() {
+        XCTAssertEqual(OpenFoodFactsService.bestName(among: [nil, "  ", "Loka Päron", "Loka"]), "Loka Päron")
+        XCTAssertNil(OpenFoodFactsService.bestName(among: [nil, ""]))
+    }
+
     func test_fetch_decodesNumericFieldsServedAsStrings() async throws {
         MockURLProtocol.handler = { request in
             (Self.ok(for: request), Data(Fixtures.stringyNumerics.utf8))
@@ -418,7 +440,8 @@ final class OpenFoodFactsServiceTests: XCTestCase {
             servingSizeText: nil, servingGrams: nil, packageGrams: 330,
             per100g: .init(calories: 1, proteinG: 0, carbsG: 0, fatG: 0, fiberG: nil, sugarsG: nil),
             nutriScore: nil, novaGroup: nil,
-            fetchedAt: Date()
+            fetchedAt: Date(),
+            nameMissing: false
         )
         await cache.write(cached)
 
@@ -431,6 +454,38 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         let result = try await service.fetch(barcode: "5449000000996")
         XCTAssertEqual(result.name, "Cached Cola")
         XCTAssertEqual(callCount.value, 0, "Cache hit must not touch network")
+    }
+
+    func test_fetch_entryCachedBeforeNameFields_refreshesInBackground() async throws {
+        await cache.write(ScannedProduct(
+            barcode: "7310070765028", name: "Unknown product", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        ))
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.swedishNameOnly.utf8))
+        }
+        let result = try await service.fetch(barcode: "7310070765028")
+        XCTAssertEqual(result.name, "Unknown product", "the cached entry answers at once")
+        let deadline = Date().addingTimeInterval(10)
+        var refreshed = await cache.read(barcode: "7310070765028")
+        while refreshed?.name != "Loka Päron", Date() < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+            refreshed = await cache.read(barcode: "7310070765028")
+        }
+        XCTAssertEqual(refreshed?.name, "Loka Päron")
+        XCTAssertEqual(refreshed?.nameMissing, false)
+    }
+
+    func test_fetch_entryCachedBeforeNameFields_offline_keepsCachedEntry() async throws {
+        await cache.write(ScannedProduct(
+            barcode: "7310070765028", name: "Cached", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: 500,
+            per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        ))
+        MockURLProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
+        let result = try await service.fetch(barcode: "7310070765028")
+        XCTAssertEqual(result.name, "Cached")
     }
 
     func test_remember_packageReadProduct_isServedOnRescanWithoutNetwork() async throws {
@@ -508,7 +563,8 @@ final class OpenFoodFactsServiceTests: XCTestCase {
             servingSizeText: nil, servingGrams: nil, packageGrams: nil,
             per100g: .init(calories: 1, proteinG: 0, carbsG: 0, fatG: 0, fiberG: nil, sugarsG: nil),
             nutriScore: nil, novaGroup: nil,
-            fetchedAt: Date().addingTimeInterval(-OpenFoodFactsService.staleAfter - 60)
+            fetchedAt: Date().addingTimeInterval(-OpenFoodFactsService.staleAfter - 60),
+            nameMissing: false
         )
         await cache.write(stale)
 
@@ -557,7 +613,7 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         await cache.write(ScannedProduct(
             barcode: "5449000000996", name: "Cached Cola", brand: nil, imageURL: nil,
             servingSizeText: nil, servingGrams: nil, packageGrams: nil,
-            per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+            per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date(), nameMissing: false
         ))
         let callCount = SendableBox<Int>(0)
         MockURLProtocol.handler = { request in
@@ -702,6 +758,20 @@ private enum Fixtures {
           "carbohydrates_100g": 0,
           "fat_100g": 0
         }
+      }
+    }
+    """
+
+    static let swedishNameOnly = """
+    {
+      "status": 1,
+      "code": "7310070765028",
+      "product": {
+        "product_name": "",
+        "product_name_sv": "Loka Päron",
+        "brands": "Loka",
+        "quantity": "50 cl",
+        "nutriments": { "energy-kcal_100g": 0 }
       }
     }
     """

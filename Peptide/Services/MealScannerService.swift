@@ -235,13 +235,19 @@ final class MealScannerService: Sendable {
         var quantity: String?
         var serving: String?
         var nutrition: String?
+        /// The database's packshot, sent only when the record has no
+        /// product name so the model can read the label itself.
+        var imageURL: String?
 
         /// Facts from an Open Food Facts hit, so the model can work out
         /// servings, the whole-pack amount and a price for exactly it.
         init(product: ScannedProduct) {
             let n = product.per100g
             barcode = product.barcode.allSatisfy(\.isNumber) ? product.barcode : nil
-            name = product.name
+            // "Unknown product" would anchor the model on a placeholder.
+            let nameMissing = product.nameMissing == true
+            name = nameMissing ? nil : product.name
+            imageURL = nameMissing ? product.imageURL?.absoluteString : nil
             brand = product.brand
             quantity = product.packageGrams.map { "\(Int($0.rounded())) g" }
             serving = product.servingSizeText ?? product.servingGrams.map { "\(Int($0.rounded())) g" }
@@ -257,6 +263,7 @@ final class MealScannerService: Sendable {
             [
                 "query": query, "barcode": barcode, "name": name, "brand": brand,
                 "quantity": quantity, "serving": serving, "nutrition": nutrition,
+                "image_url": imageURL,
             ].compactMapValues { $0?.nilIfEmpty }
         }
     }

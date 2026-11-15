@@ -268,6 +268,36 @@ final class SmartScanTests: XCTestCase {
                        per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date())
     }
 
+    func test_fillingNamelessProduct_takesAtlasAIName_andDrinkKind() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.flavouredWater.utf8))
+        var nameless = barcodeProduct(servingGrams: nil, packageGrams: 500)
+        nameless.nameMissing = true
+        let filled = SmartFoodLogic.product(nameless, fillingFrom: scan)
+        XCTAssertEqual(filled.name, "Loka Päron")
+        XCTAssertEqual(filled.brand, "Loka")
+        XCTAssertEqual(filled.isDrink, true)
+        XCTAssertEqual(filled.nameMissing, false)
+    }
+
+    func test_fillingNamedProduct_keepsDatabaseName() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.flavouredWater.utf8))
+        let filled = SmartFoodLogic.product(barcodeProduct(servingGrams: nil, packageGrams: 500), fillingFrom: scan)
+        XCTAssertEqual(filled.name, "Oats")
+    }
+
+    func test_productQuery_namelessRecord_sendsPackshotNotPlaceholder() {
+        let withPicture = ScannedProduct(
+            barcode: "7310865000000", name: "Unknown product", brand: nil,
+            imageURL: URL(string: "https://images.openfoodfacts.org/images/products/731/front.400.jpg"),
+            servingSizeText: nil, servingGrams: nil, packageGrams: 500, per100g: .zero,
+            nutriScore: nil, novaGroup: nil, fetchedAt: Date(), nameMissing: true
+        )
+        let payload = MealScannerService.ProductQuery(product: withPicture).payload
+        XCTAssertNil(payload["name"])
+        XCTAssertEqual(payload["image_url"], "https://images.openfoodfacts.org/images/products/731/front.400.jpg")
+        XCTAssertNil(MealScannerService.ProductQuery(product: barcodeProduct(servingGrams: nil, packageGrams: nil)).payload["image_url"])
+    }
+
     func test_customFoodFromProduct_largePackageWithoutServing_keepsServingEmpty() {
         let food = SmartFoodLogic.customFood(from: barcodeProduct(servingGrams: nil, packageGrams: 1000), pricePer100g: nil)
         XCTAssertNil(food.servingGrams)
@@ -451,6 +481,17 @@ private enum SmartFixtures {
         {"name":"Strösocker","brand":"Dansukker","portion_label":"1 bag","grams":2000,"portion_options":[],
          "per_100g":{"calories":400,"protein_g":0,"carbs_g":100,"fat_g":0,"fiber_g":0,"sugars_g":100},
          "confidence":0.95,"price":null}
+      ]}}
+    """
+
+    static let flavouredWater = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"drink","title":"Loka Päron","summary":"Flavoured sparkling water.","tips":[],
+      "package":{"total_grams":500,"serving_grams":null,"serving_label":null},
+      "items":[
+        {"name":"Loka Päron","brand":"Loka","portion_label":"1 bottle (50 cl)","grams":500,"portion_options":[],
+         "per_100g":{"calories":0,"protein_g":0,"carbs_g":0,"fat_g":0,"fiber_g":0,"sugars_g":0},
+         "confidence":0.8,"price":null}
       ]}}
     """
 

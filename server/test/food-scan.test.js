@@ -241,3 +241,23 @@ test('test_resultWithMicronutrients_passesThroughUnchanged', () => {
   assert.equal(out.status, 200);
   assert.deepEqual(out.body.result.items[0].micros_per_100g, withMicros.items[0].micros_per_100g);
 });
+
+test('test_productMode_namelessRecord_attachesOpenFoodFactsPackshot', () => {
+  const url = 'https://images.openfoodfacts.org/images/products/731/007/076/5028/front_sv.3.400.jpg';
+  const request = buildFoodScanRequest({
+    mode: 'product',
+    product: { barcode: '7310070765028', image_url: url, quantity: '500 g' },
+  });
+  const [image, text] = request.messages[0].content;
+  assert.deepEqual(image, { type: 'image', source: { type: 'url', url } });
+  assert.equal(text.type, 'text');
+  assert.match(request.system, /730–739 is Sweden/);
+});
+
+test('test_productMode_foreignImageHost_isDropped', () => {
+  for (const image_url of ['https://evil.example/x.jpg', 'http://images.openfoodfacts.org/x.jpg', 'not a url', 42]) {
+    const request = buildFoodScanRequest({ mode: 'product', product: { barcode: '7310070765028', image_url } });
+    assert.equal(request.messages[0].content.length, 1, String(image_url));
+    assert.equal(request.messages[0].content[0].type, 'text');
+  }
+});
