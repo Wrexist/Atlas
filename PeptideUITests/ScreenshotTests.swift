@@ -663,6 +663,23 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// The Meals tab's nutrition rings on demo data, in both appearances.
+    func test_captureNutritionRings() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+
+            let meals = app.tabBars.buttons["Meals"]
+            XCTAssertTrue(meals.waitForExistence(timeout: 10))
+            meals.tap()
+            app.dismissOverlaysIfNeeded()
+            capture(named: "rings-\(appearance)-01-under")
+
+            app.terminate()
+        }
+    }
+
     /// Scrolls the current screen until `element` is hittable.
     private func findByScrolling(_ element: XCUIElement) -> Bool {
         for _ in 0..<8 {

@@ -2,7 +2,10 @@ import SwiftUI
 
 /// Nutrition hero on the Lifestyle tab. Three Apple-Activity-style
 /// concentric rings render Calories (outer), Protein (middle), and
-/// Water (inner) progress in a single glass card, with a legend row
+/// Water (inner) progress in a single glass card. Each ring owns one
+/// colour, shared by its legend dot, and going past a goal laps the
+/// ring in a deeper shade of that same colour, so "over" never borrows
+/// another metric's colour. A legend row
 /// underneath that exposes the live values + targets. Carbs and fat
 /// have no ring, so they sit in a compact row below. Water quick-add
 /// chips sit at the bottom so the most common action (logging a glass
@@ -10,11 +13,6 @@ import SwiftUI
 struct MacroSummaryRow: View {
     let targets: NutritionTargets
     let consumed: DailyConsumption
-    /// Per-meal-category breakdown driving the outer calorie ring's
-    /// segmentation. Optional — when nil, the ring falls back to the
-    /// monochrome render so callers that haven't been upgraded
-    /// (older snapshots, previews, tests) keep working unchanged.
-    let breakdown: LifestyleDataLogic.CategoryBreakdown?
     /// Water is stored in fluid ounces; this decides what the legend and
     /// the quick-add chips say. They used to disagree with each other.
     let unit: MeasurementUnit
@@ -35,14 +33,12 @@ struct MacroSummaryRow: View {
     init(
         targets: NutritionTargets,
         consumed: DailyConsumption,
-        breakdown: LifestyleDataLogic.CategoryBreakdown? = nil,
         unit: MeasurementUnit,
         onAddWater: @escaping (Double) -> Void,
         onUndoWater: (() -> Void)? = nil
     ) {
         self.targets = targets
         self.consumed = consumed
-        self.breakdown = breakdown
         self.unit = unit
         self.onAddWater = onAddWater
         self.onUndoWater = onUndoWater
@@ -50,18 +46,17 @@ struct MacroSummaryRow: View {
 
     private static let waterTargetOz = TodayChecklistEngine.waterTargetOz
 
+    /// Uncapped: past 1 the ring laps (see `ringFill`).
     private var caloriesProgress: Double {
-        guard targets.calories > 0 else { return 0 }
-        return min(1, Double(consumed.caloriesKcal) / Double(targets.calories))
+        Self.fraction(consumed.caloriesKcal, of: targets.calories) ?? 0
     }
 
     private var proteinProgress: Double {
-        guard targets.proteinG > 0 else { return 0 }
-        return min(1, Double(consumed.proteinG) / Double(targets.proteinG))
+        Self.fraction(consumed.proteinG, of: targets.proteinG) ?? 0
     }
 
     private var waterProgress: Double {
-        min(1, consumed.waterFluidOunces / Double(Self.waterTargetOz))
+        consumed.waterFluidOunces / Double(Self.waterTargetOz)
     }
 
     /// Rings and numbers start at zero until the first appear; Reduce
@@ -90,9 +85,7 @@ struct MacroSummaryRow: View {
                         title: "Calories",
                         value: consumed.caloriesKcal,
                         target: Self.targetText(targets.calories, unit: "kcal"),
-                        // The outer ring is split by meal colour, so a single
-                        // accent dot would name a colour the ring doesn't use.
-                        color: breakdown == nil ? AppColor.accentPrimary : AppColor.textTertiary,
+                        color: AppColor.macroCalories,
                         index: 0,
                         overBy: max(0, consumed.caloriesKcal - targets.calories),
                         remaining: targets.calories > 0 ? targets.calories - consumed.caloriesKcal : nil
@@ -108,8 +101,10 @@ struct MacroSummaryRow: View {
                     legend(
                         title: "Water",
                         value: LifestyleDataLogic.displayedWater(consumed, unit: unit),
-                        target: "/\(unit.volumeLabel(Double(Self.waterTargetOz)))",
-                        color: AppColor.macroWaterLight,
+                        // Same unit as the number beside it: "1000/3000 mL",
+                        // never "1000/3,0 L".
+                        target: Self.targetText(unit.volumeValue(Double(Self.waterTargetOz)), unit: unit == .metric ? "mL" : "oz"),
+                        color: AppColor.macroWater,
                         index: 2,
                         goalMet: consumed.waterFluidOunces >= Double(Self.waterTargetOz)
                     )
@@ -182,72 +177,45 @@ struct MacroSummaryRow: View {
 
     private var ringStack: some View {
         ZStack {
-            // Outer ring: calories. When a breakdown is available,
-            // segment it by meal category so the user can read what
-            // they ate at a glance — breakfast slice, lunch slice,
-            // etc. Falls back to the monochrome accent ring when no
-            // breakdown is supplied so legacy callers (and previews)
-            // keep working unchanged.
-            if let breakdown {
-                SegmentedCalorieRing(
-                    breakdown: breakdown,
-                    target: targets.calories,
-                    lineWidth: 12
-                )
-                .frame(width: 132, height: 132)
-            } else {
-                ringTrack(diameter: 132, lineWidth: 12)
-                ringFill(
-                    diameter: 132,
-                    lineWidth: 12,
-                    progress: caloriesProgress,
-                    colors: [AppColor.accentLight, AppColor.accentPrimary],
-                    index: 0
-                )
-            }
-
-            ringTrack(diameter: 96, lineWidth: 12)
-            ringFill(
-                diameter: 96,
-                lineWidth: 12,
-                progress: proteinProgress,
-                colors: [AppColor.macroProteinLight, AppColor.macroProtein],
-                index: 1
-            )
-
-            ringTrack(diameter: 60, lineWidth: 12)
-            ringFill(
-                diameter: 60,
-                lineWidth: 12,
-                progress: waterProgress,
-                colors: [AppColor.macroWaterLight, AppColor.macroWater],
-                index: 2
-            )
+            ring(diameter: 132, progress: caloriesProgress, colors: [AppColor.macroCaloriesLight, AppColor.macroCalories], index: 0)
+            ring(diameter: 96, progress: proteinProgress, colors: [AppColor.macroProteinLight, AppColor.macroProtein], index: 1)
+            ring(diameter: 60, progress: waterProgress, colors: [AppColor.macroWaterLight, AppColor.macroWater], index: 2)
         }
         .accessibilityElement()
         .accessibilityLabel(accessibilitySummary)
     }
 
-    private func ringTrack(diameter: CGFloat, lineWidth: CGFloat) -> some View {
-        Circle()
-            .stroke(AppColor.surfaceElevated.opacity(0.65), lineWidth: lineWidth)
-            .frame(width: diameter, height: diameter)
+    private static let ringLineWidth: CGFloat = 12
+
+    private func ring(diameter: CGFloat, progress: Double, colors: [Color], index: Int) -> some View {
+        ZStack {
+            Circle()
+                .stroke(colors[1].opacity(0.16), lineWidth: Self.ringLineWidth)
+            ringFill(progress: min(1, progress), colors: colors, index: index)
+            // Past the goal the ring keeps going, Activity style: a second
+            // lap in a deeper shade of the same colour, with a soft shadow
+            // under its leading cap so the overlap reads as "one more lap".
+            if progress > 1 {
+                ringFill(progress: min(1, progress - 1), colors: [colors[1], colors[1].mix(with: .black, by: 0.35)], index: index)
+                    .shadow(color: .black.opacity(0.35), radius: 2.5)
+            }
+        }
+        .frame(width: diameter, height: diameter)
     }
 
-    private func ringFill(diameter: CGFloat, lineWidth: CGFloat, progress: Double, colors: [Color], index: Int) -> some View {
+    private func ringFill(progress: Double, colors: [Color], index: Int) -> some View {
         Circle()
             .trim(from: 0, to: isRevealed ? progress : 0)
             .stroke(
                 AngularGradient(
-                    gradient: Gradient(colors: colors + [colors.first ?? .clear]),
+                    gradient: Gradient(colors: colors),
                     center: .center,
-                    startAngle: .degrees(-90),
-                    endAngle: .degrees(270)
+                    startAngle: .degrees(0),
+                    endAngle: .degrees(360 * max(progress, 0.01))
                 ),
-                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                style: StrokeStyle(lineWidth: Self.ringLineWidth, lineCap: .round)
             )
             .rotationEffect(.degrees(-90))
-            .frame(width: diameter, height: diameter)
             .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: progress)
             .animation(revealAnimation(index: index), value: isRevealed)
     }
@@ -284,7 +252,7 @@ struct MacroSummaryRow: View {
                     let shown = isRevealed ? value : 0
                     Text(String(shown))
                         .font(AppFont.scaled(20, weight: .semibold))
-                        .foregroundStyle(overBy > 0 && targets.calories > 0 ? AppColor.warning : AppColor.textPrimary)
+                        .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                         .fixedSize()
                         .contentTransition(.numericText(value: Double(shown)))
@@ -308,7 +276,7 @@ struct MacroSummaryRow: View {
                 if overBy > 0 && targets.calories > 0 {
                     Text("+\(overBy) over")
                         .font(AppFont.scaled(11, weight: .semibold))
-                        .foregroundStyle(AppColor.warning)
+                        .foregroundStyle(color)
                         .monospacedDigit()
                 } else if let remaining, remaining > 0 {
                     Text("\(remaining) kcal left")
