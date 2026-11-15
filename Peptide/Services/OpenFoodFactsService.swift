@@ -44,6 +44,7 @@ final class OpenFoodFactsService: Sendable {
         "nutriments",
         "nutriscore_grade",
         "nova_group",
+        "categories_tags",
     ].joined(separator: ",")
 
     private static let defaultBaseURL = URL.staticHTTPS("https://world.openfoodfacts.org/api/v2/product/")
@@ -421,6 +422,28 @@ final class OpenFoodFactsService: Sendable {
         return (count * amount * gramsPerUnit).positiveOrNil
     }
 
+    /// A drink by Open Food Facts' own taxonomy. Records without
+    /// categories fall back to a liquid net quantity ("33 cl"), skipping
+    /// oils and sauces that are also sold by volume but are calorie-dense.
+    static func isDrink(categories: [String], quantity: String?, caloriesPer100: Double?) -> Bool {
+        if !categories.isEmpty {
+            return categories.contains { drinkCategories.contains($0) }
+        }
+        guard let quantity, isLiquidQuantity(quantity) else { return false }
+        return (caloriesPer100 ?? 0) < 80
+    }
+
+    private static let drinkCategories: Set<String> = [
+        "en:beverages", "en:waters", "en:carbonated-drinks", "en:sodas",
+        "en:juices-and-nectars", "en:plant-based-beverages", "en:coffee-drinks",
+        "en:tea-based-beverages", "en:energy-drinks", "en:milks",
+    ]
+
+    /// "33 cl", "1,5 l", "6 x 50 cl" — a printed volume, not a weight.
+    static func isLiquidQuantity(_ text: String) -> Bool {
+        text.range(of: #"\d\s*(ml|cl|dl|l|liter|litre)\b"#, options: [.regularExpression, .caseInsensitive]) != nil
+    }
+
     private static let gramsPerUnit: [String: Double] = [
         "mg": 0.001, "g": 1, "gr": 1, "kg": 1000,
         "ml": 1, "cl": 10, "dl": 100, "l": 1000,
@@ -624,6 +647,9 @@ private extension OpenFoodFactsService {
         let nutriments: RawNutriments?
         let nutriscoreGrade: String?
         let novaGroup: FlexibleInt?
+        /// Taxonomy tags such as "en:beverages", used to tell a drink
+        /// from a food.
+        let categoriesTags: [String]?
 
         enum CodingKeys: String, CodingKey {
             case code               = "code"
@@ -639,6 +665,7 @@ private extension OpenFoodFactsService {
             case nutriments         = "nutriments"
             case nutriscoreGrade    = "nutriscore_grade"
             case novaGroup          = "nova_group"
+            case categoriesTags     = "categories_tags"
         }
 
         func toScannedProduct(barcode: String, fetchedAt: Date) -> ScannedProduct {
@@ -688,7 +715,10 @@ private extension OpenFoodFactsService {
                     .nilIfEmpty,
                 novaGroup: novaGroup?.value,
                 fetchedAt: fetchedAt,
-                nutritionMissing: [calories, protein, carbs, fat].allSatisfy { $0 == nil }
+                nutritionMissing: [calories, protein, carbs, fat].allSatisfy { $0 == nil },
+                isDrink: OpenFoodFactsService.isDrink(
+                    categories: categoriesTags ?? [], quantity: quantity, caloriesPer100: calories
+                )
             )
         }
     }

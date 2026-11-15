@@ -540,6 +540,7 @@ struct CustomFoodEditorSheet: View {
             servingLabel: servingLabel.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
             pricePer100g: pricePer100g,
             imageURL: initial.imageURL,
+            isDrink: initial.isDrink,
             updatedAt: Date()
         )
         onSave(saved)

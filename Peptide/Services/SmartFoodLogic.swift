@@ -19,7 +19,8 @@ enum SmartFoodLogic {
             per100g: rounded(per100g(of: item)),
             servingGrams: servingGrams > 0 ? servingGrams.rounded() : nil,
             servingLabel: servingLabel.nilIfEmpty,
-            pricePer100g: item.price?.scaled(by: 100 / item.grams)
+            pricePer100g: item.price?.scaled(by: 100 / item.grams),
+            isDrink: scan.insight.kind == .drink ? true : nil
         )
     }
 
@@ -40,7 +41,8 @@ enum SmartFoodLogic {
             nutriScore: nil,
             novaGroup: nil,
             fetchedAt: now,
-            readFromPackage: true
+            readFromPackage: true,
+            isDrink: scan.insight.kind == .drink
         )
     }
 
@@ -66,7 +68,8 @@ enum SmartFoodLogic {
             novaGroup: product.novaGroup,
             fetchedAt: product.fetchedAt,
             nutritionMissing: !product.hasNutrition && scan.items.isEmpty,
-            readFromPackage: product.readFromPackage
+            readFromPackage: product.readFromPackage,
+            isDrink: product.isDrink == true || scan.insight.kind == .drink
         )
     }
 
@@ -84,7 +87,8 @@ enum SmartFoodLogic {
                     ? String(localized: "1 package", comment: "Serving label for a custom food whose serving is the whole package.")
                     : nil),
             pricePer100g: pricePer100g,
-            imageURL: product.imageURL
+            imageURL: product.imageURL,
+            isDrink: product.isDrink
         )
     }
 
