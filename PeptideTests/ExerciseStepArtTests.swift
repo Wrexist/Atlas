@@ -133,7 +133,25 @@ final class ExerciseStepArtTests: XCTestCase {
             "Front_Incline_Dumbbell_Raise",
             "Front_Two-Dumbbell_Raise",
             "Hip_Extension_with_Bands",
-            "Hip_Flexion_with_Band"
+            "Hip_Flexion_with_Band",
+            "External_Rotation_with_Cable",
+            "Front_Raise_And_Pullover",
+            "Incline_Dumbbell_Flyes_-_With_A_Twist",
+            "Incline_Push-Up_Close-Grip",
+            "Incline_Push-Up_Medium",
+            "Incline_Push-Up_Wide",
+            "Internal_Rotation_with_Band",
+            "Isometric_Neck_Exercise_-_Sides",
+            "Isometric_Wipers",
+            "Jackknife_Sit-Up",
+            "Kettlebell_Pirate_Ships",
+            "Knee_Hip_Raise_On_Parallel_Bars",
+            "Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists",
+            "Kneeling_High_Pulley_Row",
+            "Kneeling_Single-Arm_High_Pulley_Row",
+            "Lateral_Raise_-_With_Bands",
+            "Leg_Pull-In",
+            "Leverage_Deadlift"
         ]
         for id in illustrated {
             XCTAssertNotNil(ExerciseLibrary.shared.lookup(id: id), "\(id) is not in the library")
