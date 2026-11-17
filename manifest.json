@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "99E406B3-2E85-4D79-B09A-563B1443F247",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "45C2AF21-18EA-49F9-A927-9AF32E0D3437.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "onboarding-01-Welcome_0_908B1F76-9BEB-44AA-8E0E-B6CDCBAA89E2.png",
+        "timestamp" : 1794955494.066
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureOnboarding()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureOnboarding"
+  }
+]
