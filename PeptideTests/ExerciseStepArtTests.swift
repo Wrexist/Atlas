@@ -115,7 +115,25 @@ final class ExerciseStepArtTests: XCTestCase {
             "Decline_Smith_Press",
             "Dumbbell_Raise",
             "Elbow_to_Knee",
-            "Exercise_Ball_Crunch"
+            "Exercise_Ball_Crunch",
+            "Band_Hip_Adductions",
+            "Bench_Press_-_With_Bands",
+            "Cable_Wrist_Curl",
+            "Cross_Over_-_With_Bands",
+            "Decline_EZ_Bar_Triceps_Extension",
+            "Dip_Machine",
+            "Dumbbell_Scaption",
+            "Dumbbell_Seated_One-Leg_Calf_Raise",
+            "Dumbbell_Tricep_Extension_-Pronated_Grip",
+            "External_Rotation",
+            "External_Rotation_with_Band",
+            "Finger_Curls",
+            "Flat_Bench_Leg_Pull-In",
+            "Flat_Bench_Lying_Leg_Raise",
+            "Front_Incline_Dumbbell_Raise",
+            "Front_Two-Dumbbell_Raise",
+            "Hip_Extension_with_Bands",
+            "Hip_Flexion_with_Band"
         ]
         for id in illustrated {
             XCTAssertNotNil(ExerciseLibrary.shared.lookup(id: id), "\(id) is not in the library")
