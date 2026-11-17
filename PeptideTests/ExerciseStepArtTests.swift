@@ -102,7 +102,20 @@ final class ExerciseStepArtTests: XCTestCase {
             "Smith_Machine_Bent_Over_Row",
             "Smith_Machine_Calf_Raise",
             "Standing_Cable_Wood_Chop",
-            "Straight-Arm_Dumbbell_Pullover"
+            "Straight-Arm_Dumbbell_Pullover",
+            "Bent_Over_One-Arm_Long_Bar_Row",
+            "Butt_Lift_Bridge",
+            "Cable_Incline_Pushdown",
+            "Calf_Raises_-_With_Bands",
+            "Close-Grip_EZ-Bar_Curl_with_Band",
+            "Cross-Body_Crunch",
+            "Crunch_-_Legs_On_Exercise_Ball",
+            "Decline_Dumbbell_Triceps_Extension",
+            "Decline_Reverse_Crunch",
+            "Decline_Smith_Press",
+            "Dumbbell_Raise",
+            "Elbow_to_Knee",
+            "Exercise_Ball_Crunch"
         ]
         for id in illustrated {
             XCTAssertNotNil(ExerciseLibrary.shared.lookup(id: id), "\(id) is not in the library")
