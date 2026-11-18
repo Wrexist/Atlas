@@ -353,6 +353,16 @@
         }
       }
     },
+    "Ended early": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avslutad i förtid"
+          }
+        }
+      }
+    },
     "Entry ID": {
       "localizations": {
         "sv": {

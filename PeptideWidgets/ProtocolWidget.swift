@@ -28,8 +28,9 @@ struct DoseEntry: TimelineEntry {
     /// day of a three-times-a-week schedule.
     var isRestDay: Bool { !hasProtocol && hasActiveProtocol }
     var allDone: Bool { hasProtocol && peptideName.isEmpty }
-    /// The next dose's time has passed without it being logged.
-    var isOverdue: Bool { nextDoseDate.map { date >= $0 } ?? false }
+    /// The next dose's time, plus the Live Activity's "Take now" grace,
+    /// has passed without it being logged.
+    var isOverdue: Bool { nextDoseDate.map { WidgetData.isOverdue($0, at: date) } ?? false }
 
     /// "2/4" for a header; nil with no doses today.
     var doseCount: String? { hasProtocol ? "\(completed)/\(total)" : nil }
@@ -74,11 +75,14 @@ struct DoseTimelineProvider: TimelineProvider {
         let next = payload.reloadDate(after: now)
         var entries = [entry(from: payload, at: now)]
         if payload.isLoaded {
-            // An imminent dose: add an entry at its time, so the widget
-            // flags it overdue if it passes unlogged. Logging it reloads
-            // the timeline from the app.
-            if let due = entries[0].nextDoseDate, due > now, due < next {
-                entries.append(entry(from: payload, at: due))
+            // An imminent dose: add an entry where it turns overdue, so
+            // the widget flags it if it passes unlogged. Logging it
+            // reloads the timeline from the app.
+            if let due = entries[0].nextDoseDate {
+                let overdueAt = WidgetData.overdueAt(due)
+                if overdueAt > now, overdueAt < next {
+                    entries.append(entry(from: payload, at: overdueAt))
+                }
             }
             // WidgetKit may run the reload late; this entry turns
             // yesterday's doses into the outdated prompt at midnight
@@ -328,7 +332,7 @@ private struct DoseRow: View {
     /// scheduled at its time, as the small widget's "Overdue" does.
     let now: Date
 
-    private var isOverdue: Bool { !slot.completed && slot.time <= now }
+    private var isOverdue: Bool { !slot.completed && WidgetData.isOverdue(slot.time, at: now) }
 
     var body: some View {
         HStack(spacing: 6) {

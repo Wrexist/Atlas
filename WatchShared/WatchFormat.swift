@@ -64,4 +64,17 @@ struct WatchWeightUnit {
     }
 
     private static let poundsPerKilogram = 2.20462
+
+    /// The unit with what the number means: "kg", or "kg added" for a
+    /// bodyweight set, "kg assist", "kg per side", "kg per hand", so a
+    /// pull-up never reads as a plain 0 kg load.
+    func caption(for measurement: WatchSetMeasurement?) -> String {
+        switch measurement?.meaning ?? .load {
+        case .load: symbol
+        case .added: String(localized: "\(symbol) added")
+        case .assistance: String(localized: "\(symbol) assist")
+        case .perSide: String(localized: "\(symbol) per side")
+        case .perHand: String(localized: "\(symbol) per hand")
+        }
+    }
 }

@@ -131,13 +131,7 @@ final class WatchSyncService: NSObject {
                 completed: entry.completed
             )
         }
-        // Strict-weak-ordering comparator: `!$0.completed && $1.completed`
-        // isn't a valid ordering and left same-group entries in arbitrary order.
-        .sorted { lhs, rhs in
-            lhs.completed == rhs.completed
-                ? lhs.scheduledTime < rhs.scheduledTime
-                : !lhs.completed
-        }
+        .sorted(by: WatchEntry.displayOrder)
     }
 
     /// Re-sends the last snapshot with a new workout state. Set edits

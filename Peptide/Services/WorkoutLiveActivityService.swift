@@ -39,6 +39,7 @@ final class WorkoutLiveActivityService {
             Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }
         if currentActivity(for: session.id) == nil {
+            dismissEndedCards(for: session.id)
             start(session)
         } else {
             update(session)
@@ -106,10 +107,24 @@ final class WorkoutLiveActivityService {
         ActivityAuthorizationInfo().areActivitiesEnabled
     }
 
+    /// Only activities the system hasn't ended: one iOS ended at its
+    /// eight-hour limit lingers in `activities`, takes no updates, and
+    /// must not stop a fresh one from starting.
     private func currentActivity(for sessionId: UUID? = nil) -> Activity<WorkoutActivityAttributes>? {
-        let open = Activity<WorkoutActivityAttributes>.activities
+        let open = Activity<WorkoutActivityAttributes>.activities.filter {
+            $0.activityState == .active || $0.activityState == .stale
+        }
         guard let sessionId else { return open.first }
         return open.first { $0.attributes.sessionId == sessionId }
+    }
+
+    /// Clears this workout's frozen ended card before a fresh one starts
+    /// beside it on the Lock Screen.
+    private func dismissEndedCards(for sessionId: UUID) {
+        for stale in Activity<WorkoutActivityAttributes>.activities
+        where stale.activityState == .ended && stale.attributes.sessionId == sessionId {
+            Task { await stale.end(nil, dismissalPolicy: .immediate) }
+        }
     }
 
     private func push(

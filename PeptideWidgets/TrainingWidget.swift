@@ -41,6 +41,11 @@ struct TrainingEntry: TimelineEntry {
         return lastName.isEmpty ? day.formatted(.dateTime.weekday(.wide)) : lastName
     }
 
+    /// "yesterday", "3 days ago", counted from this entry's date.
+    var lastWorkoutRelative: String? {
+        lastWorkoutDay.map { WidgetData.relativeDay($0, from: date) }
+    }
+
     static var empty: TrainingEntry {
         TrainingEntry(
             date: .now, clockStart: nil, pausedElapsed: nil, workoutsThisWeek: 0,
@@ -279,8 +284,8 @@ private struct FreshWeekBlock: View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Fresh week")
                 .font(.headline)
-            if let day = entry.lastWorkoutDay {
-                Text("Last: \(entry.lastTitle), \(day.formatted(.relative(presentation: .named)))")
+            if let relative = entry.lastWorkoutRelative {
+                Text("Last: \(entry.lastTitle), \(relative)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -420,12 +425,12 @@ private struct MediumTrainingView: View {
                 .textCase(.uppercase)
                 .tracking(0.5)
                 .foregroundStyle(.secondary)
-            if let day = entry.lastWorkoutDay {
+            if let relative = entry.lastWorkoutRelative {
                 Text(entry.lastTitle)
                     .font(.headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text(day.formatted(.relative(presentation: .named)))
+                Text(relative)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

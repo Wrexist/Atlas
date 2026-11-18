@@ -75,6 +75,39 @@ final class WatchOfflineWorkoutTests: XCTestCase {
         XCTAssertFalse(finished.snapshot.isPaused)
     }
 
+    func test_retiringAbandoned_loggedWorkFiledAtLastSet() throws {
+        let lastSet = now.addingTimeInterval(600)
+        let workout = try completingNext(WatchOfflineWorkout(routine: routine, at: now), at: lastSet)
+
+        let retired = WatchOfflineSyncEngine.retiringAbandoned(
+            workout, outbox: [], at: lastSet.addingTimeInterval(WatchData.workoutStaleAfter + 60)
+        )
+
+        XCTAssertNil(retired.active)
+        XCTAssertEqual(retired.outbox.map(\.id), [workout.id])
+        XCTAssertEqual(retired.outbox.first?.finishedAt, lastSet)
+    }
+
+    func test_retiringAbandoned_nothingLogged_isDropped() {
+        let workout = WatchOfflineWorkout(routine: routine, at: now)
+
+        let retired = WatchOfflineSyncEngine.retiringAbandoned(
+            workout, outbox: [], at: now.addingTimeInterval(WatchData.workoutStaleAfter + 60)
+        )
+
+        XCTAssertNil(retired.active)
+        XCTAssertTrue(retired.outbox.isEmpty)
+    }
+
+    func test_retiringAbandoned_recentSet_keepsItRunning() throws {
+        let workout = try completingNext(WatchOfflineWorkout(routine: routine, at: now), at: now.addingTimeInterval(600))
+
+        let retired = WatchOfflineSyncEngine.retiringAbandoned(workout, outbox: [], at: now.addingTimeInterval(3600))
+
+        XCTAssertEqual(retired.active, workout)
+        XCTAssertTrue(retired.outbox.isEmpty)
+    }
+
     func test_finishedWorkout_takesNoMoreTaps() throws {
         let finished = try completingNext(WatchOfflineWorkout(routine: routine, at: now), at: now).finished(at: now.addingTimeInterval(60))
 

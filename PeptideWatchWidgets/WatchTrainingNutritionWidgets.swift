@@ -13,6 +13,16 @@ private enum WatchSnapshotFile {
         decoder.dateDecodingStrategy = .iso8601
         return try? decoder.decode(WatchData.self, from: data)
     }
+
+    /// The workout the Watch runs by itself, which the phone's snapshot
+    /// never carries. Absent unless one is running.
+    static func readOfflineWorkout() -> WatchWorkoutSnapshot? {
+        guard let url = FileManager.default
+                .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
+                .appendingPathComponent(WatchWorkoutSnapshot.offlineFileName),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(WatchWorkoutSnapshot.self, from: data)
+    }
 }
 
 // MARK: - Workout
@@ -21,6 +31,9 @@ struct WatchWorkoutEntry: TimelineEntry {
     let date: Date
     let workout: WatchWorkoutSnapshot?
     let training: WatchTrainingSnapshot?
+    /// False before the phone's first push: no count to show yet, which
+    /// is not the same as "0 this week".
+    var synced = true
 
     static let placeholder: WatchWorkoutEntry = {
         let bench = WatchWorkoutSnapshot.Exercise(
@@ -62,13 +75,25 @@ struct WatchWorkoutProvider: TimelineProvider {
         if let workout = entries[0].workout, workout.isResting(at: now), let rest = workout.rest {
             entries.append(entry(at: rest.endsAt))
         }
+        // The week's count resets on the week boundary even if the reload
+        // runs late.
+        if let weekEnd = Calendar.current.dateInterval(of: .weekOfYear, for: now)?.end {
+            entries.append(entry(at: weekEnd))
+        }
         let next = Calendar.current.date(byAdding: .minute, value: 30, to: now) ?? now
-        completion(Timeline(entries: entries, policy: .after(next)))
+        completion(Timeline(entries: entries.sorted { $0.date < $1.date }, policy: .after(next)))
     }
 
+    /// A workout the Watch runs by itself comes first: the phone's
+    /// snapshot never carries it.
     private func entry(at date: Date) -> WatchWorkoutEntry {
         let data = WatchSnapshotFile.read()?.forDisplay(at: date)
-        return WatchWorkoutEntry(date: date, workout: data?.workout, training: data?.training)
+        return WatchWorkoutEntry(
+            date: date,
+            workout: WatchSnapshotFile.readOfflineWorkout() ?? data?.workout,
+            training: data?.training,
+            synced: data != nil
+        )
     }
 }
 
@@ -129,7 +154,7 @@ struct WatchWorkoutEntryView: View {
                     Image(systemName: "dumbbell.fill")
                         .font(.system(size: 11))
                         .foregroundStyle(WatchPalette.training)
-                    Text("\(entry.training?.workoutsThisWeek ?? 0)")
+                    Text(entry.synced ? (entry.training?.workoutsThisWeek ?? 0).formatted() : "—")
                         .font(.system(size: 17, weight: .bold, design: .rounded))
                         .widgetAccentable()
                     Text("WEEK")
@@ -175,13 +200,19 @@ struct WatchWorkoutEntryView: View {
                 Label("Training", systemImage: "dumbbell.fill")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(WatchPalette.training)
-                Text("\(entry.training?.workoutsThisWeek ?? 0) this week")
-                    .font(.headline)
-                    .widgetAccentable()
-                Text(lastWorkoutLine)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if entry.synced {
+                    Text("\(entry.training?.workoutsThisWeek ?? 0) this week")
+                        .font(.headline)
+                        .widgetAccentable()
+                    Text(lastWorkoutLine)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else {
+                    Text("Open Atlas on iPhone")
+                        .font(.headline)
+                        .lineLimit(2)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -193,8 +224,10 @@ struct WatchWorkoutEntryView: View {
     private var inline: some View {
         if let workout = entry.workout {
             Text("\(workout.completedSets)/\(workout.totalSets) sets · \(workout.name.isEmpty ? String(localized: "Workout") : workout.name)")
-        } else {
+        } else if entry.synced {
             Text("\(entry.training?.workoutsThisWeek ?? 0) workouts this week")
+        } else {
+            Text("Open Atlas on iPhone")
         }
     }
 
@@ -214,12 +247,13 @@ struct WatchWorkoutEntryView: View {
 
     private var lastWorkoutLine: String {
         guard let last = entry.training?.lastWorkout else { return String(localized: "No workouts yet") }
-        let day = last.day.formatted(.dateTime.weekday(.abbreviated))
+        let day = last.dayLabel(at: entry.date)
         return last.name.isEmpty ? String(localized: "Last: \(day)") : "\(last.name) · \(day)"
     }
 
     private var spoken: String {
         guard let workout = entry.workout else {
+            guard entry.synced else { return String(localized: "Open Atlas on iPhone") }
             return String(localized: "\(entry.training?.workoutsThisWeek ?? 0) workouts this week")
         }
         if workout.isPaused { return String(localized: "Workout paused") }
@@ -229,7 +263,7 @@ struct WatchWorkoutEntryView: View {
 }
 
 struct WatchWorkoutWidget: Widget {
-    let kind = "WatchWorkoutWidget"
+    let kind = WatchWorkoutSnapshot.complicationKind
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchWorkoutProvider()) { entry in
             WatchWorkoutEntryView(entry: entry)
@@ -246,6 +280,9 @@ struct WatchWorkoutWidget: Widget {
 struct WatchNutritionEntry: TimelineEntry {
     let date: Date
     let nutrition: WatchNutritionSnapshot?
+    /// False before the phone's first push, so the face asks for a sync
+    /// rather than a meal.
+    var synced = true
 
     static let placeholder = WatchNutritionEntry(
         date: .now,
@@ -271,12 +308,13 @@ struct WatchNutritionProvider: TimelineProvider {
         let calendar = Calendar.current
         let current = currentEntry()
         let midnight = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now)
-        let reset = WatchNutritionEntry(date: midnight, nutrition: current.nutrition?.emptied)
+        let reset = WatchNutritionEntry(date: midnight, nutrition: current.nutrition?.emptied, synced: current.synced)
         completion(Timeline(entries: [current, reset], policy: .atEnd))
     }
 
     private func currentEntry() -> WatchNutritionEntry {
-        WatchNutritionEntry(date: .now, nutrition: WatchSnapshotFile.read()?.forDisplay(at: .now).nutrition)
+        let data = WatchSnapshotFile.read()
+        return WatchNutritionEntry(date: .now, nutrition: data?.forDisplay(at: .now).nutrition, synced: data != nil)
     }
 }
 
@@ -353,7 +391,7 @@ struct WatchNutritionEntryView: View {
                 Label("Nutrition", systemImage: "fork.knife")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(WatchPalette.calories)
-                Text("Log a meal on iPhone")
+                Text(entry.synced ? LocalizedStringKey("Log a meal on iPhone") : "Open Atlas on iPhone")
                     .font(.headline)
                     .lineLimit(2)
             }
@@ -384,7 +422,9 @@ struct WatchNutritionEntryView: View {
     }
 
     private var spoken: String {
-        guard let nutrition = entry.nutrition else { return String(localized: "No meals logged") }
+        guard let nutrition = entry.nutrition else {
+            return entry.synced ? String(localized: "No meals logged") : String(localized: "Open Atlas on iPhone")
+        }
         return String(localized: "\(nutrition.caloriesToday) calories, \(nutrition.proteinToday) grams protein")
     }
 }

@@ -95,6 +95,62 @@ final class WatchDataTests: XCTestCase {
         XCTAssertEqual(updated.vitals, vitals)
     }
 
+    func test_replacingEntries_tickedDose_movesBelowOpenOnes() {
+        let early = WatchEntry(id: UUID(), protocolId: UUID(), peptideName: "A", abbreviation: "A",
+                               dose: "1", scheduledTime: now, completed: false)
+        let late = WatchEntry(id: UUID(), protocolId: UUID(), peptideName: "B", abbreviation: "B",
+                              dose: "1", scheduledTime: now.addingTimeInterval(3600), completed: false)
+        let data = WatchData(todayEntries: [early, late], completedToday: 0, totalToday: 2, lastUpdated: now)
+        var ticked = early
+        ticked.completed = true
+
+        let updated = data.replacingEntries([ticked, late])
+
+        XCTAssertEqual(updated.todayEntries.map(\.id), [late.id, early.id])
+    }
+
+    // MARK: - Week rollover
+
+    /// Gregorian, Monday-first, UTC, so the week edge doesn't depend on
+    /// the runner's locale.
+    private let utcMondayFirst: Calendar = {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+        cal.firstWeekday = 2
+        return cal
+    }()
+
+    private var lastWorkout: WidgetWorkoutSummary {
+        WidgetWorkoutSummary(name: "Push", startedAt: now, finishedAt: now, setCount: 12, volumeKg: 4_000, durationMinutes: 50)
+    }
+
+    func test_forDisplay_snapshotFromLastWeek_zeroesTheWeekKeepsLastWorkout() throws {
+        // `now` is Saturday 2025-10-11; the next Monday is two days on.
+        let data = WatchData(todayEntries: [], completedToday: 0, totalToday: 0, lastUpdated: now,
+                             training: WatchTrainingSnapshot(workoutsThisWeek: 4, lastWorkout: lastWorkout))
+        let monday = now.addingTimeInterval(2 * 86_400)
+
+        let shown = try XCTUnwrap(data.forDisplay(at: monday, calendar: utcMondayFirst).training)
+
+        XCTAssertEqual(shown.workoutsThisWeek, 0)
+        XCTAssertEqual(shown.lastWorkout, lastWorkout)
+    }
+
+    func test_forDisplay_sameWeek_keepsTheWeekCount() {
+        let data = WatchData(todayEntries: [], completedToday: 0, totalToday: 0, lastUpdated: now,
+                             training: WatchTrainingSnapshot(workoutsThisWeek: 4, lastWorkout: lastWorkout))
+        XCTAssertEqual(data.forDisplay(at: now.addingTimeInterval(86_400), calendar: utcMondayFirst).training?.workoutsThisWeek, 4)
+    }
+
+    func test_dayLabel_withinSixDays_isWeekday_olderIsDate() {
+        let english = Locale(identifier: "en_US")
+        XCTAssertEqual(lastWorkout.dayLabel(at: now.addingTimeInterval(2 * 86_400), calendar: utcMondayFirst, locale: english), "Sat")
+        let old = lastWorkout.dayLabel(at: now.addingTimeInterval(10 * 86_400), calendar: utcMondayFirst, locale: english)
+        XCTAssertNotEqual(old, "Sat")
+        XCTAssertTrue(old.contains("Oct"), old)
+        XCTAssertTrue(old.contains("11"), old)
+    }
+
     // MARK: - Day rollover and staleness
 
     private var nutrition: WatchNutritionSnapshot {

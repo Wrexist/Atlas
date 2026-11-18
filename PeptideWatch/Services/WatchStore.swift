@@ -23,6 +23,9 @@ final class WatchStore: NSObject, ObservableObject {
     /// Whether the phone answers live messages right now. Only while it
     /// doesn't can a workout start on the wrist; otherwise the phone owns it.
     @Published private(set) var isPhoneReachable = false
+    /// Whether the WatchConnectivity session has activated. Until then
+    /// `isPhoneReachable` is only its initial false, not an answer.
+    @Published private(set) var hasActivated = false
 
     /// The workout the Workout page shows: the Watch's own, else the phone's.
     var displayedWorkout: WatchWorkoutSnapshot? {
@@ -30,7 +33,7 @@ final class WatchStore: NSObject, ObservableObject {
     }
 
     var canStartOfflineWorkout: Bool {
-        offlineWorkout == nil && watchData.workout == nil && !isPhoneReachable
+        hasActivated && offlineWorkout == nil && watchData.workout == nil && !isPhoneReachable
     }
 
     /// Bumped on every guarded send so a stale release from a prior send
@@ -87,6 +90,16 @@ final class WatchStore: NSObject, ObservableObject {
         super.init()
         loadFromDisk()
         loadOfflineState()
+        retireAbandonedOfflineWorkout()
+        // Re-arms the rest alert of a workout restored mid-rest, so it
+        // buzzes in the app and a later skip or finish withdraws the
+        // notification queued before the relaunch.
+        scheduleRestEndHaptic(for: displayedWorkout)
+        // A workout restored from disk was never mirrored by this launch,
+        // so the complication would show the weekly glance until a tap.
+        if offlineWorkout != nil {
+            mirrorOfflineWorkoutForComplication()
+        }
         if WCSession.isSupported() {
             WCSession.default.delegate = self
             WCSession.default.activate()
@@ -104,6 +117,7 @@ final class WatchStore: NSObject, ObservableObject {
     /// a workout whose end never arrived clear without a push.
     func refreshForNow() {
         watchData = watchData.forDisplay(at: Date())
+        retireAbandonedOfflineWorkout()
     }
 
     /// Keeps a WatchConnectivity background launch alive until the phone's
@@ -252,7 +266,23 @@ final class WatchStore: NSObject, ObservableObject {
     private func updateOffline(_ workout: WatchOfflineWorkout?) {
         offlineWorkout = workout
         persistOfflineState()
+        mirrorOfflineWorkoutForComplication()
         scheduleRestEndHaptic(for: displayedWorkout)
+    }
+
+    /// The Workout complication can't see this app's Documents, so the
+    /// running Watch-run workout is copied into the App Group, and
+    /// removed once it ends, for the face to show its timer and sets.
+    private func mirrorOfflineWorkoutForComplication() {
+        guard let url = FileManager.default
+                .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
+                .appendingPathComponent(WatchWorkoutSnapshot.offlineFileName) else { return }
+        if let snapshot = offlineWorkout?.snapshot, let data = try? JSONEncoder().encode(snapshot) {
+            try? data.write(to: url, options: .atomic)
+        } else {
+            try? FileManager.default.removeItem(at: url)
+        }
+        WidgetCenter.shared.reloadTimelines(ofKind: WatchWorkoutSnapshot.complicationKind)
     }
 
     /// Hands every unconfirmed workout to WatchConnectivity, except one it
@@ -277,6 +307,16 @@ final class WatchStore: NSObject, ObservableObject {
         guard remaining.count != offlineOutbox.count else { return }
         offlineOutbox = remaining
         persistOfflineState()
+    }
+
+    /// Files or drops a Watch-run workout left running for hours, so it
+    /// stops owning the Workout page and blocking a new one.
+    private func retireAbandonedOfflineWorkout() {
+        let retired = WatchOfflineSyncEngine.retiringAbandoned(offlineWorkout, outbox: offlineOutbox, at: Date())
+        guard retired.active != offlineWorkout else { return }
+        offlineOutbox = retired.outbox
+        updateOffline(retired.active)
+        sendOfflineOutbox()
     }
 
     private func loadOfflineState() {
@@ -499,6 +539,7 @@ extension WatchStore: WCSessionDelegate {
         let reachable = session.isReachable
         Task { @MainActor in
             self.isPhoneReachable = reachable
+            self.hasActivated = true
             self.flushAwaitingActivation()
             if let decoded { self.adoptIfNewer(decoded) }
             self.sendOfflineOutbox()

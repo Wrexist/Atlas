@@ -41,6 +41,16 @@ struct WatchOfflineWorkout: Codable, Hashable, Identifiable, Sendable {
     /// At least one working set logged: anything less isn't worth filing.
     var hasLoggedWork: Bool { snapshot.completedSets > 0 }
 
+    /// The latest set logged, else the start: the last sign the user was
+    /// still training.
+    var lastActivity: Date { completedAt.values.max() ?? startedAt }
+
+    /// Forgotten: nothing logged for as long as a phone workout may sit
+    /// before the Watch drops it (`WatchData.workoutStaleAfter`).
+    func isAbandoned(at now: Date) -> Bool {
+        now.timeIntervalSince(lastActivity) > WatchData.workoutStaleAfter
+    }
+
     /// Time spent paused. Each resume moves the clock's start forward by
     /// the pause, so the gap from the real start is the paused total.
     var pausedSeconds: TimeInterval {
@@ -106,6 +116,16 @@ enum WatchOfflineSyncEngine {
     /// before the Watch saw it costs one resend, which the phone answers
     /// with a fresh receipt without filing the workout twice.
     static let receiptLimit = 30
+
+    /// Retires a forgotten workout so it stops owning the Workout page and
+    /// counting into days: one with logged work is filed as ending at its
+    /// last set, one without is dropped. Anything else is left running.
+    static func retiringAbandoned(
+        _ workout: WatchOfflineWorkout?, outbox: [WatchOfflineWorkout], at now: Date
+    ) -> (active: WatchOfflineWorkout?, outbox: [WatchOfflineWorkout]) {
+        guard let workout, workout.isAbandoned(at: now) else { return (workout, outbox) }
+        return (nil, enqueue(workout.finished(at: workout.lastActivity), into: outbox))
+    }
 
     /// Adds a finished workout with logged work, once.
     static func enqueue(_ workout: WatchOfflineWorkout, into outbox: [WatchOfflineWorkout]) -> [WatchOfflineWorkout] {

@@ -11,6 +11,46 @@
         }
       }
     },
+    "%@ added": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra"
+          }
+        }
+      }
+    },
+    "%@ assist": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans"
+          }
+        }
+      }
+    },
+    "%@ per hand": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per hand"
+          }
+        }
+      }
+    },
+    "%@ per side": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per sida"
+          }
+        }
+      }
+    },
     "%@, %lld of %lld done": {
       "localizations": {
         "sv": {
@@ -55,10 +95,40 @@
     },
     "%lld exercises": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld exercise"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld exercises"
+                }
+              }
+            }
+          }
+        },
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld övningar"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld övning"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld övningar"
+                }
+              }
+            }
           }
         }
       }
@@ -148,9 +218,21 @@
     "%lld-day streak": {
       "localizations": {
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld dagars svit"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dags svit"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dagars svit"
+                }
+              }
+            }
           }
         }
       }
@@ -281,6 +363,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lägg till övning"
+          }
+        }
+      }
+    },
+    "Add exercises on your iPhone": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till övningar på din iPhone"
           }
         }
       }
@@ -651,6 +743,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Logga 8 ounces vatten"
+          }
+        }
+      }
+    },
+    "Log a workout on your iPhone to bring lifts here.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett pass på din iPhone för att få hit dina övningar."
           }
         }
       }

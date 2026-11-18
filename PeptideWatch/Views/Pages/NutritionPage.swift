@@ -28,12 +28,25 @@ struct NutritionPage: View {
 
     private var waterOptions: [WaterOption] {
         isMetric
-            ? [.init(label: "+250 mL", spoken: String(localized: "Log 250 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 250)),
-               .init(label: "+500 mL", spoken: String(localized: "Log 500 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 500)),
-               .init(label: "+1 L", spoken: String(localized: "Log 1 liter of water"), fluidOunces: Self.fluidOunces(milliliters: 1000))]
-            : [.init(label: "+8 oz", spoken: String(localized: "Log 8 ounces of water"), fluidOunces: 8),
-               .init(label: "+16 oz", spoken: String(localized: "Log 16 ounces of water"), fluidOunces: 16),
-               .init(label: "+32 oz", spoken: String(localized: "Log 32 ounces of water"), fluidOunces: 32)]
+            ? [.init(label: Self.label(250, .milliliters), spoken: String(localized: "Log 250 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 250)),
+               .init(label: Self.label(500, .milliliters), spoken: String(localized: "Log 500 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 500)),
+               .init(label: Self.label(1, .liters), spoken: String(localized: "Log 1 liter of water"), fluidOunces: Self.fluidOunces(milliliters: 1000))]
+            : [.init(label: Self.ouncesLabel(8), spoken: String(localized: "Log 8 ounces of water"), fluidOunces: 8),
+               .init(label: Self.ouncesLabel(16), spoken: String(localized: "Log 16 ounces of water"), fluidOunces: 16),
+               .init(label: Self.ouncesLabel(32), spoken: String(localized: "Log 32 ounces of water"), fluidOunces: 32)]
+    }
+
+    /// "+250 mL", "+250 ml" in Swedish: the amount in the locale's own
+    /// unit symbol and number format.
+    private static func label(_ value: Double, _ unit: UnitVolume) -> String {
+        "+" + Measurement(value: value, unit: unit).formatted(.measurement(width: .abbreviated, usage: .asProvided))
+    }
+
+    /// "+16 oz": the short symbol the buttons had, since the formatter's
+    /// "fl oz" crowds three buttons across a 41 mm face. Only the number
+    /// follows the locale.
+    private static func ouncesLabel(_ value: Int) -> String {
+        "+\(value.formatted()) oz"
     }
 
     private static func fluidOunces(milliliters: Double) -> Double {

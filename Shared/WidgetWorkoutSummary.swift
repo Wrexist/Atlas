@@ -20,4 +20,14 @@ struct WidgetWorkoutSummary: Codable, Hashable, Sendable {
     /// day it started — the rule `WorkoutSession.dayAnchor` sets in-app —
     /// so one that ran past midnight is not labelled with the next day.
     var day: Date { startedAt ?? finishedAt }
+
+    /// "Mon" within the last six days, else "Jun 2", so a workout ten
+    /// days old can't pass for this week's Monday.
+    func dayLabel(at now: Date, calendar: Calendar = .current, locale: Locale = .current) -> String {
+        let style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone)
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: day), to: calendar.startOfDay(for: now)).day ?? 0
+        return days < 7
+            ? day.formatted(style.weekday(.abbreviated))
+            : day.formatted(style.month(.abbreviated).day())
+    }
 }

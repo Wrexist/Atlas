@@ -80,6 +80,56 @@ final class WatchWorkoutSnapshotTests: XCTestCase {
         XCTAssertEqual(resumed.timerStartedAt, now.addingTimeInterval(120 - 600))
     }
 
+    func test_selectExercise_afterRestExpired_movesUpNextToThePick() {
+        let press = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Press", restSeconds: 60, sets: [row(1), row(2)])
+        let curl = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Curl", restSeconds: 60, sets: [row(1)])
+        let resting = snapshot([press, curl]).applying(
+            .completeSet(exerciseID: press.id, setID: press.sets[0].id, weightKg: 60, reps: 8), at: now
+        )
+        let picked = resting.applying(.selectExercise(exerciseID: curl.id), at: now.addingTimeInterval(90))
+        XCTAssertNil(picked.rest)
+        XCTAssertEqual(picked.upNext?.exercise.id, curl.id)
+    }
+
+    func test_extendRest_afterRestExpired_doesNotReviveIt() {
+        let press = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Press", restSeconds: 60, sets: [row(1), row(2)])
+        let resting = snapshot([press]).applying(
+            .completeSet(exerciseID: press.id, setID: press.sets[0].id, weightKg: 60, reps: 8), at: now
+        )
+        XCTAssertNil(resting.applying(.extendRest(seconds: 30), at: now.addingTimeInterval(90)).rest)
+    }
+
+    func test_extendRest_keepsTheLargerTotal_soTheBarIsNotRefilled() {
+        let press = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Press", restSeconds: 90, sets: [row(1), row(2)])
+        let resting = snapshot([press]).applying(
+            .completeSet(exerciseID: press.id, setID: press.sets[0].id, weightKg: 60, reps: 8), at: now
+        )
+        let extended = resting.applying(.extendRest(seconds: 30), at: now.addingTimeInterval(60))
+        XCTAssertEqual(extended.rest?.totalSeconds, 90)
+        XCTAssertEqual(extended.rest?.endsAt, now.addingTimeInterval(120))
+    }
+
+    func test_pauseMidRest_resumeRestoresTheTimeLeft() {
+        let press = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Press", restSeconds: 90, sets: [row(1), row(2)])
+        let resting = snapshot([press]).applying(
+            .completeSet(exerciseID: press.id, setID: press.sets[0].id, weightKg: 60, reps: 8), at: now
+        )
+        let paused = resting.applying(.setPaused(true), at: now.addingTimeInterval(30))
+        XCTAssertFalse(paused.isResting(at: now.addingTimeInterval(30)))
+
+        let resumed = paused.applying(.setPaused(false), at: now.addingTimeInterval(330))
+        XCTAssertEqual(resumed.rest?.endsAt, now.addingTimeInterval(390))
+        XCTAssertTrue(resumed.isResting(at: now.addingTimeInterval(330)))
+    }
+
+    func test_measurementMeaning_bodyweightAssistedAndSplitLoads() {
+        XCTAssertEqual(WatchSetMeasurement(kind: "bodyweight", load: "recorded").meaning, .added)
+        XCTAssertEqual(WatchSetMeasurement(kind: "assisted", load: "perSide").meaning, .assistance)
+        XCTAssertEqual(WatchSetMeasurement(kind: "repetitions", load: "perSide").meaning, .perSide)
+        XCTAssertEqual(WatchSetMeasurement(kind: "repetitions", load: "eachPair").meaning, .perHand)
+        XCTAssertEqual(WatchSetMeasurement(kind: "repetitions", load: "total").meaning, .load)
+    }
+
     func test_addSet_copiesTheLastSetUnderTheWatchChosenID() {
         let press = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Press", restSeconds: 90, sets: [row(1, completed: true)])
         let id = UUID()
