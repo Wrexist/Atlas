@@ -451,7 +451,14 @@ struct BarcodeScanFlow: View {
         if productFromMyFoods { return "Your saved values from My Foods" }
         if productReadByAI { return "Read from the package by Atlas AI" }
         if nutritionEstimatedByAI { return "Nutrition estimated by Atlas AI" }
+        guard Self.showsDataAge(fetchedAt: product.fetchedAt) else { return "Open Food Facts" }
         return "Open Food Facts · \(Self.relativeAge(product.fetchedAt))"
+    }
+
+    /// A lookup from the last day is simply current; only older cached
+    /// data earns its age ("0 sec. ago" said nothing).
+    nonisolated static func showsDataAge(fetchedAt: Date, now: Date = Date()) -> Bool {
+        fetchedAt < now.addingTimeInterval(-86_400)
     }
 
     private var overrideNotice: some View {
@@ -1549,6 +1556,7 @@ struct BarcodeScanFlow: View {
     nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
+        f.dateTimeStyle = .named
         return f
     }()
 
