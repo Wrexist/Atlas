@@ -81,10 +81,16 @@ struct WorkoutFocusView: View {
         }
     }
 
+    /// A typical phone's height without the keyboard, standing in until
+    /// the first measurement lands so the artwork doesn't open at its floor
+    /// and jump.
+    private static let unmeasuredHeight: CGFloat = 760
+
     private func heroHeight(available: CGFloat) -> CGFloat {
         if dynamicTypeSize.isAccessibilitySize { return 120 }
+        let height = available > 0 ? available : Self.unmeasuredHeight
         // Completing a set must not resize the artwork and move the next tap.
-        return max(120, min(210, available * 0.26))
+        return max(120, min(210, height * 0.26))
     }
 
     private var exerciseStrip: some View {
