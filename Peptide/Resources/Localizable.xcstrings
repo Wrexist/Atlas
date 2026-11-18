@@ -6523,6 +6523,16 @@
         }
       }
     },
+    "Groceries found. Review before putting them in.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matvaror hittade. Granska innan du lägger in dem."
+          }
+        }
+      }
+    },
     "How has it moved over the last 90 days?": {
       "localizations": {
         "sv": {
@@ -6812,6 +6822,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Originalrapport"
+          }
+        }
+      }
+    },
+    "Results ready. Review before logging.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resultatet är klart. Granska innan du loggar."
           }
         }
       }

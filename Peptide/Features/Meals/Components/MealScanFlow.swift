@@ -141,6 +141,13 @@ struct MealScanFlow: View {
                 ))
             }
             .appAnimation(AppAnimation.springSmooth, value: phase)
+            // The whole sheet swaps when the AI read lands, so VoiceOver
+            // focus drops onto whatever survives; say what arrived.
+            .onChange(of: phase) { _, phase in
+                if let message = announcement(for: phase) {
+                    AccessibilityNotification.Announcement(message).post()
+                }
+            }
             .padding(Spacing.xl)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(AppColor.background)
@@ -1072,6 +1079,23 @@ struct MealScanFlow: View {
             category = MealCategory.auto(for: date)
         }
         chosenLogDate = date
+    }
+
+    private func announcement(for phase: Phase) -> String? {
+        switch phase {
+        case .review:
+            return String(localized: "Results ready. Review before logging.")
+        case .error:
+            return errorText ?? String(localized: "Something went wrong. Check your connection and retry.")
+        case .logged:
+            return Calendar.current.isDateInToday(logDate)
+                ? String(localized: "Added to today")
+                : String(localized: "Added to \(MealDaySwitcher.inlineTitle(for: logDate))")
+        case .saveError:
+            return String(localized: "Meal save needs attention")
+        case .pickImage, .analyzing, .saving:
+            return nil
+        }
     }
 
     private var addedTitle: LocalizedStringKey {
