@@ -311,6 +311,15 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertEqual(entry.nextSetToDo?.id, entry.sets[0].id)
     }
 
+    func test_loggedExerciseCount_skipsExercisesWithNoCompletedWorkingSet() {
+        let session = WorkoutSession(exercises: [
+            entryWithWarmup(warmupDone: true, workingDone: [true]),
+            entryWithWarmup(warmupDone: true, workingDone: [false]),
+            WorkoutExerciseEntry(exerciseID: "Barbell_Squat", index: 2),
+        ])
+        XCTAssertEqual(session.loggedExerciseCount, 1)
+    }
+
     func test_workingNumber_skipsWarmups() {
         let entry = entryWithWarmup(warmupDone: true, workingDone: [false, false])
         XCTAssertNil(entry.workingNumber(of: entry.sets[0]))

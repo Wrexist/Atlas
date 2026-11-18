@@ -299,9 +299,9 @@ struct WorkoutHistoryView: View {
     }
 
     private func summaryLine(for session: WorkoutSession) -> String {
-        let exercises = session.exercises.count == 1
+        let exercises = session.loggedExerciseCount == 1
             ? String(localized: "1 exercise")
-            : String(localized: "\(session.exercises.count) exercises")
+            : String(localized: "\(session.loggedExerciseCount) exercises")
         let sets = session.completedSetCount == 1
             ? String(localized: "1 set")
             : String(localized: "\(session.completedSetCount) sets")

@@ -178,6 +178,12 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
         exercises.reduce(0) { $0 + $1.workingVolumeKg }
     }
 
+    /// Exercises with at least one completed working set — the count the
+    /// recap shows, so detail, history and summary agree.
+    var loggedExerciseCount: Int {
+        exercises.filter { !$0.completedWorkingSets.isEmpty }.count
+    }
+
     /// Total completed working sets — warm-ups and unchecked sets
     /// excluded. Drives the "X sets" pill on the history row.
     var completedSetCount: Int {
