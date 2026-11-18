@@ -206,6 +206,24 @@ final class FastingActivityStatusTests: XCTestCase {
         XCTAssertEqual(ended.status(at: start.addingTimeInterval(21 * 3600)), .ended)
     }
 
+    func test_reachedGoal_endedBeforeTarget_isFalseAndProgressFrozen() {
+        let ended = state(endedAt: start.addingTimeInterval(2 * 3600))
+        let later = start.addingTimeInterval(20 * 3600)
+        XCTAssertFalse(ended.reachedGoal(at: later))
+        XCTAssertEqual(ended.goalProgress(at: later), 0.125, accuracy: 1e-9)
+    }
+
+    func test_reachedGoal_endedAfterTarget_isTrueAndProgressFull() {
+        let ended = state(endedAt: start.addingTimeInterval(17 * 3600))
+        XCTAssertTrue(ended.reachedGoal(at: start.addingTimeInterval(18 * 3600)))
+        XCTAssertEqual(ended.goalProgress(at: start.addingTimeInterval(18 * 3600)), 1)
+    }
+
+    func test_reachedGoal_stillFasting_isJudgedAtNow() {
+        XCTAssertFalse(state().reachedGoal(at: start.addingTimeInterval(3600)))
+        XCTAssertTrue(state().reachedGoal(at: start.addingTimeInterval(16 * 3600)))
+    }
+
     func test_staleDate_isGoalWhileAhead_andNilAfter() {
         XCTAssertEqual(state().staleDate(now: start), start.addingTimeInterval(16 * 3600))
         XCTAssertNil(state().staleDate(now: start.addingTimeInterval(17 * 3600)))

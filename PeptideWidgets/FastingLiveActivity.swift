@@ -10,7 +10,8 @@ import WidgetKit
 /// States:
 ///   • fasting      — elapsed clock, time left, ring filling to the goal
 ///   • goalReached  — green, the clock keeps counting
-///   • ended        — "Fast ended" summary beat, dismissed by the system
+///   • ended        — "Fast ended" summary beat, dismissed by the system;
+///                    green only when the fast reached its goal
 ///
 /// Every clock and ring is drawn from absolute dates with the system's
 /// timer views, so nothing here needs a push to keep moving. Started,
@@ -96,11 +97,13 @@ struct FastingLiveActivity: Widget {
 /// Status → colour, glyph and copy, in one place.
 private enum FastingActivityStyle {
     /// Brand emerald while fasting, matching the Meals tab's fasting
-    /// ring; green once the goal is reached and on the ended beat.
+    /// ring; green once the goal is reached, and on the ended beat only
+    /// when the fast got there.
     static func accent(for state: FastingActivityAttributes.ContentState) -> Color {
         switch state.status() {
         case .fasting: WidgetPalette.brand
-        case .goalReached, .ended: WidgetPalette.done
+        case .goalReached: WidgetPalette.done
+        case .ended: state.reachedGoal() ? WidgetPalette.done : WidgetPalette.brand
         }
     }
 
@@ -108,7 +111,7 @@ private enum FastingActivityStyle {
         switch state.status() {
         case .fasting: "moon.zzz.fill"
         case .goalReached: "checkmark.seal.fill"
-        case .ended: "checkmark.circle.fill"
+        case .ended: state.reachedGoal() ? "checkmark.circle.fill" : "stop.circle.fill"
         }
     }
 
@@ -123,11 +126,12 @@ private enum FastingActivityStyle {
         }
     }
 
-    /// "16:05" — hours and minutes, not wrapped at 24, like the in-app
-    /// fasting ring.
+    /// "2:13:45" — the shape `Text(timerInterval:)` draws while the fast
+    /// runs, so the clock doesn't change form on the ended beat. Hours
+    /// don't wrap at 24.
     static func clock(_ interval: TimeInterval) -> String {
-        let totalMinutes = Int(max(0, interval) / 60)
-        return String(format: "%d:%02d", totalMinutes / 60, totalMinutes % 60)
+        let pattern: Duration.TimeFormatStyle.Pattern = interval >= 3600 ? .hourMinuteSecond : .minuteSecond
+        return Duration.seconds(Int(max(0, interval))).formatted(.time(pattern: pattern))
     }
 }
 
@@ -220,7 +224,8 @@ private struct FastingClock: View {
 }
 
 /// Fills from the start to the goal on its own between pushes, as the
-/// dose activity's window ring does; full once the goal is reached.
+/// dose activity's window ring does; full once the goal is reached, and
+/// frozen at the share fasted when a fast ends short of it.
 private struct GoalRing: View {
     let state: FastingActivityAttributes.ContentState
     let accent: Color
@@ -236,9 +241,15 @@ private struct GoalRing: View {
             .progressViewStyle(.circular)
             .tint(accent)
         } else {
-            Circle()
-                .stroke(accent, lineWidth: lineWidth)
-                .padding(lineWidth / 2)
+            ZStack {
+                Circle()
+                    .stroke(accent.opacity(0.25), lineWidth: lineWidth)
+                Circle()
+                    .trim(from: 0, to: state.goalProgress())
+                    .stroke(accent, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            .padding(lineWidth / 2)
         }
     }
 }
@@ -265,15 +276,22 @@ private struct GoalProgress: View {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
                 case .goalReached, .ended:
-                    Label("Goal reached", systemImage: "checkmark")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(accent)
+                    if state.reachedGoal() {
+                        Label("Goal reached", systemImage: "checkmark")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(accent)
+                    } else {
+                        Text("Ended early")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer(minLength: 0)
-                Text("Goal \(FastingActivityStyle.clock(state.window.targetDuration))")
+                Text("Goal \(WidgetFormat.duration(minutes: goalMinutes))")
                     .font(.system(size: 11, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel(Text("Goal \(WidgetFormat.spokenDuration(minutes: goalMinutes))"))
             }
             if state.status() == .fasting {
                 ProgressView(timerInterval: state.window.goalInterval, countsDown: false) {
@@ -283,11 +301,15 @@ private struct GoalProgress: View {
                 }
                 .tint(accent)
             } else {
-                ProgressView(value: 1)
+                ProgressView(value: state.goalProgress())
                     .tint(accent)
             }
         }
     }
+
+    /// The goal as a length ("16h"), so it can't read as the clock time
+    /// the subtitle's "Goal at 08:00" shows.
+    private var goalMinutes: Int { Int(state.window.targetDuration / 60) }
 }
 
 /// Ends the fast from the lock screen. The intent ends the activity on

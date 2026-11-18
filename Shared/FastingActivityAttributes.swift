@@ -131,6 +131,18 @@ extension FastingActivityAttributes.ContentState {
         return window.isGoalReached(at: now) ? .goalReached : .fasting
     }
 
+    /// Whether the fast ran to its goal, judged at its end once it has
+    /// one. Splits the ended beat: a fast stopped short reads "Ended
+    /// early" with a partial ring, not the goal's checkmark.
+    func reachedGoal(at now: Date = Date()) -> Bool {
+        window.isGoalReached(at: endedAt ?? now)
+    }
+
+    /// 0…1 toward the goal, frozen at the end once the fast has one.
+    func goalProgress(at now: Date = Date()) -> Double {
+        window.progress(at: endedAt ?? now)
+    }
+
     /// The goal while it's still ahead: a Live Activity only redraws on
     /// a push or at its stale date, so this is what moves a suspended
     /// app's activity into "Goal reached". Nil after that, since nothing
