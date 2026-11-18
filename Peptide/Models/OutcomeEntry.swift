@@ -90,21 +90,22 @@ enum OutcomeDimension: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Filled glyphs throughout (`figure.run` has no filled variant), so
+    /// the icon column carries an even weight.
     var icon: String {
         switch self {
         case .energy:       "bolt.fill"
         case .sleepQuality: "moon.zzz.fill"
         case .recovery:     "figure.run"
         case .mood:         "face.smiling.fill"
-        case .focus:        "brain.head.profile"
+        case .focus:        "brain.head.profile.fill"
         }
     }
 
-    /// Single source of truth for the per-dimension accent tint —
-    /// consumed by the check-in sliders, the timeline rows, and the
-    /// correlation card. Mirrors `MealCategory.tint`'s pattern of
-    /// pinning a small palette to the model so UI surfaces don't
-    /// drift apart.
+    /// Single source of truth for the per-dimension accent tint, for
+    /// surfaces that must tell the series apart (the correlation card).
+    /// Mirrors `MealCategory.tint`'s pattern of pinning a small palette
+    /// to the model so UI surfaces don't drift apart.
     var tint: Color {
         switch self {
         case .energy:       AppColor.outcomeEnergy
