@@ -29,9 +29,14 @@ final class PantryStore {
         keys.contains(key)
     }
 
+    /// What the fridge holds, which a tick can't take away.
+    var fridgeHeldKeys: Set<String> {
+        fridgeKeys()
+    }
+
     /// True when the fridge holds it, so a tick can't take it away.
     func isInFridge(_ key: String) -> Bool {
-        fridgeKeys().contains(key)
+        fridgeHeldKeys.contains(key)
     }
 
     func toggle(_ key: String) {

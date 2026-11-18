@@ -330,4 +330,16 @@ final class RecipeLibraryEngineTests: XCTestCase {
         XCTAssertEqual(RecipeLibraryEngine.recipe(named: " \(recipe.name) ")?.id, recipe.id)
         XCTAssertNil(RecipeLibraryEngine.recipe(named: "Light Protein Cheese"))
     }
+
+    func test_matches_queryWithoutAccents_findsAccentedNamesAndIngredients() throws {
+        let meatballs = try XCTUnwrap(RecipeLibraryEngine.bundled.first { $0.nameSV.hasPrefix("Köttbullar") })
+        let creamy = try XCTUnwrap(RecipeLibraryEngine.bundled.first { recipe in
+            recipe.ingredients.contains { $0.name.hasPrefix("Crème fraîche") }
+        })
+
+        XCTAssertTrue(RecipeLibraryEngine.matches(meatballs, query: "kottbullar"))
+        XCTAssertTrue(RecipeLibraryEngine.matches(creamy, query: "creme"))
+        XCTAssertFalse(RecipeLibraryEngine.matches(meatballs, query: "zzzz"))
+        XCTAssertTrue(RecipeLibraryEngine.matches(meatballs, query: ""))
+    }
 }

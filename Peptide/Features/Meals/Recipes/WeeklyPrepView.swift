@@ -39,6 +39,7 @@ struct WeeklyPrepView: View {
                         PrepShoppingCard(
                             items: WeeklyPrepEngine.shoppingList(for: plan.dishes, recipes: prep.recipes, pantry: pantry.keys),
                             bought: plan.bought,
+                            inFridge: pantry.fridgeHeldKeys,
                             toggleBought: toggleBought,
                             toggleAtHome: toggleAtHome
                         )

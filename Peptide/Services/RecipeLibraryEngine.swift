@@ -339,7 +339,7 @@ enum RecipeLibraryEngine {
         case .favorites(let ingredients):
             let names = ingredients.prefix(2).map { $0.displayName(locale: locale).lowercased() }
             let list = names.joined(separator: ", ")
-            return String(localized: "With your favourites: \(list)", comment: "Recipe recommendation reason; the list names favourite ingredients")
+            return String(localized: "With your favorites: \(list)", comment: "Recipe recommendation reason; the list names favorite ingredients")
         case .pantry(let have, let total):
             return String(localized: "\(have) of \(total) at home", comment: "Recipe recommendation reason: ingredients the user has at home")
         case .highProtein:
@@ -347,7 +347,7 @@ enum RecipeLibraryEngine {
         case .fitsCalories(let remaining):
             return String(localized: "Fits your \(remaining) kcal left", comment: "Recipe recommendation reason: the recipe fits the calories left today")
         case .fiber:
-            return String(localized: "Rich in fibre", comment: "Recipe recommendation reason")
+            return String(localized: "Rich in fiber", comment: "Recipe recommendation reason")
         case .micro(let micro):
             return String(localized: "Rich in \(micro.displayName)", comment: "Recipe recommendation reason, e.g. 'Rich in iron'")
         case .timeOfDay(let category):
@@ -358,6 +358,17 @@ enum RecipeLibraryEngine {
             case .snack:     return String(localized: "A smart snack", comment: "Recipe recommendation reason for a snack")
             }
         }
+    }
+
+    // MARK: - Search
+
+    /// A search hit on either language's name or any ingredient, ignoring
+    /// case and accents, so "creme" finds "Crème fraîche" and "kottbullar"
+    /// "Köttbullar". An empty query matches everything.
+    static func matches(_ recipe: LibraryRecipe, query: String) -> Bool {
+        guard !query.isEmpty else { return true }
+        let fields = [recipe.name, recipe.nameSV] + recipe.ingredients.flatMap { [$0.name, $0.nameSV] }
+        return fields.contains { $0.localizedStandardContains(query) }
     }
 
     // MARK: - Logging

@@ -114,6 +114,8 @@ struct PrepDishCard: View {
 struct PrepShoppingCard: View {
     let items: [WeeklyPrepEngine.ShoppingItem]
     let bought: Set<String>
+    /// At home because the fridge holds them, so "not at home" can't apply.
+    let inFridge: Set<String>
     let toggleBought: (WeeklyPrepEngine.ShoppingItem) -> Void
     let toggleAtHome: (WeeklyPrepEngine.ShoppingItem) -> Void
 
@@ -142,6 +144,7 @@ struct PrepShoppingCard: View {
                         if index > 0 {
                             Divider().overlay(AppColor.glassBorder)
                         }
+                        let isInFridge = inFridge.contains(item.pantryKey)
                         ShoppingRow(
                             name: item.displayName(locale: locale),
                             grams: RecipeLibraryEngine.displayGrams(item.grams),
@@ -149,14 +152,19 @@ struct PrepShoppingCard: View {
                             isBought: bought.contains(item.pantryKey),
                             toggle: { item.isAtHome ? toggleAtHome(item) : toggleBought(item) }
                         )
+                        .disabled(isInFridge)
                         .contextMenu {
-                            Button {
-                                toggleAtHome(item)
-                            } label: {
-                                if item.isAtHome {
-                                    Label("Not at home", systemImage: "house.slash")
-                                } else {
-                                    Label("I have this at home", systemImage: "house")
+                            if isInFridge {
+                                Label("In your fridge", systemImage: "refrigerator.fill")
+                            } else {
+                                Button {
+                                    toggleAtHome(item)
+                                } label: {
+                                    if item.isAtHome {
+                                        Label("Not at home", systemImage: "house.slash")
+                                    } else {
+                                        Label("I have this at home", systemImage: "house")
+                                    }
                                 }
                             }
                         }
@@ -548,7 +556,6 @@ struct PrepDishPicker: View {
     let choose: (LibraryRecipe) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.locale) private var locale
     @State private var searchText = ""
 
     private let columns = [
@@ -558,8 +565,7 @@ struct PrepDishPicker: View {
 
     private var shown: [LibraryRecipe] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return recipes }
-        return recipes.filter { $0.displayName(locale: locale).localizedStandardContains(query) }
+        return recipes.filter { RecipeLibraryEngine.matches($0, query: query) }
     }
 
     var body: some View {

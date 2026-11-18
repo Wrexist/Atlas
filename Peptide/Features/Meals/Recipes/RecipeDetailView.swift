@@ -260,7 +260,7 @@ struct RecipeDetailView: View {
         MacroChip.fat(Int((recipe.fatG * factor).rounded()))
         MacroChip(
             icon: .symbol("leaf.circle.fill"),
-            name: String(localized: "fibre"),
+            name: String(localized: "fiber"),
             grams: Int((recipe.fiberG * factor).rounded()),
             tint: AppColor.positive
         )
@@ -345,6 +345,7 @@ struct RecipeDetailView: View {
     }
 
     private func toggle(_ ingredient: LibraryRecipe.Ingredient) {
+        guard !pantry.isInFridge(ingredient.pantryKey) else { return }
         AppAnimation.with(AppAnimation.springSnappy) {
             pantry.toggle(ingredient.pantryKey)
         }
@@ -464,11 +465,13 @@ private struct IngredientRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        // At home while the fridge holds it: a tap couldn't change that.
+        .disabled(isInFridge)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(name), \(grams) g"))
         .accessibilityValue(isInFridge ? Text("In your fridge") : (isAtHome ? Text("At home") : Text("Not at home")))
         .accessibilityAddTraits(isAtHome ? .isSelected : [])
-        .accessibilityHint(Text("Marks whether you have it at home"))
+        .accessibilityHint(isInFridge ? Text(verbatim: "") : Text("Marks whether you have it at home"))
     }
 }
 
