@@ -1,4 +1,5 @@
 import XCTest
+import UserNotifications
 @testable import Peptide
 
 @MainActor
@@ -19,6 +20,16 @@ final class NotificationServiceTests: XCTestCase {
     }
 
     // MARK: - parseTime (tested via scheduleNotifications side-effects)
+
+    func test_oneShotContent_withDeeplink_carriesItInUserInfo() {
+        let content = NotificationService.oneShotContent(title: "Fast complete", body: "", deeplink: "peptidex://meals")
+        XCTAssertEqual(content.userInfo["deeplink"] as? String, "peptidex://meals")
+    }
+
+    func test_oneShotContent_withoutDeeplink_hasNoUserInfo() {
+        let content = NotificationService.oneShotContent(title: "Rest's up", body: "", deeplink: nil)
+        XCTAssertTrue(content.userInfo.isEmpty)
+    }
 
     func test_scheduleNotifications_validAMTime_schedulesRequest() {
         let proto = makeProtocol(times: ["8:00 AM"], days: [1])

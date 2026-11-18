@@ -111,7 +111,9 @@ final class FastingStore {
             id: Self.reminderID,
             title: String(localized: "Fast complete"),
             body: String(localized: "You reached your \(Int(fast.targetHours))-hour fasting goal. End the fast in Atlas when you eat."),
-            after: remaining
+            after: remaining,
+            // Meals holds the fasting card and its End button.
+            deeplink: "peptidex://meals"
         )
     }
 }
