@@ -150,7 +150,7 @@ final class StackRecommendationEngineTests: XCTestCase {
             let (score, reason) = StackRecommendationEngine.scoreRouteDiversity(candidate: semax, context: context)
             XCTAssertGreaterThan(score, 0, "Intranasal peptide should get route diversity bonus")
             if case .routeDiversity(route: let text) = reason {
-                XCTAssertTrue(text.contains("intranasal"), "Should mention the route type")
+                XCTAssertEqual(text, "Available as a nasal spray — reduces injection burden")
             }
         }
     }
@@ -261,6 +261,17 @@ final class StackRecommendationEngineTests: XCTestCase {
             .goalMatch(goal: "recovery"),
         ]
         let confidence = StackRecommendationEngine.computeConfidence(reasons: reasons, score: 4)
+        XCTAssertEqual(confidence, .medium)
+    }
+
+    func test_confidence_manySignalsWithoutValidatedStack_capsAtMedium() {
+        let reasons: [StackRecommendationEngine.RecommendationReason] = [
+            .commonStack(pairsWith: ["BPC-157"]),
+            .goalMatch(goal: "recovery"),
+            .routeDiversity(route: "Available orally — reduces injection burden"),
+            .sharedBenefits(count: 2),
+        ]
+        let confidence = StackRecommendationEngine.computeConfidence(reasons: reasons, score: 9)
         XCTAssertEqual(confidence, .medium)
     }
 

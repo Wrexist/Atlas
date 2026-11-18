@@ -14,6 +14,20 @@ enum PeptideTimingData {
         case evening = "Evening"
         case preBed = "Before bed"
         case anyTime = "Any time"
+
+        /// The raw value is a stable English identifier; this is what
+        /// a sentence shown to the user interpolates.
+        var displayName: String {
+            switch self {
+            case .morningFasted: String(localized: "Morning (fasted)")
+            case .morningWithFood: String(localized: "Morning (with food)")
+            case .preworkout: String(localized: "Pre-workout")
+            case .postWorkout: String(localized: "Post-workout")
+            case .evening: String(localized: "Evening")
+            case .preBed: String(localized: "Before bed")
+            case .anyTime: String(localized: "Any time")
+            }
+        }
     }
 
     struct PeptideTiming {

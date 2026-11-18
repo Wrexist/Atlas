@@ -296,7 +296,57 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ är %2$lld veckor efter sin cykel"
+            "value": "%1$@ är %#@arg2@ efter sin cykel"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg vecka"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg veckor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ is %#@arg2@ past its cycle"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg week"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg weeks"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -6050,6 +6100,26 @@
         }
       }
     },
+    "Any time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "När som helst"
+          }
+        }
+      }
+    },
+    "Around lunch": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runt lunch"
+          }
+        }
+      }
+    },
     "Ask Atlas": {
       "localizations": {
         "sv": {
@@ -6110,6 +6180,36 @@
         }
       }
     },
+    "Available as a nasal spray — reduces injection burden": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finns som nässpray – färre injektioner"
+          }
+        }
+      }
+    },
+    "Available orally — reduces injection burden": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan tas oralt – färre injektioner"
+          }
+        }
+      }
+    },
+    "Available topically — reduces injection burden": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan användas utvärtes – färre injektioner"
+          }
+        }
+      }
+    },
     "Average %@": {
       "localizations": {
         "sv": {
@@ -6156,6 +6256,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Läggdags"
+          }
+        }
+      }
+    },
+    "Before bed": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Före läggdags"
           }
         }
       }
@@ -6483,6 +6593,16 @@
         }
       }
     },
+    "Fills a gap in your schedule: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fyller en lucka i ditt schema: %@"
+          }
+        }
+      }
+    },
     "Find patterns in your journal": {
       "localizations": {
         "sv": {
@@ -6676,6 +6796,26 @@
         }
       }
     },
+    "Morning (fasted)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgon (fastande)"
+          }
+        }
+      }
+    },
+    "Morning (with food)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgon (med mat)"
+          }
+        }
+      }
+    },
     "MUSCLE": {
       "localizations": {
         "sv": {
@@ -6742,6 +6882,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Neutral vid %lld mg/dL"
+          }
+        }
+      }
+    },
+    "Non-injectable route — reduces injection burden": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tas utan injektion – färre injektioner"
           }
         }
       }
@@ -6862,6 +7012,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plan"
+          }
+        }
+      }
+    },
+    "Post-workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Efter träning"
+          }
+        }
+      }
+    },
+    "Post-Workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Efter träning"
+          }
+        }
+      }
+    },
+    "Pre-workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Före träning"
+          }
+        }
+      }
+    },
+    "Pre-Workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Före träning"
           }
         }
       }
@@ -9990,16 +10180,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tillgänglig"
-          }
-        }
-      }
-    },
-    "Available as %@ — reduces injection burden": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Finns som %@ – färre injektioner"
           }
         }
       }
@@ -18194,16 +18374,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fyll i med AI"
-          }
-        }
-      }
-    },
-    "Fills a %@ dosing gap in your schedule": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fyller en lucka i doseringen på %@ i ditt schema"
           }
         }
       }
