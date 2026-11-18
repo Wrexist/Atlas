@@ -92,6 +92,7 @@ struct FridgeScanCell: View {
                     if isLanded {
                         Image(uiImage: grocery.sticker)
                             .resizable()
+                            .accessibilityIgnoresInvertColors()
                             .scaledToFit()
                             .frame(height: Self.stickerHeight)
                             .matchedGeometryEffect(id: grocery.id, in: namespace)

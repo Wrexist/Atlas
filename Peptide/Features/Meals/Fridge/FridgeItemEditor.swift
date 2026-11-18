@@ -143,6 +143,7 @@ struct FridgeItemEditor: View {
                     if let sticker {
                         Image(uiImage: sticker)
                             .resizable()
+                            .accessibilityIgnoresInvertColors()
                             .scaledToFit()
                             .frame(height: 150)
                             .rotationEffect(.degrees(-3))

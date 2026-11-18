@@ -131,6 +131,7 @@ struct ProgressPhotoViewer: View {
         if let image = photos[filename] {
             Image(uiImage: image)
                 .resizable()
+                .accessibilityIgnoresInvertColors()
                 .scaledToFit()
                 .blur(radius: blurEnabled ? 22 : 0)
                 .appAnimation(AppAnimation.quick, value: blurEnabled)

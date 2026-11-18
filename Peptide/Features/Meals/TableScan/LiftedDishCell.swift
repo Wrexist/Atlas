@@ -73,6 +73,7 @@ struct LiftedDishCell: View {
                     if isLanded {
                         Image(uiImage: dish.sticker)
                             .resizable()
+                            .accessibilityIgnoresInvertColors()
                             .scaledToFit()
                             .frame(height: Self.stickerHeight)
                             .matchedGeometryEffect(id: dish.id, in: namespace)

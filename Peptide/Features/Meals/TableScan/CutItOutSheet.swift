@@ -32,6 +32,7 @@ struct CutItOutSheet: View {
                     ZStack(alignment: .topLeading) {
                         Image(uiImage: photo)
                             .resizable()
+                            .accessibilityIgnoresInvertColors()
                             .scaledToFit()
                             .frame(width: fit.width, height: fit.height)
                             .offset(x: fit.minX, y: fit.minY)

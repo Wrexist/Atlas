@@ -323,6 +323,7 @@ struct TableScanFlow: View {
                 if let photo {
                     Image(uiImage: photo)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                 }
             }
@@ -397,6 +398,7 @@ struct TableScanFlow: View {
                     let rect = TableStageLayout.place(dish.frame, photo: photo.size, card: cardSize)
                     Image(uiImage: dish.sticker)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFit()
                         .frame(width: rect.width, height: rect.height)
                         .matchedGeometryEffect(id: dish.id, in: lift)

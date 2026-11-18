@@ -16,6 +16,7 @@ struct RecipeImage: View {
                 if let photo = UIImage(named: recipe.image) {
                     Image(uiImage: photo)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                 } else {
                     RecipePlatePlaceholder(artwork: Self.artwork(for: recipe), showsBackdrop: true)
@@ -48,6 +49,7 @@ struct RecipeCutout: View {
                 if let cutout = UIImage(named: recipe.image + "-cutout") {
                     Image(uiImage: cutout)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFit()
                 } else {
                     RecipePlatePlaceholder(artwork: RecipeImage.artwork(for: recipe), showsBackdrop: false)

@@ -125,6 +125,7 @@ struct ProgressPhotoCompareView: View {
             if let filename, let image = columnPhotos[filename] {
                 Image(uiImage: image)
                     .resizable()
+                    .accessibilityIgnoresInvertColors()
                     .scaledToFill()
                     .blur(radius: blurEnabled ? 18 : 0)
                     .appAnimation(AppAnimation.quick, value: blurEnabled)
@@ -243,6 +244,7 @@ struct ProgressPhotoCompareView: View {
                 if let image = thumbnails[filename] {
                     Image(uiImage: image)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                         .blur(radius: blurEnabled ? 8 : 0)
                         .frame(width: 56, height: 70)

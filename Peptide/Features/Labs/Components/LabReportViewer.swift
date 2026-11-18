@@ -25,6 +25,7 @@ struct LabReportViewer: View {
                             ForEach(pages.indices, id: \.self) { index in
                                 Image(uiImage: pages[index])
                                     .resizable()
+                                    .accessibilityIgnoresInvertColors()
                                     .scaledToFit()
                                     .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
                                     .accessibilityLabel(Text("Page \(index + 1) of \(pages.count)"))

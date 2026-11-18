@@ -206,6 +206,7 @@ struct FridgeScanFlow: View {
                 if let photo {
                     Image(uiImage: photo)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                 }
             }
@@ -270,6 +271,7 @@ struct FridgeScanFlow: View {
                     let rect = TableStageLayout.place(grocery.frame, photo: photo.size, card: cardSize)
                     Image(uiImage: grocery.sticker)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFit()
                         .frame(width: rect.width, height: rect.height)
                         .matchedGeometryEffect(id: grocery.id, in: lift)

@@ -72,6 +72,7 @@ struct LatestTableCard: View {
                     if let sticker = store.sticker(for: dish) {
                         Image(uiImage: sticker)
                             .resizable()
+                            .accessibilityIgnoresInvertColors()
                             .scaledToFit()
                     } else {
                         Circle().fill(AppColor.surfaceSecondary)

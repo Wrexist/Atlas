@@ -417,6 +417,7 @@ struct MealScanFlow: View {
                 if let image {
                     Image(uiImage: image)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                         .accessibilityHidden(true)
                 } else {

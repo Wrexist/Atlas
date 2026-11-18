@@ -286,6 +286,7 @@ struct ProfileCustomizationSheet: View {
             if let data = avatarData, let uiImage = AvatarImageCache.shared.image(for: data) {
                 Image(uiImage: uiImage)
                     .resizable()
+                    .accessibilityIgnoresInvertColors()
                     .scaledToFill()
                     .frame(width: size, height: size)
                     .clipShape(Circle())

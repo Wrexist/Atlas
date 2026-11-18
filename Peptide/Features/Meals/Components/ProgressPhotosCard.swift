@@ -238,6 +238,7 @@ struct ProgressPhotosCard: View {
         } label: {
             Image(uiImage: image)
                 .resizable()
+                .accessibilityIgnoresInvertColors()
                 .scaledToFill()
                 .blur(radius: isRevealed ? 0 : 18)
                 .overlay(alignment: .topTrailing) {

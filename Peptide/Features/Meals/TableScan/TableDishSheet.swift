@@ -42,6 +42,7 @@ struct TableDishSheet: View {
                     if let sticker {
                         Image(uiImage: sticker)
                             .resizable()
+                            .accessibilityIgnoresInvertColors()
                             .scaledToFit()
                             .frame(width: 96, height: 96)
                             .appShadow(AppShadow.glassSubtle)

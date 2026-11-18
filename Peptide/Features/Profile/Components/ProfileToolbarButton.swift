@@ -25,6 +25,7 @@ struct ProfileToolbarButton: View {
                    let uiImage = AvatarImageCache.shared.image(for: data) {
                     Image(uiImage: uiImage)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                         .clipShape(Circle())
                 } else {
