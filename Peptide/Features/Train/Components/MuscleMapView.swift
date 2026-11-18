@@ -215,8 +215,9 @@ extension MuscleMapView {
     ]
 
     /// Colour on the load ramp for a normalised intensity (0…1),
-    /// linearly interpolated between the stops. The tokens resolve for
-    /// the view's colour scheme when drawn.
+    /// linearly interpolated between the stops. The ramp is deliberately
+    /// the same in both modes: it is multiplied onto the figure, which
+    /// supplies the light or dark shading.
     static func heatColor(for intensity: Double) -> Color {
         let v = max(0, min(1, intensity))
         for i in 0..<(heatStops.count - 1) {
