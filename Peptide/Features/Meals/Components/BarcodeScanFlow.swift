@@ -188,6 +188,8 @@ struct BarcodeScanFlow: View {
                     initial: currentMacros(for: product),
                     onSave: { override in
                         manualOverride = override
+                        // An earlier save holds the old values; offer it again.
+                        savedToMyFoods = false
                         showEditSheet = false
                     },
                     onCancel: { showEditSheet = false }
@@ -917,14 +919,10 @@ struct BarcodeScanFlow: View {
     /// Keeps a product the user logs often one search away in My Foods,
     /// with Atlas AI's price attached when it has one.
     private func saveToMyFoodsButton(_ product: ScannedProduct) -> some View {
-        Button {
-            let item = insight?.items.first
-            let pricePer100g = item.flatMap { $0.price?.scaled(by: 100 / $0.grams) }
-            // Saving a barcode twice updates the one entry instead of a duplicate.
-            let existing = SmartFoodLogic.myFood(forBarcode: product.barcode, in: dataStore.profile.customFoods)
-            dataStore.saveCustomFood(SmartFoodLogic.customFood(
-                from: product, pricePer100g: pricePer100g ?? existing?.pricePer100g, id: existing?.id ?? UUID()
-            ))
+        let entry = myFoodsEntry(for: product)
+        return Button {
+            guard let entry else { return }
+            dataStore.saveCustomFood(entry)
             savedToMyFoods = true
             Haptics.success()
         } label: {
@@ -934,7 +932,23 @@ struct BarcodeScanFlow: View {
         }
         .buttonStyle(.plain)
         .minimumHitArea()
-        .disabled(savedToMyFoods)
+        .disabled(savedToMyFoods || entry == nil)
+    }
+
+    /// The My Foods entry the save button writes: the values the user
+    /// typed when they edited the nutrition, else the database's.
+    /// Saving a barcode twice updates the one entry instead of a duplicate.
+    private func myFoodsEntry(for product: ScannedProduct) -> CustomFood? {
+        let existing = SmartFoodLogic.myFood(forBarcode: product.barcode, in: dataStore.profile.customFoods)
+        if let typed = manualOverride {
+            guard let grams = product.grams(for: portion) else { return nil }
+            return SmartFoodLogic.correctedFood(product, portionGrams: grams, typed: typed, existing: existing)
+        }
+        let item = insight?.items.first
+        let pricePer100g = item.flatMap { $0.price?.scaled(by: 100 / $0.grams) }
+        return SmartFoodLogic.customFood(
+            from: product, pricePer100g: pricePer100g ?? existing?.pricePer100g, id: existing?.id ?? UUID()
+        )
     }
 
     private var saveToMyFoodsTitle: LocalizedStringKey {
