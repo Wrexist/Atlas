@@ -34,26 +34,61 @@ final class LabEntryEditorTests: XCTestCase {
         LabValue(date: drawn, panel: .vitaminD, value: 40, source: source, updatedAt: saved)
     }
 
-    func test_carryOverEntry_savedMinutesAgo_returnsLatestSaved() {
-        let older = entry(drawnOn: date(1, hour: 8), savedAt: date(10, hour: 9), source: "Labcorp")
-        let newest = entry(drawnOn: date(2, hour: 8), savedAt: date(10, hour: 9, minute: 30))
-        let result = LabEntryEditor.carryOverEntry(from: [newest, older], now: date(10, hour: 9, minute: 40))
-        XCTAssertEqual(result?.id, newest.id)
+    func test_carryOverEntry_createdMinutesAgo_returnsIt() {
+        let created = entry(drawnOn: date(2, hour: 8), savedAt: date(10, hour: 9, minute: 30))
+        let result = LabEntryEditor.carryOverEntry(lastCreated: created, now: date(10, hour: 9, minute: 40))
+        XCTAssertEqual(result?.id, created.id)
         XCTAssertEqual(result?.source, "Quest")
     }
 
     func test_carryOverEntry_savedOverAnHourAgo_returnsNil() {
         let saved = entry(drawnOn: date(2, hour: 8), savedAt: date(10, hour: 8))
-        XCTAssertNil(LabEntryEditor.carryOverEntry(from: [saved], now: date(10, hour: 9, minute: 1)))
+        XCTAssertNil(LabEntryEditor.carryOverEntry(lastCreated: saved, now: date(10, hour: 9, minute: 1)))
     }
 
-    func test_carryOverEntry_noEntries_returnsNil() {
-        XCTAssertNil(LabEntryEditor.carryOverEntry(from: [], now: date(10, hour: 9)))
+    func test_carryOverEntry_nothingCreated_returnsNil() {
+        XCTAssertNil(LabEntryEditor.carryOverEntry(lastCreated: nil, now: date(10, hour: 9)))
     }
 
     func test_carryOverEntry_savedInTheFuture_returnsNil() {
         // A clock skewed by sync must not pin every new entry to it.
         let skewed = entry(drawnOn: date(2, hour: 8), savedAt: date(10, hour: 12))
-        XCTAssertNil(LabEntryEditor.carryOverEntry(from: [skewed], now: date(10, hour: 9)))
+        XCTAssertNil(LabEntryEditor.carryOverEntry(lastCreated: skewed, now: date(10, hour: 9)))
+    }
+
+    // MARK: - Which entry carries over
+
+    func test_lastCreatedLabValue_editingAnOldResult_doesNotBecomeCarryOver() {
+        let store = DataStore(seedSampleData: false)
+        let old = LabValue(date: date(1, hour: 8), panel: .vitaminD, value: 30, source: "Old lab")
+        store.saveLabValue(old)
+        let today = LabValue(date: date(10, hour: 8), panel: .ldl, value: 100, source: "Quest")
+        store.saveLabValue(today)
+
+        var fixed = old
+        fixed.value = 31
+        store.saveLabValue(fixed)
+
+        XCTAssertEqual(store.lastCreatedLabValue?.id, today.id)
+    }
+
+    func test_lastCreatedLabValue_editingTheNewEntry_keepsItsLatestVersion() {
+        let store = DataStore(seedSampleData: false)
+        let created = LabValue(date: date(10, hour: 8), panel: .vitaminD, value: 30, source: "Quest")
+        store.saveLabValue(created)
+
+        var redated = created
+        redated.date = date(9, hour: 8)
+        store.saveLabValue(redated)
+
+        XCTAssertEqual(store.lastCreatedLabValue?.date, date(9, hour: 8))
+    }
+
+    func test_lastCreatedLabValue_deleted_isCleared() {
+        let store = DataStore(seedSampleData: false)
+        let created = LabValue(date: date(10, hour: 8), panel: .vitaminD, value: 30)
+        store.saveLabValue(created)
+        store.deleteLabValue(id: created.id)
+        XCTAssertNil(store.lastCreatedLabValue)
     }
 }
