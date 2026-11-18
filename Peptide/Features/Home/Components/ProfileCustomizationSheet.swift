@@ -377,14 +377,17 @@ struct ProfileCustomizationSheet: View {
                 surface: .glass,
                 accessibilityLabel: String(localized: "Days logged: \(dataStore.totalDaysLogged)")
             )
-            StatTile(
-                label: "Protocols",
-                value: "\(dataStore.protocols.count)",
-                icon: "square.stack.3d.up.fill",
-                tint: AppColor.accentLight,
-                surface: .glass,
-                accessibilityLabel: String(localized: "Protocols created: \(dataStore.protocols.count)")
-            )
+            // Same rule as ProfileHeader: a training-only user never sees 0.
+            if !dataStore.protocols.isEmpty {
+                StatTile(
+                    label: "Protocols",
+                    value: "\(dataStore.protocols.count)",
+                    icon: "square.stack.3d.up.fill",
+                    tint: AppColor.accentLight,
+                    surface: .glass,
+                    accessibilityLabel: String(localized: "Protocols created: \(dataStore.protocols.count)")
+                )
+            }
             StatTile(
                 label: "Member",
                 value: memberShortDuration,
@@ -398,16 +401,17 @@ struct ProfileCustomizationSheet: View {
     }
 
     private var memberShortDuration: String {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month, .day], from: dataStore.profile.memberSince, to: Date())
-        if let years = components.year, years >= 1 {
-            return "\(years)y"
-        }
-        if let months = components.month, months >= 1 {
-            return "\(months)mo"
-        }
-        let days = components.day ?? 0
-        return "\(max(days, 0))d"
+        Self.memberDurationLabel(since: dataStore.profile.memberSince, now: Date())
+    }
+
+    /// Largest whole unit only ("3mo", "3 mån"), localised by the formatter.
+    static func memberDurationLabel(since start: Date, now: Date, calendar: Calendar = .current) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.calendar = calendar
+        formatter.unitsStyle = .abbreviated
+        formatter.maximumUnitCount = 1
+        formatter.allowedUnits = [.year, .month, .day]
+        return formatter.string(from: min(start, now), to: now) ?? "—"
     }
 
     // MARK: - Identity
@@ -623,28 +627,9 @@ struct ProfileCustomizationSheet: View {
         return Button {
             toggleGoal(key)
         } label: {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: pinned ? "pin.fill" : (selected ? "checkmark.circle.fill" : "circle"))
-                    .font(AppFont.scaled(11, weight: .semibold))
-                Text(goal.displayName)
-                    .font(AppFont.subheadline)
-                    .fontWeight(.semibold)
-            }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .foregroundStyle(selected ? AppColor.accentLight : AppColor.textSecondary)
-            .background {
-                Capsule()
-                    .fill(selected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceSecondary.opacity(0.6))
-                    .overlay {
-                        Capsule().strokeBorder(
-                            selected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                            lineWidth: 0.5
-                        )
-                    }
-            }
+            GoalChipLabel(title: goal.displayName, isSelected: selected, isPinned: pinned)
         }
-        .buttonStyle(ScalePressStyle())
+        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
         .accessibilityLabel(goal.displayName)
         .accessibilityValue(pinned ? Text("Primary goal") : Text(""))
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -704,8 +689,8 @@ struct ProfileCustomizationSheet: View {
 
                 if metrics.isComplete {
                     HStack(spacing: Spacing.lg) {
-                        bodyStat("Weight", weightString(metrics))
-                        bodyStat("Height", heightString(metrics))
+                        bodyStat("Weight", metrics.weightLabel ?? "—")
+                        bodyStat("Height", metrics.heightLabel ?? "—")
                         bodyStat("Age", metrics.age.map { "\($0)" } ?? "—")
                     }
                 } else {
@@ -729,20 +714,6 @@ struct ProfileCustomizationSheet: View {
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func weightString(_ m: BodyMetrics) -> String {
-        guard let kg = m.weightKg else { return "—" }
-        return m.unit.weightLabel(kg)
-    }
-
-    private func heightString(_ m: BodyMetrics) -> String {
-        guard let cm = m.heightCm else { return "—" }
-        if m.unit == .metric { return "\(Int(cm.rounded())) cm" }
-        // Feet + inches reads naturally ("5'11\""); round total inches
-        // first so we never produce "5'12\"".
-        let totalInches = Int((cm / 2.54).rounded())
-        return "\(totalInches / 12)'\(totalInches % 12)\""
     }
 
     // MARK: - Stacks

@@ -192,12 +192,12 @@ struct OnboardingView: View {
             case .loseFat:        return AppColor.streak
             case .getStronger:    return AppColor.achievement
             case .stayConsistent: return AppColor.accentPrimary
-            case .athletic:       return Color(light: 0x3D6E93, dark: 0x5B8FB9)
+            case .athletic:       return AppColor.goalAthletic
             case .recomp:         return AppColor.metricHRV
-            case .betterSleep:    return Color(light: 0x4460D8, dark: 0x6B8AFF)
-            case .recovery:       return Color(light: 0x2A8792, dark: 0x4CB8C4)
-            case .antiAging:      return Color(light: 0x7B54C4, dark: 0xC59FFF)
-            case .skinHair:       return Color(light: 0xB05585, dark: 0xE89BC4)
+            case .betterSleep:    return AppColor.goalSleep
+            case .recovery:       return AppColor.goalRecovery
+            case .antiAging:      return AppColor.goalAging
+            case .skinHair:       return AppColor.goalAppearance
             case .energy:         return AppColor.perceivedEffort
             }
         }
@@ -596,10 +596,11 @@ struct OnboardingView: View {
             // first (audit C2). Flush sync so a force-quit within the
             // 350ms debounce doesn't lose either field.
             let raw = primaryGoal.rawValue
-            var goalSet = Set(dataStore.profile.goals)
-            goalSet.formUnion(selectedGoals.map(\.rawValue))
-            goalSet.insert(raw)
-            dataStore.updateGoals(goalSet)
+            dataStore.updateGoals(OnboardingPlanEngine.savedGoals(
+                existing: dataStore.profile.goals,
+                selected: selectedGoals,
+                primary: primaryGoal
+            ))
             dataStore.setPrimaryGoal(raw)
             dataStore.profile.goalDate = goalDate
             dataStore.flushPendingSave()
@@ -652,11 +653,12 @@ struct OnboardingView: View {
     }
 
     private var currentTrainingPrefs: TrainingPreferences {
-        TrainingPreferences(
+        OnboardingPlanEngine.trainingPreferences(
+            over: dataStore.profile.trainingPreferences,
             daysPerWeek: daysPerWeek,
             preferredDays: preferredDays,
             timeOfDay: timeOfDay,
-            equipmentAccess: equipment
+            equipment: equipment
         )
     }
 
@@ -736,8 +738,10 @@ struct OnboardingView: View {
     private func centeredScroll<Content: View>(@ViewBuilder _ content: @escaping () -> Content) -> some View {
         GeometryReader { proxy in
             ScrollView {
+                // Full width so the column centres on the screen rather
+                // than hugging the scroll view's leading edge.
                 content()
-                    .frame(minHeight: proxy.size.height)
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
             .scrollBounceBehavior(.basedOnSize)
         }
@@ -1221,6 +1225,7 @@ struct OnboardingView: View {
             // and skews the "keep at least one selected" count. Strip
             // them so the step only ever holds card-backed kinds.
             equipment.formIntersection(EquipmentKind.accessChoices)
+            if equipment.isEmpty { equipment = [.bodyweight] }
         }
     }
 
@@ -1438,9 +1443,6 @@ struct OnboardingView: View {
 
                 ProjectionChart(
                     goal: primaryGoal,
-                    daysPerWeek: daysPerWeek,
-                    startWeightKg: bodyMetrics.weightKg,
-                    weeks: goalWeeks,
                     targetDate: goalDate,
                     spokenSummary: "\(projectionStatLabel), \(projectionStatValue)",
                     revealed: projectionRevealed
@@ -1465,12 +1467,14 @@ struct OnboardingView: View {
                             tint: AppColor.achievement
                         )
                     }
-                    projectionStatRow(
-                        label: String(localized: "Program"),
-                        value: OnboardingPlanEngine.programName(goal: primaryGoal, daysPerWeek: daysPerWeek),
-                        icon: "list.bullet.clipboard.fill",
-                        tint: AppColor.accentPrimary
-                    )
+                    if let program = OnboardingPlanEngine.programSummary(goal: primaryGoal, daysPerWeek: daysPerWeek) {
+                        projectionStatRow(
+                            label: String(localized: "Program"),
+                            value: program,
+                            icon: "list.bullet.clipboard.fill",
+                            tint: AppColor.accentPrimary
+                        )
+                    }
                     projectionStatRow(
                         label: String(localized: "Schedule"),
                         value: String(localized: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())"),
@@ -1531,11 +1535,11 @@ struct OnboardingView: View {
 
     private var projectionStatLabel: String {
         switch primaryGoal {
-        case .buildMuscle, .recomp:                       return String(localized: "Projected gain")
+        case .buildMuscle:                                 return String(localized: "Projected gain")
         case .loseFat:                                     return String(localized: "Projected loss")
         case .getStronger:                                 return String(localized: "Projected lift increase")
         case .stayConsistent, .athletic:                   return String(localized: "Projected sessions")
-        case .betterSleep, .recovery, .antiAging,
+        case .recomp, .betterSleep, .recovery, .antiAging,
              .skinHair, .energy:                           return String(localized: "Projected trend")
         }
     }
@@ -1544,7 +1548,9 @@ struct OnboardingView: View {
         switch primaryGoal {
         case .buildMuscle: return String(localized: "+\(projectedMuscleGain) lean mass")
         case .loseFat:     return String(localized: "−\(projectedFatLoss) body weight")
-        case .getStronger: return String(localized: "+10–15% on your top lifts")
+        case .getStronger:
+            let gain = OnboardingPlanEngine.projectedStrengthGainPercent(experience: experienceLevel, weeks: goalWeeks)
+            return String(localized: "+\(gain.lowerBound)–\(gain.upperBound)% on your top lifts")
         case .stayConsistent, .athletic: return String(localized: "\(daysPerWeek * goalWeeks) sessions logged")
         case .recomp:      return String(localized: "Body recomp tracked weekly")
         case .betterSleep: return String(localized: "Sleep tracked nightly")
@@ -1694,7 +1700,7 @@ struct OnboardingView: View {
                 permissionRow(
                     icon: "heart.fill",
                     title: String(localized: "Connect Apple Health"),
-                    subtitle: String(localized: "Reads sleep, HRV, heart rate, and weight for Recovery."),
+                    subtitle: String(localized: "Reads sleep, HRV, heart rate, and weight for Biology and your Biological Age."),
                     isLoading: requestingHealth,
                     isOn: dataStore.profile.healthConnected,
                     action: requestHealth
@@ -1874,9 +1880,6 @@ private struct SocialProofPill: View {
 /// of-the-curve reveal, not a forecasting tool.
 private struct ProjectionChart: View {
     let goal: OnboardingView.PrimaryGoal
-    let daysPerWeek: Int
-    let startWeightKg: Double?
-    let weeks: Int
     let targetDate: Date
     let spokenSummary: String
     let revealed: Bool
@@ -1965,47 +1968,34 @@ private struct ProjectionChart: View {
         goal == .loseFat
     }
 
+    private func controlPoints(in size: CGSize) -> (CGPoint, CGPoint) {
+        if isLossCurve {
+            // Steep early drop, plateau into the goal — feels real
+            // because steady fat loss decelerates as bodyfat falls.
+            return (CGPoint(x: size.width * 0.30, y: size.height * 0.45),
+                    CGPoint(x: size.width * 0.65, y: size.height * 0.78))
+        }
+        // Modest start, steady acceleration through week 6, ease toward
+        // the goal endpoint.
+        return (CGPoint(x: size.width * 0.30, y: size.height * 0.78),
+                CGPoint(x: size.width * 0.65, y: size.height * 0.25))
+    }
+
     private func curve(in size: CGSize) -> Path {
-        Path { path in
-            let start = startPoint(in: size)
-            let end = endPoint(in: size)
-            let ctrl1: CGPoint
-            let ctrl2: CGPoint
-            if isLossCurve {
-                // Steep early drop, plateau into the goal — feels real
-                // because steady fat loss decelerates as bodyfat falls.
-                ctrl1 = CGPoint(x: size.width * 0.30, y: size.height * 0.45)
-                ctrl2 = CGPoint(x: size.width * 0.65, y: size.height * 0.78)
-            } else {
-                // Modest start, steady acceleration through week 6,
-                // ease toward the goal endpoint.
-                ctrl1 = CGPoint(x: size.width * 0.30, y: size.height * 0.78)
-                ctrl2 = CGPoint(x: size.width * 0.65, y: size.height * 0.25)
-            }
-            path.move(to: start)
-            path.addCurve(to: end, control1: ctrl1, control2: ctrl2)
+        let (ctrl1, ctrl2) = controlPoints(in: size)
+        return Path { path in
+            path.move(to: startPoint(in: size))
+            path.addCurve(to: endPoint(in: size), control1: ctrl1, control2: ctrl2)
         }
     }
 
+    /// The stroke's own curve, closed down to the baseline.
     private func fillUnder(in size: CGSize) -> Path {
-        Path { path in
-            let start = startPoint(in: size)
-            let end = endPoint(in: size)
-            let ctrl1: CGPoint
-            let ctrl2: CGPoint
-            if isLossCurve {
-                ctrl1 = CGPoint(x: size.width * 0.30, y: size.height * 0.45)
-                ctrl2 = CGPoint(x: size.width * 0.65, y: size.height * 0.78)
-            } else {
-                ctrl1 = CGPoint(x: size.width * 0.30, y: size.height * 0.78)
-                ctrl2 = CGPoint(x: size.width * 0.65, y: size.height * 0.25)
-            }
-            path.move(to: start)
-            path.addCurve(to: end, control1: ctrl1, control2: ctrl2)
-            path.addLine(to: CGPoint(x: end.x, y: size.height))
-            path.addLine(to: CGPoint(x: start.x, y: size.height))
-            path.closeSubpath()
-        }
+        var path = curve(in: size)
+        path.addLine(to: CGPoint(x: endPoint(in: size).x, y: size.height))
+        path.addLine(to: CGPoint(x: startPoint(in: size).x, y: size.height))
+        path.closeSubpath()
+        return path
     }
 
     private func startPoint(in size: CGSize) -> CGPoint {
@@ -2068,7 +2058,7 @@ private struct ThemePickerCover: View {
     }
 }
 
-private extension View {
+extension View {
     /// The one selection chrome for onboarding choice cards — goals,
     /// attribution, experience, equipment. Neutral glass at rest; a
     /// tinted wash and tint hairline once picked. Replaces fifteen

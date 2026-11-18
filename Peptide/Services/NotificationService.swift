@@ -140,7 +140,9 @@ final class NotificationService {
     /// entry in `occupied` — matching weekday, or any weekday when
     /// `weekday` is `nil` (a "daily" habit can collide with a dose
     /// reminder on any day of the week) — shifts the candidate forward by
-    /// `crossTypeCooldownMinutes` so the two don't land in the same
+    /// `crossTypeCooldownMinutes` (or, when forward would cross midnight,
+    /// back to a full cooldown before every slot it would collide with) so
+    /// the two don't land in the same
     /// notification-center pull. Deterministic: the same inputs always
     /// produce the same shifted time, so a reschedule never nudges an
     /// already-resolved reminder a second time.
@@ -156,12 +158,22 @@ final class NotificationService {
         avoiding occupied: [(weekday: Int, hour: Int, minute: Int)]
     ) -> (hour: Int, minute: Int) {
         let candidateMinuteOfDay = hour * 60 + minute
-        let collides = occupied.contains { slot in
-            (weekday == nil || slot.weekday == weekday)
-                && abs(slot.hour * 60 + slot.minute - candidateMinuteOfDay) < crossTypeCooldownMinutes
+        let slotMinutes = occupied
+            .filter { weekday == nil || $0.weekday == weekday }
+            .map { $0.hour * 60 + $0.minute }
+        func earliestCollision(at minuteOfDay: Int) -> Int? {
+            slotMinutes.filter { abs($0 - minuteOfDay) < crossTypeCooldownMinutes }.min()
         }
-        guard collides else { return (hour, minute) }
-        let shifted = (candidateMinuteOfDay + crossTypeCooldownMinutes) % (24 * 60)
+        guard let firstCollision = earliestCollision(at: candidateMinuteOfDay) else { return (hour, minute) }
+        let forward = candidateMinuteOfDay + crossTypeCooldownMinutes
+        if forward < 24 * 60 { return (forward / 60, forward % 60) }
+        // The caller keeps the weekday, so a shift past midnight would fire
+        // at the start of the same day; late reminders step back a full
+        // cooldown before each slot they still collide with.
+        var shifted = max(0, firstCollision - crossTypeCooldownMinutes)
+        while shifted > 0, let collision = earliestCollision(at: shifted) {
+            shifted = max(0, collision - crossTypeCooldownMinutes)
+        }
         return (shifted / 60, shifted % 60)
     }
 
@@ -235,25 +247,7 @@ final class NotificationService {
                 into: &pendingRequests
             )
 
-            // Weekly cadence: group peptides by (day, time) so co-scheduled
-            // peptides combine into one notification.
-            var grouped: [TimeslotKey: [Peptide]] = [:]
-            for peptide in proto.peptides {
-                let schedule = proto.schedule(for: peptide.id)
-                if schedule.isInterval { continue }
-                for timeString in schedule.preferredTimes {
-                    for day in schedule.daysOfWeek {
-                        guard (1...7).contains(day) else {
-                            if invalidWeekdaysSet.insert(day).inserted {
-                                AppLog.notifications.error("Skipping invalid weekday \(day, privacy: .public) for protocol \(proto.id.uuidString, privacy: .public)")
-                            }
-                            continue
-                        }
-                        let key = TimeslotKey(day: day, time: timeString)
-                        grouped[key, default: []].append(peptide)
-                    }
-                }
-            }
+            let grouped = Self.weeklySlotGroups(for: proto, invalidWeekdays: &invalidWeekdaysSet)
 
             if proto.washoutWeeks > 0 {
                 appendCycleBoundedWeeklyRequests(
@@ -518,9 +512,37 @@ final class NotificationService {
         currentIDs.remove(Self.trialReminderID)
     }
 
-    private struct TimeslotKey: Hashable {
+    struct TimeslotKey: Hashable {
         let day: Int
         let time: String
+    }
+
+    /// Weekly cadence: peptides grouped by (day, time) so co-scheduled
+    /// peptides combine into one notification. A time or weekday listed
+    /// twice still names each peptide once.
+    static func weeklySlotGroups(
+        for proto: PeptideProtocol,
+        invalidWeekdays: inout Set<Int>
+    ) -> [TimeslotKey: [Peptide]] {
+        var grouped: [TimeslotKey: [Peptide]] = [:]
+        for peptide in proto.peptides {
+            let schedule = proto.schedule(for: peptide.id)
+            if schedule.isInterval { continue }
+            for timeString in schedule.preferredTimes {
+                for day in schedule.daysOfWeek {
+                    guard (1...7).contains(day) else {
+                        if invalidWeekdays.insert(day).inserted {
+                            AppLog.notifications.error("Skipping invalid weekday \(day, privacy: .public) for protocol \(proto.id.uuidString, privacy: .public)")
+                        }
+                        continue
+                    }
+                    let key = TimeslotKey(day: day, time: timeString)
+                    if grouped[key]?.contains(where: { $0.id == peptide.id }) == true { continue }
+                    grouped[key, default: []].append(peptide)
+                }
+            }
+        }
+        return grouped
     }
 
     private struct PendingRequest {

@@ -35,7 +35,9 @@ struct WhatsNewPage: Identifiable, Equatable, @unchecked Sendable {
     /// 64-pt size the hero card uses.
     let icon: String
     /// Two-stop gradient for the hero card background. Drawn
-    /// top-leading → bottom-trailing.
+    /// top-leading → bottom-trailing. One value per stop in both schemes:
+    /// the white hero glyph sits on it, and dark-scheme pastels put it
+    /// under 3:1 (scripts/contrast-check.py holds every stop to that).
     let gradient: [Color]
     /// Accent tint for the bullet check marks + the page
     /// indicator dot. Usually picks up the gradient's first
@@ -65,8 +67,8 @@ extension WhatsNewPage {
             body: "Five tabs now cover your whole day: what to do today, how you train, what you eat, how you recover, and the habits that hold it together.",
             icon: "square.grid.2x2.fill",
             gradient: [
-                Color(light: 0x5F57A0, dark: 0x8C80EB),
-                Color(light: 0xA5575F, dark: 0xF2808C),
+                Color(hex: 0x5F57A0),
+                Color(hex: 0xA5575F),
             ],
             accent: Color(light: 0x5F57A0, dark: 0x8C80EB),
             bullets: [
@@ -82,8 +84,8 @@ extension WhatsNewPage {
             body: "Every workout you log lights up the body. The Overview tab shows which muscles you trained this week and surfaces your top three regions with set counts.",
             icon: "figure.strengthtraining.traditional",
             gradient: [
-                Color(light: 0xA04E6C, dark: 0xEB739E),
-                Color(light: 0x5F5793, dark: 0x8C80D9),
+                Color(hex: 0xA04E6C),
+                Color(hex: 0x5F5793),
             ],
             accent: Color(light: 0xA04E6C, dark: 0xEB739E),
             bullets: [
@@ -99,8 +101,8 @@ extension WhatsNewPage {
             body: "Take a photo of your plate or pick one from your library. Atlas lists what it sees so you can adjust portions before anything is logged.",
             icon: "camera.fill",
             gradient: [
-                Color(light: 0xAD6C34, dark: 0xFF9E4C),
-                Color(light: 0xA55734, dark: 0xF2804C),
+                Color(hex: 0xAD6C34),
+                Color(hex: 0xA55734),
             ],
             accent: Color(light: 0xAD6C34, dark: 0xFF9E4C),
             bullets: [
@@ -116,8 +118,8 @@ extension WhatsNewPage {
             body: "Atlas estimates a Biological Age from your cardio fitness, HRV, resting heart rate, sleep, steps, and body composition. It's a direction to watch, not a medical test.",
             icon: "waveform.path.ecg.rectangle",
             gradient: [
-                Color(light: 0x4E9387, dark: 0x73D9C7),
-                Color(light: 0x455FA0, dark: 0x668CEB),
+                Color(hex: 0x4E9387),
+                Color(hex: 0x455FA0),
             ],
             accent: Color(light: 0x4E9387, dark: 0x73D9C7),
             bullets: [
@@ -133,8 +135,8 @@ extension WhatsNewPage {
             body: "Check off today's habits in one place. Each one keeps its streak, your best run, and a heatmap of every day you showed up.",
             icon: "star.fill",
             gradient: [
-                Color(light: 0x4580A0, dark: 0x66BDEB),
-                Color(light: 0x5357A0, dark: 0x7A80EB),
+                Color(hex: 0x4580A0),
+                Color(hex: 0x5357A0),
             ],
             accent: Color(light: 0x4580A0, dark: 0x66BDEB),
             bullets: [
@@ -150,8 +152,8 @@ extension WhatsNewPage {
             body: "Your Atlas Score grows only from what you actually log. Complete your habits and log your meals to bank points and level up.",
             icon: "bolt.fill",
             gradient: [
-                Color(light: 0x5357A0, dark: 0x7A80EB),
-                Color(light: 0x3E875F, dark: 0x5CC78C),
+                Color(hex: 0x5357A0),
+                Color(hex: 0x3E875F),
             ],
             accent: Color(light: 0x3E875F, dark: 0x5CC78C),
             bullets: [

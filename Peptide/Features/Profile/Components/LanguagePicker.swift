@@ -38,6 +38,7 @@ struct LanguagePickerRow: View {
                         .accessibilityHidden(true)
                 }
             }
+            .frame(minHeight: Spacing.minimumHitTarget)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -42,8 +42,6 @@ struct BodyMetricsPage: View {
             unitChip(label: "Metric", unit: .metric)
             unitChip(label: "Imperial", unit: .imperial)
         }
-        .padding(Spacing.xs)
-        .glassControl(.capsule)
     }
 
     private func unitChip(label: LocalizedStringKey, unit: MeasurementUnit) -> some View {
@@ -55,19 +53,11 @@ struct BodyMetricsPage: View {
             Text(label)
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
-                .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
+                .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.xs)
                 .frame(minHeight: Spacing.minimumHitTarget)
-                .background {
-                    if isSelected {
-                        Capsule()
-                            .fill(AppColor.accentPrimary.opacity(0.18))
-                            .overlay {
-                                Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                            }
-                    }
-                }
+                .onboardingFilledChoice(isSelected: isSelected, .capsule)
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)

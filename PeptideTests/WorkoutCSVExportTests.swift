@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 final class WorkoutCSVExportTests: XCTestCase {
 
-    private let header = "Date,Workout,Exercise,Set,Reps,Weight (kg),RPE,Set Type,Superset,Duration (min),Set Note,Workout Note"
+    private let header = "Date,Workout,Exercise,Set,Reps,Weight (kg),RPE,Measurement,Load,Seconds,Meters,Set Type,Superset,Duration (min),Set Note,Workout Note"
     private let stockholm = TimeZone(identifier: "Europe/Stockholm")!
 
     private var calendar: Calendar {
@@ -51,8 +51,8 @@ final class WorkoutCSVExportTests: XCTestCase {
         )
 
         XCTAssertEqual(rows(csv([session])), [
-            "2026-03-14T18:30:00+01:00,Push,Bench Press,1,10,40,,Warm-up,,45,,Felt strong",
-            "2026-03-14T18:30:00+01:00,Push,Bench Press,2,5,82.5,8.5,Working,,45,,Felt strong",
+            "2026-03-14T18:30:00+01:00,Push,Bench Press,1,10,40,,repetitions,recorded,,,Warm-up,,45,,Felt strong",
+            "2026-03-14T18:30:00+01:00,Push,Bench Press,2,5,82.5,8.5,repetitions,recorded,,,Working,,45,,Felt strong",
         ])
     }
 
@@ -67,7 +67,7 @@ final class WorkoutCSVExportTests: XCTestCase {
         )
 
         XCTAssertEqual(rows(csv([session])), [
-            "2026-03-12T17:00:00+01:00,Run,,,,,,,,20,,Quick-log · 3 sets × 10 reps",
+            "2026-03-12T17:00:00+01:00,Run,,,,,,,,,,,,20,,Quick-log · 3 sets × 10 reps",
         ])
     }
 
@@ -88,7 +88,38 @@ final class WorkoutCSVExportTests: XCTestCase {
         let fields = rows(csv([session])).map { $0.split(separator: ",", omittingEmptySubsequences: false).map(String.init) }
 
         XCTAssertEqual(fields.map { $0[2] }, ["Bench Press", "Barbell Row", "Squat"])
-        XCTAssertEqual(fields.map { $0[8] }, ["A", "A", ""])
+        XCTAssertEqual(fields.map { $0[12] }, ["A", "A", ""])
+    }
+
+    func test_workoutsCSV_timedAndDistanceSets_exportSecondsAndMeters() throws {
+        let start = try date(day: 15, hour: 8)
+        let session = WorkoutSession(
+            name: "Conditioning",
+            startedAt: start,
+            finishedAt: start.addingTimeInterval(30 * 60),
+            exercises: [
+                WorkoutExerciseEntry(exerciseID: "plank", index: 0, sets: [
+                    SetEntry(index: 1, weightKg: 0, reps: 0, completed: true,
+                             measurement: .init(kind: .timed, seconds: 60)),
+                ]),
+                WorkoutExerciseEntry(exerciseID: "row", index: 1, sets: [
+                    SetEntry(index: 1, weightKg: 0, reps: 0, completed: true,
+                             measurement: .init(kind: .distance, seconds: 1230.5, meters: 5000)),
+                ]),
+                WorkoutExerciseEntry(exerciseID: "pullup", index: 2, sets: [
+                    SetEntry(index: 1, weightKg: 20, reps: 8, completed: true,
+                             measurement: .init(kind: .assisted, load: .recorded)),
+                ]),
+            ]
+        )
+
+        let fields = rows(csv([session])).map { $0.split(separator: ",", omittingEmptySubsequences: false).map(String.init) }
+
+        XCTAssertEqual(fields.map { Array($0[4...10]) }, [
+            ["0", "0", "", "timed", "recorded", "60", ""],
+            ["0", "0", "", "distance", "recorded", "1230.5", "5000"],
+            ["8", "20", "", "assisted", "recorded", "", ""],
+        ])
     }
 
     func test_mixedHistory_listsNewestFirstAndSkipsActiveWorkout() throws {

@@ -251,6 +251,56 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertEqual(resolved.minute, 15, "Should shift forward by the full cooldown window (10 min) from the candidate")
     }
 
+    func test_resolvedHabitFireTime_lateNightCollision_staysSameDayOutsideCooldown() {
+        let occupied: [(weekday: Int, hour: Int, minute: Int)] = [(weekday: 3, hour: 23, minute: 50)]
+        let resolved = NotificationService.resolvedHabitFireTime(
+            hour: 23, minute: 55, weekday: 3, avoiding: occupied
+        )
+        assertOutsideCooldown(resolved, of: occupied)
+        XCTAssertEqual(resolved.hour, 23, "A shift past midnight would fire at 00:05 of the same weekday")
+        XCTAssertEqual(resolved.minute, 40)
+    }
+
+    func test_resolvedHabitFireTime_lateNightBackToBackSlots_clearsEverySlot() {
+        let occupied: [(weekday: Int, hour: Int, minute: Int)] = [
+            (weekday: 3, hour: 23, minute: 45),
+            (weekday: 3, hour: 23, minute: 50),
+        ]
+        let resolved = NotificationService.resolvedHabitFireTime(
+            hour: 23, minute: 55, weekday: 3, avoiding: occupied
+        )
+        assertOutsideCooldown(resolved, of: occupied)
+        XCTAssertEqual(resolved.hour, 23)
+        XCTAssertEqual(resolved.minute, 35)
+    }
+
+    private func assertOutsideCooldown(
+        _ resolved: (hour: Int, minute: Int),
+        of occupied: [(weekday: Int, hour: Int, minute: Int)],
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let resolvedMinute = resolved.hour * 60 + resolved.minute
+        for slot in occupied {
+            XCTAssertGreaterThanOrEqual(
+                abs(slot.hour * 60 + slot.minute - resolvedMinute),
+                NotificationService.crossTypeCooldownMinutes,
+                "Still within the cooldown of \(slot.hour):\(slot.minute)",
+                file: file, line: line
+            )
+        }
+    }
+
+    func test_weeklySlotGroups_repeatedTimeAndDay_listsPeptideOnce() {
+        let proto = makeProtocol(times: ["8:00 AM", "8:00 AM"], days: [1, 1], peptideCount: 1)
+        var invalidWeekdays: Set<Int> = []
+
+        let groups = NotificationService.weeklySlotGroups(for: proto, invalidWeekdays: &invalidWeekdays)
+
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups.values.first?.map(\.id), [MockPeptides.bpc157.id])
+    }
+
     func test_resolvedHabitFireTime_differentWeekday_noShift() {
         // Dose reminder occupies 8:00 on weekday 2 only; a habit candidate
         // at the same clock time but a different weekday doesn't collide.

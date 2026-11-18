@@ -62,14 +62,28 @@ enum ReconstitutionEngine {
         countable(units.rounded())
     }
 
+    /// Below this, a draw is shown to the tenth of a unit.
+    static let smallDrawUnits: Double = 10
+
+    /// Units as shown: whole units, or tenths below `smallDrawUnits` so a
+    /// real 0.2-unit draw never reads as 0. A positive draw shows at
+    /// least 0.1.
+    static func displayUnits(_ units: Double) -> Double? {
+        guard units > 0, units < smallDrawUnits else { return roundedUnits(units).map(Double.init) }
+        return max(0.1, (units * 10).rounded() / 10)
+    }
+
+    /// `displayUnits` as text, prefixed "≈ " when it isn't the exact
+    /// amount, so 12.6 reads "≈ 13" rather than silently "13".
+    static func unitsLabel(_ units: Double, approximate: Bool = true) -> String? {
+        guard let shown = displayUnits(units) else { return nil }
+        let text = shown.formatted(.number.grouping(.never).precision(.fractionLength(0...1)))
+        return approximate && abs(units - shown) > fractionalTolerance ? "≈ \(text)" : text
+    }
+
     /// True when the result needs more than one full U-100 syringe.
     static func exceedsSyringe(units: Double) -> Bool {
         units.isFinite && units > syringeCapacityUnits
-    }
-
-    static func hasFractionalUnits(_ units: Double) -> Bool {
-        guard let rounded = roundedUnits(units) else { return false }
-        return abs(units - Double(rounded)) > fractionalTolerance
     }
 
     /// Parses a typed amount. Trims the ends and accepts a comma

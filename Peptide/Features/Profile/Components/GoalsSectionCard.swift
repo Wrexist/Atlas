@@ -35,31 +35,7 @@ struct GoalsSectionCard: View {
                             Haptics.selection()
                             onToggle(entry.key)
                         } label: {
-                            HStack(spacing: Spacing.xs) {
-                                if isSelected {
-                                    Image(systemName: "checkmark")
-                                        .font(AppFont.scaled(11, weight: .bold))
-                                        .transition(.scale.combined(with: .opacity))
-                                }
-                                Text(entry.displayName)
-                                    .font(AppFont.chipText)
-                            }
-                            .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
-                            .padding(.horizontal, Spacing.md)
-                            .padding(.vertical, Spacing.sm)
-                            .background {
-                                Capsule()
-                                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.2) : AppColor.surfaceElevated)
-                                    .overlay {
-                                        Capsule()
-                                            .strokeBorder(
-                                                isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                                lineWidth: 0.5
-                                            )
-                                    }
-                            }
-                            .minimumHitArea()
-                            .appAnimation(AppAnimation.springSnappy, value: isSelected)
+                            GoalChipLabel(title: entry.displayName, isSelected: isSelected)
                         }
                         .buttonStyle(ScalePressStyle(pressedScale: 0.95))
                         .accessibilityLabel(entry.displayName)
@@ -68,6 +44,43 @@ struct GoalsSectionCard: View {
                 }
             }
         }
+    }
+}
+
+/// The one goal chip, shared by Profile and Customize profile so the same
+/// control never looks two ways. A pinned primary goal swaps the
+/// checkmark for a pin.
+struct GoalChipLabel: View {
+    let title: String
+    let isSelected: Bool
+    var isPinned = false
+
+    var body: some View {
+        HStack(spacing: Spacing.xs) {
+            if isSelected || isPinned {
+                Image(systemName: isPinned ? "pin.fill" : "checkmark")
+                    .font(AppFont.scaled(11, weight: .bold))
+                    .transition(.scale.combined(with: .opacity))
+            }
+            Text(title)
+                .font(AppFont.chipText)
+        }
+        .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+        .background {
+            Capsule()
+                .fill(isSelected ? AppColor.accentPrimary.opacity(0.2) : AppColor.surfaceElevated)
+                .overlay {
+                    Capsule()
+                        .strokeBorder(
+                            isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
+                            lineWidth: 0.5
+                        )
+                }
+        }
+        .minimumHitArea()
+        .appAnimation(AppAnimation.springSnappy, value: isSelected)
     }
 }
 

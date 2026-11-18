@@ -191,7 +191,10 @@ final class AIResearchService: Sendable {
             throw ChatError.proxyNotConfigured
         }
 
-        let context = ragContext(for: prompt, history: history, in: database)
+        // The brief goes first in the system prompt, so the compounds get
+        // what is left of the proxy's budget after it.
+        let briefLength = Self.briefSection(brief).map { $0.utf16.count + 2 } ?? 0
+        let context = ragContext(for: prompt, history: history, in: database, reserving: briefLength)
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -262,42 +265,20 @@ final class AIResearchService: Sendable {
 
     private static let ragContextHeader = "Database context for the compounds the user mentioned:"
 
-    /// Picks up to 4 peptides whose name or abbreviation appears in the
-    /// recent transcript (case-insensitive substring match), then keeps
-    /// whole entries only while they fit the proxy's system budget.
+    /// Picks up to 4 peptides the recent transcript names (see
+    /// `mentions`), then keeps whole entries only while they fit what the
+    /// proxy's system budget leaves after `reserved` characters.
     private func ragContext(
         for prompt: String,
         history: [Turn],
-        in database: [Peptide]
+        in database: [Peptide],
+        reserving reserved: Int
     ) -> String? {
         let recentText = ([prompt] + history.suffix(4).map(\.content))
             .joined(separator: " ")
             .lowercased()
 
-        var picks: [Peptide] = []
-        for peptide in database {
-            if picks.count >= 4 { break }
-            // Skip 1-2 character needles ("T3", "GH") that would
-            // collide with common English substrings ("with", "the").
-            // The short-abbreviation false positives polluted the
-            // system prompt with irrelevant peptide data and burned
-            // token budget. Names are usually long enough; abbreviations
-            // shorter than 3 chars require an exact word-boundary match
-            // via the recentText words.
-            let name = peptide.name.lowercased()
-            let abbr = peptide.abbreviation.lowercased()
-            let matchesName = name.count >= 3 && recentText.contains(name)
-            let matchesAbbr: Bool = {
-                guard !abbr.isEmpty else { return false }
-                if abbr.count >= 3 { return recentText.contains(abbr) }
-                // Short abbreviation: require it to appear as a whole token.
-                let tokens = recentText.split { !$0.isLetter && !$0.isNumber }
-                return tokens.contains { $0.lowercased() == abbr }
-            }()
-            if matchesName || matchesAbbr {
-                picks.append(peptide)
-            }
-        }
+        let picks = Array(database.lazy.filter { Self.mentions($0, in: recentText) }.prefix(4))
         guard !picks.isEmpty else { return nil }
 
         let snippets = picks.map { p -> String in
@@ -321,14 +302,51 @@ final class AIResearchService: Sendable {
             return fields.joined(separator: "\n")
         }
 
-        let budget = Self.systemCharacterBudget - Self.ragContextHeader.utf16.count - 1
+        let budget = Self.systemCharacterBudget - reserved - Self.ragContextHeader.utf16.count - 1
         var context = ""
         for snippet in snippets {
             let candidate = context.isEmpty ? snippet : context + "\n\n---\n\n" + snippet
             if candidate.utf16.count > budget { break }
             context = candidate
         }
-        return context.isEmpty ? Self.clipped(snippets[0], to: budget) : context
+        // An entry cut mid-field would read as the whole record, so a
+        // first entry that doesn't fit leaves the section out.
+        return context.isEmpty ? nil : context
+    }
+
+    /// Whether `text` (lowercased) names `peptide`: its abbreviation, its
+    /// name, the name before a parenthetical ("Ibutamoren" for
+    /// "Ibutamoren (MK-677)"), or an alias inside one, each as whole
+    /// words, so "ela" in "related" or "relaxin" in "relaxing" is not a
+    /// mention. Names and aliases under 3 characters are skipped, as are
+    /// letterless aliases: "1-3" in "Des(1-3) IGF-1" is a residue range,
+    /// and would match "take it 1-3 times a week".
+    static func mentions(_ peptide: Peptide, in text: String) -> Bool {
+        let abbreviation = peptide.abbreviation.lowercased()
+        if !abbreviation.isEmpty && containsWord(abbreviation, in: text) { return true }
+
+        let name = peptide.name.lowercased()
+        var names = [name]
+        if let open = name.firstIndex(of: "(") {
+            names.append(name[..<open].trimmingCharacters(in: baseNameTrim))
+            let inside = name[name.index(after: open)...].prefix(while: { $0 != ")" })
+            names += inside
+                .split(whereSeparator: { $0 == "," || $0 == "/" })
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { $0.contains(where: \.isLetter) }
+        }
+        return names.contains { $0.count >= 3 && containsWord($0, in: text) }
+    }
+
+    /// Trimmed off the name before a parenthetical, so "Angiotensin-(1-7)"
+    /// yields "angiotensin".
+    private static let baseNameTrim = CharacterSet.whitespaces.union(CharacterSet(charactersIn: "-–"))
+
+    /// `needle` in `text` with no letter or digit directly before or after.
+    private static func containsWord(_ needle: String, in text: String) -> Bool {
+        let pattern = "(?<![\\p{L}\\p{N}])" + NSRegularExpression.escapedPattern(for: needle) + "(?![\\p{L}\\p{N}])"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
+        return regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
 
     /// `text` cut to at most `limit` UTF-16 units (the unit the proxy's
@@ -396,14 +414,19 @@ final class AIResearchService: Sendable {
         return body
     }
 
+    private static func briefSection(_ brief: Brief?) -> String? {
+        guard let brief, !brief.text.isEmpty else { return nil }
+        let (rules, heading): ([String], String) = switch brief.topic {
+        case .nutrition: (coachRules, "The user's last 7 days, from their Atlas log:")
+        case .biology:   (biologyRules, "The user's Biological Age and the signals behind it, from Atlas:")
+        }
+        return (rules + ["", heading, brief.text]).joined(separator: "\n")
+    }
+
     private static func systemContext(ragContext: String?, brief: Brief?) -> String? {
         var sections: [String] = []
-        if let brief, !brief.text.isEmpty {
-            let (rules, heading): ([String], String) = switch brief.topic {
-            case .nutrition: (coachRules, "The user's last 7 days, from their Atlas log:")
-            case .biology:   (biologyRules, "The user's Biological Age and the signals behind it, from Atlas:")
-            }
-            sections.append((rules + ["", heading, brief.text]).joined(separator: "\n"))
+        if let briefSection = briefSection(brief) {
+            sections.append(briefSection)
         }
         if let ragContext, !ragContext.isEmpty {
             sections.append(ragContextHeader + "\n" + ragContext)

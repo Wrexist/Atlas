@@ -64,29 +64,16 @@ struct BodyMetricsCard: View {
     }
 
     private var weightText: String {
-        guard let kg = metrics.weightKg else { return "—" }
-        return "\(formatNumber(metrics.unit.weightForDisplay(kg))) \(metrics.unit.weightSuffix)"
+        metrics.weightLabel ?? "—"
     }
 
     private var heightText: String {
-        guard let cm = metrics.heightCm else { return "—" }
-        if metrics.unit == .metric {
-            return "\(formatNumber(cm)) cm"
-        }
-        // Imperial reads as feet + inches ("5'11\"") — decimal inches
-        // ("71 in") is technically correct but nobody states height that
-        // way. Round total inches first so we never render "5'12\"".
-        let totalInches = Int((cm / 2.54).rounded())
-        return "\(totalInches / 12)'\(totalInches % 12)\""
+        metrics.heightLabel ?? "—"
     }
 
     private var ageText: String {
         guard let age = metrics.age, age > 0 else { return "—" }
         return "\(age)"
-    }
-
-    private func formatNumber(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(0...1)).grouping(.never))
     }
 
     private func metricStat(label: LocalizedStringKey, value: String) -> some View {

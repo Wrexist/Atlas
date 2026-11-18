@@ -126,21 +126,35 @@ final class ReconstitutionEngineTests: XCTestCase {
         XCTAssertFalse(ReconstitutionEngine.exceedsSyringe(units: .infinity))
     }
 
-    func test_hasFractionalUnits_wholeNumber_isFalse() {
-        XCTAssertFalse(ReconstitutionEngine.hasFractionalUnits(10))
+    func test_unitsLabel_wholeNumber_hasNoApproximation() {
+        XCTAssertEqual(ReconstitutionEngine.unitsLabel(10), "10")
     }
 
-    func test_hasFractionalUnits_withinTolerance_isFalse() {
-        XCTAssertFalse(ReconstitutionEngine.hasFractionalUnits(10.04))
+    func test_unitsLabel_withinTolerance_hasNoApproximation() {
+        XCTAssertEqual(ReconstitutionEngine.unitsLabel(10.04), "10")
     }
 
-    func test_hasFractionalUnits_beyondTolerance_isTrue() {
-        XCTAssertTrue(ReconstitutionEngine.hasFractionalUnits(12.6))
-        XCTAssertTrue(ReconstitutionEngine.hasFractionalUnits(10.0 / 3.0))
+    func test_unitsLabel_beyondTolerance_isMarkedApproximate() {
+        XCTAssertEqual(ReconstitutionEngine.unitsLabel(12.6), "≈ 13")
+        XCTAssertEqual(ReconstitutionEngine.unitsLabel(0.01)?.hasPrefix("≈ "), true)
     }
 
-    func test_hasFractionalUnits_nonFinite_isFalse() {
-        XCTAssertFalse(ReconstitutionEngine.hasFractionalUnits(.nan))
+    func test_unitsLabel_nonFinite_returnsNil() {
+        XCTAssertNil(ReconstitutionEngine.unitsLabel(.nan))
+    }
+
+    func test_displayUnits_twentyMcgAtTenMgPerMl_staysNonZero() throws {
+        // 0.02 mg ÷ 10 mg/mL = 0.002 mL = 0.2 units.
+        let units = try XCTUnwrap(ReconstitutionEngine.syringeUnits(amountMcg: 20, vialMg: 10, waterMl: 1))
+        XCTAssertEqual(ReconstitutionEngine.displayUnits(units) ?? 0, 0.2, accuracy: accuracy)
+    }
+
+    func test_displayUnits_tinyPositiveDraw_showsAtLeastATenth() {
+        XCTAssertEqual(ReconstitutionEngine.displayUnits(0.01), 0.1)
+    }
+
+    func test_displayUnits_tenOrMore_roundsToWholeUnits() {
+        XCTAssertEqual(ReconstitutionEngine.displayUnits(12.6), 13)
     }
 
     // MARK: - Amounts per vial
