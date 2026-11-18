@@ -461,6 +461,12 @@ private struct TimeSlotRow: View {
     @State private var isShowingPicker = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    /// At accessibility sizes the toolbar and wheel rows outgrow a fixed
+    /// 360pt sheet, so it opens full height instead.
+    private var pickerDetents: Set<PresentationDetent> {
+        dynamicTypeSize.isAccessibilitySize ? [.large] : [.height(360)]
+    }
+
     private static let formatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
@@ -527,9 +533,7 @@ private struct TimeSlotRow: View {
                 },
                 onCancel: { isShowingPicker = false }
             )
-            // At accessibility sizes the toolbar and wheel rows outgrow a
-            // fixed 360pt sheet, so it opens full height instead.
-            .liquidGlassPresentation(detents: dynamicTypeSize.isAccessibilitySize ? [.large] : [.height(360)])
+            .liquidGlassPresentation(detents: pickerDetents)
         }
     }
 }
