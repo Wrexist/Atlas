@@ -47,6 +47,29 @@ final class SupersetTests: XCTestCase {
         XCTAssertTrue(session.exercises.allSatisfy { $0.supersetGroup == nil })
     }
 
+    func test_unlinkingTheMiddleOfThree_releasesBothNeighbours() {
+        var session = WorkoutSession(exercises: [entry(0), entry(1), entry(2)])
+        session.linkSupersetWithNext(session.exercises[0].id)
+        session.linkSupersetWithNext(session.exercises[1].id)
+        session.unlinkSuperset(session.exercises[1].id)
+
+        XCTAssertTrue(session.exercises.allSatisfy { $0.supersetGroup == nil })
+    }
+
+    func test_unlinkingTheMiddleOfFive_leavesTwoContiguousSupersets() {
+        var session = WorkoutSession(exercises: (0..<5).map { entry($0) })
+        for position in 0..<4 { session.linkSupersetWithNext(session.exercises[position].id) }
+        session.unlinkSuperset(session.exercises[2].id)
+
+        let groups = session.exercises.map(\.supersetGroup)
+        XCTAssertNotNil(groups[0])
+        XCTAssertEqual(groups[0], groups[1])
+        XCTAssertNil(groups[2])
+        XCTAssertNotNil(groups[3])
+        XCTAssertEqual(groups[3], groups[4])
+        XCTAssertNotEqual(groups[0], groups[3])
+    }
+
     func test_lastExercise_hasNothingBelowToLink() {
         var session = WorkoutSession(exercises: [entry(0)])
         session.linkSupersetWithNext(session.exercises[0].id)
