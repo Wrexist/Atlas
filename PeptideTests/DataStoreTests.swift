@@ -213,6 +213,32 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(updated?.schedule(for: MockPeptides.tb500.id), moved)
     }
 
+    func test_addPeptides_withAlreadyPresentPeptide_addsOnlyNewOnesAndReturnsCount() {
+        let target = PeptideProtocol(
+            id: UUID(),
+            name: "Target",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .paused,
+            notes: ""
+        )
+        store.addProtocol(target)
+
+        let added = store.addPeptides(
+            [MockPeptides.bpc157, MockPeptides.tb500, MockPeptides.semax],
+            toProtocolId: target.id
+        )
+
+        let updated = store.protocols.first { $0.id == target.id }
+        XCTAssertEqual(added, 2)
+        XCTAssertEqual(
+            updated?.peptides.map(\.id),
+            [MockPeptides.bpc157.id, MockPeptides.tb500.id, MockPeptides.semax.id]
+        )
+    }
+
     func test_todayEntries_areSortedByDate() {
         let today = store.todayEntries
         for (earlier, later) in zip(today, today.dropFirst()) {

@@ -104,10 +104,7 @@ struct ProtocolBuilderView: View {
         let peptidesToAdd = orderedSelectedPeptides
             .filter { peptide in !target.peptides.contains { $0.id == peptide.id } }
         guard !peptidesToAdd.isEmpty else { dismiss(); return }
-        for peptide in peptidesToAdd {
-            dataStore.addPeptide(peptide, toProtocolId: target.id)
-        }
-        Haptics.success()
+        dataStore.addPeptides(peptidesToAdd, toProtocolId: target.id)
         dismiss()
     }
 
