@@ -9,6 +9,8 @@ struct RecoveryPage: View {
     let vitals: WatchVitalsSnapshot
     @State private var showsDetail = false
 
+    private static let staleOpacity = 0.55
+
     private enum HeroKind { case restingHeartRate, recovery, hrv }
 
     private struct Hero {
@@ -76,8 +78,9 @@ struct RecoveryPage: View {
         }
     }
 
-    /// Old readings lead with their age, at full weight, so the numbers
-    /// below read as last measured rather than as this morning's.
+    /// Old readings lead with their age, at full weight, and the numbers
+    /// below are dimmed, so all of them read as last measured rather
+    /// than as this morning's.
     private func content(stale: Bool) -> some View {
         let hero = self.hero(stale: stale)
         let chips = self.chips(for: hero, stale: stale)
@@ -106,6 +109,7 @@ struct RecoveryPage: View {
                         MetricReadout(value: hero.value, unit: hero.unit,
                                       tint: WatchPalette.heart, accessibilityText: hero.spoken)
                     }
+                    .opacity(stale ? Self.staleOpacity : 1)
                     .entrance(0)
                 }
                 if !chips.isEmpty {
@@ -120,6 +124,7 @@ struct RecoveryPage: View {
                                 .background(Capsule().fill(WatchPalette.heart.opacity(0.18)))
                         }
                     }
+                    .opacity(stale ? Self.staleOpacity : 1)
                     .entrance(1)
                 }
                 if !stale {
