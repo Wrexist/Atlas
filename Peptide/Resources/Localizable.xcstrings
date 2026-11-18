@@ -20592,16 +20592,6 @@
         }
       }
     },
-    "Included with Atlas Pro": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ingår i Atlas Pro"
-          }
-        }
-      }
-    },
     "Increase": {
       "localizations": {
         "sv": {
