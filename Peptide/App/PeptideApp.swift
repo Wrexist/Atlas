@@ -841,9 +841,10 @@ struct WorkoutAccessoryView: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.accentPrimary)
                 .contentTransition(.symbolEffect(.replace))
+                .accessibilityHidden(true)
             Text(label)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
@@ -897,7 +898,7 @@ struct NextDoseAccessoryView: View {
 
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon(isDone: next == nil, isOverdue: isOverdue))
-                .font(.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(isOverdue ? AppColor.warning : AppColor.accentPrimary)
                 .contentTransition(.symbolEffect(.replace))
 
@@ -977,7 +978,7 @@ struct PersistenceErrorBanner: View {
         if let message {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
                 Text(message)
                     .font(AppFont.caption2)

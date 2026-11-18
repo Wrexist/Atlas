@@ -93,6 +93,10 @@ CASES = [
      'Image(systemName: "photo").font(.system(size: 40))',
      'Image(systemName: "photo").font(AppFont.scaled(40, relativeTo: .largeTitle))'),
 
+    ("rule_bare_text_style_font", "Foo.swift",
+     'Image(systemName: icon).font(.caption)\nText("a").font(.title2.weight(.bold))',
+     'Image(systemName: icon).font(AppFont.caption2)\nText("a").font(AppFont.title2)'),
+
     ("rule_glow", "Foo.swift",
      'MetricRing().appShadow(AppShadow.accentGlow)',
      'MetricRing().appShadow(AppShadow.glassElevated)'),

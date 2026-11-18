@@ -248,6 +248,27 @@ def rule_system_font_modifier(path, source, code) -> list[Finding]:
             for m in re.finditer(r"\.font\(\s*\.system\(size:", code)]
 
 
+# Share images laid out with SwiftUI's own text styles: they render to a
+# fixed export canvas, where Dynamic Type deliberately does not apply.
+SHARE_CANVAS_FILES = FIXED_CANVAS_FILES | {"WorkoutSocialCanvas.swift", "WorkoutHighlightCanvas.swift"}
+
+
+def rule_bare_text_style_font(path, source, code) -> list[Finding]:
+    """`.font(.caption)` and friends sidestep the type ramp.
+
+    The bare text-style spelling escaped `rule_fixed_font`, which only looks
+    at `.system(...)`; a tab-bar glyph set in `.caption` sat 1pt off the
+    `AppFont.caption2` label beside it. Feature code uses an `AppFont`
+    token; the design system and the share canvases are exempt.
+    """
+    if DESIGN_SYSTEM in path.parents or path.name in SHARE_CANVAS_FILES:
+        return []
+    pattern = r"\.font\(\s*\.(?:caption2?|footnote|body|headline|subheadline|callout|title[23]?|largeTitle)\b"
+    return [Finding(path, line_of(code, m.start()), "bare-text-style-font",
+                    "bare text-style font bypasses AppFont; use an AppFont token", "error")
+            for m in re.finditer(pattern, code)]
+
+
 def rule_display_scale_ramp(path, source, code) -> list[Finding]:
     """A display size must say how it scales.
 
@@ -947,6 +968,7 @@ RULES = [
     rule_fixed_font,
     rule_display_scale_ramp,
     rule_system_font_modifier,
+    rule_bare_text_style_font,
     rule_glow,
     rule_untargeted_animation,
     rule_unnamed_motion,
