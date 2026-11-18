@@ -203,7 +203,7 @@ struct WatchData: Codable, Equatable, Sendable {
     /// Workout page and the live state of the Training complication.
     private(set) var workout: WatchWorkoutSnapshot?
     /// This week's training, for the Training complication between workouts.
-    let training: WatchTrainingSnapshot?
+    private(set) var training: WatchTrainingSnapshot?
     /// The phone's Haptic Feedback setting, so the wrist honours it too.
     /// Nil from an older phone build, which reads as on.
     let hapticsEnabled: Bool?
@@ -381,8 +381,9 @@ struct WatchData: Codable, Equatable, Sendable {
     /// midnight, nor yesterday's habit totals as today's: habits due on
     /// set weekdays change from day to day. A workout the phone stopped
     /// pushing hours ago is dropped, and so is a night too old to show as
-    /// last night.
-    func forDisplay(at now: Date) -> WatchData {
+    /// last night. One sent in an earlier week counts no workouts this
+    /// week, the rule `WidgetSnapshotBuilder` uses on the phone.
+    func forDisplay(at now: Date, calendar: Calendar = .current) -> WatchData {
         var copy = self
         if now.timeIntervalSince(lastUpdated) > Self.workoutStaleAfter {
             copy.workout = nil
@@ -390,7 +391,10 @@ struct WatchData: Codable, Equatable, Sendable {
         if let sleep = vitals?.sleep, now.timeIntervalSince(sleep.end) > Self.sleepStaleAfter {
             copy.vitals = vitals?.withoutSleep
         }
-        guard !Calendar.current.isDate(lastUpdated, inSameDayAs: now) else { return copy }
+        if !calendar.isDate(lastUpdated, equalTo: now, toGranularity: .weekOfYear) {
+            copy.training = training.map { WatchTrainingSnapshot(workoutsThisWeek: 0, lastWorkout: $0.lastWorkout) }
+        }
+        guard !calendar.isDate(lastUpdated, inSameDayAs: now) else { return copy }
         copy.todayEntries = []
         copy.completedToday = 0
         copy.totalToday = 0

@@ -261,7 +261,23 @@ final class WatchStore: NSObject, ObservableObject {
     private func updateOffline(_ workout: WatchOfflineWorkout?) {
         offlineWorkout = workout
         persistOfflineState()
+        mirrorOfflineWorkoutForComplication()
         scheduleRestEndHaptic(for: displayedWorkout)
+    }
+
+    /// The Workout complication can't see this app's Documents, so the
+    /// running Watch-run workout is copied into the App Group, and
+    /// removed once it ends, for the face to show its timer and sets.
+    private func mirrorOfflineWorkoutForComplication() {
+        guard let url = FileManager.default
+                .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
+                .appendingPathComponent(WatchWorkoutSnapshot.offlineFileName) else { return }
+        if let snapshot = offlineWorkout?.snapshot, let data = try? JSONEncoder().encode(snapshot) {
+            try? data.write(to: url, options: .atomic)
+        } else {
+            try? FileManager.default.removeItem(at: url)
+        }
+        WidgetCenter.shared.reloadTimelines(ofKind: WatchWorkoutSnapshot.complicationKind)
     }
 
     /// Hands every unconfirmed workout to WatchConnectivity, except one it

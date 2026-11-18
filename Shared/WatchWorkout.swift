@@ -257,6 +257,16 @@ struct WatchTrainingSnapshot: Codable, Hashable, Sendable {
     let lastWorkout: WidgetWorkoutSummary?
 }
 
+extension WatchWorkoutSnapshot {
+    /// The Watch-run workout, mirrored by the Watch app into its App
+    /// Group so the Workout complication can show it. The phone's own
+    /// workout travels in `watch_data.json` instead.
+    static let offlineFileName = "offline_workout.json"
+
+    /// The Workout complication's kind, reloaded when that file changes.
+    static let complicationKind = "WatchWorkoutWidget"
+}
+
 /// One exercise the Watch can log without the phone: what to call it, how
 /// many sets to lay out, and the load and reps to open at.
 struct WatchLift: Codable, Hashable, Sendable {
