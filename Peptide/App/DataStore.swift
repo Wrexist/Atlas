@@ -2332,10 +2332,11 @@ final class DataStore {
         return MomentumEngine.snapshot(score: profile.atlasScore, todayEarned: earnedToday)
     }
 
-    /// Best all-time streak across active habits — feeds the habit-streak
+    /// Best all-time day streak across active habits — feeds the habit-streak
     /// achievements (which unlock once, so the all-time best is what counts).
+    /// Weekly habits count weeks, so they stay out of this day count.
     var bestHabitStreak: Int {
-        activeHabits.reduce(0) { best, habit in
+        activeHabits.filter { !$0.schedule.countsStreakInWeeks }.reduce(0) { best, habit in
             max(best, HabitsService.summary(for: habit, entries: profile.habitEntries, frozenDayKeys: profile.streakFreezeDays).bestStreak)
         }
     }

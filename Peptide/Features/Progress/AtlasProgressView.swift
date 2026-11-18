@@ -63,8 +63,10 @@ struct AtlasProgressView: View {
         let previousEnd = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
         let next = Derived(
             history: dataStore.profile.momentumHistory.sorted { $0.date < $1.date },
-            // Same freeze days Today passes, so the two streaks agree.
+            // Same freeze days Today passes, so the two streaks agree. Weekly
+            // habits count weeks; this tile counts days.
             habitCurrentStreak: habits
+                .filter { !$0.schedule.countsStreakInWeeks }
                 .map { HabitsService.summary(for: $0, entries: entries, frozenDayKeys: frozen).currentStreak }
                 .max() ?? 0,
             // Today isn't over, so its unfinished habits aren't missed yet;
@@ -207,7 +209,7 @@ struct AtlasProgressView: View {
             sectionHeader("Habit consistency", systemImage: "checkmark.seal.fill")
             if let rate30 {
                 let rate = HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
-                    Text("\(Int((rate30 * 100).rounded()))%")
+                    Text(rate30.formatted(.percent.precision(.fractionLength(0))))
                         .font(AppFont.scaled(36, weight: .light, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
@@ -221,13 +223,13 @@ struct AtlasProgressView: View {
                     HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                         rate
                         Spacer()
-                        if let ratePrev, ratePrev > 0 {
+                        if let ratePrev {
                             deltaBadge(now: rate30, prev: ratePrev)
                         }
                     }
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         rate
-                        if let ratePrev, ratePrev > 0 {
+                        if let ratePrev {
                             deltaBadge(now: rate30, prev: ratePrev)
                         }
                     }
