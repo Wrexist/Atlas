@@ -254,7 +254,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
         let agg = WeeklySummaryEngine.build(
             profile: .fresh, protocols: [], entries: entries,
             referenceDate: weekMonday,
-            hrvSeries: [], rhrSeries: [], sleepSeries: []
+            hrvSeries: []
         )
         XCTAssertNil(agg?.biometrics)
     }

@@ -53,7 +53,7 @@ const SYSTEM_PROMPT = [
   "",
   "Structure:",
   "1. One sentence opener: how the week went overall.",
-  "2. 2-3 specific observations grounded in the numbers present. Lead with training days, nutrition, sleep, HRV and resting heart rate, and check-in averages; mention Protocol adherence and streak only when they're present.",
+  "2. 2-3 specific observations grounded in the numbers present. Lead with training days, nutrition, HRV, and check-in averages such as sleep; mention Protocol adherence and streak only when they're present.",
   "3. One forward-looking line for next week — encouraging, not prescriptive.",
   "",
   "Output: plain text, no markdown, no bullet points, no headings. The iOS card renders the paragraphs as-is."
@@ -163,8 +163,6 @@ function sanitiseAggregate(agg) {
     const bio = {};
     if (asInt(b.hrvAvg) !== undefined) bio.hrvAvg = asInt(b.hrvAvg);
     if (asInt(b.hrvDelta) !== undefined) bio.hrvDelta = asInt(b.hrvDelta);
-    if (asInt(b.rhrAvg) !== undefined) bio.rhrAvg = asInt(b.rhrAvg);
-    if (asNum(b.sleepHoursAvg) !== undefined) bio.sleepHoursAvg = asNum(b.sleepHoursAvg);
     clean.biometrics = bio;
   }
 
