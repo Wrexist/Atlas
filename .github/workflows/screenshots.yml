@@ -29,7 +29,7 @@ on:
         type: string
 
       publish_branch:
-        description: "Also push the PNGs to this throwaway branch (blank = artifact only). Cloud sessions can't download artifacts but can fetch a branch."
+        description: "Also force-push the PNGs to this throwaway branch, which must start with screenshots/ (blank = artifact only). Cloud sessions can't download artifacts but can fetch a branch."
         required: false
         default: ""
         type: string
@@ -42,6 +42,18 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
+      - name: Check publish branch
+        # Checked before the capture as well as in the publish job, so a
+        # bad name fails in seconds rather than after the full run.
+        if: ${{ inputs.publish_branch != '' }}
+        env:
+          BRANCH: ${{ inputs.publish_branch }}
+        run: |
+          case "$BRANCH" in
+            screenshots/?*) ;;
+            *) echo "::error::publish_branch must start with screenshots/ (got '$BRANCH')"; exit 1 ;;
+          esac
+
       - uses: actions/checkout@v7
 
       - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
@@ -173,6 +185,12 @@ jobs:
           REPO: ${{ github.repository }}
           TOKEN: ${{ github.token }}
         run: |
+          # The push below is a force-push of a one-commit history, so it
+          # must never be able to land on main or a live feature branch.
+          case "$BRANCH" in
+            screenshots/?*) ;;
+            *) echo "::error::publish_branch must start with screenshots/ (got '$BRANCH')"; exit 1 ;;
+          esac
           cd out
           find . -type f ! -name '*.png' ! -name 'manifest.json' -delete
           git init -q -b "$BRANCH"
