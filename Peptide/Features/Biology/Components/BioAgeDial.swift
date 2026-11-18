@@ -35,7 +35,24 @@ struct BioAgeDial: View {
     /// Arc sweep in degrees. 240° leaves the opening at the bottom, with
     /// the bound labels at its two ends (180° = exactly horizontal, 270° =
     /// too tight, 240° splits the difference).
-    private var sweep: Double { 240 }
+    private var sweep: Double { Self.sweepDegrees }
+    private static let sweepDegrees: Double = 240
+    /// How far outside the arc the bound labels sit, so the stroke
+    /// doesn't collide with the digits.
+    private static let labelGap: CGFloat = 16
+    /// Vertical room kept for a bound label below its centre, enough for
+    /// the label at large text sizes.
+    private static let boundLabelHeightAllowance: CGFloat = 26
+
+    /// The empty strip at the bottom of a dial of `size`, under its bound
+    /// labels. Derived from the same sweep and label radius `labelAt`
+    /// uses, so a layout that tucks content into the opening follows any
+    /// change to the label geometry.
+    static func openBandHeight(size: CGFloat) -> CGFloat {
+        let labelRadius = size / 2 + labelGap
+        let labelCentreBelowMiddle = CGFloat(-cos(sweepDegrees / 2 * .pi / 180)) * labelRadius
+        return size / 2 - labelCentreBelowMiddle - boundLabelHeightAllowance
+    }
     private var startAngle: Double { -90 - sweep / 2 }
 
     /// Where the marker actually sits, clamped into the dial's range so an
@@ -187,9 +204,7 @@ struct BioAgeDial: View {
     }
 
     private func labelAt(angle deg: Double, value: Double) -> some View {
-        // Drop labels outside the arc so the stroke doesn't collide with
-        // the digits.
-        let radius = size / 2 + 16
+        let radius = size / 2 + Self.labelGap
         let radians = deg * .pi / 180
         // Standard polar-to-cartesian, then adjust for the fact that 0° in
         // our angle system points up (-90° in screen coords).

@@ -10,7 +10,7 @@ enum BioAgeStateResolver {
 
     /// Default chronological age fallback when the user hasn't entered
     /// their age yet. Picks the midpoint of the typical cohort so the
-    /// dial's scale labels (±5 years) read as recognisable numbers. Only
+    /// dial's scale labels (± `PerformanceAgeEngine.maxDriftYears`) read as recognisable numbers. Only
     /// ever anchors the scale — it is never fed to the engine.
     static let chronologicalAgeFallback: Int = 35
 

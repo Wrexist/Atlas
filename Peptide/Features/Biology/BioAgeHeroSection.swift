@@ -94,10 +94,9 @@ struct BioAgeHeroSection: View {
     }
 
     private static let dialSize: CGFloat = 280
-    /// The empty strip under the dial's bound labels. The labels sit at
-    /// a quarter of (size + 32) below centre; the rest of the lower half,
-    /// less room for the labels at large text sizes, is unused.
-    private static let dialOpenBand: CGFloat = dialSize / 2 - (dialSize + 32) / 4 - 26
+    /// The empty strip under the dial's bound labels, which the content
+    /// below tucks into.
+    private static var dialOpenBand: CGFloat { BioAgeDial.openBandHeight(size: dialSize) }
 
     private static let centreTypeSizeLimit = DynamicTypeSize.accessibility2
 
