@@ -78,18 +78,23 @@ enum TodayChecklistEngine {
         profile: UserProfile,
         consumption: DailyConsumption,
         trainedToday: Bool,
+        weekSessionCount: Int = 0,
         steps: Double? = nil,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> State {
-        let preferredDays = profile.trainingPreferences?.preferredDays ?? []
-        let weekday = calendar.component(.weekday, from: now)
-        return State(
+        State(
             loggedMeals: Set(profile.mealHistory
                 .filter { calendar.isDate($0.date, inSameDayAs: now) }
                 .map(\.category)),
             trainedToday: trainedToday,
-            isTrainingDay: preferredDays.isEmpty || preferredDays.contains { $0.calendarWeekdayValue == weekday },
+            isTrainingDay: isTrainingDay(
+                preferences: profile.trainingPreferences,
+                trainedToday: trainedToday,
+                weekSessionCount: weekSessionCount,
+                now: now,
+                calendar: calendar
+            ),
             waterFluidOunces: consumption.waterFluidOunces,
             weightTodayKg: profile.weightHistory
                 .filter { calendar.isDate($0.date, inSameDayAs: now) }
@@ -99,6 +104,25 @@ enum TodayChecklistEngine {
             steps: steps,
             stepGoal: (profile.trainingPreferences ?? TrainingPreferences()).stepGoal
         )
+    }
+
+    /// A picked weekday is a training day. With no weekdays picked, the
+    /// weekly target decides: until it's met every day is a training day,
+    /// and once it is the remaining days are recovery. `weekSessionCount`
+    /// is the finished sessions in the day's week up to the end of it.
+    static func isTrainingDay(
+        preferences: TrainingPreferences?,
+        trainedToday: Bool,
+        weekSessionCount: Int,
+        now: Date,
+        calendar: Calendar
+    ) -> Bool {
+        let preferences = preferences ?? TrainingPreferences()
+        guard preferences.preferredDays.isEmpty else {
+            let weekday = calendar.component(.weekday, from: now)
+            return preferences.preferredDays.contains { $0.calendarWeekdayValue == weekday }
+        }
+        return trainedToday || weekSessionCount < preferences.daysPerWeek
     }
 
     /// One tap on the water row: a 250 mL glass in metric, 8 oz in

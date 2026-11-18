@@ -263,6 +263,7 @@ struct HomeView: View {
                 profile: dataStore.profile,
                 consumption: dataStore.consumption(for: day),
                 trainedToday: workoutSummary.count > 0,
+                weekSessionCount: finishedSessionCount(weekThrough: day, thisWeek: weekSessions),
                 steps: steps(on: day),
                 now: reference
             ),
@@ -339,6 +340,22 @@ struct HomeView: View {
         return SwiftDataRepository.shared
             .loadWorkoutSessions(startedBetween: TodayDayEngine.dayRange(for: day))
             .filter { !$0.isActive }
+    }
+
+    /// Finished sessions in the shown day's week up to the end of that
+    /// day — what the checklist's weekly-target rule counts. The current
+    /// week reuses the week fetch; an earlier week reads its own window.
+    private func finishedSessionCount(weekThrough day: Date, thisWeek weekSessions: [WorkoutSession]) -> Int {
+        let calendar = Calendar.current
+        guard let week = calendar.dateInterval(of: .weekOfYear, for: day) else { return 0 }
+        let end = min(week.end, TodayDayEngine.dayRange(for: day).upperBound)
+        if let current = calendar.dateInterval(of: .weekOfYear, for: Date()), current.contains(day) {
+            return weekSessions.filter { $0.dayAnchor < end }.count
+        }
+        return SwiftDataRepository.shared
+            .loadWorkoutSessions(startedBetween: week.start..<end)
+            .filter { !$0.isActive }
+            .count
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
