@@ -49796,6 +49796,36 @@
           }
         }
       }
+    },
+    "No calories logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga kalorier loggade"
+          }
+        }
+      }
+    },
+    "No streak": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen svit"
+          }
+        }
+      }
+    },
+    "No check-in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen incheckning"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
