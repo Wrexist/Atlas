@@ -140,6 +140,14 @@ struct PeptideApp: App {
             if phase == .active {
                 UpsellScheduler.recordActiveDay()
                 dataStore.handleAppActivation()
+                // A launch that couldn't reach CloudKit (offline) leaves
+                // the store local; coming back is the next chance to
+                // confirm the account and turn sync on.
+                if !SwiftDataRepository.shared.isCloudSyncEnabled {
+                    Task { @MainActor in
+                        await SwiftDataRepository.shared.refreshCloudAccount()
+                    }
+                }
                 // Re-check notification authorization. If the user
                 // revoked permission in iOS Settings while the app
                 // was suspended, the local `doseRemindersEnabled`

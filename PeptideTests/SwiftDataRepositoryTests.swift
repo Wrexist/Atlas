@@ -8,11 +8,11 @@ import XCTest
 /// it, new-id inserts), the empty-state behavior, the per-resource
 /// CRUD pairs, and `hasAnyData`.
 ///
-/// The CloudKit / local-fail / in-memory fallback chain isn't tested
-/// here — `FileManager.ubiquityIdentityToken` and `ModelContainer` init
-/// failures aren't deterministically reproducible from a unit test. The
+/// The local-fail / in-memory fallback chain isn't tested
+/// here — `ModelContainer` init failures aren't deterministically reproducible from a unit test. The
 /// repo's defensive guards are still exercised by setting `container`
 /// to nil via `configureForTesting` failing (covered in fallback test).
+/// Choosing CloudKit by account lives in `CloudAccountChangeTests`.
 @MainActor
 final class SwiftDataRepositoryTests: XCTestCase {
 

@@ -6,6 +6,20 @@ enum CloudIdentityChange: Equatable, Sendable {
     case signedIn
     case signedOut
     case switchedAccount
+    /// Signed in, but the store was last opened under an account an
+    /// older build recorded only by its ubiquity token, which no longer
+    /// matches — possibly the same account, possibly another.
+    case unverified
+}
+
+/// The CloudKit account the shared store was last opened under, as this
+/// install recorded it.
+enum RecordedCloudAccount: Equatable, Sendable {
+    case noAccount
+    /// The account's CloudKit user record name.
+    case account(String)
+    /// Opened under an account recorded only by its ubiquity token.
+    case unidentified
 }
 
 /// Decides what happens to the local store when the iCloud identity
@@ -24,6 +38,20 @@ enum CloudIdentityChangeEngine {
         }
     }
 
+    /// `current` is the signed-in account's CloudKit user record name.
+    /// iCloud Drive's ubiquity token plays no part: it is nil whenever
+    /// Drive is off, although the CloudKit account is unchanged.
+    static func change(from recorded: RecordedCloudAccount, to current: String?) -> CloudIdentityChange {
+        if recorded == .unidentified, current != nil { return .unverified }
+        var previous: String?
+        if case .account(let name) = recorded { previous = name }
+        return change(
+            previousSignedIn: recorded != .noAccount,
+            currentSignedIn: current != nil,
+            sameAccount: previous != nil && previous == current
+        )
+    }
+
     /// True when the store must stay closed until the user chooses to
     /// keep or remove what's in it: there is data, and the account it was
     /// last opened under is gone. Signing in skips the prompt only when no
@@ -38,7 +66,7 @@ enum CloudIdentityChangeEngine {
         switch change {
         case .unchanged: return false
         case .signedIn: return hadEarlierIdentity
-        case .signedOut, .switchedAccount: return true
+        case .signedOut, .switchedAccount, .unverified: return true
         }
     }
 
@@ -50,7 +78,7 @@ enum CloudIdentityChangeEngine {
     static func forgetsDeviceLocalRecords(_ change: CloudIdentityChange, heldForDecision: Bool) -> Bool {
         guard !heldForDecision else { return false }
         switch change {
-        case .unchanged, .signedIn: return false
+        case .unchanged, .signedIn, .unverified: return false
         case .signedOut, .switchedAccount: return true
         }
     }

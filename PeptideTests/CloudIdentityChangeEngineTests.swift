@@ -69,6 +69,33 @@ final class CloudIdentityChangeEngineTests: XCTestCase {
         XCTAssertFalse(CloudIdentityChangeEngine.forgetsDeviceLocalRecords(.unchanged, heldForDecision: false))
     }
 
+    // MARK: - CloudKit account fingerprint (C233)
+
+    func test_changeFromRecorded_sameAccount_isUnchanged() {
+        XCTAssertEqual(CloudIdentityChangeEngine.change(from: .account("a"), to: "a"), .unchanged)
+    }
+
+    func test_changeFromRecorded_otherAccount_isSwitchedAccount() {
+        XCTAssertEqual(CloudIdentityChangeEngine.change(from: .account("a"), to: "b"), .switchedAccount)
+    }
+
+    func test_changeFromRecorded_noAccountNow_isSignedOut() {
+        XCTAssertEqual(CloudIdentityChangeEngine.change(from: .account("a"), to: nil), .signedOut)
+        XCTAssertEqual(CloudIdentityChangeEngine.change(from: .unidentified, to: nil), .signedOut)
+    }
+
+    func test_changeFromRecorded_firstAccount_isSignedIn() {
+        XCTAssertEqual(CloudIdentityChangeEngine.change(from: .noAccount, to: "a"), .signedIn)
+        XCTAssertEqual(CloudIdentityChangeEngine.change(from: .noAccount, to: nil), .unchanged)
+    }
+
+    func test_unverifiedAccount_asksOnlyWithDataAndNeverErases() {
+        XCTAssertEqual(CloudIdentityChangeEngine.change(from: .unidentified, to: "a"), .unverified)
+        XCTAssertTrue(decision(.unverified, hasData: true, hadEarlier: true))
+        XCTAssertFalse(decision(.unverified, hasData: false, hadEarlier: true))
+        XCTAssertFalse(CloudIdentityChangeEngine.forgetsDeviceLocalRecords(.unverified, heldForDecision: false))
+    }
+
     private func decision(_ change: CloudIdentityChange, hasData: Bool, hadEarlier: Bool) -> Bool {
         CloudIdentityChangeEngine.needsUserDecision(
             change,
