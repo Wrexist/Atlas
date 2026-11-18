@@ -192,12 +192,12 @@ struct OnboardingView: View {
             case .loseFat:        return AppColor.streak
             case .getStronger:    return AppColor.achievement
             case .stayConsistent: return AppColor.accentPrimary
-            case .athletic:       return Color(light: 0x3D6E93, dark: 0x5B8FB9)
+            case .athletic:       return AppColor.goalAthletic
             case .recomp:         return AppColor.metricHRV
-            case .betterSleep:    return Color(light: 0x4460D8, dark: 0x6B8AFF)
-            case .recovery:       return Color(light: 0x2A8792, dark: 0x4CB8C4)
-            case .antiAging:      return Color(light: 0x7B54C4, dark: 0xC59FFF)
-            case .skinHair:       return Color(light: 0xB05585, dark: 0xE89BC4)
+            case .betterSleep:    return AppColor.goalSleep
+            case .recovery:       return AppColor.goalRecovery
+            case .antiAging:      return AppColor.goalAging
+            case .skinHair:       return AppColor.goalAppearance
             case .energy:         return AppColor.perceivedEffort
             }
         }
@@ -738,8 +738,10 @@ struct OnboardingView: View {
     private func centeredScroll<Content: View>(@ViewBuilder _ content: @escaping () -> Content) -> some View {
         GeometryReader { proxy in
             ScrollView {
+                // Full width so the column centres on the screen rather
+                // than hugging the scroll view's leading edge.
                 content()
-                    .frame(minHeight: proxy.size.height)
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
             .scrollBounceBehavior(.basedOnSize)
         }
@@ -1441,9 +1443,6 @@ struct OnboardingView: View {
 
                 ProjectionChart(
                     goal: primaryGoal,
-                    daysPerWeek: daysPerWeek,
-                    startWeightKg: bodyMetrics.weightKg,
-                    weeks: goalWeeks,
                     targetDate: goalDate,
                     spokenSummary: "\(projectionStatLabel), \(projectionStatValue)",
                     revealed: projectionRevealed
@@ -1881,9 +1880,6 @@ private struct SocialProofPill: View {
 /// of-the-curve reveal, not a forecasting tool.
 private struct ProjectionChart: View {
     let goal: OnboardingView.PrimaryGoal
-    let daysPerWeek: Int
-    let startWeightKg: Double?
-    let weeks: Int
     let targetDate: Date
     let spokenSummary: String
     let revealed: Bool
@@ -1972,47 +1968,34 @@ private struct ProjectionChart: View {
         goal == .loseFat
     }
 
+    private func controlPoints(in size: CGSize) -> (CGPoint, CGPoint) {
+        if isLossCurve {
+            // Steep early drop, plateau into the goal — feels real
+            // because steady fat loss decelerates as bodyfat falls.
+            return (CGPoint(x: size.width * 0.30, y: size.height * 0.45),
+                    CGPoint(x: size.width * 0.65, y: size.height * 0.78))
+        }
+        // Modest start, steady acceleration through week 6, ease toward
+        // the goal endpoint.
+        return (CGPoint(x: size.width * 0.30, y: size.height * 0.78),
+                CGPoint(x: size.width * 0.65, y: size.height * 0.25))
+    }
+
     private func curve(in size: CGSize) -> Path {
-        Path { path in
-            let start = startPoint(in: size)
-            let end = endPoint(in: size)
-            let ctrl1: CGPoint
-            let ctrl2: CGPoint
-            if isLossCurve {
-                // Steep early drop, plateau into the goal — feels real
-                // because steady fat loss decelerates as bodyfat falls.
-                ctrl1 = CGPoint(x: size.width * 0.30, y: size.height * 0.45)
-                ctrl2 = CGPoint(x: size.width * 0.65, y: size.height * 0.78)
-            } else {
-                // Modest start, steady acceleration through week 6,
-                // ease toward the goal endpoint.
-                ctrl1 = CGPoint(x: size.width * 0.30, y: size.height * 0.78)
-                ctrl2 = CGPoint(x: size.width * 0.65, y: size.height * 0.25)
-            }
-            path.move(to: start)
-            path.addCurve(to: end, control1: ctrl1, control2: ctrl2)
+        let (ctrl1, ctrl2) = controlPoints(in: size)
+        return Path { path in
+            path.move(to: startPoint(in: size))
+            path.addCurve(to: endPoint(in: size), control1: ctrl1, control2: ctrl2)
         }
     }
 
+    /// The stroke's own curve, closed down to the baseline.
     private func fillUnder(in size: CGSize) -> Path {
-        Path { path in
-            let start = startPoint(in: size)
-            let end = endPoint(in: size)
-            let ctrl1: CGPoint
-            let ctrl2: CGPoint
-            if isLossCurve {
-                ctrl1 = CGPoint(x: size.width * 0.30, y: size.height * 0.45)
-                ctrl2 = CGPoint(x: size.width * 0.65, y: size.height * 0.78)
-            } else {
-                ctrl1 = CGPoint(x: size.width * 0.30, y: size.height * 0.78)
-                ctrl2 = CGPoint(x: size.width * 0.65, y: size.height * 0.25)
-            }
-            path.move(to: start)
-            path.addCurve(to: end, control1: ctrl1, control2: ctrl2)
-            path.addLine(to: CGPoint(x: end.x, y: size.height))
-            path.addLine(to: CGPoint(x: start.x, y: size.height))
-            path.closeSubpath()
-        }
+        var path = curve(in: size)
+        path.addLine(to: CGPoint(x: endPoint(in: size).x, y: size.height))
+        path.addLine(to: CGPoint(x: startPoint(in: size).x, y: size.height))
+        path.closeSubpath()
+        return path
     }
 
     private func startPoint(in size: CGSize) -> CGPoint {
@@ -2075,7 +2058,7 @@ private struct ThemePickerCover: View {
     }
 }
 
-private extension View {
+extension View {
     /// The one selection chrome for onboarding choice cards — goals,
     /// attribution, experience, equipment. Neutral glass at rest; a
     /// tinted wash and tint hairline once picked. Replaces fifteen

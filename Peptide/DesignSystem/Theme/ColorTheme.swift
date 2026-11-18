@@ -302,6 +302,15 @@ enum AppColor {
     static let metricHRV = Color(light: 0x6B44A3, dark: 0x9B72CF)
     static let metricSleep = Color(light: 0x9C7714, dark: 0xD4A844)
     static let metricActivity = Color(light: 0x35603F, dark: 0x4A7C59)
+
+    /// Onboarding goal identities with no metric or macro token of their
+    /// own. They tint the goal card's icon, wash and border and the plan's
+    /// projection curve, so they are held to the 3:1 graphics bar.
+    static let goalAthletic = Color(light: 0x3D6E93, dark: 0x5B8FB9)
+    static let goalSleep = Color(light: 0x4460D8, dark: 0x6B8AFF)
+    static let goalRecovery = Color(light: 0x2A8792, dark: 0x4CB8C4)
+    static let goalAging = Color(light: 0x7B54C4, dark: 0xC59FFF)
+    static let goalAppearance = Color(light: 0xB05585, dark: 0xE89BC4)
 }
 
 enum AppOpacity {

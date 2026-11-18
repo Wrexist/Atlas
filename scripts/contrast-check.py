@@ -30,6 +30,7 @@ APP_THEME = REPO / "Peptide" / "DesignSystem" / "Theme" / "AppTheme.swift"
 MODEL_COLORS = REPO / "Peptide" / "DesignSystem" / "Theme" / "ModelColors.swift"
 HABIT = REPO / "Peptide" / "Models" / "Habit.swift"
 WATCH_PALETTE = REPO / "Shared" / "WatchPalette.swift"
+WHATS_NEW = REPO / "Peptide" / "Features" / "Onboarding" / "WhatsNewPage.swift"
 
 AA_TEXT = 4.5
 AA_LARGE = 3.0
@@ -132,6 +133,16 @@ def parse_habit_tints() -> dict[str, tuple[int, int]]:
     }
 
 
+def parse_tour_gradient_stops() -> list[int]:
+    """Every What's New hero gradient stop; the same value in both schemes."""
+    stops: list[int] = []
+    for block in re.finditer(r"gradient:\s*\[(.*?)\]", WHATS_NEW.read_text(), re.DOTALL):
+        stops += [int(h, 16) for h in re.findall(r"Color\(hex:\s*0x([0-9A-Fa-f]{6})\)", block.group(1))]
+        if re.search(r"Color\(light:", block.group(1)):
+            raise ValueError("What's New gradient stops must be one value for both schemes")
+    return stops
+
+
 def blend(fg: int, bg: int, alpha: float) -> int:
     """`fg.opacity(alpha)` composited over an opaque `bg`."""
     out = 0
@@ -151,6 +162,7 @@ UI_INKS = [
     "macroProtein", "macroProteinLight", "macroWater", "macroWaterLight",
     "macroCarbs", "macroFat", "macroCalories",
     "metricHeartRate", "metricHRV", "metricSleep", "metricActivity",
+    "goalAthletic", "goalSleep", "goalRecovery", "goalAging", "goalAppearance",
     "ringRecoveryStart", "ringRecoveryEnd", "ringSleepStart", "ringSleepEnd",
     "mealBreakfast", "mealLunch", "mealDinner", "mealSnack",
     "outcomeEnergy", "outcomeSleepQuality", "outcomeRecovery", "outcomeMood", "outcomeFocus",
@@ -245,6 +257,14 @@ def main() -> int:
                 ratio = contrast(stops["dark"][scheme_index], tokens[surface][scheme_index])
                 rows.append((scheme, f"{ramp}.accentFill", "on", surface,
                              ratio, AA_LARGE, ratio >= AA_LARGE))
+
+    # The What's New hero glyph is onAccent on the page's gradient: a
+    # graphic, so 3:1 against every stop.
+    for stop in parse_tour_gradient_stops():
+        for scheme_index, scheme in enumerate(("light", "dark")):
+            ratio = contrast(tokens["onAccent"][scheme_index], stop)
+            rows.append((scheme, "onAccent", "on", f"tour.0x{stop:06X}",
+                         ratio, AA_LARGE, ratio >= AA_LARGE))
 
     # The muscle tints are drawn as ink on the shared surfaces (training
     # focus and the workout recap use the app's own ramp now).
