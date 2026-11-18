@@ -18,6 +18,9 @@ struct SessionBuilderSheet: View {
     @State private var library = ExerciseLibrary.shared
     @State private var sessionService = WorkoutSessionService.shared
     @State private var history: [WorkoutSession] = []
+    /// Worked out once in `load()`: `DeloadEngine` walks the whole history,
+    /// and `preview` reads this on every render.
+    @State private var isDeload = false
     @State private var recovery: [AnatomicalMuscle: MuscleRecoveryEngine.Recovery] = [:]
     @State private var states: [Target: SessionBuilderEngine.State] = [:]
     @State private var focus: Target?
@@ -296,14 +299,11 @@ struct SessionBuilderSheet: View {
 
     // MARK: - Actions
 
-    private var isDeload: Bool {
-        DeloadEngine.reason(history: history, now: Date(), calendar: .current) != nil
-    }
-
     private func load() async {
         await library.load()
         await sessionService.refreshReadiness()
         history = TrainOverviewView.finishedHistory(SwiftDataRepository.shared.loadAllWorkoutSessions())
+        isDeload = DeloadEngine.reason(history: history, now: Date(), calendar: .current) != nil
         recovery = MuscleRecoveryEngine.recovery(from: history, library: library,
                                                  readiness: sessionService.readiness.level)
         states = SessionBuilderEngine.states(
