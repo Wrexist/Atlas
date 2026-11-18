@@ -265,6 +265,18 @@ final class PhotoCaptureDateTests: XCTestCase {
         )
     }
 
+    func test_captureDate_futureExifTime_isClampedToNow() throws {
+        let data = try jpeg(exif: [
+            kCGImagePropertyExifDateTimeOriginal: "2026:03:15 09:00:00",
+            kCGImagePropertyExifOffsetTimeOriginal: "+00:00",
+        ])
+        let now = utcDate(2026, 3, 14, 20, 0, 0)
+        XCTAssertEqual(
+            PhotoCaptureDate.captureDate(fromImageData: data, fallbackTimeZone: utc, now: now),
+            now
+        )
+    }
+
     func test_captureDate_jpegWithoutExif_returnsNil() throws {
         let data = try jpeg(exif: nil)
         XCTAssertNil(PhotoCaptureDate.captureDate(fromImageData: data, fallbackTimeZone: utc))

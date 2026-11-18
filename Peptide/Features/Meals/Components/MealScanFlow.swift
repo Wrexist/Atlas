@@ -1869,7 +1869,10 @@ enum PhotoCaptureDate {
     /// EXIF `DateTimeOriginal`, interpreted in `OffsetTimeOriginal`
     /// when the camera wrote one, otherwise in `fallbackTimeZone`
     /// (EXIF's own convention: a bare timestamp is local time).
-    static func captureDate(fromImageData data: Data, fallbackTimeZone: TimeZone = .current) -> Date? {
+    /// Never later than `now`: a camera with a wrong clock, or a bare
+    /// timestamp read in the wrong zone, would otherwise log the meal
+    /// in the future.
+    static func captureDate(fromImageData data: Data, fallbackTimeZone: TimeZone = .current, now: Date = Date()) -> Date? {
         guard
             let source = CGImageSourceCreateWithData(data as CFData, nil),
             let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
@@ -1880,7 +1883,7 @@ enum PhotoCaptureDate {
             fromExifDateTime: dateTime,
             offset: exif[kCGImagePropertyExifOffsetTimeOriginal] as? String,
             fallbackTimeZone: fallbackTimeZone
-        )
+        ).map { min($0, now) }
     }
 
     /// Parses EXIF's `yyyy:MM:dd HH:mm:ss`. Rejects the all-zero
