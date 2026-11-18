@@ -709,10 +709,6 @@ struct MealScanFlow: View {
     /// interpolating the count produces the same "Add %lld items" key the
     /// manual `String(format:)` was looking up — so this is the identical
     /// lookup expressed in the type the button actually wants.
-    ///
-    /// Neither key is in `Localizable.xcstrings` yet, so both fall back to
-    /// the key text itself. That was already true before this change; the
-    /// catalog sits at 13% coverage and is tracked separately.
     private var addButtonTitle: LocalizedStringKey {
         if logAsOneMeal { return "Log meal · \(totalCalories) kcal" }
         return includedItems.count <= 1
