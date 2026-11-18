@@ -426,7 +426,7 @@ final class HabitsServiceTests: XCTestCase {
     }
 
     private func weeklySummary(_ habit: Habit, doneOn days: [Int], on today: Int) -> HabitsService.Summary {
-        let entries = days.map { HabitEntry(habitId: habit.id, date: october($0), value: 1) }
+        let entries = days.map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
         return HabitsService.summary(for: habit, entries: entries, on: october(today), calendar: mondayFirstUTC)
     }
 
@@ -472,8 +472,8 @@ final class HabitsServiceTests: XCTestCase {
     func test_weeklyProgress_ignoresOtherHabitsEntries() {
         let gym = makeHabit(schedule: .timesPerWeek(3))
         let other = makeHabit()
-        let entries = [19, 20, 21].map { HabitEntry(habitId: other.id, date: october($0), value: 1) }
-            + [HabitEntry(habitId: gym.id, date: october(19), value: 1)]
+        let entries = [19, 20, 21].map { HabitEntry(habitId: other.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
+            + [HabitEntry(habitId: gym.id, date: october(19), value: 1, calendar: mondayFirstUTC)]
         let progress = HabitsService.weeklyProgress(
             for: gym, entries: entries, on: october(21), calendar: mondayFirstUTC
         )
@@ -485,7 +485,7 @@ final class HabitsServiceTests: XCTestCase {
 
     func test_completionRate_ignoresDaysBeforeCreation() throws {
         let habit = makeHabit(createdAt: october(17))
-        let entries = (17...21).map { HabitEntry(habitId: habit.id, date: october($0), value: 1) }
+        let entries = (17...21).map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
         let rate = HabitsService.completionRate(
             habits: [habit], entries: entries, days: 30, endingOn: october(21), calendar: mondayFirstUTC
         )
@@ -510,7 +510,7 @@ final class HabitsServiceTests: XCTestCase {
     // MARK: - Streak at risk
 
     private func streakAtRisk(_ habit: Habit, doneOn days: [Int], on today: Int) -> Bool {
-        let entries = days.map { HabitEntry(habitId: habit.id, date: october($0), value: 1) }
+        let entries = days.map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
         return HabitsService.streakAtRisk(
             habits: [habit], entries: entries, frozenDayKeys: [], on: october(today), calendar: mondayFirstUTC
         )
@@ -522,7 +522,7 @@ final class HabitsServiceTests: XCTestCase {
 
     func test_streakAtRisk_yesterdayFrozen_isFalse() {
         let habit = makeHabit()
-        let entries = [15, 16, 17].map { HabitEntry(habitId: habit.id, date: october($0), value: 1) }
+        let entries = [15, 16, 17].map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
         let frozen: Set<String> = [StreakFreezeService.dayKey(for: october(18), calendar: mondayFirstUTC)]
         XCTAssertFalse(HabitsService.streakAtRisk(
             habits: [habit], entries: entries, frozenDayKeys: frozen, on: october(19), calendar: mondayFirstUTC
