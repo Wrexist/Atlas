@@ -49857,6 +49857,26 @@
           }
         }
       }
+    },
+    "Couldn't lift the dishes from that photo. Try another one, or cut them out yourself.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det gick inte att lyfta ut rätterna från bilden. Prova en annan, eller klipp ut dem själv."
+          }
+        }
+      }
+    },
+    "Couldn't take the photo. Try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det gick inte att ta bilden. Försök igen."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

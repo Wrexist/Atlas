@@ -63,6 +63,8 @@ struct TableScanFlow: View {
     @State private var readQueues: [Task<Void, Never>] = []
     @State private var isFinished = false
     @State private var shutterCount = 0
+    /// The last shutter press came back without a photo.
+    @State private var captureMissed = false
     @State private var isSweeping = false
     @State private var confirmsDiscard = false
     @Namespace private var lift
@@ -435,11 +437,15 @@ struct TableScanFlow: View {
         }
     }
 
+    private var captureCaption: LocalizedStringKey {
+        captureMissed ? "Couldn't take the photo. Try again." : "One photo of the whole table."
+    }
+
     private var captureControls: some View {
         VStack(spacing: Spacing.md) {
-            Text("One photo of the whole table.")
+            Text(captureCaption)
                 .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
+                .foregroundStyle(captureMissed ? AppColor.warning : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
 
             HStack(alignment: .center) {
@@ -575,8 +581,13 @@ struct TableScanFlow: View {
         Haptics.impact(.medium)
         if !reduceMotion { shutterCount += 1 }
         work?.cancel()
+        captureMissed = false
         work = Task {
-            guard let image = await camera.capture() else { return }
+            guard let image = await camera.capture() else {
+                Haptics.error()
+                captureMissed = true
+                return
+            }
             capturedAt = nil
             if saveOriginal { Task { await saveToPhotos(image) } }
             await liftDishes(from: image)
@@ -605,6 +616,8 @@ struct TableScanFlow: View {
 
     private func importPhoto(_ item: PhotosPickerItem) async {
         guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+            // The failure card hides the viewfinder; Try again restarts it.
+            camera.stop()
             errorText = String(localized: "Couldn't open that photo. Try another one.")
             phase = .failed
             return
@@ -634,7 +647,10 @@ struct TableScanFlow: View {
             land()
         } catch {
             guard !Task.isCancelled else { return }
-            errorText = error.localizedDescription
+            // Vision's own errors read "com.apple.Vision error 9."
+            AppLog.diagnostics.error("Table lift failed: \(error.localizedDescription, privacy: .public)")
+            errorText = (error as? TableLiftEngine.Failure)?.errorDescription
+                ?? String(localized: "Couldn't lift the dishes from that photo. Try another one, or cut them out yourself.")
             phase = .failed
             Haptics.error()
         }
