@@ -498,9 +498,16 @@ struct TableScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(minHeight: Spacing.minimumHitTarget)
             if !isReading && keepableCount > 0 {
-                Text("Swipe down anytime — you're done.")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
+                Group {
+                    if unreadTickedCount > 0 {
+                        Text("^[\(unreadTickedCount) dish](inflect: true) couldn't be read and won't be kept.")
+                    } else {
+                        Text("Swipe down anytime — you're done.")
+                    }
+                }
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
             }
         }
     }
@@ -511,6 +518,8 @@ struct TableScanFlow: View {
     }
 
     private var keepableCount: Int { dishes.filter(\.isKeepable).count }
+
+    private var unreadTickedCount: Int { dishes.filter(\.isTickedButUnread).count }
 
     private var isReading: Bool { dishes.contains { $0.reading == .pending } }
 
@@ -729,17 +738,11 @@ struct TableScanFlow: View {
             let reading = try await TableDishReader.read(dish.sticker, myFoods: dataStore.profile.customFoods)
             result = .read(reading)
             spendScanOnce()
-        } catch MealScannerService.ScanError.noFoodDetected {
-            result = .notFood
         } catch {
-            result = .failed(error.localizedDescription)
+            result = .failure(error)
         }
         guard !Task.isCancelled, let index = dishes.firstIndex(where: { $0.id == id }) else { return }
-        dishes[index].reading = result
-        if result == .notFood { dishes[index].include = false }
-        if case .read(let reading) = result, reading.kind == .drink {
-            dishes[index].kind = .drink
-        }
+        dishes[index].apply(result)
     }
 
     /// A whole table costs one of the week's free scans, however many

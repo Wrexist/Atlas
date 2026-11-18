@@ -49835,6 +49835,28 @@
           }
         }
       }
+    },
+    "^[%lld dish](inflect: true) couldn't be read and won't be kept.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld rätt gick inte att läsa och sparas inte."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld rätter gick inte att läsa och sparas inte."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version": "1.0"
