@@ -420,6 +420,7 @@ struct LabSummaryRow: View {
         }
         return [
             "\(panel.displayName): \(v) \(panel.canonicalUnit)",
+            Self.drawDay(summary.latest.date),
             status,
             trendDesc,
         ].filter { !$0.isEmpty }.joined(separator: ", ")
