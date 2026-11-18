@@ -1641,7 +1641,7 @@ struct HomeView: View {
 
     /// Honours the `peptidex://weekly/current` deep-link. Sets the
     /// detail-push target to the most recent cached summary, or
-    /// triggers a generation if nothing is cached yet.
+    /// generates one first if nothing is cached yet.
     private func consumeWeeklyDeepLink() {
         guard appState.pendingWeeklyRecap else { return }
         appState.pendingWeeklyRecap = false
@@ -1652,7 +1652,12 @@ struct HomeView: View {
         if let latest {
             detailWeekStart = latest.weekStart
         } else {
-            Task { await loadWeeklySummary(forceRefresh: true) }
+            // Nothing cached yet: generate it, then open what was tapped.
+            Task {
+                guard await loadWeeklySummary(forceRefresh: true) != nil,
+                      case .ready(let summary) = weeklySummaryState else { return }
+                detailWeekStart = summary.weekStart
+            }
         }
     }
 
