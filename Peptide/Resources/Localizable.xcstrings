@@ -6826,6 +6826,26 @@
         }
       }
     },
+    "Weight went down this week: add %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikten gick ner den här veckan: lägg till %lld kcal per dag"
+          }
+        }
+      }
+    },
+    "Weight went up this week: cut %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikten gick upp den här veckan: dra ner %lld kcal per dag"
+          }
+        }
+      }
+    },
     "per 100 g": {
       "localizations": {
         "sv": {

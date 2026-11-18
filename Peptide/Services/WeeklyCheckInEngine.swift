@@ -49,7 +49,7 @@ enum WeeklyCheckInEngine {
         guard weeks.count == 4 else { return nil }
 
         let weight = weightSection(weights, weeks: weeks, calendar: calendar)
-        let nutrition = nutritionSection(consumption, targets: targets, weeks: weeks, calendar: calendar)
+        let nutrition = nutritionSection(consumption, targets: targets, weeks: weeks, now: now, calendar: calendar)
         let training = trainingSection(workoutDates, planned: plannedWorkoutsPerWeek, weeks: weeks, calendar: calendar)
         let sleep = sleepSection(sleepHours, weeks: weeks)
         guard weight != nil || nutrition != nil || training != nil || sleep != nil else { return nil }
@@ -140,13 +140,17 @@ enum WeeklyCheckInEngine {
         _ consumption: [DailyConsumption],
         targets: NutritionTargets?,
         weeks: [Range<Date>],
+        now: Date,
         calendar: Calendar
     ) -> WeeklyCheckIn.Nutrition? {
         let byDay = Dictionary(
             consumption.filter { $0.caloriesKcal > 0 }.map { (calendar.startOfDay(for: $0.date), $0) },
             uniquingKeysWith: { first, _ in first }
         )
-        let thisWeek = byDay.filter { weeks[0].contains($0.key) }.map(\.value)
+        // Today is still being logged; a breakfast-only day would drag the
+        // averages down and read as an off-target day.
+        let today = calendar.startOfDay(for: now)
+        let thisWeek = byDay.filter { weeks[0].contains($0.key) && $0.key < today }.map(\.value)
         let lastWeek = byDay.filter { weeks[1].contains($0.key) }.map(\.value)
         guard let kcal = average(thisWeek.map { Double($0.caloriesKcal) }),
               let protein = average(thisWeek.map { Double($0.proteinG) }) else { return nil }
@@ -256,11 +260,17 @@ enum WeeklyCheckInEngine {
         switch intent {
         case .deficit:
             if stalled { return .weightStalledEatLess(kcal: adjustmentKcal) }
+            if let change = weight.changeKgPerWeek, change >= stallThresholdKg {
+                return .gainingOnCut(kcal: adjustmentKcal)
+            }
             if let change = weight.changeKgPerWeek, -change > weight.currentKg * fastLossFraction {
                 return .losingFast(kcal: adjustmentKcal)
             }
         case .surplus:
             if stalled { return .weightStalledEatMore(kcal: adjustmentKcal) }
+            if let change = weight.changeKgPerWeek, change <= -stallThresholdKg {
+                return .losingOnBulk(kcal: adjustmentKcal)
+            }
             if let change = weight.changeKgPerWeek, change > weight.currentKg * fastGainFraction {
                 return .gainingFast(kcal: adjustmentKcal)
             }
