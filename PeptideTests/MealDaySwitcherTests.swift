@@ -66,7 +66,8 @@ final class MealDaySwitcherTests: XCTestCase {
         }
         var profile = UserProfile.fresh
         for offset in [-2, -10] {
-            profile.mealHistory.append(MealEntry(date: try noon(offset), category: .lunch, name: "Meal",
+            let date = try noon(offset)
+            profile.mealHistory.append(MealEntry(date: date, category: .lunch, name: "Meal",
                                                  calories: 500, proteinG: 30, carbsG: 50, fatG: 20, source: .manual))
         }
         let legacyDay = try noon(-4)

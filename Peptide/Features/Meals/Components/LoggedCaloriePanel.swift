@@ -72,7 +72,7 @@ struct LoggedCaloriePanel: View {
             }
             .frame(width: ringDiameter, height: ringDiameter)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(accessibilityLabel)
+            .accessibilityLabel(spokenSummary)
             .accessibilityValue(targetCalories > 0 ? Text("\(Int(finalProgress * 100)) percent") : Text(verbatim: ""))
 
             budgetLine
@@ -100,7 +100,7 @@ struct LoggedCaloriePanel: View {
         }
     }
 
-    private var accessibilityLabel: Text {
+    private var spokenSummary: Text {
         let day = date.formatted(date: .abbreviated, time: .omitted)
         return targetCalories > 0
             ? Text("Calories for \(day): \(totalCalories) of \(targetCalories)")
@@ -130,7 +130,7 @@ struct LoggedCaloriePanel: View {
     @ViewBuilder
     private var budgetLine: some View {
         switch Self.budget(total: totalCalories, target: targetCalories) {
-        case .left(let remaining):
+        case .some(.left(let remaining)):
             Label {
                 Text("\(remaining) kcal left").monospacedDigit()
             } icon: {
@@ -138,16 +138,16 @@ struct LoggedCaloriePanel: View {
             }
             .font(AppFont.scaled(13, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary)
-        case .reached:
+        case .some(.reached):
             Label("Daily target reached", systemImage: "checkmark.seal.fill")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.positive)
-        case .over(let over):
+        case .some(.over(let over)):
             Text("\(over) kcal over")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.macroCalories)
-        case nil:
+        case .none:
             EmptyView()
         }
     }
