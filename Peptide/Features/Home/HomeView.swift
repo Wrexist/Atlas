@@ -761,7 +761,8 @@ struct HomeView: View {
                         recoveryComponents: heroSnapshot.recoveryComponents,
                         lastSleepHours: heroSnapshot.lastSleepHours
                     ),
-                    onLogDose: { entry in selectedEntry = entry }
+                    onLogDose: { entry in selectedEntry = entry },
+                    onConnectHealth: connectHealth
                 )
                 .environment(dataStore)
                 .environment(appState)

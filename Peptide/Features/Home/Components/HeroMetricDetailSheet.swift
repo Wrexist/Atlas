@@ -20,6 +20,9 @@ struct HeroMetricDetailSheet: View {
     /// Opens dose logging for a tapped Adherence row. Called after this
     /// sheet has dismissed, so the host can present the next modal.
     var onLogDose: ((ProtocolEntry) -> Void)?
+    /// Asks for Apple Health access. Called after this sheet has
+    /// dismissed, so the system permission sheet can present.
+    var onConnectHealth: (() -> Void)?
 
     struct Context {
         let todayEntries: [ProtocolEntry]
@@ -58,6 +61,11 @@ struct HeroMetricDetailSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     heroBlock
+                    if offersHealthConnect {
+                        PrimaryCTAButton(title: "Connect Apple Health", icon: "heart.text.square") {
+                            connectHealth()
+                        }
+                    }
                     explainer
                     detailContent
                 }
@@ -114,10 +122,16 @@ struct HeroMetricDetailSheet: View {
                     Label("Manage protocols", systemImage: "list.bullet.rectangle")
                 }
             case .recovery, .sleep:
-                Button {
-                    if let url = URL(string: "x-apple-health://") { openURL(url) }
-                } label: {
-                    Label("Open Apple Health", systemImage: "heart.text.square")
+                if offersHealthConnect {
+                    Button(action: connectHealth) {
+                        Label("Connect Apple Health", systemImage: "heart.text.square")
+                    }
+                } else {
+                    Button {
+                        if let url = URL(string: "x-apple-health://") { openURL(url) }
+                    } label: {
+                        Label("Open Apple Health", systemImage: "heart.text.square")
+                    }
                 }
             }
         } label: {
@@ -125,6 +139,20 @@ struct HeroMetricDetailSheet: View {
                 .minimumHitArea()
         }
         .accessibilityLabel("More actions")
+    }
+
+    /// Recovery and Sleep both need Health; without it the sheet names
+    /// the fix, so it offers it too rather than being a dead end.
+    private var offersHealthConnect: Bool {
+        kind != .adherence && !snapshot.healthConnected && onConnectHealth != nil
+    }
+
+    private func connectHealth() {
+        dismiss()
+        Task { @MainActor in
+            try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+            onConnectHealth?()
+        }
     }
 
     // MARK: - Hero
