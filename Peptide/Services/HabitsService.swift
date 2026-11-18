@@ -476,6 +476,29 @@ enum HabitsService {
         return Double(done) / Double(due)
     }
 
+    /// True when every habit that existed for the whole trailing 7-day
+    /// window ending on `endDate` was completed on each of its due days.
+    /// Habits created inside the window are left out, so a habit made and
+    /// ticked today can't stand in for a full week.
+    static func isPerfectWeek(
+        habits: [Habit],
+        entries: [HabitEntry],
+        endingOn endDate: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Bool {
+        let end = calendar.startOfDay(for: endDate)
+        guard let windowStart = calendar.date(byAdding: .day, value: -6, to: end) else { return false }
+        let fullWeekHabits = habits.filter { calendar.startOfDay(for: $0.createdAt) <= windowStart }
+        guard let rate = completionRate(
+            habits: fullWeekHabits,
+            entries: entries,
+            days: 7,
+            endingOn: end,
+            calendar: calendar
+        ) else { return false }
+        return rate >= 1.0
+    }
+
     private struct ConsistencyKey: Hashable {
         let habitId: UUID
         let day: Date

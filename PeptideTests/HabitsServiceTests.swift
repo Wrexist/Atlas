@@ -507,6 +507,32 @@ final class HabitsServiceTests: XCTestCase {
         XCTAssertEqual(days.map { $0.status }, [.notDue, .notDue, .due, .due, .due])
     }
 
+    // MARK: - Perfect week
+
+    func test_isPerfectWeek_oneDayOldHabitDoneToday_isFalse() {
+        let habit = makeHabit(createdAt: october(21))
+        let entries = [HabitEntry(habitId: habit.id, date: october(21), value: 1, calendar: mondayFirstUTC)]
+        XCTAssertFalse(HabitsService.isPerfectWeek(
+            habits: [habit], entries: entries, endingOn: october(21), calendar: mondayFirstUTC
+        ))
+    }
+
+    func test_isPerfectWeek_weekOldHabitDoneEveryDay_isTrue() {
+        let habit = makeHabit(createdAt: october(15))
+        let entries = (15...21).map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
+        XCTAssertTrue(HabitsService.isPerfectWeek(
+            habits: [habit], entries: entries, endingOn: october(21), calendar: mondayFirstUTC
+        ))
+    }
+
+    func test_isPerfectWeek_weekOldHabitMissedOneDay_isFalse() {
+        let habit = makeHabit(createdAt: october(15))
+        let entries = [15, 16, 17, 19, 20, 21].map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
+        XCTAssertFalse(HabitsService.isPerfectWeek(
+            habits: [habit], entries: entries, endingOn: october(21), calendar: mondayFirstUTC
+        ))
+    }
+
     // MARK: - Streak at risk
 
     private func streakAtRisk(_ habit: Habit, doneOn days: [Int], on today: Int) -> Bool {

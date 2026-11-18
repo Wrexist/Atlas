@@ -3022,11 +3022,10 @@ final class DataStore {
             bestHabitStreak: self.bestHabitStreak,
             totalCompletions: self.totalHabitCompletions,
             perfectDayToday: self.allHabitsDoneToday(),
-            perfectWeek: (HabitsService.completionRate(
+            perfectWeek: HabitsService.isPerfectWeek(
                 habits: self.activeHabits,
-                entries: self.profile.habitEntries,
-                days: 7
-            ) ?? 0) >= 1.0
+                entries: self.profile.habitEntries
+            )
         )
     }
 
