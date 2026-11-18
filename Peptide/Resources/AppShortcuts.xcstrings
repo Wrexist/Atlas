@@ -1,0 +1,330 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Add a weigh-in in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Lägg till en vägning i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Add water in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Lägg till vatten i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Check my ${applicationName} adherence": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Kolla min följsamhet i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "How many calories in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Hur många kalorier i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "How's my adherence in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Hur är min följsamhet i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log a dose in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga en dos i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log a glass of water in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga ett glas vatten i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log a meal in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga en måltid i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log a recipe in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga ett recept i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log my dose in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga min dos i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log my food in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga min mat i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log my recipe in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga mitt recept i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log my weight in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga min vikt i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log water in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga vatten i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Log weight in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Logga vikt i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Mark my peptide complete in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Markera min peptid som klar i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Next dose in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Nästa dos i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Show ${applicationName} stats": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Visa statistik i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Show my ${applicationName} streak": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Visa min svit i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Show my calories in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Visa mina kalorier i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Start a workout in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Starta ett pass i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Start my workout in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Starta mitt pass i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Start training in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Börja träna i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Today's nutrition in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Dagens kost i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "What's my next ${applicationName} dose": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Vilken är min nästa dos i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "What's my streak in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Vad är min svit i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "When is my next peptide in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "När är min nästa peptid i ${applicationName}"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
