@@ -226,28 +226,34 @@ final class ExportService {
             // Quick-logged workouts carry no sets, only a note; keep them
             // as one session-level row so the export doesn't drop them.
             if !session.exercises.contains(where: { $0.sets.contains(where: \.completed) }) {
-                let fields = [dateStr, csvQuote(session.displayName)] + Array(repeating: "", count: 11) + [minutes, "", csvQuote(session.note ?? "")]
+                let fields: [String] = [dateStr, csvQuote(session.displayName)] + Array(repeating: "", count: 11) + [minutes, "", csvQuote(session.note ?? "")]
                 csv += fields.joined(separator: ",") + "\n"
                 continue
             }
             for entry in session.exercises.sorted(by: { $0.index < $1.index }) {
                 let superset = session.supersetLetter(for: entry.id) ?? ""
                 for set in entry.sets.sorted(by: { $0.index < $1.index }) where set.completed {
-                    let fields = [
+                    let measurement = set.measurement
+                    let kind: String = measurement?.kind.rawValue ?? SetEntry.Measurement.Kind.repetitions.rawValue
+                    let load: String = measurement?.load.rawValue ?? SetEntry.Measurement.Load.recorded.rawValue
+                    let seconds: String = measurement?.seconds.map { formatPlainNumber($0) } ?? ""
+                    let meters: String = measurement?.meters.map { formatPlainNumber($0) } ?? ""
+                    let rpe: String = set.rpe.map { formatPlainNumber($0) } ?? ""
+                    let fields: [String] = [
                         dateStr,
                         csvQuote(session.displayName),
                         csvQuote(exerciseName(entry.exerciseID)),
                         "\(set.index)",
                         "\(set.reps)",
                         formatPlainNumber(set.weightKg),
-                        set.rpe.map { formatPlainNumber($0) } ?? "",
+                        rpe,
                         // Timed, distance and assisted sets keep their real
                         // values here; Weight (kg) of an assisted set is the
                         // assistance, which Measurement says.
-                        set.measurement?.kind.rawValue ?? SetEntry.Measurement.Kind.repetitions.rawValue,
-                        set.measurement?.load.rawValue ?? SetEntry.Measurement.Load.recorded.rawValue,
-                        set.measurement?.seconds.map { formatPlainNumber($0) } ?? "",
-                        set.measurement?.meters.map { formatPlainNumber($0) } ?? "",
+                        kind,
+                        load,
+                        seconds,
+                        meters,
                         set.isWarmup ? "Warm-up" : "Working",
                         superset,
                         minutes,
