@@ -280,6 +280,11 @@ final class WeeklySummaryService {
         request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(secret, forHTTPHeaderField: "X-Peptide-Proxy")
+        // The proxy writes the recap in this language; the app's UI
+        // language can differ from the phone's.
+        if let language = Bundle.main.preferredLocalizations.first {
+            request.setValue(language, forHTTPHeaderField: "Accept-Language")
+        }
         // The proxy refuses this route without a verified Pro entitlement;
         // a refusal lands on the offline recap like any other failure.
         if let entitlementJWS = await StoreService.shared.resolvedProEntitlementJWS() {

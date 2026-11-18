@@ -50,6 +50,7 @@ const SYSTEM_PROMPT = [
   "• If a stat or section is missing or marked null, don't mention it — never invent data. The aggregate leaves out anything the user doesn't track.",
   "• No compound names, dosages, or Protocol specifics — the aggregate doesn't carry them, and you must not guess.",
   "• Use the numbers provided verbatim. Percentages arrive as whole numbers: if pctPercent is 86, say 86 %, not \"strong\" or \"most\".",
+  "• Check-in averages (energyAvg, sleepQualityAvg, recoveryAvg, moodAvg, focusAvg) are 1-5 self-ratings, not hours or percentages. sleepQualityAvg is how well the user rated their sleep; biometrics.sleepHoursAvg is hours slept.",
   "",
   "Structure:",
   "1. One sentence opener: how the week went overall.",
@@ -85,6 +86,12 @@ function checkRateLimit(principal) {
  */
 function asNum(v) {
   return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+}
+// Averages arrive as raw quotients (3.6666666666666665); the prompt
+// quotes numbers verbatim, so they are rounded to one decimal here.
+function asRounded(v) {
+  const n = asNum(v);
+  return n === undefined ? undefined : Math.round(n * 10) / 10;
 }
 function asInt(v) {
   const n = asNum(v);
@@ -137,12 +144,14 @@ function sanitiseAggregate(agg) {
   const o = agg.outcomes;
   if (o && typeof o === 'object') {
     clean.outcomes = {
-      energyAvg: asNum(o.energyAvg) ?? 0,
-      sleepAvg: asNum(o.sleepAvg) ?? 0,
-      recoveryAvg: asNum(o.recoveryAvg) ?? 0,
-      moodAvg: asNum(o.moodAvg) ?? 0,
-      focusAvg: asNum(o.focusAvg) ?? 0,
-      compositeDelta: asNum(o.compositeDelta) ?? 0,
+      energyAvg: asRounded(o.energyAvg) ?? 0,
+      // Renamed so the model can't read it as hours next to
+      // biometrics.sleepHoursAvg.
+      sleepQualityAvg: asRounded(o.sleepAvg) ?? 0,
+      recoveryAvg: asRounded(o.recoveryAvg) ?? 0,
+      moodAvg: asRounded(o.moodAvg) ?? 0,
+      focusAvg: asRounded(o.focusAvg) ?? 0,
+      compositeDelta: asRounded(o.compositeDelta) ?? 0,
       checkInsCount: asInt(o.checkInsCount) ?? 0,
     };
   }
@@ -164,7 +173,7 @@ function sanitiseAggregate(agg) {
     if (asInt(b.hrvAvg) !== undefined) bio.hrvAvg = asInt(b.hrvAvg);
     if (asInt(b.hrvDelta) !== undefined) bio.hrvDelta = asInt(b.hrvDelta);
     if (asInt(b.rhrAvg) !== undefined) bio.rhrAvg = asInt(b.rhrAvg);
-    if (asNum(b.sleepHoursAvg) !== undefined) bio.sleepHoursAvg = asNum(b.sleepHoursAvg);
+    if (asRounded(b.sleepHoursAvg) !== undefined) bio.sleepHoursAvg = asRounded(b.sleepHoursAvg);
     clean.biometrics = bio;
   }
 
@@ -188,16 +197,25 @@ function sanitiseAggregate(agg) {
   return clean;
 }
 
-function buildUserPrompt(aggregate) {
-  // Pretty-printed JSON is what the model reads best. Stays
-  // deterministic per aggregate so identical aggregates (rare but
-  // possible) hit any downstream caching cleanly.
+// The app ships English and Swedish; the aggregate carries no locale,
+// so the request's Accept-Language (set by the app from its UI
+// language) picks the recap language. Anything else falls back to English.
+function recapLanguage(req) {
+  const header = req.headers?.['accept-language'];
+  const primary = typeof header === 'string' ? header.split(',')[0].trim().split(/[-_;]/)[0].toLowerCase() : '';
+  return primary === 'sv' ? 'Swedish' : 'English';
+}
+
+function buildUserPrompt(aggregate, language) {
+  // Pretty-printed JSON is what the model reads best.
   return [
     "Here is the user's aggregate for the past week. Write the summary.",
     "",
     "```json",
     JSON.stringify(aggregate, null, 2),
-    "```"
+    "```",
+    "",
+    `Write the summary in ${language}.`
   ].join("\n");
 }
 
@@ -294,7 +312,7 @@ export default async function handler(req, res) {
     messages: [
       {
         role: 'user',
-        content: buildUserPrompt(aggregate)
+        content: buildUserPrompt(aggregate, recapLanguage(req))
       }
     ]
   };

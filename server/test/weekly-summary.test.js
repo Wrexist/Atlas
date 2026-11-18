@@ -295,3 +295,46 @@ test('test_weeklySummary_withVerifiedProEntitlement_reachesUpstream', async (t) 
   assert.equal(res.body.text, 'A solid week.');
   assert.equal(upstream.length, 1);
 });
+
+test('test_weeklySummary_swedishAcceptLanguage_asksForSwedishRecap', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  await handler(makeReq('10.1.2.1', undefined, { ...PRO, 'accept-language': 'sv-SE,sv;q=0.9' }), makeRes());
+  await handler(makeReq('10.1.2.2'), makeRes());
+  await handler(makeReq('10.1.2.3', undefined, { ...PRO, 'accept-language': 'de-DE' }), makeRes());
+
+  const prompts = upstream.map((call) => JSON.parse(call[1].body).messages[0].content);
+  assert.match(prompts[0], /Write the summary in Swedish\./);
+  assert.match(prompts[1], /Write the summary in English\./);
+  assert.match(prompts[2], /Write the summary in English\./);
+});
+
+test('test_weeklySummary_rawAverages_reachModelRoundedToOneDecimal', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  const res = makeRes();
+  await handler(makeReq('10.1.2.4', {
+    aggregate: {
+      weekStart: '2026-06-01',
+      outcomes: {
+        energyAvg: 3.6666666666666665,
+        sleepAvg: 4.333333333333333,
+        recoveryAvg: 2.25,
+        moodAvg: 3,
+        focusAvg: 3.95,
+        compositeDelta: 0.1234,
+        checkInsCount: 6,
+      },
+      biometrics: { sleepHoursAvg: 7.416666666666667 },
+    },
+  }), res);
+
+  assert.equal(res.statusCode, 200);
+  const sent = promptAggregate(upstream[0]);
+  assert.equal(sent.outcomes.energyAvg, 3.7);
+  assert.equal(sent.outcomes.sleepQualityAvg, 4.3);
+  assert.equal(sent.outcomes.sleepAvg, undefined);
+  assert.equal(sent.outcomes.compositeDelta, 0.1);
+  assert.equal(sent.biometrics.sleepHoursAvg, 7.4);
+  assert.match(JSON.parse(upstream[0][1].body).system, /1-5 self-ratings/);
+});
