@@ -60,11 +60,17 @@ struct BioAgeHeroSection: View {
 
     // MARK: - Header
 
-    /// The dial's subject, set leading like the tab's other section
-    /// headers so it lines up under the large title instead of floating
-    /// centred beneath it.
+    /// The dial's label: a quiet eyebrow centred on the dial's axis, so the
+    /// screen's large title stays its only heading. It sits in the stack
+    /// above the dial's frame, so it never runs into the arc as it grows.
     private var header: some View {
-        BiologySectionHeader(title: "Biological Age")
+        Text("Biological Age")
+            .textCase(.uppercase)
+            .font(AppFont.eyebrow)
+            .tracking(1.0)
+            .foregroundStyle(AppColor.textSecondary)
+            .multilineTextAlignment(.center)
+            .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: - Dial + centre content

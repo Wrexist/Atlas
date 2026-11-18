@@ -59,21 +59,16 @@ struct PremiumPromoCard<Trailing: View>: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    if let ctaLabel {
-                        ctaPill(label: ctaLabel)
-                            .padding(.top, Spacing.sm)
-                    }
-
-                    if let qualifier {
-                        qualifierNote(label: qualifier)
-                    }
+                    actionRow
+                        .padding(.top, Spacing.sm)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 trailing()
                     .frame(width: 70, height: 70)
             }
-            .padding(Spacing.lg)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
             .background {
                 GlowBackdrop()
             }
@@ -84,6 +79,28 @@ struct PremiumPromoCard<Trailing: View>: View {
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+    }
+
+    /// The CTA with its eligibility note beside it, so the note costs no
+    /// extra line; stacked under it when the two don't fit side by side.
+    @ViewBuilder
+    private var actionRow: some View {
+        if let ctaLabel, let qualifier {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.md) {
+                    ctaPill(label: ctaLabel)
+                    qualifierNote(label: qualifier)
+                }
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    ctaPill(label: ctaLabel)
+                    qualifierNote(label: qualifier)
+                }
+            }
+        } else if let ctaLabel {
+            ctaPill(label: ctaLabel)
+        } else if let qualifier {
+            qualifierNote(label: qualifier)
+        }
     }
 
     /// The same solid-ink pill as `GlassButton.primary`: the card's one
@@ -104,7 +121,6 @@ struct PremiumPromoCard<Trailing: View>: View {
             .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
-            .padding(.top, Spacing.xs)
     }
 }
 
