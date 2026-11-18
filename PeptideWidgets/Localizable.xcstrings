@@ -1412,6 +1412,16 @@
           }
         }
       }
+    },
+    "Tap to start a fast.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck för att starta en fasta."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -52997,6 +52997,716 @@
           }
         }
       }
+    },
+    " added": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " extra"
+          }
+        }
+      }
+    },
+    " assistance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " assistans"
+          }
+        }
+      }
+    },
+    " each · both counted": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " per hand · båda räknas"
+          }
+        }
+      }
+    },
+    " per side · recorded side": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " per sida · registrerad sida"
+          }
+        }
+      }
+    },
+    " total": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " totalt"
+          }
+        }
+      }
+    },
+    "1 l": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 l"
+          }
+        }
+      }
+    },
+    "1 package = %lld ml": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 förpackning = %lld ml"
+          }
+        }
+      }
+    },
+    "Add height, weight, age, and gender on Profile to compute calorie and macro targets, or tap Edit targets to set them manually.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till längd, vikt, ålder och kön i Profil för att räkna ut kalori- och makromål, eller tryck på Redigera mål för att ställa in dem manuellt."
+          }
+        }
+      }
+    },
+    "Add to Another Protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till i ett annat protokoll"
+          }
+        }
+      }
+    },
+    "Also counts as %lld ml water": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas även som %lld ml vatten"
+          }
+        }
+      }
+    },
+    "Available as %@ — reduces injection burden": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finns som %@ – färre injektioner"
+          }
+        }
+      }
+    },
+    "Bodyweight × ": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kroppsvikt × "
+          }
+        }
+      }
+    },
+    "Compound ": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Substans "
+          }
+        }
+      }
+    },
+    "Customize Today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anpassa Idag"
+          }
+        }
+      }
+    },
+    "Double-tap to put back on the list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck två gånger för att lägga tillbaka på listan"
+          }
+        }
+      }
+    },
+    "Double-tap to tick off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck två gånger för att bocka av"
+          }
+        }
+      }
+    },
+    "Fills a %@ dosing gap in your schedule": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fyller en lucka i doseringen på %@ i ditt schema"
+          }
+        }
+      }
+    },
+    "Goal & Atlas Score": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mål och Atlas-poäng"
+          }
+        }
+      }
+    },
+    "Health Monitor": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hälsomonitor"
+          }
+        }
+      }
+    },
+    "Included with Atlas Pro": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingår i Atlas Pro"
+          }
+        }
+      }
+    },
+    "Last logged amount: %@ ml": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast loggade mängd: %@ ml"
+          }
+        }
+      }
+    },
+    "Load unavailable · ": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikt saknas · "
+          }
+        }
+      }
+    },
+    "Movement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rörelse"
+          }
+        }
+      }
+    },
+    "Paused — resume to edit sets.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausat — återuppta för att ändra set."
+          }
+        }
+      }
+    },
+    "Re-log %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga %@ igen"
+          }
+        }
+      }
+    },
+    "Rich in fibre": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fiberrik"
+          }
+        }
+      }
+    },
+    "Running %lld protocols. Consider focusing on fewer for better compliance.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Kör %lld protokoll. Överväg att fokusera på färre för bättre följsamhet."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Kör %lld protokoll. Överväg att fokusera på färre för bättre följsamhet."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Running %lld protocol. Consider focusing on fewer for better compliance."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Running %lld protocols. Consider focusing on fewer for better compliance."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Scan the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna kylen"
+          }
+        }
+      }
+    },
+    "Scrolls to today's doses": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rullar till dagens doser"
+          }
+        }
+      }
+    },
+    "Scrolls to today's habits": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rullar till dagens vanor"
+          }
+        }
+      }
+    },
+    "Sleep is the single biggest lever for recovery, hormone regulation, and protocol response.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömn är den enskilt största faktorn för återhämtning, hormonreglering och hur du svarar på ett protokoll."
+          }
+        }
+      }
+    },
+    "Spun off from %@ to reduce compounding side effects.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utbruten från %@ för att minska förstärkta biverkningar."
+          }
+        }
+      }
+    },
+    "Streak: %@. Watermark: Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Svit: %@. Vattenstämpel: Atlas."
+          }
+        }
+      }
+    },
+    "That's a general product, not a food, so there's nothing to add to your diary.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det är en allmän produkt, inte mat, så det finns inget att lägga till i dagboken."
+          }
+        }
+      }
+    },
+    "Timeline": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidslinje"
+          }
+        }
+      }
+    },
+    "Track how you're aging and discover which habits move your Biological Age.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Följ hur du åldras och upptäck vilka vanor som påverkar din biologiska ålder."
+          }
+        }
+      }
+    },
+    "We couldn't find a match for “%@”. Let Atlas AI add it, scan a barcode, or scan a meal photo.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vi hittade ingen träff för ”%@”. Låt Atlas AI lägga till det, skanna en streckkod eller skanna ett måltidsfoto."
+          }
+        }
+      }
+    },
+    "Wellness check-in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välmåendeincheckning"
+          }
+        }
+      }
+    },
+    "With your favourites: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Med dina favoriter: %@"
+          }
+        }
+      }
+    },
+    "You're offline. We'll use cached results when available.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du är offline. Vi använder sparade resultat när det finns."
+          }
+        }
+      }
+    },
+    "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health and your profile. Each one can only move it a few years.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signal från Apple Hälsa och din profil. Varje signal kan bara flytta den några år."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signaler från Apple Hälsa och din profil. Varje signal kan bara flytta den några år."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signal from Apple Health and your profile. Each one can only move it a few years."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health and your profile. Each one can only move it a few years."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fibre": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fiber"
+          }
+        }
+      }
+    },
+    "ml": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ml"
+          }
+        }
+      }
+    },
+    "%@ copy %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ kopia %2$lld"
+          }
+        }
+      }
+    },
+    "%@, by %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, till %2$@"
+          }
+        }
+      }
+    },
+    "%lld foods": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld food"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foods"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld livsmedel"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld livsmedel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld recipes": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld recipe"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld recipes"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld recept"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld recept"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld routines": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld routine"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld routines"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld rutin"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld rutiner"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Add %lld %@ of water": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till %1$lld %2$@ vatten"
+          }
+        }
+      }
+    },
+    "Average": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt"
+          }
+        }
+      }
+    },
+    "Biological age %@ years": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biologisk ålder %@ år"
+          }
+        }
+      }
+    },
+    "Elapsed: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förfluten tid: %@"
+          }
+        }
+      }
+    },
+    "Meal-logging streak paused. Best streak 1 day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Måltidsloggningen är pausad. Bästa svit 1 dag."
+          }
+        }
+      }
+    },
+    "Not enough data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte tillräckligt med data"
+          }
+        }
+      }
+    },
+    "This backup was created by a version of Atlas that this build can't read (%@). Update the app and try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Den här säkerhetskopian skapades av en version av Atlas som den här versionen inte kan läsa (%@). Uppdatera appen och försök igen."
+          }
+        }
+      }
+    },
+    "Up to %@ years": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upp till %@ år"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
