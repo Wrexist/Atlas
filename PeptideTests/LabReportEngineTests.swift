@@ -186,6 +186,25 @@ final class LabReportEngineTests: XCTestCase {
         XCTAssertEqual(Set(rows.map(\.id)).count, rows.count)
     }
 
+    func test_rows_censoredResult_startsUnticked() throws {
+        let json = #"{"result":{"is_lab_report":true,"collected_on":null,"lab_name":null,"markers":[{"name":"hs-CRP","value":0.5,"value_qualifier":"<","unit":"mg/L","reference_low":null,"reference_high":null,"reference_text":null,"collected_on":null}]}}"#
+        let scan = try LabReportEngine.decode(Data(json.utf8))
+        let today = utc.date(from: DateComponents(year: 2026, month: 10, day: 21))!
+        let rows = LabReportEngine.rows(from: scan, today: today, calendar: utc)
+
+        XCTAssertEqual(scan.markers[0].valueQualifier, "<")
+        XCTAssertEqual(rows[0].panel, .crp)
+        XCTAssertNotNil(rows[0].value, "the limit stays editable")
+        XCTAssertFalse(rows[0].isIncluded)
+    }
+
+    func test_decode_withoutQualifier_isExact() throws {
+        let json = #"{"result":{"is_lab_report":true,"collected_on":null,"lab_name":null,"markers":[{"name":"hs-CRP","value":0.5,"unit":"mg/L","reference_low":null,"reference_high":null,"reference_text":null,"collected_on":null}]}}"#
+        let scan = try LabReportEngine.decode(Data(json.utf8))
+        XCTAssertNil(scan.markers[0].valueQualifier)
+        XCTAssertTrue(LabReportEngine.startsIncluded(scan.markers[0], convertedValue: 0.5))
+    }
+
     func test_looksLikeUnitSlip_flagsTenfoldOutliersOnly() {
         // A glucose left in mmol/L reads as 5.4 mg/dL — far below the 70 floor.
         XCTAssertTrue(LabReportEngine.looksLikeUnitSlip(5.4, panel: .fastingGlucose, sex: .male))

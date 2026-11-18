@@ -172,7 +172,7 @@ struct LabScanReviewView: View {
     }
 
     private func printedValue(_ marker: LabReportEngine.Marker) -> String {
-        let value = marker.value.map { "\(LabValueFormat.string($0)) \(marker.unit)" }
+        let value = marker.value.map { "\(marker.valueQualifier ?? "")\(LabValueFormat.string($0)) \(marker.unit)" }
             ?? String(localized: "No numeric value")
         guard let range = marker.referenceText?.nilIfEmpty else {
             return String(localized: "Report: \(value)")
@@ -200,7 +200,7 @@ struct LabScanReviewView: View {
                 let converted = panel.flatMap { LabReportEngine.convertedValue(row.wrappedValue.marker, to: $0) }
                 row.wrappedValue.panel = panel
                 row.wrappedValue.value = converted
-                row.wrappedValue.isIncluded = converted != nil
+                row.wrappedValue.isIncluded = LabReportEngine.startsIncluded(row.wrappedValue.marker, convertedValue: converted)
                 valueTexts[row.wrappedValue.id] = converted.map(LabValueFormat.string) ?? ""
             }
         )
