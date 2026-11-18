@@ -58,7 +58,8 @@ struct SessionBuilderSheet: View {
             .navigationTitle(routine == nil ? "Plan a workout" : "Your workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
-            .pinnedFooter(fadeHeight: Spacing.md) { footer }
+            // The fade is drawn above the footer instead (see `footer`).
+            .pinnedFooter(fadeHeight: 0) { footer }
             .task { await load() }
         }
     }
@@ -97,18 +98,17 @@ struct SessionBuilderSheet: View {
                 )
                 .frame(maxWidth: .infinity)
                 .appAnimation(AppAnimation.quick, value: focus)
-                // One slot, two keys: recovery heat before a pick, the
-                // focus and companion colours after. Both stay in the
-                // layout so the chips below never jump. The heat key only
-                // shows when some muscle is actually tinted.
-                ZStack {
+                // Recovery heat before a pick, the focus and companion
+                // colours after. A key only takes room when it has
+                // something to explain, so an untinted map sits right on
+                // the chips instead of over a blank slot.
+                if focus != nil {
+                    roleKey
+                        .transition(.opacity)
+                } else if showsHeatKey {
                     MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
                                      highLabel: String(localized: "Needs rest"))
-                        .opacity(showsHeatKey ? 1 : 0)
-                        .accessibilityHidden(!showsHeatKey)
-                    roleKey
-                        .opacity(focus == nil ? 0 : 1)
-                        .accessibilityHidden(focus == nil)
+                        .transition(.opacity)
                 }
             }
 
@@ -140,14 +140,11 @@ struct SessionBuilderSheet: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        // The pinned footer's inset already lifts the last row clear of
-        // the button, so the bottom only needs the fade's depth: any more
-        // and the end of the scroll is an empty band above the button.
         .padding(.top, Spacing.lg)
-        .padding(.bottom, Spacing.md)
+        .padding(.bottom, Self.footerFadeHeight)
     }
 
-    private var showsHeatKey: Bool { focus == nil && !mapHighlights.isEmpty }
+    private var showsHeatKey: Bool { !mapHighlights.isEmpty }
 
     /// Fatigue heat before a pick; the session's muscles after.
     private var mapHighlights: [AnatomicalMuscle: MuscleHighlight] {
@@ -240,7 +237,8 @@ struct SessionBuilderSheet: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        .padding(.vertical, Spacing.lg)
+        .padding(.top, Spacing.lg)
+        .padding(.bottom, Self.footerFadeHeight)
     }
 
     private func slotRow(_ slot: RoutineExercise) -> some View {
@@ -340,12 +338,26 @@ struct SessionBuilderSheet: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        // Deeper than the footer's fade (`Spacing.md`), so the fade ends
-        // above the button instead of letting the section headers show
-        // through it.
         .padding(.top, Spacing.lg)
         .padding(.bottom, Spacing.sm)
+        .background(alignment: .top) { footerFade }
     }
+
+    /// The soft edge sits above the footer's solid band, not inside it:
+    /// a row passing the fold fades out, and nothing is sliced to a
+    /// sliver of letter tops at the band's edge. Each page's bottom
+    /// padding matches its depth, so at the end of a scroll the fade only
+    /// covers padding.
+    private var footerFade: some View {
+        LinearGradient(colors: [AppColor.background.opacity(0), AppColor.background],
+                       startPoint: .top, endPoint: .bottom)
+            .frame(height: Self.footerFadeHeight)
+            .offset(y: -Self.footerFadeHeight)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    private static let footerFadeHeight = Spacing.xxl
 
     // MARK: - Actions
 

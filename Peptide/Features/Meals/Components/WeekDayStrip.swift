@@ -94,9 +94,12 @@ struct WeekDayStrip: View {
             }
             .lineLimit(1)
             .minimumScaleFactor(0.7)
-            // Inside the cell, so neighbouring numerals keep a gap even
-            // when each is scaled down to fill its seventh.
-            .padding(.horizontal, Spacing.xxs)
+            // Inside the cell, so the glyphs keep clear of the selected
+            // pill's rounded ends and neighbouring numerals keep a gap even
+            // when each is scaled down to fill its seventh. Counted in the
+            // row's ideal width, so a row whose short names wouldn't fit
+            // with this inset falls back to single letters.
+            .padding(.horizontal, Spacing.sm)
             .padding(.vertical, Spacing.sm)
             // `minWidth: 0` caps a cell at its seventh of the row; without
             // it the frame grew to its content and the strip pushed the
