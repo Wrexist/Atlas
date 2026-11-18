@@ -20,6 +20,9 @@ struct WeeklySummaryDetailView: View {
     /// This week's check-in, under the recap. Nil for an older week.
     var checkIn: WeeklyCheckIn?
     var unit: MeasurementUnit = .metric
+    /// Without AI data sharing the recap is built on device by design, so
+    /// there is nothing to retry and no connection to blame.
+    var aiSharingEnabled = AIDataConsent.isGranted
     @State private var isRefreshing = false
     @State private var refreshFailed = false
 
@@ -56,7 +59,7 @@ struct WeeklySummaryDetailView: View {
                 }
                 .accessibilityLabel("Share recap")
             }
-            if let onRefresh {
+            if let onRefresh, aiSharingEnabled {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task { @MainActor in
@@ -140,7 +143,7 @@ struct WeeklySummaryDetailView: View {
             if summary.keyStats.dosesTotal > 0 {
                 StatTile(
                     label: "Adherence",
-                    value: "\(Int((summary.keyStats.compliancePct * 100).rounded()))%",
+                    value: summary.keyStats.compliancePct.formatted(.percent.precision(.fractionLength(0))),
                     tint: accent,
                     footnote: String(localized: "\(summary.keyStats.dosesCompleted) of \(summary.keyStats.dosesTotal) doses"),
                     size: .large
@@ -205,7 +208,7 @@ struct WeeklySummaryDetailView: View {
 
     private var metadataRow: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: summary.kind == .ai ? "sparkles" : "wifi.slash")
+            Image(systemName: metadataSymbol)
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
             Text(metadataText)
@@ -213,6 +216,11 @@ struct WeeklySummaryDetailView: View {
                 .foregroundStyle(AppColor.textTertiary)
             Spacer(minLength: 0)
         }
+    }
+
+    private var metadataSymbol: String {
+        if summary.kind == .ai { return "sparkles" }
+        return aiSharingEnabled ? "wifi.slash" : "iphone"
     }
 
     private var metadataText: String {
@@ -223,6 +231,9 @@ struct WeeklySummaryDetailView: View {
     private var kindLabel: String {
         if summary.kind == .ai {
             return String(localized: "Personalized by AI")
+        }
+        if !aiSharingEnabled {
+            return String(localized: "On-device summary (AI data sharing is off)")
         }
         // The notice under the title already says the refresh failed.
         return onRefresh == nil || refreshFailed

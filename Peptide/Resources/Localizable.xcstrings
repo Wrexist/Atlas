@@ -6786,6 +6786,26 @@
         }
       }
     },
+    "On-device": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "På enheten"
+          }
+        }
+      }
+    },
+    "On-device summary (AI data sharing is off)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sammanfattning på enheten (datadelning med AI är av)"
+          }
+        }
+      }
+    },
     "Opens Atlas and starts a workout from a routine, or an empty workout when none is picked.": {
       "localizations": {
         "sv": {
@@ -6822,6 +6842,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ta bort en"
+          }
+        }
+      }
+    },
+    "Trained on %lld days this week.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Tränade %lld dag den här veckan."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Tränade %lld dagar den här veckan."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Trained on %lld day this week."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Trained on %lld days this week."
+                }
+              }
+            }
           }
         }
       }

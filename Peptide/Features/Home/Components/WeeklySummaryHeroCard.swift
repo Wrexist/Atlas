@@ -67,7 +67,7 @@ struct WeeklySummaryHeroCard: View {
     private var loadingCard: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                eyebrowRow(badge: nil)
+                eyebrowRow()
                 heroRow(title: String(localized: "Reading your week…"), aiBadge: false)
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -90,7 +90,7 @@ struct WeeklySummaryHeroCard: View {
         Button(action: onTap) {
             GlassCard(tinted: true) {
                 VStack(alignment: .leading, spacing: Spacing.md) {
-                    eyebrowRow(badge: summary.kind == .offline ? "Offline" : nil)
+                    eyebrowRow(offlineBadge: summary.kind == .offline)
                     heroRow(
                         title: weekTitle(for: summary.weekStart),
                         aiBadge: summary.kind == .ai
@@ -152,7 +152,7 @@ struct WeeklySummaryHeroCard: View {
     private func messageCard(title: String, message: LocalizedStringKey, showsRetry: Bool) -> some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                eyebrowRow(badge: nil)
+                eyebrowRow()
                 heroRow(title: title, aiBadge: false)
                 Text(message)
                     .font(AppFont.subheadline)
@@ -196,8 +196,12 @@ struct WeeklySummaryHeroCard: View {
         .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
     }
 
-    private func eyebrowRow(badge: LocalizedStringKey?) -> some View {
-        HStack(spacing: Spacing.sm) {
+    /// With AI sharing off the recap is on-device by choice, not because
+    /// the network failed, so the badge says that instead.
+    private func eyebrowRow(offlineBadge: Bool = false) -> some View {
+        let onDevice = !AIDataConsent.isGranted
+        let badge: LocalizedStringKey? = offlineBadge ? (onDevice ? "On-device" : "Offline") : nil
+        return HStack(spacing: Spacing.sm) {
             Text("Weekly recap")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(1.2)
@@ -211,7 +215,7 @@ struct WeeklySummaryHeroCard: View {
                 // (audit Biology L19). Foreground on a filled capsule
                 // with an icon makes it unmissable without screaming.
                 HStack(spacing: 3) {
-                    Image(systemName: "wifi.slash")
+                    Image(systemName: onDevice ? "iphone" : "wifi.slash")
                         .font(AppFont.scaled(8, weight: .semibold))
                     Text(badge)
                         .font(AppFont.scaled(11, weight: .semibold))
@@ -277,7 +281,7 @@ struct WeeklySummaryHeroCard: View {
             if stats.dosesTotal > 0 {
                 StatTile(
                     label: "Adherence",
-                    value: "\(Int((stats.compliancePct * 100).rounded()))%",
+                    value: stats.compliancePct.formatted(.percent.precision(.fractionLength(0))),
                     tint: accent
                 )
                 StatTile(
