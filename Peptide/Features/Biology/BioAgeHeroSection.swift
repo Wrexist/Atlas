@@ -78,7 +78,7 @@ struct BioAgeHeroSection: View {
             BioAgeDial(
                 chronologicalAge: chronologicalAge,
                 bioAge: displayedAge,
-                size: 280
+                size: Self.dialSize
             )
             centreContent
                 // The dial is a fixed 280pt; past AX2 the number, unit and
@@ -87,8 +87,16 @@ struct BioAgeHeroSection: View {
                 // also scale for `centreTypeSize`.
                 .dynamicTypeSize(...Self.centreTypeSizeLimit)
         }
-        .frame(height: 280)
+        .frame(height: Self.dialSize)
+        // The arc opens at the bottom: below its bound labels the square
+        // frame is empty, so the caption is pulled up into that band.
+        .padding(.bottom, -Self.dialOpenBand)
     }
+
+    private static let dialSize: CGFloat = 280
+    /// The empty strip under the dial's bound labels, which the content
+    /// below tucks into.
+    private static var dialOpenBand: CGFloat { BioAgeDial.openBandHeight(size: dialSize) }
 
     private static let centreTypeSizeLimit = DynamicTypeSize.accessibility2
 
@@ -106,7 +114,7 @@ struct BioAgeHeroSection: View {
             resolvingCentre
                 .transition(Self.stateTransition)
         case .locked?:
-            BioAgeParticleCluster(size: 200)
+            lockedCentre
                 .transition(Self.stateTransition)
         case .needsAge?:
             Image(systemName: "person.crop.circle.badge.questionmark")
@@ -125,6 +133,14 @@ struct BioAgeHeroSection: View {
 
     /// Locked → building → unlocked cross-fade rather than swap.
     private static var stateTransition: AnyTransition { .opacity.combined(with: .scale(scale: 0.96)) }
+
+    /// Where the number will be, held by a muted dash.
+    private var lockedCentre: some View {
+        Text(verbatim: "--")
+            .font(AppFont.scaled(56, weight: .light, relativeTo: .largeTitle, in: centreTypeSize))
+            .foregroundStyle(AppColor.textTertiary)
+            .accessibilityHidden(true)
+    }
 
     private var resolvingCentre: some View {
         Circle()
@@ -355,7 +371,7 @@ struct BioAgeHeroSection: View {
             return
         }
         if displayedAge == nil {
-            displayedAge = Double(chronologicalAge - 5)
+            displayedAge = Double(chronologicalAge) - PerformanceAgeEngine.maxDriftYears
             try? await Task.sleep(for: .milliseconds(150))
             guard !Task.isCancelled else { return }
         }

@@ -91,8 +91,9 @@ enum BiomarkerSeriesService {
             let series = await HealthKitService.shared.dailyRestingHeartRate(days: days)
             return seriesSnapshot(.rhrBaseline, series: series, unit: unit)
         case .sleepBaseline:
-            let series = await HealthKitService.shared.dailySleepHours(days: days)
-            return seriesSnapshot(.sleepBaseline, series: series, unit: unit)
+            let segments = await HealthKitService.shared.sleepSegments(nights: days)
+            let nights = SleepScoreEngine.nights(from: segments, calendar: .current)
+            return seriesSnapshot(.sleepBaseline, series: sleepSeries(from: nights, days: days, calendar: .current), unit: unit)
         case .stepsBaseline:
             let series = await HealthKitService.shared.dailySteps(days: days)
             return seriesSnapshot(.stepsBaseline, series: completedDays(series), unit: unit)
@@ -215,6 +216,26 @@ enum BiomarkerSeriesService {
         return series.filter { $0.date < startOfToday }
     }
 
+    /// Hours asleep per wake-up day, from the same nights the Sleep card
+    /// reads (the main session only, naps left out), so the tile, its
+    /// detail and the card agree on the average. Trimmed to the last
+    /// `days` wake-up days like the other series: the HealthKit query
+    /// reaches back further, and its oldest night can be cut short by
+    /// the query start, which would drag the average down.
+    static func sleepSeries(
+        from nights: [SleepScoreEngine.Night],
+        days: Int = windowDays,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [(date: Date, value: Double)] {
+        let today = calendar.startOfDay(for: now)
+        let windowStart = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+        return nights
+            .map { (date: calendar.startOfDay(for: $0.end), value: $0.asleep / 3600) }
+            .filter { $0.date >= windowStart }
+            .sorted { $0.date < $1.date }
+    }
+
     static func labSnapshot(latestLab: LabValue?) -> BiomarkerSnapshot {
         guard let lab = latestLab else { return .empty(.latestLabPanel) }
         // The lab tile renders the panel name + value + unit
@@ -230,7 +251,9 @@ enum BiomarkerSeriesService {
             trend: .insufficient,
             samples: [],
             changeText: "\(lab.panel.displayName) · \(valueStr) \(unit)",
-            latestDate: lab.date
+            latestDate: lab.date,
+            contextLabel: lab.panel.displayName,
+            unitLabel: unit
         )
     }
 
@@ -323,17 +346,42 @@ enum BiomarkerSeriesService {
         "\(formatValue(systolic, for: .bloodPressure))/\(formatValue(diastolic, for: .bloodPressure))"
     }
 
-    /// Biomarker-specific number formatting. Weight is one
+    /// Biomarker-specific number formatting. Weight and waist are one
     /// decimal, HRV / RHR / steps are integers, sleep is one
     /// decimal in hours. Keeps the view from doing this math.
     static func formatValue(_ value: Double, for biomarker: Biomarker) -> String {
+        guard let digits = fractionDigits(for: biomarker) else { return LabValueFormat.string(value) }
+        return value.formatted(.number.precision(.fractionLength(digits)))
+    }
+
+    /// Decimals a biomarker is shown with; nil for lab values, whose
+    /// precision depends on the panel.
+    static func fractionDigits(for biomarker: Biomarker) -> Int? {
         switch biomarker {
-        case .weight, .sleepBaseline, .bodyTemperature, .bodyFat:
-            return value.formatted(.number.precision(.fractionLength(1)))
-        case .hrvBaseline, .rhrBaseline, .stepsBaseline, .waist, .bloodPressure:
-            return value.formatted(.number.precision(.fractionLength(0)))
-        case .latestLabPanel:
-            return LabValueFormat.string(value)
+        case .weight, .sleepBaseline, .bodyTemperature, .bodyFat, .waist: 1
+        case .hrvBaseline, .rhrBaseline, .stepsBaseline, .bloodPressure: 0
+        case .latestLabPanel: nil
         }
+    }
+
+    /// "4 ms above your recent average.", from display-unit values. A
+    /// difference that formats as zero at the biomarker's precision
+    /// (including a half-even tie such as 0.5 steps) reads as at the
+    /// average, never as "0 ms above".
+    static func averageComparisonText(
+        latest: Double,
+        average: Double,
+        for biomarker: Biomarker,
+        unit: MeasurementUnit
+    ) -> String {
+        let delta = latest - average
+        let formatted = formatValue(abs(delta), for: biomarker)
+        if formatted == formatValue(0, for: biomarker) || abs(delta) < 0.01 {
+            return String(localized: "Right at your recent average.")
+        }
+        let amount = biomarker.displayUnit(for: unit).map { "\(formatted) \($0)" } ?? formatted
+        return delta > 0
+            ? String(localized: "\(amount) above your recent average.")
+            : String(localized: "\(amount) below your recent average.")
     }
 }

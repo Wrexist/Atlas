@@ -1598,9 +1598,24 @@ final class DataStore {
     /// by id. The list keeps a newest-first sort order so list
     /// views read without an extra sort pass.
     func saveLabValue(_ value: LabValue) {
+        let isNew = !profile.labHistory.contains { $0.id == value.id }
         LabDataLogic.saveLabValue(into: &profile, value: value)
+        if isNew { lastCreatedLabID = value.id }
         save()
     }
+
+    /// The lab entry most recently created here, as it now stands in
+    /// the profile. A new entry starts from its draw date and lab; an
+    /// edit to an older result never becomes that starting point, so
+    /// fixing a 2023 typo can't file today's value under 2023. Read
+    /// from `labHistory` so a reset, restore or sync that removes the
+    /// entry also stops it carrying over.
+    var lastCreatedLabValue: LabValue? {
+        guard let id = lastCreatedLabID else { return nil }
+        return profile.labHistory.first { $0.id == id }
+    }
+
+    private var lastCreatedLabID: UUID?
 
     /// Removes a lab entry by id. Idempotent — calling twice on
     /// the same id is a no-op the second time.

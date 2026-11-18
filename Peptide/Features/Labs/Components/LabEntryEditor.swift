@@ -42,7 +42,7 @@ struct LabEntryEditor: View {
     /// `defaultPanel` pre-selects the panel for a new entry — the panel
     /// being viewed, or the one the user logged most recently.
     /// `carryOver` pre-fills a new entry's draw date and lab from the
-    /// entry just saved (see `carryOverEntry(from:now:)`).
+    /// entry just created (see `carryOverEntry(lastCreated:now:)`).
     init(
         initial: LabValue?,
         defaultPanel: LabPanel? = nil,
@@ -69,11 +69,13 @@ struct LabEntryEditor: View {
     /// be treated as part of the same report.
     static let carryOverWindow: TimeInterval = 60 * 60
 
-    /// The entry saved last, when that was within `carryOverWindow` of
-    /// `now`. One report carries many markers with one draw date and one
-    /// lab, so the next entry starts from those instead of today and blank.
-    static func carryOverEntry(from entries: [LabValue], now: Date) -> LabValue? {
-        guard let last = entries.max(by: { $0.updatedAt < $1.updatedAt }) else { return nil }
+    /// The entry created last, when it was saved within `carryOverWindow`
+    /// of `now`. One report carries many markers with one draw date and
+    /// one lab, so the next entry starts from those instead of today and
+    /// blank. Only a created entry qualifies: an edited old result would
+    /// carry its old draw date into today's value.
+    static func carryOverEntry(lastCreated: LabValue?, now: Date) -> LabValue? {
+        guard let last = lastCreated else { return nil }
         let elapsed = now.timeIntervalSince(last.updatedAt)
         return elapsed >= 0 && elapsed <= carryOverWindow ? last : nil
     }

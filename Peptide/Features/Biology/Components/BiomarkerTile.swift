@@ -12,6 +12,9 @@ struct BiomarkerTile: View {
     let snapshot: BiomarkerSnapshot
     let size: BiomarkerTileSize
     let unit: MeasurementUnit
+    /// Whether this device reads Apple Health, so an empty card asks
+    /// for the step still missing rather than one already taken.
+    let healthConnected: Bool
     var onTap: () -> Void
     var onResize: (BiomarkerTileSize) -> Void
 
@@ -45,7 +48,7 @@ struct BiomarkerTile: View {
                     footer
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: size == .small ? 148 : nil, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: size == .small ? 148 : nil, maxHeight: .infinity, alignment: .topLeading)
             .padding(Spacing.md)
             .background { wash }
             .glassSurface(cornerRadius: Spacing.cardCornerRadius)
@@ -89,7 +92,7 @@ struct BiomarkerTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .contentTransition(.numericText())
-            if let unitText = biomarker.displayUnit(for: unit) {
+            if let unitText = biomarker.displayUnit(for: unit) ?? snapshot.unitLabel {
                 Text(unitText)
                     .font(AppFont.scaled(13, weight: .medium))
                     .foregroundStyle(AppColor.textSecondary)
@@ -152,8 +155,19 @@ struct BiomarkerTile: View {
     // MARK: - Text
 
     private var emptyHint: LocalizedStringKey {
-        if biomarker == .latestLabPanel { return "Add results in Labs" }
-        return biomarker.supportsManualEntry ? "Tap to log a reading" : "Connect Apple Health to fill this in"
+        switch biomarker {
+        case .latestLabPanel:
+            return "Add results in Labs"
+        case .weight:
+            return "Log a weigh-in to fill this in"
+        case .bodyFat, .waist, .bloodPressure, .bodyTemperature:
+            return "Tap to log a reading"
+        case .hrvBaseline, .rhrBaseline, .sleepBaseline, .stepsBaseline:
+            guard healthConnected else { return "Connect Apple Health to fill this in" }
+            return biomarker == .stepsBaseline
+                ? "Carry your iPhone or wear Apple Watch to record this"
+                : "Wear Apple Watch to record this"
+        }
     }
 
     private var valueText: String {
@@ -165,7 +179,12 @@ struct BiomarkerTile: View {
     }
 
     /// "Avg 58 ms · Steady", or the stale note once the reading is old.
+    /// A lab reading always leads with its panel name, so the number
+    /// never stands alone.
     private var footerText: String {
+        if let context = snapshot.contextLabel {
+            return [context, snapshot.staleNote()].compactMap { $0 }.joined(separator: " · ")
+        }
         let verb = snapshot.changeText.components(separatedBy: " · ").first ?? ""
         var parts: [String] = []
         if snapshot.samples.count >= 2, snapshot.latestSecondary == nil {

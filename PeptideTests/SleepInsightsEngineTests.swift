@@ -127,4 +127,28 @@ final class SleepInsightsEngineTests: XCTestCase {
 
         XCTAssertEqual(nights.map(\.asleep), [8.0 * 3600, 7.0 * 3600, 6.0 * 3600])
     }
+
+    // MARK: - clockTime
+
+    /// 2026-03-29 is the spring-forward day in Stockholm: 23:10 is not
+    /// 1 390 minutes after midnight there.
+    func test_clockTime_onDSTChangeDay_keepsWallClockTime() {
+        var stockholm = Calendar(identifier: .gregorian)
+        stockholm.timeZone = TimeZone(identifier: "Europe/Stockholm")!
+        let day = stockholm.date(from: DateComponents(year: 2026, month: 3, day: 29, hour: 12))!
+
+        let time = SleepInsightsEngine.clockTime(minutesAfterMidnight: 23 * 60 + 10, on: day, calendar: stockholm)
+
+        let parts = stockholm.dateComponents([.day, .hour, .minute], from: time)
+        XCTAssertEqual(parts.day, 29)
+        XCTAssertEqual(parts.hour, 23)
+        XCTAssertEqual(parts.minute, 10)
+    }
+
+    func test_clockTime_pastMidnightValue_wrapsIntoTheDay() {
+        let time = SleepInsightsEngine.clockTime(minutesAfterMidnight: 24 * 60 + 30, on: dayZero, calendar: utc)
+        let parts = utc.dateComponents([.hour, .minute], from: time)
+        XCTAssertEqual(parts.hour, 0)
+        XCTAssertEqual(parts.minute, 30)
+    }
 }

@@ -99,20 +99,21 @@ struct LabScanReviewView: View {
         let current = row.wrappedValue
         let value = parsedValue(for: current)
         let canInclude = current.panel != nil && value != nil
+        let included = current.isIncluded && canInclude
         return VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                 Button {
                     Haptics.selection()
                     row.wrappedValue.isIncluded.toggle()
                 } label: {
-                    Image(systemName: current.isIncluded && canInclude ? "checkmark.circle.fill" : "circle")
+                    Image(systemName: included ? "checkmark.circle.fill" : "circle")
                         .font(AppFont.scaled(20))
-                        .foregroundStyle(current.isIncluded && canInclude ? AppColor.accentPrimary : AppColor.textTertiary)
+                        .foregroundStyle(included ? AppColor.accentPrimary : AppColor.textTertiary)
                 }
                 .buttonStyle(.plain)
                 .minimumHitArea()
                 .disabled(!canInclude)
-                .accessibilityLabel(current.isIncluded ? "Included" : "Skipped")
+                .accessibilityLabel(included ? "Included" : "Skipped")
                 .accessibilityHint("Toggles whether this result is saved.")
 
                 printed(current.marker)

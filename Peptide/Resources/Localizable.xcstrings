@@ -36544,16 +36544,6 @@
         }
       }
     },
-    "Track how you're aging and discover which habits move your Biological Age.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Följ hur du åldras och upptäck vilka vanor som påverkar din biologiska ålder."
-          }
-        }
-      }
-    },
     "Track nutrition, labs, and biomarkers": {
       "localizations": {
         "sv": {
@@ -40576,7 +40566,7 @@
         }
       }
     },
-    "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health and your profile. Each one can only move it a few years.": {
+    "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health, your profile and your lab results. Each one can only move it a few years.": {
       "localizations": {
         "sv": {
           "variations": {
@@ -40584,13 +40574,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signal från Apple Hälsa och din profil. Varje signal kan bara flytta den några år."
+                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signal från Apple Hälsa, din profil och dina labbresultat. Varje signal kan bara flytta den några år."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signaler från Apple Hälsa och din profil. Varje signal kan bara flytta den några år."
+                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signaler från Apple Hälsa, din profil och dina labbresultat. Varje signal kan bara flytta den några år."
                 }
               }
             }
@@ -40602,13 +40592,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signal from Apple Health and your profile. Each one can only move it a few years."
+                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signal from Apple Health, your profile and your lab results. Each one can only move it a few years."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health and your profile. Each one can only move it a few years."
+                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health, your profile and your lab results. Each one can only move it a few years."
                 }
               }
             }
@@ -49762,6 +49752,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nästa steg"
+          }
+        }
+      }
+    },
+    "Log a weigh-in to fill this in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga en vägning för att fylla i det här"
+          }
+        }
+      }
+    },
+    "Wear Apple Watch to record this": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bär Apple Watch för att registrera det här"
+          }
+        }
+      }
+    },
+    "Carry your iPhone or wear Apple Watch to record this": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ha med iPhone eller bär Apple Watch för att registrera det här"
+          }
+        }
+      }
+    },
+    "Unlock Biological Age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lås upp biologisk ålder"
+          }
+        }
+      }
+    },
+    "See how your habits move the number.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se hur dina vanor påverkar siffran."
+          }
+        }
+      }
+    },
+    "Capped at %lld years from your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Begränsad till %lld år från din ålder"
+          }
+        }
+      }
+    },
+    "Not enough estimates in the last 30 days. Switch to 90 days to see your trend.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte tillräckligt med uppskattningar de senaste 30 dagarna. Byt till 90 dagar för att se din trend."
+          }
+        }
+      }
+    },
+    "Night before last vs your baseline": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förrförra natten mot din baslinje"
           }
         }
       }

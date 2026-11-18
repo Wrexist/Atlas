@@ -94,7 +94,7 @@ struct LabsView: View {
                 LabEntryEditor(
                     initial: nil,
                     defaultPanel: mostRecentPanel(in: summaries),
-                    carryOver: LabEntryEditor.carryOverEntry(from: dataStore.profile.labHistory, now: Date()),
+                    carryOver: LabEntryEditor.carryOverEntry(lastCreated: dataStore.lastCreatedLabValue, now: Date()),
                     sex: dataStore.profile.bodyMetrics.sex,
                     onSave: { value in
                         AppAnimation.with(AppAnimation.springSnappy) { dataStore.saveLabValue(value) }
@@ -420,6 +420,7 @@ struct LabSummaryRow: View {
         }
         return [
             "\(panel.displayName): \(v) \(panel.canonicalUnit)",
+            Self.drawDay(summary.latest.date),
             status,
             trendDesc,
         ].filter { !$0.isEmpty }.joined(separator: ", ")

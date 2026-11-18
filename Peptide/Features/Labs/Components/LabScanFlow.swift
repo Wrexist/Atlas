@@ -23,6 +23,9 @@ struct LabScanFlow: View {
     @State private var pages: [UIImage] = []
     @State private var phase: Phase = .pick
     @State private var errorText: String?
+    /// A PDF that wouldn't open. Shown on the pick screen, never as the
+    /// read-error card, whose Try again would have nothing to retry.
+    @State private var importError: String?
     @State private var libraryItems: [PhotosPickerItem] = []
     @State private var isShowingLibrary = false
     @State private var isShowingCamera = false
@@ -123,6 +126,19 @@ struct LabScanFlow: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
+
+                if let importError {
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(AppColor.warning)
+                            .accessibilityHidden(true)
+                        Text(importError)
+                            .foregroundStyle(AppColor.textPrimary)
+                    }
+                    .font(AppFont.callout)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
 
                 VStack(spacing: Spacing.sm) {
                     if UIImagePickerController.SourceType.cameraIsAvailable {
@@ -234,6 +250,7 @@ struct LabScanFlow: View {
     // MARK: - Pages
 
     private func addPages(_ images: [UIImage]) {
+        importError = nil
         pages.append(contentsOf: images.prefix(pagesLeft))
     }
 
@@ -260,8 +277,7 @@ struct LabScanFlow: View {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let document = PDFDocument(url: url) else {
-            errorText = String(localized: "Couldn't open that PDF. Try a screenshot of the page instead.")
-            phase = .error
+            importError = String(localized: "Couldn't open that PDF. Try a screenshot of the page instead.")
             return
         }
         let count = min(document.pageCount, pagesLeft)
