@@ -7403,6 +7403,17 @@
         }
       }
     },
+    "Syringe diagram. Equivalent volume: %@ units on a 100-unit syringe.": {
+      "comment": "VoiceOver readout for the reconstitution calculator's syringe diagram.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprutdiagram. Motsvarande volym: %@ enheter på en spruta med 100 enheter."
+          }
+        }
+      }
+    },
     "Systolic": {
       "localizations": {
         "sv": {

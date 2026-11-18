@@ -219,10 +219,7 @@ struct ReconstitutionCalculator: View {
     /// Rounded for display, but the math stays precise underneath so a
     /// 12.6 result reads honestly as "≈ 13" rather than silently "13".
     private var unitsHeadline: String {
-        guard let units = unitsOnSyringe, let rounded = ReconstitutionEngine.roundedUnits(units) else {
-            return "—"
-        }
-        return ReconstitutionEngine.hasFractionalUnits(units) ? "≈ \(rounded)" : "\(rounded)"
+        unitsOnSyringe.flatMap { ReconstitutionEngine.unitsLabel($0) } ?? "—"
     }
 
     private var concentrationFootnote: some View {
@@ -373,8 +370,9 @@ struct SyringeDiagram: View {
                 comment: "VoiceOver readout for the reconstitution calculator's syringe diagram when the result exceeds one syringe."
             )
         }
+        let shown = ReconstitutionEngine.unitsLabel(unitsToFill, approximate: false) ?? "\(units)"
         return String(
-            localized: "Syringe diagram. Equivalent volume: \(units) units on a 100-unit syringe.",
+            localized: "Syringe diagram. Equivalent volume: \(shown) units on a 100-unit syringe.",
             comment: "VoiceOver readout for the reconstitution calculator's syringe diagram."
         )
     }
