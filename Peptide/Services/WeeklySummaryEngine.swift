@@ -44,7 +44,11 @@ enum WeeklySummaryEngine {
         guard let weekRange = weekRange(containing: referenceDate, calendar: calendar)
         else { return nil }
 
-        let weekEntries = entries.filter { weekRange.contains($0.date) }
+        // A dose still ahead today isn't missed yet; counting it would
+        // pull a morning recap's adherence down until the evening.
+        let weekEntries = entries.filter {
+            weekRange.contains($0.date) && ($0.completed || $0.date <= referenceDate)
+        }
 
         // Active day count gates the whole summary. Protocols are
         // optional, so any logged activity counts — a week of training,
