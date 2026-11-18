@@ -233,5 +233,16 @@ def unknown_rule_fails() -> int:
     return 0
 
 
+def max_warnings_gates() -> int:
+    """--max-warnings must fail above the cap and only above it."""
+    cases = (((0, 1, None), 0), ((0, 1, 0), 1), ((0, 0, 0), 0), ((0, 2, 2), 0), ((1, 0, None), 1))
+    bad = [(args, want) for args, want in cases if lint.exit_code(*args) != want]
+    for args, want in bad:
+        print(f"FAIL  exit_code{args} != {want}")
+    if not bad:
+        print("--max-warnings gates on the warning count")
+    return 1 if bad else 0
+
+
 if __name__ == "__main__":
-    sys.exit(max(run(), unknown_rule_fails()))
+    sys.exit(max(run(), unknown_rule_fails(), max_warnings_gates()))

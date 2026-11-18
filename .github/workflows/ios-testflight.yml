@@ -208,31 +208,13 @@ jobs:
                   print(f'icon exists at {path}, leaving alone')
           PY
 
-      - name: Install XcodeGen and generate Xcode project
-        run: |
-          # `|| true` previously masked brew failures and the next line
-          # would die with "xcodegen: command not found". Install, ensure
-          # the brew bin is on PATH for this step, then verify before
-          # invoking — fail loud with a clear message if it isn't there.
-          if ! command -v xcodegen &>/dev/null; then
-            brew install xcodegen || brew reinstall xcodegen
-          fi
-          # Only put Homebrew's bin on PATH for THIS step. Writing it to
-          # $GITHUB_PATH would prepend it ahead of ruby/setup-ruby's Ruby
-          # shims for every later step, so the "Deploy to TestFlight" step
-          # would resolve `bundle` to Homebrew's Ruby — whose gem home never
-          # received the `bundle install` from the step above. That mismatch
-          # is exactly the "Could not find fastlane-… in locally installed
-          # gems" failure: gems land under setup-ruby's Ruby, then bundle
-          # exec runs under Homebrew's. xcodegen is only used here, so a
-          # local export is enough and keeps setup-ruby's Ruby active.
-          export PATH="$(brew --prefix)/bin:$PATH"
-          if ! command -v xcodegen &>/dev/null; then
-            echo "::error::xcodegen still not on PATH after install"
-            exit 1
-          fi
-          echo "XcodeGen ready: $(xcodegen --version)"
-          xcodegen generate
+      - name: Install XcodeGen
+        # The same pinned release PR Checks generates with, so the
+        # archived project matches the one it validated on this SHA.
+        uses: ./.github/actions/setup-xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
 
       - name: Stamp version + build number into bundle plists
         env:

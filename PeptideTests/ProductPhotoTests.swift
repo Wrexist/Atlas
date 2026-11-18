@@ -144,6 +144,33 @@ final class ProductPhotoTests: XCTestCase {
         XCTAssertNotNil(store.cached(photoURL))
     }
 
+    func test_largePhoto_isServedAtThumbnailSizeKeepingItsAspect() async throws {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let large = UIGraphicsImageRenderer(size: CGSize(width: 1200, height: 600), format: format).image { context in
+            UIColor.blue.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 1200, height: 600))
+        }
+        let png = try XCTUnwrap(large.pngData())
+        MockURLProtocol.handler = { request in
+            (HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, png)
+        }
+        let store = ProductPhotoStore(directory: directory, session: session) { _ in nil }
+
+        let photo = await store.photo(for: photoURL)
+        let image = try XCTUnwrap(photo?.image)
+
+        XCTAssertEqual(image.size.width * image.scale, ProductPhotoStore.maxPixelSize)
+        XCTAssertEqual(image.size.height * image.scale, ProductPhotoStore.maxPixelSize / 2)
+    }
+
+    func test_smallPhoto_isNotScaledUp() {
+        let photo = ProductPhotoStore.prepared(ProductPhoto(image: Self.packshot, isCutout: true))
+
+        XCTAssertEqual(photo.image.size.width * photo.image.scale, 8)
+        XCTAssertTrue(photo.isCutout)
+    }
+
     // MARK: - Helpers
 
     private static let packshot: UIImage = {

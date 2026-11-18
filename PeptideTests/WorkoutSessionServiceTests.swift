@@ -224,6 +224,19 @@ final class WorkoutSessionServiceTests: XCTestCase {
         )
     }
 
+    func test_closeStaleOrphans_closedOrphan_bumpsTrainingRevision() {
+        let saved = DataStore.current
+        let store = DataStore()
+        defer { DataStore.current = saved }
+        repo.upsertWorkoutSession(WorkoutSession(startedAt: Date().addingTimeInterval(-30 * 3600),
+                                                 finishedAt: nil, exercises: []))
+        let before = store.trainingRevision
+
+        service.closeStaleOrphans()
+
+        XCTAssertNotEqual(store.trainingRevision, before)
+    }
+
     func test_closeStaleOrphans_recentOrphan_isLeftOpen() {
         let active = service.startWorkout()
         let orphan = WorkoutSession(startedAt: Date().addingTimeInterval(-60), finishedAt: nil, exercises: [])

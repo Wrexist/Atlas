@@ -13,6 +13,16 @@ enum RecipeLibraryEngine {
     /// The bundled library, decoded once per process.
     static let bundled: [LibraryRecipe] = load()
 
+    /// Decodes the library (and the by-name index built from it) on a
+    /// background thread at launch. Otherwise the first reader is a view
+    /// body — a meal thumbnail or the recipe shelf — and the 330 KB
+    /// decode lands on the main thread mid-layout. `static let` is
+    /// `swift_once`-guarded, so a reader racing this waits for it rather
+    /// than decoding twice.
+    static func warmUp() async {
+        await Task.detached(priority: .utility) { _ = byName }.value
+    }
+
     static func load(bundle: Bundle = .main) -> [LibraryRecipe] {
         guard let url = bundle.url(forResource: "recipe-library", withExtension: "json") else {
             AppLog.database.error("RecipeLibraryEngine: recipe-library.json missing from bundle")

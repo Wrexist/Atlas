@@ -130,8 +130,9 @@ jobs:
     env:
       # Pinned so a tool upgrade is a reviewed diff, not a runner-image
       # or cache accident (.swiftlint.yml records one that changed the
-      # gate). Bump both here and the cache key follows.
-      XCODEGEN_VERSION: 2.46.0
+      # gate). Bump it here and the cache key follows. XcodeGen's pin
+      # lives only in .github/actions/setup-xcodegen, which every lane
+      # uses, so PR Checks and TestFlight cannot drift apart.
       SWIFTLINT_VERSION: 0.65.1
 
     steps:
@@ -144,14 +145,14 @@ jobs:
       - name: Verify Xcode version
         run: xcodebuild -version
 
-      - name: Cache pinned tools
-        # Keyed on the job's pinned versions, so bumping one is a recorded
-        # diff that refreshes the cache. The old Homebrew cache had a
-        # constant key and froze whatever version it first saw (B344).
+      - name: Cache SwiftLint
+        # Keyed on the pinned version, so bumping it is a recorded diff
+        # that refreshes the cache. The old Homebrew cache had a constant
+        # key and froze whatever version it first saw (B344).
         uses: actions/cache@v6
         with:
-          path: ~/.ci-tools
-          key: ci-tools-${{ runner.os }}-${{ runner.arch }}-xcodegen-${{ env.XCODEGEN_VERSION }}-swiftlint-${{ env.SWIFTLINT_VERSION }}
+          path: ~/.ci-tools/swiftlint
+          key: swiftlint-${{ runner.os }}-${{ runner.arch }}-${{ env.SWIFTLINT_VERSION }}
 
       - name: Restore DerivedData
         # Keyed per commit and restored from the newest prefix match.
@@ -164,23 +165,20 @@ jobs:
           key: derived-data-${{ runner.os }}-${{ github.sha }}
           restore-keys: derived-data-${{ runner.os }}-
 
-      - name: Install XcodeGen and SwiftLint
+      - name: Install XcodeGen
+        uses: ./.github/actions/setup-xcodegen
+
+      - name: Install SwiftLint
         run: |
-          TOOLS="$HOME/.ci-tools"
-          if [ ! -x "$TOOLS/xcodegen/bin/xcodegen" ]; then
-            mkdir -p "$TOOLS"
-            curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
-              "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
-            unzip -q -o "$RUNNER_TEMP/xcodegen.zip" -d "$TOOLS"
-          fi
-          if [ ! -x "$TOOLS/swiftlint/swiftlint" ]; then
+          TOOL="$HOME/.ci-tools/swiftlint"
+          if [ ! -x "$TOOL/swiftlint" ]; then
+            mkdir -p "$TOOL"
             curl -fsSL -o "$RUNNER_TEMP/swiftlint.zip" \
               "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/portable_swiftlint.zip"
-            unzip -q -o "$RUNNER_TEMP/swiftlint.zip" -d "$TOOLS/swiftlint"
+            unzip -q -o "$RUNNER_TEMP/swiftlint.zip" -d "$TOOL"
           fi
-          echo "$TOOLS/xcodegen/bin" >> "$GITHUB_PATH"
-          echo "$TOOLS/swiftlint" >> "$GITHUB_PATH"
-          echo "XcodeGen $("$TOOLS/xcodegen/bin/xcodegen" --version), SwiftLint $("$TOOLS/swiftlint/swiftlint" version)"
+          echo "$TOOL" >> "$GITHUB_PATH"
+          echo "SwiftLint $("$TOOL/swiftlint" version)"
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -242,12 +240,19 @@ jobs:
           #
           # The log feeds the concurrency-warning count below; pipefail
           # keeps a compile error failing this step through the tee.
+          #
+          # Built into its own uncached DerivedData: the compiler only
+          # warns about files it recompiles, so an incremental build off
+          # the restored cache would count the PR's files rather than the
+          # project, and the ratchet would pass or fail on cache freshness.
+          # The later Release, test and coverage steps keep the cache.
           set -o pipefail
           xcodebuild build \
             -project Peptide.xcodeproj \
             -scheme Peptide \
             -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/build-warnings" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
@@ -268,8 +273,12 @@ jobs:
           {
             echo "## Swift concurrency warnings"
             echo ""
-            echo "Unique warnings mentioning Sendable, actor-isolated, data race or nonisolated in the Debug app build: **${COUNT}**"
+            echo "Unique warnings mentioning Sendable, actor-isolated, data race or nonisolated in the full (uncached) Debug app build: **${COUNT}**"
           } >> "$GITHUB_STEP_SUMMARY" || true
+          # Report-only until a baseline from this full build is committed:
+          # main's earlier count (70) came from an incremental build, which
+          # under-counts, so gating on it would fail PRs for no regression.
+          # Add --require-baseline here once ci-baselines.json records it.
           python3 scripts/ratchet.py concurrency_warnings "$COUNT"
 
       - name: Build app (Release)
@@ -316,17 +325,14 @@ jobs:
         # goes red, fix the test or fix the code; muting the signal
         # again just recreates months of invisible rot.
         run: |
-          # Resolve whatever iPhone this runner actually has rather than
-          # naming one. A hardcoded `name:iPhone 16` is why test-compile
-          # died with "Unable to find a device matching the provided
-          # destination specifier" while a sibling job on another runner
-          # found one — the image's simulator list is not guaranteed.
-          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; ids=[x['udid'] for r in d.values() for x in r if 'iPhone' in x.get('name','')]; print(ids[0] if ids else '')")
-          if [ -z "$DEVICE_ID" ]; then
-            echo "::error::No iPhone simulator available on this runner image."
-            exit 1
-          fi
-          echo "Running unit tests on simulator $DEVICE_ID"
+          # Resolve an iPhone this runner actually has rather than naming
+          # one. A hardcoded `name:iPhone 16` is why test-compile died with
+          # "Unable to find a device matching the provided destination
+          # specifier" while a sibling job on another runner found one.
+          # The picker takes the newest iOS runtime and a pinned model
+          # first, so results don't hinge on simctl's listing order, and
+          # fails the step when there is no iPhone at all.
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 scripts/pick-simulator.py "iPhone 17 Pro" "iPhone 16 Pro")
 
           set -o pipefail
           xcodebuild test \
@@ -383,7 +389,7 @@ jobs:
             jq -r '.targets[]? | "| \(.name) | \((.lineCoverage // 0) * 100 | . * 10 | floor / 10)% |"' coverage.json 2>/dev/null || true
           } >> "$GITHUB_STEP_SUMMARY"
 
-          python3 scripts/ratchet.py line_coverage_pct "$PCT"
+          python3 scripts/ratchet.py --require-baseline line_coverage_pct "$PCT"
 
       - name: Print test failures
         # `always()`, not `failure()`. The Unit Tests step now fails the
@@ -425,11 +431,7 @@ jobs:
         env:
           UI_TEST_SCOPE: ${{ github.event_name == 'schedule' && 'PeptideUITests/PeptideUITests' || 'PeptideUITests' }}
         run: |
-          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; ids=[x['udid'] for r in d.values() for x in r if 'iPhone' in x.get('name','')]; print(ids[0] if ids else '')")
-          if [ -z "$DEVICE_ID" ]; then
-            echo "::error::No iPhone simulator available on this runner image."
-            exit 1
-          fi
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 scripts/pick-simulator.py "iPhone 17 Pro" "iPhone 16 Pro")
           xcodebuild test \
             -project Peptide.xcodeproj \
             -scheme Peptide \
@@ -500,9 +502,9 @@ jobs:
         # SwiftLint covers Swift-level problems; this covers design-system
         # ones — raw colour literals that skip light mode, fixed font sizes
         # that skip Dynamic Type, glass surfaces that stack two materials,
-        # sub-44pt tap targets, off-grid spacing. Errors fail the build;
-        # warnings are printed for review.
-        run: python3 scripts/design-lint.py --all
+        # sub-44pt tap targets, off-grid spacing. The codebase is at zero
+        # errors and zero warnings, and both counts are held there.
+        run: python3 scripts/design-lint.py --all --max-warnings 0
 
       - name: Checker self-tests
         # design-lint.py once went blind on a rule (rule_glow) without
@@ -515,6 +517,7 @@ jobs:
           python3 scripts/test_store_metadata.py
           python3 scripts/test_ratchet.py
           python3 scripts/test_check_localization.py
+          python3 scripts/test_pick_simulator.py
 
       - name: Copy claims vs source
         # Pins numeric marketing copy (exercise counts, compound counts,

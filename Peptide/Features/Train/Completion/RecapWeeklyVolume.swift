@@ -45,8 +45,15 @@ struct RecapWeeklyVolume: View {
     private func load() async {
         let library = ExerciseLibrary.shared
         await library.load()
-        let history = TrainOverviewView.finishedHistory(SwiftDataRepository.shared.loadAllWorkoutSessions())
-        let weekly = WeeklyMuscleHeatmap.frequencies(from: history, library: library, now: session.finishedAt ?? Date())
+        let now = session.finishedAt ?? Date()
+        // Only the week `frequencies` counts, not the lifetime history:
+        // this runs while the finish animation plays. The extra second
+        // keeps a session starting exactly at `now` in the half-open range.
+        let week = WeeklyMuscleHeatmap.windowStart(days: 7, now: now)..<now.addingTimeInterval(1)
+        let history = TrainOverviewView.finishedHistory(
+            SwiftDataRepository.shared.loadWorkoutSessions(startedBetween: week)
+        )
+        let weekly = WeeklyMuscleHeatmap.frequencies(from: history, library: library, now: now)
         let states = SessionBuilderEngine.states(recovery: [:], weekly: weekly)
         let trained = session.exercises
             .filter { !$0.completedWorkingSets.isEmpty }

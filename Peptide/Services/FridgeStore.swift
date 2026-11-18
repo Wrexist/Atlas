@@ -24,6 +24,9 @@ final class FridgeStore {
 
     @ObservationIgnored private let directory: URL?
     @ObservationIgnored private let photos = NSCache<NSString, UIImage>()
+    /// The latest PNG write per product. Each waits for the one before it,
+    /// so the newest photo is the one left on disk.
+    @ObservationIgnored private var photoWrites: [UUID: (token: UUID, task: Task<Void, Never>)] = [:]
 
     init(directory: URL? = FridgeStore.defaultDirectory) {
         self.directory = directory
@@ -53,14 +56,38 @@ final class FridgeStore {
         FridgeEngine.pantryKeys(items: items, products: productsByID, now: .now, calendar: .current)
     }
 
+    /// The cut-out, read from disk on a cache miss. For callers that need
+    /// it synchronously (the shelf's physics scene); view bodies use
+    /// `cachedPhoto(for:)` and `loadPhoto(for:)`.
     func photo(for product: FridgeProduct) -> UIImage? {
-        guard product.hasPhoto else { return nil }
-        let filename = Self.photoFilename(product.id)
-        if let cached = photos.object(forKey: filename as NSString) { return cached }
-        guard let url = directory?.appendingPathComponent(filename),
+        if let cached = cachedPhoto(for: product) { return cached }
+        guard product.hasPhoto, let url = photoURL(product.id),
               let image = UIImage(contentsOfFile: url.path) else { return nil }
-        photos.setObject(image, forKey: filename as NSString)
+        photos.setObject(image, forKey: Self.photoFilename(product.id) as NSString)
         return image
+    }
+
+    /// The cut-out if it is already in memory. Never touches the disk, so
+    /// a view body can call it on every render.
+    func cachedPhoto(for product: FridgeProduct) -> UIImage? {
+        guard product.hasPhoto else { return nil }
+        return photos.object(forKey: Self.photoFilename(product.id) as NSString)
+    }
+
+    /// Reads and decodes the cut-out off the main thread, then caches it,
+    /// so a full fridge's first render doesn't decode every PNG on main.
+    func loadPhoto(for product: FridgeProduct) async -> UIImage? {
+        if let cached = cachedPhoto(for: product) { return cached }
+        guard product.hasPhoto, let url = photoURL(product.id) else { return nil }
+        let image = await Task.detached(priority: .userInitiated) {
+            UIImage(contentsOfFile: url.path)?.preparingForDisplay()
+        }.value
+        if let image { photos.setObject(image, forKey: Self.photoFilename(product.id) as NSString) }
+        return image
+    }
+
+    private func photoURL(_ productID: UUID) -> URL? {
+        directory?.appendingPathComponent(Self.photoFilename(productID))
     }
 
     // MARK: - Adding
@@ -167,6 +194,7 @@ final class FridgeStore {
     func forget(_ productID: UUID) {
         items.removeAll { $0.productID == productID }
         products.removeAll { $0.id == productID }
+        photoWrites.removeValue(forKey: productID)?.task.cancel()
         deleteFile(Self.photoFilename(productID))
         changed()
     }
@@ -176,6 +204,8 @@ final class FridgeStore {
         products = []
         items = []
         photos.removeAllObjects()
+        photoWrites.values.forEach { $0.task.cancel() }
+        photoWrites = [:]
         if let directory { try? FileManager.default.removeItem(at: directory) }
         FridgeReminderScheduler.cancel()
     }
@@ -215,15 +245,59 @@ final class FridgeStore {
         }
     }
 
+    /// Caches the downscaled cut-out at once and encodes and writes the PNG
+    /// off the main actor, as `TableMomentStore.writeSticker` does. A write
+    /// that fails is reported back by `photoWriteFinished`.
     private func writePhoto(_ image: UIImage, for productID: UUID) -> Bool {
-        guard let directory, ensureDirectory() else { return false }
-        let filename = Self.photoFilename(productID)
+        guard let url = photoURL(productID), ensureDirectory() else { return false }
         let stored = Self.downscaled(image)
-        guard let data = stored.pngData(),
-              (try? data.write(to: directory.appendingPathComponent(filename), options: [.atomic, .completeFileProtection])) != nil
-        else { return false }
-        photos.setObject(stored, forKey: filename as NSString)
+        photos.setObject(stored, forKey: Self.photoFilename(productID) as NSString)
+        let previous = photoWrites[productID]?.task
+        let token = UUID()
+        let task = Task { [weak self] in
+            await previous?.value
+            guard !Task.isCancelled else { return }
+            let saved = await Task.detached(priority: .utility) { Self.writePNG(stored, to: url) }.value
+            self?.photoWriteFinished(productID, token: token, url: url, saved: saved)
+        }
+        photoWrites[productID] = (token, task)
         return true
+    }
+
+    /// A photo written for a product that was forgotten meanwhile is
+    /// removed. A failed write leaves `hasPhoto` matching what is on disk,
+    /// so a relaunch doesn't promise a photo that isn't there.
+    private func photoWriteFinished(_ productID: UUID, token: UUID, url: URL, saved: Bool) {
+        let isLatest = photoWrites[productID]?.token == token
+        if isLatest { photoWrites.removeValue(forKey: productID) }
+        guard let index = products.firstIndex(where: { $0.id == productID }) else {
+            if saved { try? FileManager.default.removeItem(at: url) }
+            return
+        }
+        guard !saved, isLatest, !Task.isCancelled else { return }
+        photos.removeObject(forKey: Self.photoFilename(productID) as NSString)
+        let onDisk = FileManager.default.fileExists(atPath: url.path)
+        guard products[index].hasPhoto != onDisk else { return }
+        products[index].hasPhoto = onDisk
+        changed()
+    }
+
+    nonisolated private static func writePNG(_ image: UIImage, to url: URL) -> Bool {
+        guard let data = image.pngData() else { return false }
+        do {
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
+            return true
+        } catch {
+            AppLog.persistence.error("Fridge photo not saved: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    /// Waits for every pending photo write. For tests.
+    func photoWritesSettled() async {
+        while let pending = photoWrites.values.first?.task {
+            await pending.value
+        }
     }
 
     private func deleteFile(_ filename: String) {

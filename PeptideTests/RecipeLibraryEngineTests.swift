@@ -330,4 +330,19 @@ final class RecipeLibraryEngineTests: XCTestCase {
         XCTAssertEqual(RecipeLibraryEngine.recipe(named: " \(recipe.name) ")?.id, recipe.id)
         XCTAssertNil(RecipeLibraryEngine.recipe(named: "Light Protein Cheese"))
     }
+
+    /// Smoke check only: `static let` is once-guarded by the language, so
+    /// a racing reader cannot cause a second decode and there is no count
+    /// to assert. This checks warm-up leaves the library and its by-name
+    /// index usable.
+    func test_warmUp_withAConcurrentReader_leavesLibraryAndIndexUsable() async throws {
+        async let warm: Void = RecipeLibraryEngine.warmUp()
+        let read = RecipeLibraryEngine.bundled.count
+        await warm
+
+        XCTAssertGreaterThan(read, 0)
+        XCTAssertEqual(RecipeLibraryEngine.bundled.count, read)
+        let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first)
+        XCTAssertEqual(RecipeLibraryEngine.recipe(named: recipe.name)?.id, recipe.id)
+    }
 }

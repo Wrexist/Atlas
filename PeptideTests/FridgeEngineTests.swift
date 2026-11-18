@@ -31,6 +31,30 @@ final class FridgeEngineTests: XCTestCase {
         FridgeItem(productID: product.id, place: .fridge, expiresOn: expiresOn, addedAt: date())
     }
 
+    // MARK: - Picker ingredients
+
+    func test_pickerIngredients_sharedKey_listedOnceSortedByLocaleName() {
+        let recipes = [
+            LibraryRecipe(
+                id: "a", name: "A", nameSV: "a", category: .dinner, mealPrep: true, minutes: 30, servings: 4,
+                fridgeDays: 4, tags: [],
+                ingredients: [ingredient("onion", name: "Onion", nameSV: "Lök"),
+                              ingredient("garlic", name: "Garlic", nameSV: "Vitlök")],
+                steps: [], stepsSV: [], calories: 500, proteinG: 40, carbsG: 50, fatG: 10, fiberG: 6,
+                micros: LibraryRecipe.Micros(sodiumMg: 0, potassiumMg: 0, ironMg: 0, calciumMg: 0, vitaminDUg: 0, vitaminB12Ug: 0),
+                image: "recipe-a"
+            ),
+            recipe("b", keys: ["onion"]),
+        ]
+
+        let english = FridgeEngine.pickerIngredients(from: recipes, locale: Locale(identifier: "en_US"))
+        let swedish = FridgeEngine.pickerIngredients(from: recipes, locale: Locale(identifier: "sv_SE"))
+
+        XCTAssertEqual(english.map(\.pantryKey), ["garlic", "onion"])
+        XCTAssertEqual(swedish.map(\.pantryKey), ["onion", "garlic"])
+        XCTAssertEqual(swedish.first?.displayName(locale: Locale(identifier: "sv_SE")), "Lök")
+    }
+
     // MARK: - Freshness
 
     func test_freshness_countsWholeDaysFromToday() {

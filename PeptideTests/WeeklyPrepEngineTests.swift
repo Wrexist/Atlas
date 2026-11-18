@@ -142,13 +142,15 @@ final class WeeklyPrepEngineTests: XCTestCase {
 
     func test_suggestWeek_bundledLibrary_givesTwoMealPrepBoxes() {
         let library = RecipeLibraryEngine.bundled
-        guard !library.isEmpty else { return }
+        XCTAssertFalse(library.isEmpty, "recipe-library.json failed to load")
         let week = WeeklyPrepEngine.suggestWeek(
             from: WeeklyPrepEngine.ranked(library, context: context(), recentRecipeIDs: [])
         )
         let recipes = byID(library)
         let picked = week.compactMap { recipes[$0.recipeID] }
-        XCTAssertEqual(picked.count, 2)
+        guard picked.count == 2 else {
+            return XCTFail("expected 2 meal-prep boxes, got \(picked.count)")
+        }
         XCTAssertTrue(picked.allSatisfy(\.mealPrep))
         XCTAssertNotEqual(WeeklyPrepEngine.mainProtein(of: picked[0]), WeeklyPrepEngine.mainProtein(of: picked[1]))
     }

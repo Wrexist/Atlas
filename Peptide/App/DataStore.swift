@@ -40,6 +40,16 @@ final class DataStore {
     /// It's deliberately *not* `@ObservationIgnored` — that's the whole point.
     private(set) var revision: Int = 0
 
+    /// Bumps only when stored workout history may have changed (finish,
+    /// edit, delete, restore, a pull from another device). Views that
+    /// derive from the full history key their `.task(id:)` off this, not
+    /// `revision`, so logging a meal or a dose doesn't re-decode years of
+    /// workouts.
+    private(set) var trainingRevision: Int = 0
+
+    /// `finishedWorkoutHistory()`'s result for one `trainingRevision`.
+    @ObservationIgnored private var finishedHistoryCache: (revision: Int, sessions: [WorkoutSession])?
+
     /// Non-fatal banner message for the UI. Set when persistence falls back to
     /// in-memory storage so the user knows changes won't survive relaunch.
     var lastError: String?
@@ -1990,6 +2000,24 @@ final class DataStore {
         recordWorkoutFinished(detectedPRCount: 0)
     }
 
+    /// Every finished workout, newest first, decoded once per
+    /// `trainingRevision` rather than on every Train-tab appear.
+    func finishedWorkoutHistory() -> [WorkoutSession] {
+        if let finishedHistoryCache, finishedHistoryCache.revision == trainingRevision {
+            return finishedHistoryCache.sessions
+        }
+        let sessions = TrainOverviewView.finishedHistory(repo.loadAllWorkoutSessions())
+        finishedHistoryCache = (trainingRevision, sessions)
+        return sessions
+    }
+
+    /// Call after any write to stored workout sessions that bypasses the
+    /// `protocols` / `entries` / `profile` observers.
+    func workoutHistoryDidChange() {
+        revision &+= 1
+        trainingRevision &+= 1
+    }
+
     /// Deletes a workout by ID from the structured store. Same plumbing
     /// as `WorkoutSessionService.discardWorkout` for the active path —
     /// here it targets the historical row directly.
@@ -2012,7 +2040,7 @@ final class DataStore {
         // Same reason as `recordWorkoutFinished`: a repo-level write is
         // invisible to the property observers, so derived snapshots need
         // telling explicitly or a deleted workout lingers on Today.
-        revision &+= 1
+        workoutHistoryDidChange()
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
@@ -2034,7 +2062,7 @@ final class DataStore {
         // until some unrelated mutation happened to bump it. Bumped before
         // the ephemeral guard: screenshot mode still has to redraw.
         cacheVersion &+= 1
-        revision &+= 1
+        workoutHistoryDidChange()
         guard !isEphemeral, !AchievementService.shared.needsSilentSeed else { return }
         AchievementService.shared.checkTrainingAchievements(
             workoutCount: repo.workoutSessionCount(),
@@ -2103,7 +2131,7 @@ final class DataStore {
         PRDetectionEngine.shared.recompute(exerciseIDs: exerciseIDs)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
-        revision &+= 1
+        workoutHistoryDidChange()
         refreshTrainingGlanceables()
     }
 
@@ -3171,6 +3199,8 @@ final class DataStore {
     /// returns nil for that resource. Replaces unsaved in-memory edits;
     /// user-triggered refreshes go through `refreshFromStore`.
     func reloadFromDisk() {
+        // A pull can bring workouts finished, edited or deleted elsewhere.
+        workoutHistoryDidChange()
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
         // full-table decode would jank the refresh gesture), the tail
@@ -3337,7 +3367,7 @@ final class DataStore {
             // didSet bumps, same as recordWorkoutFinished — bump so
             // Train/Today snapshots recompute against the restored data.
             cacheVersion &+= 1
-            revision &+= 1
+            workoutHistoryDidChange()
         }
 
         // A failed commit leaves the restored state dirty in memory, so
