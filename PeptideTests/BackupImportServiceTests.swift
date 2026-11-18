@@ -377,6 +377,31 @@ final class BackupImportServiceTests: XCTestCase {
         XCTAssertEqual(SwiftDataRepository.shared.loadFasts().map(\.id), [live.id])
     }
 
+    func test_replace_withCarriedFasts_dropsUncarriedLiveFast() throws {
+        let dataStore = makeDataStore()
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let carried = FastSession(
+            startedAt: start,
+            endedAt: start.addingTimeInterval(16 * 3600),
+            targetHours: 16,
+            plan: .sixteen
+        )
+        let live = FastSession(startedAt: start.addingTimeInterval(3 * 86_400), targetHours: 16, plan: .sixteen)
+        SwiftDataRepository.shared.upsertFast(live)
+        let data = try XCTUnwrap(ExportService.shared.exportFullBackup(
+            protocols: [],
+            entries: [],
+            profile: makeProfile(named: "Snapshot"),
+            fasts: [carried]
+        ))
+        let (backup, _) = try BackupImportService.validate(data)
+
+        try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertEqual(SwiftDataRepository.shared.loadFasts().map(\.id), [carried.id])
+        XCTAssertNil(FastingStore.shared.active)
+    }
+
     // MARK: - Helpers
 
     private func makeDataStore() -> DataStore {

@@ -422,12 +422,20 @@ enum BackupImportService {
 
     /// Fasting history lives in its own store, outside `applyImport`.
     /// `nil` is a backup from before fasts were carried: the live fasts
-    /// stay as they are. Replace writes every carried fast; Merge keeps
-    /// the current one on an id conflict, like every other collection.
+    /// stay as they are. Replace deletes the fasts the backup does not
+    /// carry and writes every carried one, so a live fast cannot survive
+    /// next to the backup's; Merge keeps the current one on an id
+    /// conflict, like every other collection.
     private static func restoreFasts(_ fasts: [FastSession]?, strategy: Strategy) {
         guard let fasts else { return }
         let repository = SwiftDataRepository.shared
         let currentIDs = Set(repository.loadFasts().map(\.id))
+        if strategy == .replace {
+            let carriedIDs = Set(fasts.map(\.id))
+            for id in currentIDs.subtracting(carriedIDs) {
+                repository.deleteFast(id: id)
+            }
+        }
         for fast in fasts where strategy == .replace || !currentIDs.contains(fast.id) {
             repository.upsertFast(fast)
         }
