@@ -204,4 +204,3 @@ final class FridgeEngineTests: XCTestCase {
         XCTAssertEqual(london.component(.hour, from: migrated), 12)
     }
 }
-

@@ -419,4 +419,3 @@ final class WeeklyPrepStoreTests: XCTestCase {
         XCTAssertEqual(store.plans.count, 1)
     }
 }
-
