@@ -74,12 +74,6 @@ jobs:
         # default was never verified to exist on the runner's Xcode — and an
         # empty `inputs.simulator` would produce `name=,OS=latest`. Resolve a
         # real device and fail loudly with the device list if there is none.
-        #
-        # The device-name extraction below matches the trailing UDID in
-        # parens rather than truncating at the first "(" — several real
-        # device names (e.g. "iPhone SE (3rd generation)") have their own
-        # parens before the UDID, and cutting at the first one silently
-        # produced a bogus "iPhone SE" that no destination matches.
         # Resolved to a UDID, like pr-checks' unit-test step: a name plus
         # `OS=latest` still exits 70 whenever the newest installed runtime
         # is not the Xcode SDK's version.
@@ -89,27 +83,11 @@ jobs:
         run: |
           # The fallback is a named model on its newest iOS runtime, not
           # whichever iPhone the list happens to end with, so captures stay
-          # comparable from run to run.
-          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "
-          import json, os, re, sys
-          def version(runtime):
-              return tuple(int(n) for n in re.findall(r'\d+', runtime.rsplit('.', 1)[-1]))
-          runtimes = sorted(json.load(sys.stdin)['devices'].items(), key=lambda kv: version(kv[0]), reverse=True)
-          devs = [x for rt, r in runtimes if '.iOS-' in rt for x in r if 'iPhone' in x.get('name', '')]
-          for name in [os.environ.get('WANT'), 'iPhone 17 Pro', 'iPhone 16 Pro']:
-              pick = next((x for x in devs if name and x['name'] == name), None)
-              if pick:
-                  break
-          else:
-              pick = (sorted(devs, key=lambda x: x['name'])[-1:] or [{}])[0]
-              print(f'::warning::No pinned iPhone model found; using {pick.get(\"name\")}.', file=sys.stderr)
-          print(pick.get('udid', ''))
-          ")
-          if [ -z "$DEVICE_ID" ]; then
-            echo "::error::No iPhone simulator available on this runner."
+          # comparable from run to run. pr-checks picks the same way.
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 scripts/pick-simulator.py "$WANT" "iPhone 17 Pro" "iPhone 16 Pro") || {
             xcrun simctl list devices available
             exit 1
-          fi
+          }
           echo "Using simulator $DEVICE_ID"
           echo "id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
 
