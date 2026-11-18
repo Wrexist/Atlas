@@ -1736,31 +1736,11 @@ final class DataStore {
     /// stays off the common render path.
     var habitStreakAtRisk: Bool {
         guard streakFreezeAvailable else { return false }
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today),
-              let dayBefore = calendar.date(byAdding: .day, value: -2, to: today)
-        else { return false }
-        if StreakFreezeService.isFrozen(yesterday, in: profile) { return false }
-
-        let entries = profile.habitEntries
-        let frozen = profile.streakFreezeDays
-        return activeHabits.contains { habit in
-            guard habit.schedule.isDue(on: yesterday, calendar: calendar) else { return false }
-            let target = habit.targetValue ?? 1
-            let doneYesterday = entries.contains {
-                $0.habitId == habit.id
-                    && calendar.isDate($0.date, inSameDayAs: yesterday)
-                    && $0.value >= target
-            }
-            if doneYesterday { return false }
-            // Only prompt when there was a real streak (≥2) running into the
-            // gap, computed as of the day before yesterday.
-            let priorStreak = HabitsService.summary(
-                for: habit, entries: entries, frozenDayKeys: frozen, on: dayBefore
-            ).currentStreak
-            return priorStreak >= 2
-        }
+        return HabitsService.streakAtRisk(
+            habits: activeHabits,
+            entries: profile.habitEntries,
+            frozenDayKeys: profile.streakFreezeDays
+        )
     }
 
     // MARK: - Recipes
@@ -2247,8 +2227,7 @@ final class DataStore {
 
     // MARK: - Habits
 
-    /// All non-archived habits, ordered by their `sortIndex` so the
-    /// user's drag-to-reorder order survives a relaunch.
+    /// All non-archived habits, ordered by their `sortIndex`.
     var activeHabits: [Habit] {
         profile.habits
             .filter { !$0.archived }
@@ -2258,8 +2237,7 @@ final class DataStore {
     func addHabit(_ habit: Habit) {
         var copy = habit
         if copy.sortIndex == 0 {
-            // Append to the bottom by default — drag-reorder writes
-            // a fresh index later.
+            // Append to the bottom by default.
             copy.sortIndex = (profile.habits.map(\.sortIndex).max() ?? 0) + 1
         }
         profile.habits.append(copy)
@@ -2282,15 +2260,6 @@ final class DataStore {
         profile.habitEntries.removeAll { $0.habitId == id }
         save()
         Task { await rescheduleHabitReminders() }
-    }
-
-    func reorderHabits(_ ordered: [Habit]) {
-        for (index, habit) in ordered.enumerated() {
-            if let i = profile.habits.firstIndex(where: { $0.id == habit.id }) {
-                profile.habits[i].sortIndex = index
-            }
-        }
-        save()
     }
 
     /// Toggle today's completion for a boolean habit, or bump the
@@ -2338,6 +2307,17 @@ final class DataStore {
         registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
         // Ticking a habit off drops today's reminder; un-ticking restores it.
         Task { await rescheduleHabitReminders() }
+    }
+
+    /// Takes one off a countable habit's count for the day, so an
+    /// over-tap can be corrected without the tap-past-target reset to zero.
+    func removeOneHabitCount(habitId: UUID, on date: Date = Date()) {
+        let current = profile.habitEntries
+            .filter { $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: date) }
+            .map(\.value)
+            .max() ?? 0
+        guard current > 0 else { return }
+        setHabitEntry(habitId: habitId, date: date, value: current - 1)
     }
 
     /// Set the exact value for a given day. Use for countable habits
@@ -2421,10 +2401,11 @@ final class DataStore {
         return MomentumEngine.snapshot(score: profile.atlasScore, todayEarned: earnedToday)
     }
 
-    /// Best all-time streak across active habits — feeds the habit-streak
+    /// Best all-time day streak across active habits — feeds the habit-streak
     /// achievements (which unlock once, so the all-time best is what counts).
+    /// Weekly habits count weeks, so they stay out of this day count.
     var bestHabitStreak: Int {
-        activeHabits.reduce(0) { best, habit in
+        activeHabits.filter { !$0.schedule.countsStreakInWeeks }.reduce(0) { best, habit in
             max(best, HabitsService.summary(for: habit, entries: profile.habitEntries, frozenDayKeys: profile.streakFreezeDays).bestStreak)
         }
     }
@@ -3110,11 +3091,10 @@ final class DataStore {
             bestHabitStreak: self.bestHabitStreak,
             totalCompletions: self.totalHabitCompletions,
             perfectDayToday: self.allHabitsDoneToday(),
-            perfectWeek: (HabitsService.completionRate(
+            perfectWeek: HabitsService.isPerfectWeek(
                 habits: self.activeHabits,
-                entries: self.profile.habitEntries,
-                days: 7
-            ) ?? 0) >= 1.0
+                entries: self.profile.habitEntries
+            )
         )
     }
 

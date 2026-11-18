@@ -131,10 +131,10 @@ final class WeeklyCheckInEngineTests: XCTestCase {
     func test_nutrition_adherence_countsDaysWithinTenPercent() throws {
         let nutrition = try XCTUnwrap(build(
             consumption: [
-                eat(-3, kcal: 2000, protein: 150),
-                eat(-2, kcal: 2150, protein: 140),
-                eat(-1, kcal: 2300, protein: 100),
-                eat(0, kcal: 1700, protein: 160),
+                eat(-4, kcal: 2000, protein: 150),
+                eat(-3, kcal: 2150, protein: 140),
+                eat(-2, kcal: 2300, protein: 100),
+                eat(-1, kcal: 1700, protein: 160),
             ],
             targets: targets
         )?.nutrition)
@@ -151,6 +151,17 @@ final class WeeklyCheckInEngineTests: XCTestCase {
         )?.nutrition)
         XCTAssertEqual(nutrition.loggedDays, 1)
         XCTAssertEqual(nutrition.averageKcal, 1800)
+    }
+
+    func test_nutrition_partialToday_isLeftOut() throws {
+        let nutrition = try XCTUnwrap(build(
+            consumption: [eat(-2, kcal: 2000, protein: 150), eat(-1, kcal: 2000, protein: 150), eat(0, kcal: 400, protein: 20)],
+            targets: targets
+        )?.nutrition)
+        XCTAssertEqual(nutrition.loggedDays, 2)
+        XCTAssertEqual(nutrition.averageKcal, 2000)
+        XCTAssertEqual(try XCTUnwrap(nutrition.kcalAdherence), 1.0, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(nutrition.proteinAdherence), 1.0, accuracy: 0.001)
     }
 
     func test_nutrition_noTargets_hasNoAdherence() throws {
@@ -229,6 +240,18 @@ final class WeeklyCheckInEngineTests: XCTestCase {
         let weights = [weigh(-12, 81), weigh(-10, 81), weigh(-8, 81), weigh(-5, 80), weigh(-3, 80), weigh(-1, 80)]
         let checkIn = build(weights: weights, consumption: onTargetWeek, targets: targets, goalRaw: "loseFat")
         XCTAssertEqual(checkIn?.suggestion, .losingFast(kcal: 150))
+    }
+
+    func test_suggestion_cutGainingWeight_eatsLess() {
+        let weights = [weigh(-12, 80), weigh(-10, 80), weigh(-8, 80), weigh(-5, 80.5), weigh(-3, 80.5), weigh(-1, 80.5)]
+        let checkIn = build(weights: weights, consumption: onTargetWeek, targets: targets, goalRaw: "loseFat")
+        XCTAssertEqual(checkIn?.suggestion, .gainingOnCut(kcal: 150))
+    }
+
+    func test_suggestion_bulkLosingWeight_eatsMore() {
+        let weights = [weigh(-12, 80), weigh(-10, 80), weigh(-8, 80), weigh(-5, 79.5), weigh(-3, 79.5), weigh(-1, 79.5)]
+        let checkIn = build(weights: weights, consumption: onTargetWeek, targets: targets, goalRaw: "buildMuscle")
+        XCTAssertEqual(checkIn?.suggestion, .losingOnBulk(kcal: 150))
     }
 
     func test_suggestion_lowProtein_prioritizesProtein() {

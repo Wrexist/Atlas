@@ -13,14 +13,21 @@ final class HabitsServiceTests: XCTestCase {
         calendar.startOfDay(for: calendar.date(byAdding: .day, value: -offset, to: base) ?? base)
     }
 
-    private func makeHabit(target: Int? = nil, schedule: HabitSchedule = .daily) -> Habit {
+    /// Created long ago by default, so days in a test window are never
+    /// before the habit existed.
+    private func makeHabit(
+        target: Int? = nil,
+        schedule: HabitSchedule = .daily,
+        createdAt: Date = .distantPast
+    ) -> Habit {
         Habit(
             id: UUID(),
             name: "Test",
             iconSymbol: "checkmark.circle.fill",
             tintHex: 0x5BC489,
             schedule: schedule,
-            targetValue: target
+            targetValue: target,
+            createdAt: createdAt
         )
     }
 
@@ -419,7 +426,7 @@ final class HabitsServiceTests: XCTestCase {
     }
 
     private func weeklySummary(_ habit: Habit, doneOn days: [Int], on today: Int) -> HabitsService.Summary {
-        let entries = days.map { HabitEntry(habitId: habit.id, date: october($0), value: 1) }
+        let entries = days.map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
         return HabitsService.summary(for: habit, entries: entries, on: october(today), calendar: mondayFirstUTC)
     }
 
@@ -475,5 +482,102 @@ final class HabitsServiceTests: XCTestCase {
         let parts = label.components(separatedBy: ", ")
         XCTAssertEqual(parts.count, 2)
         XCTAssertNotEqual(parts[0], parts[1], "Tue/Thu must not both read 'T'")
+    }
+
+    // MARK: - Other habits' entries
+
+    func test_weeklyProgress_ignoresOtherHabitsEntries() {
+        let gym = makeHabit(schedule: .timesPerWeek(3))
+        let other = makeHabit()
+        let entries = [19, 20, 21].map { HabitEntry(habitId: other.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
+            + [HabitEntry(habitId: gym.id, date: october(19), value: 1, calendar: mondayFirstUTC)]
+        let progress = HabitsService.weeklyProgress(
+            for: gym, entries: entries, on: october(21), calendar: mondayFirstUTC
+        )
+        XCTAssertEqual(progress?.count, 1)
+        XCTAssertEqual(progress?.target, 3)
+    }
+
+    // MARK: - Days before the habit existed
+
+    func test_completionRate_ignoresDaysBeforeCreation() throws {
+        let habit = makeHabit(createdAt: october(17))
+        let entries = (17...21).map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
+        let rate = HabitsService.completionRate(
+            habits: [habit], entries: entries, days: 30, endingOn: october(21), calendar: mondayFirstUTC
+        )
+        XCTAssertEqual(try XCTUnwrap(rate), 1.0, accuracy: 0.0001)
+    }
+
+    func test_completionRate_windowBeforeCreation_isNil() {
+        let habit = makeHabit(createdAt: october(17))
+        XCTAssertNil(HabitsService.completionRate(
+            habits: [habit], entries: [], days: 7, endingOn: october(16), calendar: mondayFirstUTC
+        ))
+    }
+
+    func test_heatmap_daysBeforeCreation_areNotDue() {
+        let habit = makeHabit(createdAt: october(19))
+        let days = HabitsService.heatmap(
+            for: habit, entries: [], endDate: october(21), dayCount: 5, calendar: mondayFirstUTC
+        )
+        XCTAssertEqual(days.map { $0.status }, [.notDue, .notDue, .due, .due, .due])
+    }
+
+    // MARK: - Perfect week
+
+    func test_isPerfectWeek_oneDayOldHabitDoneToday_isFalse() {
+        let habit = makeHabit(createdAt: october(21))
+        let entries = [HabitEntry(habitId: habit.id, date: october(21), value: 1, calendar: mondayFirstUTC)]
+        XCTAssertFalse(HabitsService.isPerfectWeek(
+            habits: [habit], entries: entries, endingOn: october(21), calendar: mondayFirstUTC
+        ))
+    }
+
+    func test_isPerfectWeek_weekOldHabitDoneEveryDay_isTrue() {
+        let habit = makeHabit(createdAt: october(15))
+        let entries = (15...21).map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
+        XCTAssertTrue(HabitsService.isPerfectWeek(
+            habits: [habit], entries: entries, endingOn: october(21), calendar: mondayFirstUTC
+        ))
+    }
+
+    func test_isPerfectWeek_weekOldHabitMissedOneDay_isFalse() {
+        let habit = makeHabit(createdAt: october(15))
+        let entries = [15, 16, 17, 19, 20, 21].map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
+        XCTAssertFalse(HabitsService.isPerfectWeek(
+            habits: [habit], entries: entries, endingOn: october(21), calendar: mondayFirstUTC
+        ))
+    }
+
+    // MARK: - Streak at risk
+
+    private func streakAtRisk(_ habit: Habit, doneOn days: [Int], on today: Int) -> Bool {
+        let entries = days.map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
+        return HabitsService.streakAtRisk(
+            habits: [habit], entries: entries, frozenDayKeys: [], on: october(today), calendar: mondayFirstUTC
+        )
+    }
+
+    func test_streakAtRisk_dailyStreakMissedYesterday_isTrue() {
+        XCTAssertTrue(streakAtRisk(makeHabit(), doneOn: [15, 16, 17], on: 19))
+    }
+
+    func test_streakAtRisk_yesterdayFrozen_isFalse() {
+        let habit = makeHabit()
+        let entries = [15, 16, 17].map { HabitEntry(habitId: habit.id, date: october($0), value: 1, calendar: mondayFirstUTC) }
+        let frozen: Set<String> = [StreakFreezeService.dayKey(for: october(18), calendar: mondayFirstUTC)]
+        XCTAssertFalse(HabitsService.streakAtRisk(
+            habits: [habit], entries: entries, frozenDayKeys: frozen, on: october(19), calendar: mondayFirstUTC
+        ))
+    }
+
+    func test_streakAtRisk_lastTwoDueDaysMissed_isFalse() {
+        XCTAssertFalse(streakAtRisk(makeHabit(), doneOn: [14, 15, 16], on: 19))
+    }
+
+    func test_streakAtRisk_ignoresTimesPerWeekRestDay() {
+        let habit = makeHabit(schedule: .timesPerWeek(3))
+        XCTAssertFalse(streakAtRisk(habit, doneOn: [5, 7, 9, 12, 14, 16], on: 20))
     }
 }

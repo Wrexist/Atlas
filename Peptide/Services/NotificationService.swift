@@ -115,14 +115,28 @@ final class NotificationService {
     /// thread-safe. Namespaced under `adHocIDPrefix` so these requests are
     /// at least visible under one shared prefix instead of disappearing
     /// into ad hoc call sites.
-    nonisolated static func scheduleOneShot(id: String, title: String, body: String, after seconds: TimeInterval) {
+    /// `deeplink` routes a tap to the screen the alert is about, like the
+    /// calendar reminders' `userInfo["deeplink"]`.
+    nonisolated static func scheduleOneShot(
+        id: String,
+        title: String,
+        body: String,
+        after seconds: TimeInterval,
+        deeplink: String? = nil
+    ) {
+        let content = oneShotContent(title: title, body: body, deeplink: deeplink)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, seconds), repeats: false)
+        let request = UNNotificationRequest(identifier: "\(adHocIDPrefix)\(id)", content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request) { _ in /* best effort */ }
+    }
+
+    nonisolated static func oneShotContent(title: String, body: String, deeplink: String?) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, seconds), repeats: false)
-        let request = UNNotificationRequest(identifier: "\(adHocIDPrefix)\(id)", content: content, trigger: trigger)
-        UNUserNotificationCenter.current().add(request) { _ in /* best effort */ }
+        if let deeplink { content.userInfo = ["deeplink": deeplink] }
+        return content
     }
 
     /// Cancels a request previously scheduled via `scheduleOneShot(id:...)`,

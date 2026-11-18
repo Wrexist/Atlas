@@ -25,9 +25,10 @@ enum WeeklySummaryEngine {
     /// to write a meaningful summary; the calling service treats
     /// nil as "skip this week, no notification".
     ///
-    /// `hrvSeries`, `rhrSeries`, `sleepSeries` are optional —
-    /// pass `nil` (or empty arrays) when the user hasn't connected
-    /// Apple Health, and the biometrics block is suppressed.
+    /// `hrvSeries` is optional — pass an empty array when the user
+    /// hasn't connected Apple Health, and the biometrics block is
+    /// suppressed. The AI consent covers weekly totals and the HRV
+    /// trend only, so no other HealthKit series goes in here.
     /// `workoutDates` are training-session start dates; they count
     /// toward the active-day gate and fill the training block.
     static func build(
@@ -37,15 +38,17 @@ enum WeeklySummaryEngine {
         workoutDates: [Date] = [],
         referenceDate: Date = Date(),
         hrvSeries: [(date: Date, value: Double)] = [],
-        rhrSeries: [(date: Date, value: Double)] = [],
-        sleepSeries: [(date: Date, value: Double)] = [],
         topInsightCategory: String? = nil
     ) -> WeeklyAggregate? {
         let calendar = Self.isoCalendar
         guard let weekRange = weekRange(containing: referenceDate, calendar: calendar)
         else { return nil }
 
-        let weekEntries = entries.filter { weekRange.contains($0.date) }
+        // A dose still ahead today isn't missed yet; counting it would
+        // pull a morning recap's adherence down until the evening.
+        let weekEntries = entries.filter {
+            weekRange.contains($0.date) && ($0.completed || $0.date <= referenceDate)
+        }
 
         // Active day count gates the whole summary. Protocols are
         // optional, so any logged activity counts — a week of training,
@@ -105,8 +108,6 @@ enum WeeklySummaryEngine {
 
         let biometrics = computeBiometrics(
             hrv: hrvSeries,
-            rhr: rhrSeries,
-            sleep: sleepSeries,
             range: weekRange,
             calendar: calendar
         )
@@ -259,19 +260,13 @@ enum WeeklySummaryEngine {
 
     private static func computeBiometrics(
         hrv: [(date: Date, value: Double)],
-        rhr: [(date: Date, value: Double)],
-        sleep: [(date: Date, value: Double)],
         range: Range<Date>,
         calendar: Calendar
     ) -> WeeklyAggregate.Biometrics? {
         let weekHRV = hrv.filter { range.contains($0.date) }
-        let weekRHR = rhr.filter { range.contains($0.date) }
-        let weekSleep = sleep.filter { range.contains($0.date) }
-        if weekHRV.isEmpty && weekRHR.isEmpty && weekSleep.isEmpty { return nil }
+        if weekHRV.isEmpty { return nil }
 
         let hrvAvg = average(weekHRV.map(\.value)).map { Int($0.rounded()) }
-        let rhrAvg = average(weekRHR.map(\.value)).map { Int($0.rounded()) }
-        let sleepAvg = average(weekSleep.map(\.value))
 
         let priorRange = priorWeekRange(of: range, calendar: calendar)
         let priorHRV = hrv.filter { priorRange.contains($0.date) }
@@ -283,9 +278,7 @@ enum WeeklySummaryEngine {
 
         return WeeklyAggregate.Biometrics(
             hrvAvg: hrvAvg,
-            hrvDelta: hrvDelta,
-            rhrAvg: rhrAvg,
-            sleepHoursAvg: sleepAvg
+            hrvDelta: hrvDelta
         )
     }
 

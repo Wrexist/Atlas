@@ -4904,7 +4904,57 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$lld dagars svit · nästa: %2$@"
+            "value": "%#@streak@ · nästa: %2$@"
+          },
+          "substitutions": {
+            "streak": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dags svit"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dagars svit"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@streak@ · next: %2$@"
+          },
+          "substitutions": {
+            "streak": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg-day streak"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg-day streak"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -52432,6 +52482,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "Idag, %@"
+          }
+        }
+      }
+    },
+    "On-device": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "På enheten"
+          }
+        }
+      }
+    },
+    "On-device summary (AI data sharing is off)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sammanfattning på enheten (datadelning med AI är av)"
+          }
+        }
+      }
+    },
+    "Remove one": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta bort en"
+          }
+        }
+      }
+    },
+    "Started": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startade"
+          }
+        }
+      }
+    },
+    "Weight went down this week: add %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikten gick ner den här veckan: lägg till %lld kcal per dag"
+          }
+        }
+      }
+    },
+    "Weight went up this week: cut %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikten gick upp den här veckan: dra ner %lld kcal per dag"
           }
         }
       }

@@ -335,7 +335,8 @@ test('test_weeklySummary_rawAverages_reachModelRoundedToOneDecimal', async (t) =
   assert.equal(sent.outcomes.sleepQualityAvg, 4.3);
   assert.equal(sent.outcomes.sleepAvg, undefined);
   assert.equal(sent.outcomes.compositeDelta, 0.1);
-  assert.equal(sent.biometrics.sleepHoursAvg, 7.4);
+  // Hours slept isn't part of the consented aggregate, so it's dropped.
+  assert.equal(sent.biometrics.sleepHoursAvg, undefined);
   assert.match(JSON.parse(upstream[0][1].body).system, /1-5 self-ratings/);
 });
 

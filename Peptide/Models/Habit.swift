@@ -30,7 +30,7 @@ struct Habit: Codable, Identifiable, Hashable, Sendable {
     var reminderTime: Date?
     var category: HabitCategory
     let createdAt: Date
-    /// Drag-to-reorder sort key. Smaller values sort first.
+    /// List order. Smaller values sort first.
     var sortIndex: Int
     /// Soft-delete flag. Archived habits stay in storage so a
     /// 321-day streak isn't erased the moment the user taps Delete —

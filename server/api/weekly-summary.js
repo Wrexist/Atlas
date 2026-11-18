@@ -63,13 +63,13 @@ const SYSTEM_PROMPT = [
   "• If a stat or section is missing or marked null, don't mention it — never invent data. The aggregate leaves out anything the user doesn't track.",
   "• No compound names, dosages, or Protocol specifics — the aggregate doesn't carry them, and you must not guess.",
   "• Use the numbers provided verbatim. Percentages arrive as whole numbers: if pctPercent is 86, say 86 %, not \"strong\" or \"most\".",
-  "• Check-in averages (energyAvg, sleepQualityAvg, recoveryAvg, moodAvg, focusAvg) are 1-5 self-ratings, not hours or percentages. sleepQualityAvg is how well the user rated their sleep; biometrics.sleepHoursAvg is hours slept.",
+  "• Check-in averages (energyAvg, sleepQualityAvg, recoveryAvg, moodAvg, focusAvg) are 1-5 self-ratings, not hours or percentages. sleepQualityAvg is how well the user rated their sleep, not hours slept.",
   "• Write in the language named after the aggregate.",
   "• Never use emoji.",
   "",
   "Structure:",
   "1. One sentence opener: how the week went overall.",
-  "2. 2-3 specific observations grounded in the numbers present. Lead with training days, nutrition, sleep, HRV and resting heart rate, and check-in averages; mention Protocol adherence and streak only when they're present.",
+  "2. 2-3 specific observations grounded in the numbers present. Lead with training days, nutrition, HRV, and check-in averages such as sleep; mention Protocol adherence and streak only when they're present.",
   "3. One forward-looking line for next week — encouraging, not prescriptive.",
   "",
   "Output: plain text, no markdown, no bullet points, no headings. The iOS card renders the paragraphs as-is."
@@ -160,8 +160,7 @@ function sanitiseAggregate(agg) {
   if (o && typeof o === 'object') {
     clean.outcomes = {
       energyAvg: asRounded(o.energyAvg) ?? 0,
-      // Renamed so the model can't read it as hours next to
-      // biometrics.sleepHoursAvg.
+      // Renamed so the model can't read a 1-5 rating as hours slept.
       sleepQualityAvg: asRounded(o.sleepAvg) ?? 0,
       recoveryAvg: asRounded(o.recoveryAvg) ?? 0,
       moodAvg: asRounded(o.moodAvg) ?? 0,
@@ -187,8 +186,6 @@ function sanitiseAggregate(agg) {
     const bio = {};
     if (asInt(b.hrvAvg) !== undefined) bio.hrvAvg = asInt(b.hrvAvg);
     if (asInt(b.hrvDelta) !== undefined) bio.hrvDelta = asInt(b.hrvDelta);
-    if (asInt(b.rhrAvg) !== undefined) bio.rhrAvg = asInt(b.rhrAvg);
-    if (asRounded(b.sleepHoursAvg) !== undefined) bio.sleepHoursAvg = asRounded(b.sleepHoursAvg);
     clean.biometrics = bio;
   }
 

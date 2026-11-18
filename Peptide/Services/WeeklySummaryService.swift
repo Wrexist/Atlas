@@ -85,8 +85,6 @@ final class WeeklySummaryService {
         entries: [ProtocolEntry],
         workoutDates: [Date] = [],
         hrvSeries: [(date: Date, value: Double)] = [],
-        rhrSeries: [(date: Date, value: Double)] = [],
-        sleepSeries: [(date: Date, value: Double)] = [],
         topInsightCategory: String? = nil,
         referenceDate: Date = Date(),
         forceRefresh: Bool = false
@@ -102,8 +100,6 @@ final class WeeklySummaryService {
             workoutDates: workoutDates,
             referenceDate: referenceDate,
             hrvSeries: hrvSeries,
-            rhrSeries: rhrSeries,
-            sleepSeries: sleepSeries,
             topInsightCategory: topInsightCategory
         ) else {
             throw GenerationError.insufficientData

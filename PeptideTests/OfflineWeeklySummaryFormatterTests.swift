@@ -24,7 +24,7 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
             streak: .init(current: 0, best: 0),
             outcomes: outcomes,
             nutrition: nutrition,
-            biometrics: hrvDelta.map { WeeklyAggregate.Biometrics(hrvAvg: 60, hrvDelta: $0, rhrAvg: nil, sleepHoursAvg: nil) },
+            biometrics: hrvDelta.map { WeeklyAggregate.Biometrics(hrvAvg: 60, hrvDelta: $0) },
             training: training,
             labs: .init(newPanelsLogged: newPanels),
             topInsightCategory: nil

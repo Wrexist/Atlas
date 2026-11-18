@@ -963,16 +963,6 @@
         }
       }
     },
-    "Tap to start a fast.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck för att starta en fasta."
-          }
-        }
-      }
-    },
     "Tap to start your first session.": {
       "localizations": {
         "sv": {
@@ -1399,6 +1389,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "volym"
+          }
+        }
+      }
+    },
+    "Open fast": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna fastan"
+          }
+        }
+      }
+    },
+    "Tap to open fasting.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck för att öppna fastan."
           }
         }
       }

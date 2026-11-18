@@ -69,9 +69,7 @@ struct FastingLiveActivity: Widget {
             DynamicIslandExpandedRegion(.bottom) {
                 VStack(spacing: 8) {
                     GoalProgress(state: state, accent: accent)
-                    if state.endedAt == nil {
-                        EndFastButton(fastId: context.attributes.fastId, accent: accent)
-                    }
+                    FastActionButton(state: state, fastId: context.attributes.fastId, accent: accent)
                 }
             }
         } compactLeading: {
@@ -153,9 +151,7 @@ private struct FastingLockView: View {
             VStack(spacing: 12) {
                 topRow
                 GoalProgress(state: state, accent: accent)
-                if state.endedAt == nil {
-                    EndFastButton(fastId: attributes.fastId, accent: accent)
-                }
+                FastActionButton(state: state, fastId: attributes.fastId, accent: accent)
             }
             .padding(14)
         }
@@ -312,26 +308,61 @@ private struct GoalProgress: View {
     private var goalMinutes: Int { Int(state.window.targetDuration / 60) }
 }
 
+/// The lock screen's action. One tap ends a fast that reached its goal;
+/// an unfinished fast opens the app instead, where ending early asks
+/// first, so a stray tap can't cost the streak day. Nothing once ended.
+private struct FastActionButton: View {
+    let state: FastingActivityAttributes.ContentState
+    let fastId: UUID
+    let accent: Color
+
+    var body: some View {
+        switch state.status() {
+        case .goalReached:
+            EndFastButton(fastId: fastId, accent: accent)
+        case .fasting:
+            if let meals = WidgetDeepLink.meals {
+                Link(destination: meals) {
+                    ActionCapsule(title: "Open fast", systemImage: "arrow.up.forward.app.fill", accent: accent)
+                }
+            }
+        case .ended:
+            EmptyView()
+        }
+    }
+}
+
+/// The full-width capsule both lock-screen actions share.
+private struct ActionCapsule: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    let accent: Color
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .heavy))
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.system(size: 14, weight: .heavy, design: .rounded))
+        }
+        .foregroundStyle(labelColor(on: accent, in: colorScheme))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(accent))
+    }
+}
+
 /// Ends the fast from the lock screen. The intent ends the activity on
 /// its summary beat at once and the app records the end time.
 private struct EndFastButton: View {
     let fastId: UUID
     let accent: Color
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(intent: EndFastLiveActivityIntent(fastId: fastId)) {
-            HStack(spacing: 6) {
-                Image(systemName: "stop.fill")
-                    .font(.system(size: 12, weight: .heavy))
-                    .accessibilityHidden(true)
-                Text("End fast")
-                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-            }
-            .foregroundStyle(labelColor(on: accent, in: colorScheme))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(Capsule().fill(accent))
+            ActionCapsule(title: "End fast", systemImage: "stop.fill", accent: accent)
         }
         .buttonStyle(.plain)
     }

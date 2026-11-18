@@ -96,6 +96,25 @@ final class WeeklySummaryNotificationSchedulerTests: XCTestCase {
         )
     }
 
+    func test_notificationBody_weekInProgress_isLeftOut() throws {
+        var profile = UserProfile.fresh
+        let inProgress = makeSummary(weekStart: "2026-01-12", compliancePct: 0.3)
+        let lastWeek = makeSummary(weekStart: "2026-01-05", compliancePct: 0.9)
+        let weekBefore = makeSummary(weekStart: "2025-12-29", compliancePct: 0.7)
+        profile.weeklySummaries = [
+            inProgress.weekStart: inProgress,
+            lastWeek.weekStart: lastWeek,
+            weekBefore.weekStart: weekBefore,
+        ]
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let wednesday = try XCTUnwrap(utc.date(from: DateComponents(year: 2026, month: 1, day: 14, hour: 12)))
+        XCTAssertEqual(
+            WeeklySummaryNotificationScheduler.notificationBody(for: profile, now: wednesday),
+            "Adherence up 20 points from last week — tap for the full recap."
+        )
+    }
+
     // MARK: - nextDeliveryDate
 
     func test_nextDeliveryDate_sundayAfterNine_isTheFollowingSunday() throws {

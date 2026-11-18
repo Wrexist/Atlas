@@ -199,6 +199,22 @@ final class LifestyleDataStoreTests: XCTestCase {
         XCTAssertTrue(store.profile.habitEntries.contains { $0.habitId == kept.id })
     }
 
+    /// An over-tap on a countable habit steps back one, and the last
+    /// step down clears the day.
+    func test_removeOneHabitCount_countableHabit_stepsDownByOne() {
+        let store = makeStore()
+        let water = Habit(name: "Water", iconSymbol: "drop.fill", tintHex: 0x6B8AFF, targetValue: 4)
+        store.addHabit(water)
+        for _ in 0..<3 { store.toggleHabitEntry(habitId: water.id) }
+
+        store.removeOneHabitCount(habitId: water.id)
+        XCTAssertEqual(store.profile.habitEntries.first { $0.habitId == water.id }?.value, 2)
+
+        store.removeOneHabitCount(habitId: water.id)
+        store.removeOneHabitCount(habitId: water.id)
+        XCTAssertFalse(store.profile.habitEntries.contains { $0.habitId == water.id })
+    }
+
     /// Starting a workout must not tick Today's "Workout logged" row
     /// before the session is finished.
     func test_workoutSummary_activeSession_isNotCounted() {

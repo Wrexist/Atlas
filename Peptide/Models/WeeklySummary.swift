@@ -87,8 +87,6 @@ struct WeeklyAggregate: Codable, Hashable, Sendable {
     struct Biometrics: Codable, Hashable, Sendable {
         let hrvAvg: Int?
         let hrvDelta: Int?
-        let rhrAvg: Int?
-        let sleepHoursAvg: Double?
     }
 
     /// Nil when no training session started this week.

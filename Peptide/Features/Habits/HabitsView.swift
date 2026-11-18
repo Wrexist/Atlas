@@ -84,11 +84,21 @@ struct HabitsView: View {
                                 onToggleToday: {
                                     dataStore.toggleHabitEntry(habitId: row.habit.id)
                                 },
+                                onRemoveOne: {
+                                    dataStore.removeOneHabitCount(habitId: row.habit.id)
+                                },
                                 onTap: {
                                     editing = .existing(row.habit)
                                 }
                             )
                             .contextMenu {
+                                if row.habit.isCountable && row.summary.todayValue > 0 {
+                                    Button {
+                                        dataStore.removeOneHabitCount(habitId: row.habit.id)
+                                    } label: {
+                                        Label("Remove one", systemImage: "minus.circle")
+                                    }
+                                }
                                 Button {
                                     editing = .existing(row.habit)
                                 } label: {
@@ -299,7 +309,7 @@ struct HabitsView: View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "snowflake")
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.macroWater)
+                .foregroundStyle(AppColor.accentPrimary)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Streak at risk")
                     .font(AppFont.subheadline.weight(.semibold))
@@ -328,14 +338,7 @@ struct HabitsView: View {
             .fixedSize()
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.macroWater.opacity(0.12))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .strokeBorder(AppColor.macroWater.opacity(0.35), lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Streak at risk. You missed yesterday. Use your monthly freeze to keep your streak.")
     }

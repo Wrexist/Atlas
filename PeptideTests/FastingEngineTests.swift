@@ -251,6 +251,23 @@ final class FastingStoreTests: XCTestCase {
         XCTAssertEqual(store.active?.startedAt, now)
     }
 
+    func test_updateStart_beforePreviousFastEnded_clampsToThatEnd() {
+        let now = Date()
+        let previousEnd = now.addingTimeInterval(-5 * 3600)
+        store.start(plan: .sixteen, targetHours: 16, remindsAtEnd: false, at: now.addingTimeInterval(-20 * 3600))
+        store.end(at: previousEnd)
+        store.start(plan: .sixteen, targetHours: 16, remindsAtEnd: false, at: now.addingTimeInterval(-3600))
+        store.updateStart(now.addingTimeInterval(-10 * 3600), now: now)
+        XCTAssertEqual(store.active?.startedAt, previousEnd)
+    }
+
+    func test_updateStart_daysBack_clampsToElapsedCeiling() {
+        let now = Date()
+        store.start(plan: .sixteen, targetHours: 16, remindsAtEnd: false, at: now.addingTimeInterval(-3600))
+        store.updateStart(now.addingTimeInterval(-30 * 24 * 3600), now: now)
+        XCTAssertEqual(store.active?.startedAt, now.addingTimeInterval(-FastingWindow.elapsedCeiling))
+    }
+
     func test_delete_removesFromHistory() {
         let start = Date(timeIntervalSince1970: 1_790_000_000)
         store.start(plan: .sixteen, targetHours: 16, remindsAtEnd: false, at: start)

@@ -18,24 +18,30 @@ struct FastingSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                // Only the clock and the stage highlight tick. The history
-                // stats scan every session, so they render with the body,
-                // not once a second.
                 VStack(alignment: .leading, spacing: Spacing.xl) {
+                    // Only the hero's clock needs a per-second redraw, and
+                    // only while a fast runs; the rest would recompute
+                    // streaks and rebuild the history every tick.
                     TimelineView(.periodic(from: .now, by: store.active == nil ? 60 : 1)) { context in
                         hero(now: context.date)
                     }
                     if let active = store.active {
-                        activeControls(active)
+                        // Ticks so the picker's "now" bound keeps up while
+                        // the sheet stays open.
+                        TimelineView(.everyMinute) { context in
+                            activeControls(active, now: context.date)
+                        }
                     } else {
                         planPicker
                         reminderToggle
                         PrimaryCTAButton(title: "Start fast", icon: "play.fill", action: startFast)
                     }
-                    TimelineView(.periodic(from: .now, by: 60)) { context in
-                        stageGuide(now: context.date)
+                    TimelineView(.everyMinute) { context in
+                        VStack(alignment: .leading, spacing: Spacing.xl) {
+                            stageGuide(now: context.date)
+                            history(now: context.date)
+                        }
                     }
-                    history(now: Date())
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.vertical, Spacing.lg)
@@ -72,13 +78,17 @@ struct FastingSheet: View {
                         .font(AppFont.eyebrow)
                         .textCase(.uppercase)
                         .foregroundStyle(AppColor.textSecondary)
-                    Text(FastingEngine.clock(active.map { FastingEngine.elapsed($0, at: now) } ?? 0))
+                    let elapsed = active.map { FastingEngine.elapsed($0, at: now) } ?? 0
+                    Text(FastingEngine.clock(elapsed))
                         .font(AppFont.statValueSmall)
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
+                        // "16:05" would be read as a time of day.
+                        .accessibilityLabel(FastingIntentEngine.spokenDuration(elapsed))
                     Text(heroCaption(active, now: now))
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
+                        .accessibilityLabel(heroCaption(active, now: now, duration: FastingIntentEngine.spokenDuration))
                 }
             }
             .accessibilityElement(children: .combine)
@@ -96,6 +106,7 @@ struct FastingSheet: View {
                         .font(AppFont.caption2)
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
+                        .accessibilityLabel(Text("\(next.title) in \(FastingIntentEngine.spokenDuration(wait))"))
                 }
             }
         }
@@ -103,13 +114,18 @@ struct FastingSheet: View {
         .padding(.top, Spacing.sm)
     }
 
-    private func heroCaption(_ active: FastSession?, now: Date) -> String {
+    /// `duration` is the clock on screen and the spoken form for VoiceOver.
+    private func heroCaption(
+        _ active: FastSession?,
+        now: Date,
+        duration: (TimeInterval) -> String = FastingEngine.clock
+    ) -> String {
         guard let active else {
             return String(localized: "Goal \(Int(targetHours)) h")
         }
         let remaining = FastingEngine.remaining(active, at: now)
         guard remaining > 0 else { return String(localized: "Goal reached") }
-        return String(localized: "\(FastingEngine.clock(remaining)) to \(Int(active.targetHours)) h")
+        return String(localized: "\(duration(remaining)) to \(Int(active.targetHours)) h")
     }
 
     // MARK: - Controls
@@ -153,7 +169,7 @@ struct FastingSheet: View {
         .tint(AppColor.accentPrimary)
     }
 
-    private func activeControls(_ active: FastSession) -> some View {
+    private func activeControls(_ active: FastSession, now: Date) -> some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             DatePicker(
                 "Started",
@@ -161,7 +177,9 @@ struct FastingSheet: View {
                     get: { active.startedAt },
                     set: { store.updateStart($0) }
                 ),
-                in: ...Date(),
+                // Same bounds `updateStart` clamps to; `min` keeps the
+                // range valid if the clock moved back past the last fast.
+                in: min(store.earliestStart(now: now), now)...now,
                 displayedComponents: [.date, .hourAndMinute]
             )
             .font(AppFont.body)
@@ -323,10 +341,12 @@ private struct FastHistoryRow: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer(minLength: 0)
-            Text(FastingEngine.clock(FastingEngine.elapsed(fast, at: fast.endedAt ?? fast.startedAt)))
+            let fasted = FastingEngine.elapsed(fast, at: fast.endedAt ?? fast.startedAt)
+            Text(FastingEngine.clock(fasted))
                 .font(AppFont.headline)
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
+                .accessibilityLabel(FastingIntentEngine.spokenDuration(fasted))
         }
         .padding(Spacing.md)
         .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)

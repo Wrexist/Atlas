@@ -71,6 +71,10 @@ struct WeeklyCheckIn: Equatable, Sendable {
         case weightStalledEatMore(kcal: Int)
         case losingFast(kcal: Int)
         case gainingFast(kcal: Int)
+        /// Weight went up a week while the goal is to lose.
+        case gainingOnCut(kcal: Int)
+        /// Weight went down a week while the goal is to gain.
+        case losingOnBulk(kcal: Int)
         case prioritizeProtein
         case planWorkouts(goal: Int)
         case prioritizeSleep
