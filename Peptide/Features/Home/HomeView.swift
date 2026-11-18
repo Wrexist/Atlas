@@ -1134,8 +1134,14 @@ struct HomeView: View {
             return String(localized: "Shows once you connect Apple Health or log a workout")
         case .doses where !showsDoseSection:
             return String(localized: "Shows once you add a protocol")
-        case .steps where !health || derived.checklist?.steps == nil:
+        case .steps where !health || stepBuckets.isEmpty:
             return String(localized: "Needs step data from Apple Health")
+        case .weeklyRecap where !StoreService.shared.canAccessAIFeatures:
+            return String(localized: "Needs Atlas Pro")
+        case .weeklyRecap where !WeeklySummaryService.shared.isAvailable(profile: dataStore.profile):
+            return String(localized: "Turn on Weekly recap in Profile")
+        case .timeline where derived.timeline.isEmpty:
+            return String(localized: "Shows once you log a meal, check-in or workout")
         case .healthMonitor where !health:
             return String(localized: "Needs Apple Health")
         case .healthMonitor where healthRange.hrv == nil && healthRange.rhr == nil && healthRange.sleep == nil:

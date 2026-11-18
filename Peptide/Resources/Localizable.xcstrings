@@ -6706,6 +6706,16 @@
         }
       }
     },
+    "Needs Atlas Pro": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver Atlas Pro"
+          }
+        }
+      }
+    },
     "Needs rest": {
       "localizations": {
         "sv": {
@@ -6812,6 +6822,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Originalrapport"
+          }
+        }
+      }
+    },
+    "Shows once you log a meal, check-in or workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visas när du loggar en måltid, incheckning eller ett träningspass"
+          }
+        }
+      }
+    },
+    "Turn on Weekly recap in Profile": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slå på Veckosammanfattning i Profil"
           }
         }
       }
