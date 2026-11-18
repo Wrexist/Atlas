@@ -36544,16 +36544,6 @@
         }
       }
     },
-    "Track how you're aging and discover which habits move your Biological Age.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Följ hur du åldras och upptäck vilka vanor som påverkar din biologiska ålder."
-          }
-        }
-      }
-    },
     "Track nutrition, labs, and biomarkers": {
       "localizations": {
         "sv": {
@@ -49792,6 +49782,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ha med iPhone eller bär Apple Watch för att registrera det här"
+          }
+        }
+      }
+    },
+    "Unlock Biological Age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lås upp biologisk ålder"
+          }
+        }
+      }
+    },
+    "See how your habits move the number.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se hur dina vanor påverkar siffran."
           }
         }
       }

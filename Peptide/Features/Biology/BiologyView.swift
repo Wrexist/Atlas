@@ -58,8 +58,8 @@ struct BiologyView: View {
                     if case .locked? = resolved?.state {
                         PremiumPromoCard(
                             eyebrow: "ATLAS PRO",
-                            title: "See your Biological Age",
-                            subtitle: "Track how you're aging and discover which habits move your Biological Age.",
+                            title: "Unlock Biological Age",
+                            subtitle: "See how your habits move the number.",
                             ctaLabel: "Unlock",
                             qualifier: "Available for users 18+",
                             onTap: { presentPaywall() }
