@@ -1220,9 +1220,9 @@ struct FoodLibraryFlow: View {
                 PortionPicker(product: product, portion: $portion)
                 Button(product.isDrink == true ? "Enter exact millilitres" : "Enter exact grams") { editingExactPortion = true }
                     .minimumHitArea()
-                WaterCreditNote(millilitres: product.waterMillilitres(for: portion))
+                WaterCreditNote(millilitres: product.waterMillilitres(for: portion), unit: dataStore.profile.bodyMetrics.unit)
                 if let grams = FoodLibraryLogic.previousGrams(for: product, history: profile.mealHistory) {
-                    Text(product.isDrink == true ? "Last logged amount: \(grams.formatted()) ml" : "Last logged amount: \(grams.formatted()) g")
+                    Text(product.isDrink == true ? "Last logged amount: \(grams.formatted()) mL" : "Last logged amount: \(grams.formatted()) g")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }

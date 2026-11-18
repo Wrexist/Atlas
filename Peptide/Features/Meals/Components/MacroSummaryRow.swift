@@ -59,6 +59,13 @@ struct MacroSummaryRow: View {
         consumed.waterFluidOunces / Double(Self.waterTargetOz)
     }
 
+    /// The water target in the unit shown: whole ounces, or millilitres
+    /// rounded to 100 so the 100 oz goal reads 3000 mL, not 2957 mL.
+    private var waterTargetDisplay: Int {
+        let value = unit.volumeValue(Double(Self.waterTargetOz))
+        return unit == .metric ? Int((Double(value) / 100).rounded()) * 100 : value
+    }
+
     /// Rings and numbers start at zero until the first appear; Reduce
     /// Motion shows final values from the first frame.
     private var isRevealed: Bool {
@@ -103,7 +110,7 @@ struct MacroSummaryRow: View {
                         value: LifestyleDataLogic.displayedWater(consumed, unit: unit),
                         // Same unit as the number beside it: "1000/3000 mL",
                         // never "1000/3,0 L".
-                        target: Self.targetText(unit.volumeValue(Double(Self.waterTargetOz)), unit: unit == .metric ? "mL" : "oz"),
+                        target: Self.targetText(waterTargetDisplay, unit: unit == .metric ? "mL" : "oz"),
                         color: AppColor.macroWater,
                         index: 2,
                         goalMet: consumed.waterFluidOunces >= Double(Self.waterTargetOz)
@@ -381,7 +388,7 @@ struct MacroSummaryRow: View {
 
     private var accessibilitySummary: String {
         let water = LifestyleDataLogic.displayedWater(consumed, unit: unit)
-        let waterTarget = unit.volumeValue(Double(Self.waterTargetOz))
+        let waterTarget = waterTargetDisplay
         return String(
             localized: "Calories \(consumed.caloriesKcal) of \(targets.calories). Protein \(consumed.proteinG) of \(targets.proteinG) grams. Water \(water) of \(waterTarget) \(unit.volumeSpokenUnit).",
             comment: "VoiceOver summary of the day's calories, protein and water against targets."

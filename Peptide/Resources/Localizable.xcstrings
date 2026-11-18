@@ -6060,6 +6060,16 @@
         }
       }
     },
+    "Also counts as %lld oz water": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas även som %lld oz vatten"
+          }
+        }
+      }
+    },
     "Ask Atlas": {
       "localizations": {
         "sv": {
@@ -49656,7 +49666,7 @@
         }
       }
     },
-    "1 l": {
+    "1 L": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -49666,17 +49676,7 @@
         }
       }
     },
-    "ml": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ml"
-          }
-        }
-      }
-    },
-    "1 package = %lld ml": {
+    "1 package = %lld mL": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -49716,7 +49716,7 @@
         }
       }
     },
-    "Last logged amount: %@ ml": {
+    "Last logged amount: %@ mL": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -49726,7 +49726,7 @@
         }
       }
     },
-    "Also counts as %lld ml water": {
+    "Also counts as %lld mL water": {
       "localizations": {
         "sv": {
           "stringUnit": {

@@ -5,12 +5,21 @@ import SwiftUI
 /// Draws nothing for food or a drink with calories.
 struct WaterCreditNote: View {
     let millilitres: Double?
+    /// The unit the water ring speaks, so an imperial user reads ounces.
+    let unit: MeasurementUnit
 
     var body: some View {
         if let millilitres {
+            let amount = unit.volumeValue(LifestyleDataLogic.fluidOunces(millilitres: millilitres))
             Label {
-                Text("Also counts as \(Int(millilitres.rounded())) ml water")
-                    .contentTransition(.numericText(value: millilitres))
+                Group {
+                    if unit == .metric {
+                        Text("Also counts as \(amount) mL water")
+                    } else {
+                        Text("Also counts as \(amount) oz water")
+                    }
+                }
+                .contentTransition(.numericText(value: Double(amount)))
             } icon: {
                 Image(systemName: "drop.fill")
                     .foregroundStyle(AppColor.accentLight)

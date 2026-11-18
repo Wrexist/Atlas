@@ -532,7 +532,7 @@ struct BarcodeScanFlow: View {
                 PortionPicker(product: product, portion: $portion)
                 Button(product.isDrink == true ? "Enter exact millilitres" : "Enter exact grams") { editingExactPortion = true }
                     .minimumHitArea()
-                WaterCreditNote(millilitres: product.waterMillilitres(for: portion))
+                WaterCreditNote(millilitres: product.waterMillilitres(for: portion), unit: dataStore.profile.bodyMetrics.unit)
             }
         }
     }

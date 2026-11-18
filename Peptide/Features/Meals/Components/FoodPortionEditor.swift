@@ -54,11 +54,11 @@ struct FoodPortionEditor: View {
                             .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
                             .focused($amountFocused).monospacedDigit()
                             .accessibilityLabel(isDrink ? "Portion in millilitres" : "Portion in grams")
-                        Text(isDrink ? "ml" : "g").foregroundStyle(AppColor.textSecondary)
+                        Text(isDrink ? "mL" : "g").foregroundStyle(AppColor.textSecondary)
                     }
                     factorChips
                 } footer: {
-                    Text(verbatim: "\(FoodPortionInput.gramsRange.lowerBound.formatted())–\(FoodPortionInput.gramsRange.upperBound.formatted()) \(isDrink ? "ml" : "g")")
+                    Text(verbatim: "\(FoodPortionInput.gramsRange.lowerBound.formatted())–\(FoodPortionInput.gramsRange.upperBound.formatted()) \(isDrink ? "mL" : "g")")
                 }
                 Section("For this portion") {
                     if let preview {
