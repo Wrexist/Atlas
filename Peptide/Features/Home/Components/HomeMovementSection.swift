@@ -19,6 +19,15 @@ struct HomeMovementSection: View {
     let summary: (count: Int, minutes: Int)
     var isPastDay = false
 
+    /// Nil on a past day, which leaves the card a plain record.
+    private var openTrain: (() -> Void)? {
+        guard !isPastDay else { return nil }
+        return {
+            Haptics.selection()
+            appState.selectedTab = .train
+        }
+    }
+
     var body: some View {
         VStack(spacing: Spacing.sm) {
             HomeSectionHeader(title: "Training")
@@ -26,10 +35,7 @@ struct HomeMovementSection: View {
             WorkoutCard(
                 sessionCountToday: summary.count,
                 durationMinutesToday: summary.minutes,
-                onTap: isPastDay ? nil : {
-                    Haptics.selection()
-                    appState.selectedTab = .train
-                },
+                onTap: openTrain,
                 isPastDay: isPastDay
             )
         }
