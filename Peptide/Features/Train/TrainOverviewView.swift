@@ -241,8 +241,9 @@ struct TrainOverviewView: View {
 
     @ViewBuilder
     private func otherStarts(showsPlan: Bool) -> some View {
-        // Outline, like the wand on "Plan a workout" beside it.
-        GlassButton(title: "Empty workout", icon: "play", style: .secondary, isFullWidth: true) {
+        // A ringed outline: a bare triangle carried less ink than the
+        // wand and stars on "Plan a workout" beside it.
+        GlassButton(title: "Empty workout", icon: "play.circle", style: .secondary, isFullWidth: true) {
             Haptics.impact(.medium)
             sessionService.startWorkout()
         }

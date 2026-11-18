@@ -60,13 +60,14 @@ private struct PrimaryCTAChrome: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            // Disabled, it drops to the track with tertiary ink — the same
-            // state as `GlassButton`'s primary pill — rather than fading the
-            // whole pill, label and all, into a low-contrast grey slab.
-            .foregroundStyle(isEnabled ? AppColor.inverseInk : AppColor.textTertiary)
+            // Disabled, it drops to the track with secondary ink rather
+            // than fading the whole pill, label and all, into a grey slab.
+            // Tertiary ink measured 3.9:1 on the track over a dark sheet;
+            // secondary clears 4.5:1 on every surface in both schemes.
+            .foregroundStyle(isEnabled ? AppColor.inverseInk : AppColor.textSecondary)
             // A spinner in the label follows the ink, so it stays visible
             // on the grey disabled fill.
-            .tint(isEnabled ? AppColor.inverseInk : AppColor.textTertiary)
+            .tint(isEnabled ? AppColor.inverseInk : AppColor.textSecondary)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.md)

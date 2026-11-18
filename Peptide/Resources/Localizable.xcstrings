@@ -7974,6 +7974,17 @@
         }
       }
     },
+    "Section": {
+      "comment": "Accessibility label for the Train tab's section menu at large text sizes",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsnitt"
+          }
+        }
+      }
+    },
     "Select the single best GHRP for your needs and combine with a GHRH analog.": {
       "localizations": {
         "sv": {
@@ -8793,6 +8804,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Du fastar redan – %@ hittills."
+          }
+        }
+      }
+    },
+    "Your age drivers": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina åldersfaktorer"
           }
         }
       }

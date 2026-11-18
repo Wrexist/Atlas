@@ -289,15 +289,15 @@ struct TrainContainerView: View {
         // under one word does not. `.segmented` Picker still reads too
         // "system settings" for this surface.
         //
-        // Three pills fit an iPhone at default sizes; at the largest
-        // Dynamic Type sizes they don't, so the row scrolls and keeps the
-        // chosen section in view rather than clipping it. Accessibility
-        // sizes go straight to the scrolling row: a wrapping, shrinkable
-        // label lets the fixed row "fit" by truncating, so measuring it
-        // can't be trusted there.
+        // At accessibility sizes even one label fills most of the width,
+        // and a sideways-scrolling row of pills reads as clipped text
+        // ("Routin" cut at the edge) because nothing tells the user it
+        // scrolls. A menu showing only the current section can't overflow.
         Group {
             if dynamicTypeSize.isAccessibilitySize {
-                scrollingSectionControl
+                sectionMenu
+                    .padding(.horizontal, Spacing.screenPadding)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 ViewThatFits(in: .horizontal) {
                     sectionControl
@@ -311,6 +311,43 @@ struct TrainContainerView: View {
         // The tab's one vertical rhythm, so the first card doesn't sit
         // tighter under the pills than any other gap on the screen.
         .padding(.bottom, Spacing.lg)
+    }
+
+    private var sectionMenu: some View {
+        Menu {
+            ForEach(Section.allCases) { option in
+                Button {
+                    guard option != section else { return }
+                    Haptics.selection()
+                    AppAnimation.with(AppAnimation.springSnappy) {
+                        sectionSelection.wrappedValue = option
+                    }
+                } label: {
+                    if option == section {
+                        Label(option.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(option.displayName)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Text(section.displayName)
+                    .font(AppFont.headline)
+                    .multilineTextAlignment(.leading)
+                Image(systemName: "chevron.down")
+                    .font(AppFont.scaled(13, weight: .bold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(AppColor.textPrimary)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .contentShape(Capsule())
+            .glassControl(.capsule)
+        }
+        .accessibilityLabel(Text("Section"))
+        .accessibilityValue(Text(section.displayName))
     }
 
     private var scrollingSectionControl: some View {
