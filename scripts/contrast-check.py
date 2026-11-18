@@ -159,6 +159,7 @@ UI_INKS = [
     "macroCarbs", "macroFat", "macroCalories",
     "metricHeartRate", "metricHRV", "metricActivity",
     "ringRecoveryStart", "ringRecoveryEnd", "ringSleepStart", "ringSleepEnd",
+    "sleepDeep", "sleepCore", "sleepREM",
     "mealBreakfast", "mealDinner", "mealSnack",
     "outcomeSleepQuality", "outcomeRecovery", "outcomeMood", "outcomeFocus",
 ]

@@ -238,12 +238,20 @@ enum AppColor {
 
     /// Hero-ring identities. Adherence follows the brand accent; Recovery and
     /// Sleep get their own hues so the three rings stay tellable apart at a
-    /// glance even in a screenshot. Stops run light → deep so the arc reads
-    /// as having direction.
-    static let ringRecoveryStart = Color(light: 0x5E8A1F, dark: 0xB8F557)
-    static let ringRecoveryEnd = Color(light: 0x2F7A3B, dark: 0x47C75C)
+    /// glance even in a screenshot. Recovery is a yellow-lime no theme ramp
+    /// uses: the old green sat right beside the default emerald adherence
+    /// ring. Stops run light → deep so the arc reads as having direction.
+    static let ringRecoveryStart = Color(light: 0x7A7A0F, dark: 0xE4F25A)
+    static let ringRecoveryEnd = Color(light: 0x5E6B12, dark: 0xB9D33A)
     static let ringSleepStart = Color(light: 0x6B63C4, dark: 0xA89EF5)
     static let ringSleepEnd = Color(light: 0x453FA8, dark: 0x7366D9)
+
+    /// Sleep stages in the stage bar and its legend. Theme-independent, so
+    /// Core never collides with REM under a warm accent: two steps of the
+    /// sleep ring's violet for Deep and Core, and a teal for REM.
+    static let sleepDeep = Color(light: 0x453FA8, dark: 0x7366D9)
+    static let sleepCore = Color(light: 0x6B63C4, dark: 0xA89EF5)
+    static let sleepREM = Color(light: 0x2A8792, dark: 0x4CB8C4)
 
     /// Cool purple for a protocol's wash-out phase. Printed as the
     /// cycle card's eyebrow, so the light value is deepened to 4.5:1.
