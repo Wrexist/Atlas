@@ -960,6 +960,46 @@
           }
         }
       }
+    },
+    "%@ added": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra"
+          }
+        }
+      }
+    },
+    "%@ assist": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans"
+          }
+        }
+      }
+    },
+    "%@ per hand": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per hand"
+          }
+        }
+      }
+    },
+    "%@ per side": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per sida"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
