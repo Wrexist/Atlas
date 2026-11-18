@@ -77,6 +77,11 @@ final class GroceryListEngineTests: XCTestCase {
         XCTAssertEqual(items.first?.amounts, [Engine.Amount(measure: .volume, value: 1250)])
     }
 
+    func test_volumeAmounts_useTheDiarysVolumeSymbols() {
+        XCTAssertEqual(Engine.Amount(measure: .volume, value: 250).text, "250 mL")
+        XCTAssertEqual(Engine.Amount(measure: .volume, value: 1000).text.hasSuffix(" L"), true)
+    }
+
     func test_unitsThatCannotBeSummed_keepOneAmountPerMeasure() {
         let items = Engine.items(from: [
             ingredient("Yoghurt", 1, .portion),

@@ -82,7 +82,7 @@ enum GroceryListEngine {
             case .mass:
                 value >= 1000 ? "\(decimal(value / 1000)) kg" : "\(Int(value.rounded())) g"
             case .volume:
-                value >= 1000 ? "\(decimal(value / 1000)) l" : "\(Int(value.rounded())) ml"
+                value >= 1000 ? "\(decimal(value / 1000)) L" : "\(Int(value.rounded())) mL"
             case .portions:
                 String(localized: "\(decimal(value)) × usual portion")
             }
