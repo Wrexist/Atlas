@@ -223,6 +223,40 @@ final class NutritionLabelOCRTests: XCTestCase {
         XCTAssertEqual(parsed?.nutriments.proteinG, 0)
         XCTAssertEqual(parsed?.nutriments.carbsG, 0)
         XCTAssertEqual(parsed?.nutriments.fatG, 0)
+        XCTAssertEqual(parsed?.hasEveryMacro, false)
+    }
+
+    func test_parse_fullUSLabel_hasEveryMacro() {
+        let lines = ["Calories 250", "Total Fat 12g", "Total Carbohydrate 31g", "Protein 5g"]
+        XCTAssertEqual(NutritionLabelParser.parse(lines: lines)?.hasEveryMacro, true)
+    }
+
+    // MARK: - Swedish label
+
+    func test_swedishPanel_readsFatAndCarbs() throws {
+        let lines = [
+            "Näringsvärde per 100 g",
+            "Energi 1050 kJ / 250 kcal",
+            "Fett 12 g",
+            "varav mättat fett 5 g",
+            "Kolhydrater 30 g",
+            "varav sockerarter 9 g",
+            "Kostfiber 3 g",
+            "Protein 8 g",
+        ]
+        let parsed = try XCTUnwrap(NutritionLabelParser.parse(lines: lines))
+        XCTAssertEqual(parsed.nutriments.calories, 250)
+        XCTAssertEqual(parsed.nutriments.fatG, 12)
+        XCTAssertEqual(parsed.nutriments.carbsG, 30)
+        XCTAssertEqual(parsed.nutriments.proteinG, 8)
+        XCTAssertEqual(parsed.nutriments.sugarsG, 9)
+        XCTAssertEqual(parsed.nutriments.fiberG, 3)
+        XCTAssertTrue(parsed.hasEveryMacro)
+    }
+
+    func test_swedishPanel_fattyAcidRowFirst_isNotReadAsFat() {
+        let lines = ["Energi 250 kcal", "Fettsyror 2 g", "Fett 12 g", "Kolhydrater 30 g", "Protein 8 g"]
+        XCTAssertEqual(NutritionLabelParser.parse(lines: lines)?.nutriments.fatG, 12)
     }
 
     // MARK: - firstNumber utility

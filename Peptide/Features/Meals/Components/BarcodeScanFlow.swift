@@ -554,12 +554,22 @@ struct BarcodeScanFlow: View {
             .disabled(!canEdit)
             .accessibilityLabel("Edit nutrition manually")
             if manualOverride == nil && !product.hasNutrition {
-                Text("No nutrition data for this product. Edit nutrition with the values from its label.")
+                Text(missingNutritionNote(for: product))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    /// A label read that caught some values says so, rather than
+    /// claiming the product has no nutrition data at all.
+    private func missingNutritionNote(for product: ScannedProduct) -> String {
+        let n = product.per100g
+        let readSome = [n.calories, n.proteinG, n.carbsG, n.fatG].contains { $0 > 0 }
+        return readSome
+            ? String(localized: "Part of the label couldn't be read. Edit nutrition to check every value before adding.")
+            : String(localized: "No nutrition data for this product. Edit nutrition with the values from its label.")
     }
 
     /// An all-zero Open Food Facts record stays unloggable until the user

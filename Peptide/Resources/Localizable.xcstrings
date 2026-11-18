@@ -49765,6 +49765,16 @@
           }
         }
       }
+    },
+    "Part of the label couldn't be read. Edit nutrition to check every value before adding.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En del av etiketten gick inte att läsa. Redigera näringsvärdet och kontrollera alla värden innan du lägger till."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
