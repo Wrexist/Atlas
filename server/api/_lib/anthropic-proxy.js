@@ -195,6 +195,19 @@ export function refuse(res, code) {
 }
 
 /**
+ * Answers a failed App Attest check: 401 with its code, except when
+ * the key registry was unreachable — a 503 the app treats as transient,
+ * so a Redis blip doesn't make every install discard its key.
+ */
+export function refuseAttest(res, attest) {
+  if (attest.code === 'attest_unavailable') {
+    refuse(res, 'unavailable');
+    return;
+  }
+  res.status(401).json({ error: { message: 'Unauthorised', code: attest.code } });
+}
+
+/**
  * The Pro gate for routes the app only offers to subscribers: true when
  * the request carries a verified StoreKit Pro entitlement (the same
  * proof that lifts the free scan allowance). Otherwise it refuses with
@@ -366,7 +379,7 @@ export async function forwardToAnthropic(req, res, {
   // `attest_clock` tells it to correct its clock and keep the key.
   const attest = await checkAppAttest(req, { logLabel });
   if (!attest.ok) {
-    res.status(401).json({ error: { message: 'Unauthorised', code: attest.code } });
+    refuseAttest(res, attest);
     return;
   }
 

@@ -265,3 +265,51 @@ test('checkAppAttest gate: missing config refuses in enforce mode and passes in 
   setEnv(t, { APP_ATTEST_MODE: 'report' });
   assert.deepEqual(await checkAppAttest({ headers }, { logLabel: 'test' }), { ok: true });
 });
+
+test('test_enforce_redisUnreachable_returnsAttestUnavailableNotAttestRequired', async (t) => {
+  setEnv(t, {
+    ...REDIS_ENV,
+    APP_ATTEST_MODE: 'enforce',
+    APP_ATTEST_APP_ID: fixture.appId,
+    APP_ATTEST_ALLOW_DEVELOPMENT: undefined,
+  });
+  fakeUpstash(t);
+  const { publicKeyPem } = verifyAttestation({
+    attestation: fixture.attestation,
+    keyId: fixture.keyId,
+    challenge: fixture.challenge,
+    appId: fixture.appId,
+    rootCAPem: fixture.rootPem,
+  });
+  const keyIdB64 = fixture.keyId.toString('base64');
+  await storeAttestKey(keyIdB64, { publicKeyPem, counter: 0, environment: 'production' });
+
+  const requestWith = (counter) => {
+    const clientData = makeClientData();
+    const assertion = makeAssertion({ leafKeyPem: fixture.leafKeyPem, appId: fixture.appId, counter, clientData });
+    return {
+      headers: {
+        'x-attest-key-id': keyIdB64,
+        'x-attest-assertion': assertion.toString('base64'),
+        'x-attest-client-data': clientData.toString('base64'),
+      },
+    };
+  };
+
+  const healthy = globalThis.fetch;
+  // Key lookup fails: Upstash answers 5xx.
+  globalThis.fetch = async () => new Response('down', { status: 503 });
+  const lookup = await checkAppAttest(requestWith(1), { logLabel: 'test' });
+  assert.equal(lookup.ok, false);
+  assert.equal(lookup.code, 'attest_unavailable');
+
+  // Key lookup works, the counter claim times out.
+  globalThis.fetch = async (url, init) => {
+    const [[cmd]] = JSON.parse(init.body);
+    if (cmd === 'SET') throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+    return healthy(url, init);
+  };
+  const claim = await checkAppAttest(requestWith(2), { logLabel: 'test' });
+  assert.equal(claim.ok, false);
+  assert.equal(claim.code, 'attest_unavailable');
+});

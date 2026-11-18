@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync } from 'node:fs';
-import { forwardToAnthropic } from '../api/_lib/anthropic-proxy.js';
+import { forwardToAnthropic, refuseAttest } from '../api/_lib/anthropic-proxy.js';
 import mealScan from '../api/meal-scan.js';
 import aiResearch from '../api/ai-research.js';
 import { makeStoreKitChain, signTransaction, transactionPayload } from '../testutil/storekit-fixtures.js';
@@ -511,4 +511,16 @@ test('test_rateLimit_nonNumericRpmEnv_keepsDefaultLimitOf20', async (t) => {
     assert.equal((await forward(makeReq('10.0.9.3'), 'test-rpm-typo')).statusCode, 200);
   }
   assert.equal((await forward(makeReq('10.0.9.3'), 'test-rpm-typo')).statusCode, 429);
+});
+
+test('test_refuseAttest_registryUnavailable_answers503NotReRegister', () => {
+  const down = makeRes();
+  refuseAttest(down, { ok: false, code: 'attest_unavailable' });
+  assert.equal(down.statusCode, 503);
+  assert.equal(down.body.error.code, 'unavailable');
+
+  const unknown = makeRes();
+  refuseAttest(unknown, { ok: false, code: 'attest_required' });
+  assert.equal(unknown.statusCode, 401);
+  assert.equal(unknown.body.error.code, 'attest_required');
 });
