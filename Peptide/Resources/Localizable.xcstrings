@@ -7394,6 +7394,16 @@
         }
       }
     },
+    "Train with it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träna med den"
+          }
+        }
+      }
+    },
     "Training experience": {
       "localizations": {
         "sv": {
