@@ -29,6 +29,12 @@ final class RecipeStepEngineTests: XCTestCase {
         XCTAssertTrue(RecipeStepEngine.timers(in: "Ställ i kylen över natten.").isEmpty)
     }
 
+    func test_timers_halfHourFraction_readsBothLanguages() {
+        XCTAssertEqual(RecipeStepEngine.timers(in: "Cover and simmer gently for 1½ hours until tender.").map(\.seconds), [5400])
+        XCTAssertEqual(RecipeStepEngine.timers(in: "Lägg på lock och låt puttra i 1 ½ timme tills köttet är mört.").map(\.seconds), [5400])
+        XCTAssertEqual(RecipeStepEngine.timers(in: "Rest for ½ hour.").map(\.seconds), [1800])
+    }
+
     // MARK: - Ingredients
 
     func test_ingredients_swedishInflectedAndCompound_match() {
@@ -90,5 +96,30 @@ final class RecipeStepEngineTests: XCTestCase {
         XCTAssertEqual(CookingTimers.clock(245), "4:05")
         XCTAssertEqual(CookingTimers.clock(3750), "1:02:30")
         XCTAssertEqual(CookingTimers.clock(-3), "0:00")
+    }
+
+    private func ingredientsByStep(_ id: String) throws -> [[String]] {
+        let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first { $0.id == id })
+        return RecipeStepEngine.steps(for: recipe, servings: recipe.servings, locale: Locale(identifier: "en"))
+            .map { $0.ingredients.map(\.name) }
+    }
+
+    func test_steps_cookingWater_leavesTheCreamForThePourStep() throws {
+        let steps = try ingredientsByStep("prep-creamy-shrimp-pasta")
+        XCTAssertFalse(steps[0].contains("Cooking cream 15%"))
+        XCTAssertTrue(steps[1].contains("Cooking cream 15%"))
+    }
+
+    func test_steps_burgerSauce_leavesTheBunsForTheToastStep() throws {
+        let steps = try ingredientsByStep("prep-burgers-fries-burger-sauce")
+        XCTAssertFalse(steps[3].contains("Burger bun"))
+        XCTAssertTrue(steps[4].contains("Burger bun"))
+    }
+
+    func test_steps_olives_leaveTheOliveOilForTheDressing() throws {
+        let steps = try ingredientsByStep("tuna-nicoise")
+        XCTAssertTrue(steps[2].contains("Olives"))
+        XCTAssertFalse(steps[2].contains("Olive oil"))
+        XCTAssertTrue(steps[3].contains("Olive oil"))
     }
 }
