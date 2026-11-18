@@ -20,6 +20,24 @@ final class WorkoutSessionEditingTests: XCTestCase {
         })
     }
 
+    func test_setTickedInTheEditor_countsAsDoneWhenTheWorkoutFinished() {
+        var set = SetEntry(index: 1, weightKg: 80, reps: 8)
+        set.completed = true
+        set.restampCompletion(finishedAt: finished)
+        XCTAssertEqual(set.completedAt, finished)
+
+        set.completed = false
+        set.restampCompletion(finishedAt: finished)
+        XCTAssertNil(set.completedAt)
+    }
+
+    func test_setAlreadyStamped_keepsItsTime() {
+        let loggedAt = finished.addingTimeInterval(-600)
+        var set = SetEntry(index: 1, weightKg: 80, reps: 8, completed: true, completedAt: loggedAt)
+        set.restampCompletion(finishedAt: finished)
+        XCTAssertEqual(set.completedAt, loggedAt)
+    }
+
     func test_addedExercise_isOneCompletedSetSeededFromHistory() throws {
         var workout = session([entry("bench", index: 0, sets: [(80, 8)])])
         let seed = SetEntry(index: 3, weightKg: 22.5, reps: 12, completed: true)
