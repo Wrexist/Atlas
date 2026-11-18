@@ -5301,6 +5301,16 @@
         }
       }
     },
+    "1 L": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 l"
+          }
+        }
+      }
+    },
     "1 month": {
       "localizations": {
         "sv": {
@@ -5348,6 +5358,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "1 förpackning = %lld g"
+          }
+        }
+      }
+    },
+    "1 package = %lld mL": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 förpackning = %lld ml"
           }
         }
       }
@@ -6022,6 +6042,16 @@
         }
       }
     },
+    "Add your height, weight and age in Profile to get calorie and macro targets, or tap Edit targets to set them yourself.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till längd, vikt och ålder i Profil för att få kalori- och makromål, eller tryck på Redigera mål för att ställa in dem själv."
+          }
+        }
+      }
+    },
     "AI & privacy": {
       "localizations": {
         "sv": {
@@ -6078,6 +6108,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Alla måltider"
+          }
+        }
+      }
+    },
+    "Also counts as %lld mL water": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas även som %lld ml vatten"
           }
         }
       }
@@ -6605,6 +6645,16 @@
         }
       }
     },
+    "Last logged amount: %@ mL": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast loggade mängd: %@ ml"
+          }
+        }
+      }
+    },
     "LDL cholesterol": {
       "localizations": {
         "sv": {
@@ -6928,6 +6978,16 @@
         }
       }
     },
+    "Puts it back on the list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägger tillbaka den på listan"
+          }
+        }
+      }
+    },
     "REM sleep": {
       "localizations": {
         "sv": {
@@ -7209,6 +7269,16 @@
         }
       }
     },
+    "Ticks it off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bockar av den"
+          }
+        }
+      }
+    },
     "TRAIN WITH IT": {
       "localizations": {
         "sv": {
@@ -7325,6 +7395,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppvakning"
+          }
+        }
+      }
+    },
+    "We couldn't find a match for “%@”. Let Atlas AI add it or scan its barcode.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vi hittade ingen träff för ”%@”. Låt Atlas AI lägga till det eller skanna streckkoden."
           }
         }
       }
@@ -8512,16 +8592,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lägg till vana: %@"
-          }
-        }
-      }
-    },
-    "Add your height, weight and age in Profile to get calorie and macro targets, or tap Edit targets to set them yourself.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lägg till längd, vikt och ålder i Profil för att få kalori- och makromål, eller tryck på Redigera mål för att ställa in dem själv."
           }
         }
       }
@@ -38728,16 +38798,6 @@
         }
       }
     },
-    "We couldn't find a match for “%@”. Let Atlas AI add it or scan its barcode.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vi hittade ingen träff för ”%@”. Låt Atlas AI lägga till det eller skanna streckkoden."
-          }
-        }
-      }
-    },
     "We couldn't find that product. Try a photo instead?": {
       "localizations": {
         "sv": {
@@ -44843,26 +44903,6 @@
         }
       }
     },
-    "Double-tap to put back on the list": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck två gånger för att lägga tillbaka på listan"
-          }
-        }
-      }
-    },
-    "Double-tap to tick off": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck två gånger för att bocka av"
-          }
-        }
-      }
-    },
     "Everything this plan needs, sorted by store section": {
       "localizations": {
         "sv": {
@@ -49698,26 +49738,6 @@
         }
       }
     },
-    "1 L": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 l"
-          }
-        }
-      }
-    },
-    "1 package = %lld mL": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 förpackning = %lld ml"
-          }
-        }
-      }
-    },
     "Millilitres": {
       "localizations": {
         "sv": {
@@ -49744,26 +49764,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ange exakt antal ml"
-          }
-        }
-      }
-    },
-    "Last logged amount: %@ mL": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Senast loggade mängd: %@ ml"
-          }
-        }
-      }
-    },
-    "Also counts as %lld mL water": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Räknas även som %lld ml vatten"
           }
         }
       }
