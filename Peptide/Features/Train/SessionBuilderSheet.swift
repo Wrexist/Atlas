@@ -35,6 +35,11 @@ struct SessionBuilderSheet: View {
     /// muscles they label in both modes.
     private static let focusColor = AppColor.trainingPrimaryMuscleTint
     private static let companionColor = AppColor.trainingSecondaryMuscleTint
+    /// The same orange and blue at ink weight, for the selected muscle
+    /// chips: the multiply tints are too pale to fill under
+    /// `AppColor.background` ink in light mode.
+    private static let focusChipColor = AppColor.trainingPrimaryMuscle
+    private static let companionChipColor = AppColor.trainingSecondaryMuscle
 
     private var profileRequest: ProgramRequest {
         ProgramRequest(profile: dataStore.profile, experienceRaw: storedExperience)
@@ -53,7 +58,8 @@ struct SessionBuilderSheet: View {
             .navigationTitle(routine == nil ? "Plan a workout" : "Your workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
-            .pinnedFooter(fadeHeight: Spacing.md) { footer }
+            // The fade is drawn above the footer instead (see `footer`).
+            .pinnedFooter(fadeHeight: 0) { footer }
             .task { await load() }
         }
     }
@@ -92,22 +98,23 @@ struct SessionBuilderSheet: View {
                 )
                 .frame(maxWidth: .infinity)
                 .appAnimation(AppAnimation.quick, value: focus)
-                // One slot, two keys: recovery heat before a pick, the
-                // focus and companion colours after. Both stay in the
-                // layout so the chips below never jump.
-                ZStack {
+                // Recovery heat before a pick, the focus and companion
+                // colours after. A key only takes room when it has
+                // something to explain, so an untinted map sits right on
+                // the chips instead of over a blank slot.
+                if focus != nil {
+                    roleKey
+                        .transition(.opacity)
+                } else if showsHeatKey {
                     MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
                                      highLabel: String(localized: "Needs rest"))
-                        .opacity(focus == nil ? 1 : 0)
-                        .accessibilityHidden(focus != nil)
-                    roleKey
-                        .opacity(focus == nil ? 0 : 1)
-                        .accessibilityHidden(focus == nil)
+                        .transition(.opacity)
                 }
             }
 
             section("MUSCLE") {
-                chips(Target.allCases, isSelected: { $0 == focus }, action: select)
+                chips(Target.allCases, tint: Self.focusChipColor,
+                      isSelected: { $0 == focus }, action: select)
             }
 
             if let focus {
@@ -115,6 +122,7 @@ struct SessionBuilderSheet: View {
                 section("TRAIN WITH IT") {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         chips(focus.companions.filter { !resting.contains($0) },
+                              tint: Self.companionChipColor,
                               isSelected: { companions.contains($0) },
                               action: toggleCompanion)
                         if !resting.isEmpty {
@@ -132,12 +140,11 @@ struct SessionBuilderSheet: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        // The pinned footer's inset already lifts the last row clear of
-        // the button, so the bottom only needs the fade's depth: any more
-        // and the end of the scroll is an empty band above the button.
         .padding(.top, Spacing.lg)
-        .padding(.bottom, Spacing.md)
+        .padding(.bottom, Self.footerFadeHeight)
     }
+
+    private var showsHeatKey: Bool { !mapHighlights.isEmpty }
 
     /// Fatigue heat before a pick; the session's muscles after.
     private var mapHighlights: [AnatomicalMuscle: MuscleHighlight] {
@@ -230,7 +237,8 @@ struct SessionBuilderSheet: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        .padding(.vertical, Spacing.lg)
+        .padding(.top, Spacing.lg)
+        .padding(.bottom, Self.footerFadeHeight)
     }
 
     private func slotRow(_ slot: RoutineExercise) -> some View {
@@ -267,9 +275,9 @@ struct SessionBuilderSheet: View {
         }
     }
 
-    /// What the map's two colours mean once a muscle is picked. The only
-    /// place the orange and blue appear off the figure: the chips below
-    /// select in the one accent, like every other chip in the app.
+    /// What the map's two colours mean once a muscle is picked. The
+    /// selected chips below fill in the same orange and blue, so chip,
+    /// figure and key all say which muscle plays which role.
     private var roleKey: some View {
         HStack(spacing: Spacing.lg) {
             roleKeyItem("Focus", color: Self.focusColor)
@@ -290,12 +298,14 @@ struct SessionBuilderSheet: View {
 
     private func chips(
         _ targets: [Target],
+        tint: Color,
         isSelected: @escaping (Target) -> Bool,
         action: @escaping (Target) -> Void
     ) -> some View {
         FlowLayout(spacing: Spacing.sm) {
             ForEach(targets, id: \.self) { target in
-                GlassChip(LocalizedStringKey(target.displayName), isSelected: isSelected(target)) {
+                GlassChip(LocalizedStringKey(target.displayName), tint: tint, style: .prominent,
+                          isSelected: isSelected(target)) {
                     action(target)
                 }
             }
@@ -315,26 +325,39 @@ struct SessionBuilderSheet: View {
                     PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
                 }
             } else {
-                VStack(spacing: Spacing.sm) {
-                    if focus == nil {
-                        Text("Pick a muscle to start")
-                            .font(AppFont.scaled(13))
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                    // The same button as "Start workout", which takes this
-                    // slot once the workout is built.
+                // The same button as "Start workout", which takes this slot
+                // once the workout is built. Until a muscle is picked it
+                // names what it's waiting for, so no hint line repeats it.
+                if focus == nil {
+                    PrimaryCTAButton(title: "Pick a muscle to start") {}
+                        .disabled(true)
+                } else {
                     PrimaryCTAButton(title: "Create workout", icon: "wand.and.stars") { build() }
-                        .disabled(focus == nil || !library.isLoaded)
+                        .disabled(!library.isLoaded)
                 }
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        // Deeper than the footer's fade (`Spacing.md`), so the fade ends
-        // above the button instead of letting the section headers show
-        // through it.
         .padding(.top, Spacing.lg)
         .padding(.bottom, Spacing.sm)
+        .background(alignment: .top) { footerFade }
     }
+
+    /// The soft edge sits above the footer's solid band, not inside it:
+    /// a row passing the fold fades out, and nothing is sliced to a
+    /// sliver of letter tops at the band's edge. Each page's bottom
+    /// padding matches its depth, so at the end of a scroll the fade only
+    /// covers padding.
+    private var footerFade: some View {
+        LinearGradient(colors: [AppColor.background.opacity(0), AppColor.background],
+                       startPoint: .top, endPoint: .bottom)
+            .frame(height: Self.footerFadeHeight)
+            .offset(y: -Self.footerFadeHeight)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    private static let footerFadeHeight = Spacing.xxl
 
     // MARK: - Actions
 

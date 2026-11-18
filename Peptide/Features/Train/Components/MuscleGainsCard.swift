@@ -29,19 +29,26 @@ struct MuscleGainsCard: View {
     }
 
     @State private var mode: Mode = .regular
+    @State private var facing: BodyFacing = .both
 
     private var hasHistory: Bool { !totals.isEmpty }
 
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Training history")
-                        .font(AppFont.title)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text(subtitle)
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
+                HStack(alignment: .top, spacing: Spacing.md) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Training history")
+                            .font(AppFont.title)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text(subtitle)
+                            .font(AppFont.subheadline)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                    if !highlights.isEmpty {
+                        BodyFacingButton(facing: $facing)
+                    }
                 }
 
                 if hasHistory {
@@ -54,6 +61,7 @@ struct MuscleGainsCard: View {
 
                 TrainingBodyExplorer(
                     highlights: highlights,
+                    side: $facing,
                     legend: .intensity(low: mode == .regular ? String(localized: "Rarely") : String(localized: "Least"),
                                        high: mode == .regular ? String(localized: "Every week") : String(localized: "Most")),
                     onIdentify: { muscle in onIdentify?(muscle, historyDays) }

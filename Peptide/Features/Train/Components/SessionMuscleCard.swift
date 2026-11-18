@@ -4,6 +4,7 @@ import SwiftUI
 struct SessionMuscleCard: View {
     let session: WorkoutSession
     @State private var inspectedMuscle: AnatomicalMuscle?
+    @State private var facing: BodyFacing = .both
     @State private var library = ExerciseLibrary.shared
 
     private var highlights: [AnatomicalMuscle: MuscleHighlight] {
@@ -15,14 +16,23 @@ struct SessionMuscleCard: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Text("Muscles trained")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(caption)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
+                HStack(alignment: .top, spacing: Spacing.md) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Muscles trained")
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text(caption)
+                            .font(AppFont.subheadline)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                    if !highlights.isEmpty {
+                        BodyFacingButton(facing: $facing)
+                    }
+                }
                 TrainingBodyExplorer(
                     highlights: highlights,
+                    side: $facing,
                     primaryColor: AppColor.trainingPrimaryMuscleTint,
                     secondaryColor: AppColor.trainingSecondaryMuscleTint,
                     onIdentify: { inspectedMuscle = $0 }

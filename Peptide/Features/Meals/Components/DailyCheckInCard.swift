@@ -17,6 +17,7 @@ struct DailyCheckInCard: View {
     let onTap: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var completionTrigger = 0
 
     var body: some View {
@@ -71,30 +72,60 @@ struct DailyCheckInCard: View {
     // MARK: - Filled (summary) state
 
     private func filled(entry: OutcomeEntry) -> some View {
-        HStack(alignment: .center, spacing: Spacing.md) {
-            MilestoneArtwork(size: 48, trigger: completionTrigger, isActive: completionTrigger > 0)
+        Group {
+            // The five score glyphs don't compress, so at accessibility
+            // sizes they take the card's full width on a row of their own.
+            // Squeezed between the artwork and "Edit" they needed ~400pt and
+            // pushed the whole Today stack past both screen edges.
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    HStack(alignment: .center, spacing: Spacing.md) {
+                        filledArtwork
+                        filledEyebrow
+                        Spacer(minLength: 0)
+                        editAffordance
+                    }
+                    scoreStrip(entry)
+                }
+            } else {
+                HStack(alignment: .center, spacing: Spacing.md) {
+                    filledArtwork
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Today's check-in")
-                    .font(AppFont.eyebrow)
-                    .tracking(0.8)
-                    .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight)
-                scoreStrip(entry)
+                    VStack(alignment: .leading, spacing: 4) {
+                        filledEyebrow
+                        scoreStrip(entry)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    editAffordance
+                }
             }
-
-            Spacer(minLength: 0)
-
-            HStack(spacing: Spacing.xxs) {
-                Text("Edit")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(11, weight: .semibold))
-            }
-            .foregroundStyle(AppColor.accentLight)
         }
         .padding(Spacing.md)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+    }
+
+    private var filledArtwork: some View {
+        MilestoneArtwork(size: 48, trigger: completionTrigger, isActive: completionTrigger > 0)
+    }
+
+    private var filledEyebrow: some View {
+        Text("Today's check-in")
+            .font(AppFont.eyebrow)
+            .tracking(0.8)
+            .textCase(.uppercase)
+            .foregroundStyle(AppColor.accentLight)
+    }
+
+    private var editAffordance: some View {
+        HStack(spacing: Spacing.xxs) {
+            Text("Edit")
+                .font(AppFont.scaled(11, weight: .semibold))
+            Image(systemName: "chevron.right")
+                .font(AppFont.scaled(11, weight: .semibold))
+        }
+        .foregroundStyle(AppColor.accentLight)
     }
 
     private func scoreStrip(_ entry: OutcomeEntry) -> some View {

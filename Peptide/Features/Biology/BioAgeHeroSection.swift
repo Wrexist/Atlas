@@ -60,14 +60,16 @@ struct BioAgeHeroSection: View {
 
     // MARK: - Header
 
-    /// The screen's subject. A plain title: the biomarkers sit right
-    /// below the dial, so a menu repeating them here was a second, hidden
-    /// way to the same place.
+    /// The dial's label: a quiet eyebrow centred on the dial's axis, so the
+    /// screen's large title stays its only heading. It sits in the stack
+    /// above the dial's frame, so it never runs into the arc as it grows.
     private var header: some View {
         Text("Biological Age")
-            .font(AppFont.scaled(16, weight: .semibold))
-            .foregroundStyle(AppColor.textPrimary)
-            .padding(.bottom, Spacing.sm)
+            .textCase(.uppercase)
+            .font(AppFont.eyebrow)
+            .tracking(1.0)
+            .foregroundStyle(AppColor.textSecondary)
+            .multilineTextAlignment(.center)
             .accessibilityAddTraits(.isHeader)
     }
 
@@ -134,12 +136,12 @@ struct BioAgeHeroSection: View {
     /// Locked → building → unlocked cross-fade rather than swap.
     private static var stateTransition: AnyTransition { .opacity.combined(with: .scale(scale: 0.96)) }
 
-    /// Where the number will be, held by a lock drawn like the other
-    /// states' centre glyphs. A 56pt "--" read as two grey bars.
+    /// Where the number will be: one thin, dim dash. The Pro card right
+    /// below says it's locked; a lock here said it a second time.
     private var lockedCentre: some View {
-        Image(systemName: "lock")
-            .font(AppFont.scaled(28, weight: .light, relativeTo: .title1, in: centreTypeSize))
-            .foregroundStyle(AppColor.textSecondary)
+        Text(verbatim: "—")
+            .font(AppFont.scaled(28, weight: .ultraLight, relativeTo: .title1, in: centreTypeSize))
+            .foregroundStyle(AppColor.textTertiary)
             .accessibilityHidden(true)
     }
 

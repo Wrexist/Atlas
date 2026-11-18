@@ -47,6 +47,7 @@ struct TrainOverviewView: View {
     @State private var inspectedPeriodLabel = String(localized: "Last 7 days")
     @SceneStorage("train.overview.details") private var showsTrainingDetails = false
     @State private var showsMapInfo = false
+    @State private var bodyFacing: BodyFacing = .both
     @State private var showsSessionBuilder = false
     /// The builder's routine, started once its sheet has finished dismissing.
     @State private var builtWorkout: (routine: Routine, linksRoutine: Bool)?
@@ -240,8 +241,9 @@ struct TrainOverviewView: View {
 
     @ViewBuilder
     private func otherStarts(showsPlan: Bool) -> some View {
-        // Outline, like the wand on "Plan a workout" beside it.
-        GlassButton(title: "Empty workout", icon: "play", style: .secondary, isFullWidth: true) {
+        // A ringed outline: a bare triangle carried less ink than the
+        // wand and stars on "Plan a workout" beside it.
+        GlassButton(title: "Empty workout", icon: "play.circle", style: .secondary, isFullWidth: true) {
             Haptics.impact(.medium)
             sessionService.startWorkout()
         }
@@ -425,7 +427,10 @@ struct TrainOverviewView: View {
                     }
                     Spacer(minLength: 0)
                     if weekHasTraining {
-                        mapInfoButton
+                        HStack(spacing: Spacing.sm) {
+                            BodyFacingButton(facing: $bodyFacing)
+                            mapInfoButton
+                        }
                     }
                 }
 
@@ -440,6 +445,7 @@ struct TrainOverviewView: View {
 
                 TrainingBodyExplorer(
                     highlights: MuscleMapView.intensityHighlights(from: frequencies),
+                    side: $bodyFacing,
                     legend: .intensity(low: String(localized: "Less"), high: String(localized: "Most")),
                     onIdentify: { inspectRecentMuscle($0) }
                 )
@@ -470,7 +476,7 @@ struct TrainOverviewView: View {
         .accessibilityLabel("About this map")
         .popover(isPresented: $showsMapInfo) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Select Front or Back for a closer look. Tap a muscle for its exercises.")
+                Text("Tap the arrows to see the front or back up close. Tap a muscle for its exercises.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Relative training score: primary work counts more than supporting work. Not a measure of growth or recovery.")
