@@ -100,6 +100,26 @@ final class BackupImportServiceTests: XCTestCase {
 
     // MARK: - Apply
 
+    func test_validate_v1Backup_reportsNoTrainingData() throws {
+        let backup = AppBackup(exportDate: Date(), version: "1.0", protocols: [], entries: [], profile: .fresh)
+
+        let preview = try BackupImportService.validate(encode(backup)).preview
+
+        XCTAssertFalse(preview.hasTrainingData)
+    }
+
+    func test_validate_v2BackupWithZeroWorkouts_reportsTrainingDataThatReplaceWillApply() throws {
+        let backup = AppBackup(
+            exportDate: Date(), version: "2.0", protocols: [], entries: [], profile: .fresh,
+            workoutSessions: [], routines: []
+        )
+
+        let preview = try BackupImportService.validate(encode(backup)).preview
+
+        XCTAssertTrue(preview.hasTrainingData)
+        XCTAssertEqual(preview.workoutSessionsCount, 0)
+    }
+
     func test_dryRun_doesNotMutate() throws {
         let dataStore = makeDataStore()
         let initialCount = dataStore.protocols.count

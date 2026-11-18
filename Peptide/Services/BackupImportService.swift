@@ -87,6 +87,10 @@ enum BackupImportService {
         var workoutSessionsCount: Int = 0
         var routinesCount: Int = 0
         var customPeptidesCount: Int = 0
+        /// True when the backup carries any v2 training key, so a Replace
+        /// rewrites workouts (to none, when the counts are zero). False
+        /// for a v1 backup, which leaves training untouched.
+        var hasTrainingData: Bool = false
         /// Set on the realized preview `apply` returns: true only when
         /// the pre-apply safety copy was actually written, so the sheet
         /// never promises one that a full disk prevented.
@@ -107,7 +111,8 @@ enum BackupImportService {
         profile: UserProfile,
         workoutSessionsCount: Int = 0,
         routinesCount: Int = 0,
-        customPeptidesCount: Int = 0
+        customPeptidesCount: Int = 0,
+        hasTrainingData: Bool = false
     ) -> Preview {
         Preview(
             exportDate: exportDate,
@@ -120,7 +125,8 @@ enum BackupImportService {
             hasWeightHistory: !profile.weightHistory.isEmpty,
             workoutSessionsCount: workoutSessionsCount,
             routinesCount: routinesCount,
-            customPeptidesCount: customPeptidesCount
+            customPeptidesCount: customPeptidesCount,
+            hasTrainingData: hasTrainingData
         )
     }
 
@@ -134,7 +140,8 @@ enum BackupImportService {
             profile: backup.profile,
             workoutSessionsCount: backup.workoutSessions?.count ?? 0,
             routinesCount: backup.routines?.count ?? 0,
-            customPeptidesCount: backup.customPeptides?.count ?? 0
+            customPeptidesCount: backup.customPeptides?.count ?? 0,
+            hasTrainingData: backup.carriesTrainingData
         )
     }
 
@@ -340,7 +347,8 @@ enum BackupImportService {
             profile: resolvedProfile,
             workoutSessionsCount: training?.workoutSessions.count ?? 0,
             routinesCount: training?.routines.count ?? 0,
-            customPeptidesCount: training?.customPeptides.count ?? 0
+            customPeptidesCount: training?.customPeptides.count ?? 0,
+            hasTrainingData: training != nil
         )
         realized.safetyCopySaved = snapshot != nil
         return realized
@@ -368,12 +376,7 @@ enum BackupImportService {
         @MainActor
         init?(backup: AppBackup, strategy: Strategy, dataStore: DataStore) {
             // All-nil means a v1 backup: nothing to do.
-            guard backup.workoutSessions != nil
-                || backup.routines != nil
-                || backup.customExercises != nil
-                || backup.personalRecords != nil
-                || backup.customPeptides != nil
-            else { return nil }
+            guard backup.carriesTrainingData else { return nil }
 
             let incomingSessions = backup.workoutSessions ?? []
             let incomingRoutines = backup.routines ?? []
@@ -432,5 +435,17 @@ enum BackupImportService {
         var merged = ProfileMergeEngine.reconcile(current, with: incoming)
         merged.weeklySummaries.merge(incoming.weeklySummaries) { currentRecap, _ in currentRecap }
         return merged
+    }
+}
+
+extension AppBackup {
+    /// Any v2 key present. A v1 backup has none, and restoring it leaves
+    /// the live workouts, routines, records and custom compounds alone.
+    var carriesTrainingData: Bool {
+        workoutSessions != nil
+            || routines != nil
+            || customExercises != nil
+            || personalRecords != nil
+            || customPeptides != nil
     }
 }

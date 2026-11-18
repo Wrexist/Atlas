@@ -6305,6 +6305,16 @@
         }
       }
     },
+    "Checking backup…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontrollerar säkerhetskopian…"
+          }
+        }
+      }
+    },
     "Connect Apple Health to fill this in": {
       "localizations": {
         "sv": {
@@ -7129,6 +7139,16 @@
         }
       }
     },
+    "Replaces your protocols, meals and profile from the backup. Workouts, routines and records are kept. A snapshot is taken first.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ersätter dina protokoll, måltider och din profil från säkerhetskopian. Pass, rutiner och rekord behålls. En ögonblicksbild tas först."
+          }
+        }
+      }
+    },
     "Report not on this device": {
       "localizations": {
         "sv": {
@@ -7570,6 +7590,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vilken enskild förändring skulle sänka den mest?"
+          }
+        }
+      }
+    },
+    "Wipes your current workouts, meals, protocols and profile, then restores from the backup. This backup has no workouts, so your current workouts will be removed. A snapshot is taken first.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raderar dina nuvarande pass, måltider, protokoll och din profil och återställer sedan från säkerhetskopian. Säkerhetskopian har inga pass, så dina nuvarande pass tas bort. En ögonblicksbild tas först."
           }
         }
       }

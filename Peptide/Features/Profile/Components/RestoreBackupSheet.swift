@@ -29,9 +29,11 @@ struct RestoreBackupSheet: View {
     @State private var errorMessage: String?
     @State private var resultPreview: BackupImportService.Preview?
     @State private var snapshots: [BackupSnapshotService.Info] = []
+    @State private var validationTask: Task<Void, Never>?
 
     private enum Phase: Equatable {
         case pick
+        case validating
         case preview
         case confirming(BackupImportService.Strategy)
         case applying
@@ -45,9 +47,10 @@ struct RestoreBackupSheet: View {
                 VStack(spacing: Spacing.lg) {
                     switch phase {
                     case .pick: pickPhase.transition(Self.phaseTransition)
+                    case .validating: progressPhase("Checking backup…").transition(Self.phaseTransition)
                     case .preview: previewPhase.transition(Self.phaseTransition)
                     case .confirming(let strategy): confirmPhase(strategy).transition(Self.phaseTransition)
-                    case .applying: applyingPhase.transition(Self.phaseTransition)
+                    case .applying: progressPhase("Restoring your data…").transition(Self.phaseTransition)
                     case .done: donePhase.transition(Self.phaseTransition)
                     case .failed: failedPhase.transition(Self.phaseTransition)
                     }
@@ -140,13 +143,25 @@ struct RestoreBackupSheet: View {
                 )
                 StrategyCard(
                     title: "Replace current data",
-                    detail: "Wipes your current workouts, meals, protocols and profile, then restores from the backup. A snapshot is taken first.",
+                    detail: replaceDetail,
                     icon: "arrow.triangle.2.circlepath",
                     style: .destructive,
                     onTap: { phase = .confirming(.replace) }
                 )
             }
         }
+    }
+
+    /// What Replace really does to training: a v1 backup leaves it
+    /// alone, and a v2 backup with no workouts clears the current ones.
+    private var replaceDetail: LocalizedStringKey {
+        guard let preview, preview.hasTrainingData else {
+            return "Replaces your protocols, meals and profile from the backup. Workouts, routines and records are kept. A snapshot is taken first."
+        }
+        if preview.workoutSessionsCount == 0 {
+            return "Wipes your current workouts, meals, protocols and profile, then restores from the backup. This backup has no workouts, so your current workouts will be removed. A snapshot is taken first."
+        }
+        return "Wipes your current workouts, meals, protocols and profile, then restores from the backup. A snapshot is taken first."
     }
 
     private func confirmPhase(_ strategy: BackupImportService.Strategy) -> some View {
@@ -183,13 +198,13 @@ struct RestoreBackupSheet: View {
         }
     }
 
-    private var applyingPhase: some View {
+    private func progressPhase(_ message: LocalizedStringKey) -> some View {
         VStack(spacing: Spacing.lg) {
             ProgressView()
                 .progressViewStyle(.circular)
                 .scaleEffect(1.2)
                 .padding(.top, Spacing.xl)
-            Text("Restoring your data…")
+            Text(message)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
         }
@@ -259,21 +274,28 @@ struct RestoreBackupSheet: View {
     /// Moves the read + decode off the main actor so a 50 MB backup
     /// doesn't freeze the UI while validation runs. The decoded backup
     /// and preview are sendable and cross back to the main actor cheaply.
+    /// A newer pick cancels the older one, so the preview always shows
+    /// the file the user chose last.
     private func validate(loading load: @escaping @Sendable () throws -> Data) {
-        Task { @MainActor in
+        validationTask?.cancel()
+        phase = .validating
+        validationTask = Task { @MainActor in
             do {
                 let (parsed, preview) = try await Task.detached(priority: .userInitiated) {
                     () throws -> (backup: AppBackup, preview: BackupImportService.Preview) in
                     try BackupImportService.validate(load())
                 }.value
+                guard !Task.isCancelled else { return }
                 self.backup = parsed
                 self.preview = preview
                 self.phase = .preview
             } catch let error as BackupImportService.ImportError {
+                guard !Task.isCancelled else { return }
                 AppLog.persistence.error("Backup rejected: \(String(describing: error), privacy: .public)")
                 errorMessage = error.errorDescription
                 phase = .failed
             } catch {
+                guard !Task.isCancelled else { return }
                 AppLog.persistence.error("Backup read failed: \(error.localizedDescription, privacy: .public)")
                 errorMessage = String(localized: "Couldn't read that file. Make sure it's an Atlas backup and try again.")
                 phase = .failed
@@ -352,8 +374,9 @@ private struct BackupSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             // v1 backups carried no training data at all — say so
-            // explicitly rather than letting "full backup" imply it.
-            if preview.workoutSessionsCount > 0 {
+            // explicitly rather than letting "full backup" imply it. A v2
+            // backup with zero workouts shows 0: Replace will clear them.
+            if preview.hasTrainingData {
                 row("Workouts", count(preview.workoutSessionsCount))
             } else {
                 row("Workouts", Text("Not in this backup"))
