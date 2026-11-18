@@ -26,7 +26,7 @@ enum ProgressionEngine {
     }
 
     /// Why today's target sits below the plain progression.
-    enum Adjustment: Equatable, Sendable {
+    enum Adjustment: String, Codable, Equatable, Sendable {
         /// Low recovery: about 10% less load, same reps.
         case lowRecovery
         /// Deload week: the same lighter load and a third fewer reps,

@@ -17,12 +17,22 @@
  * A verified Pro entitlement is required (403 `pro_required`
  * otherwise); the app falls back to its offline recap on any refusal.
  */
-import { passesProGate, principalFor, refuse, THINKING_OFF } from './_lib/anthropic-proxy.js';
+import {
+  MIN_UPSTREAM_MS,
+  passesProGate,
+  principalFor,
+  refuse,
+  refuseAttest,
+  remainingUpstreamMs,
+  THINKING_OFF,
+} from './_lib/anthropic-proxy.js';
 import { checkAppAttest } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
+import { localeTag } from './_lib/locale.js';
 import {
   allowRate,
   costForBytes,
+  intEnv,
   isBlocked,
   principalLimit,
   recordLimitStrike,
@@ -38,6 +48,9 @@ const MAX_TOKENS = 500;
 // The aggregate is tiny; nothing larger is legitimate. Checked on the
 // parsed body like `_lib/anthropic-proxy.js` does.
 const MAX_BODY_BYTES = 64 * 1024;
+// The whole request's deadline, a few seconds under vercel.json's 30 s
+// maxDuration; see MIN_UPSTREAM_MS in `_lib/anthropic-proxy.js`.
+const TIMEOUT_MS = 25_000;
 
 const SYSTEM_PROMPT = [
   "You are Atlas's weekly coach. Summarize the user's last 7 days in 2-3 short paragraphs, ~150 words total.",
@@ -50,10 +63,13 @@ const SYSTEM_PROMPT = [
   "• If a stat or section is missing or marked null, don't mention it — never invent data. The aggregate leaves out anything the user doesn't track.",
   "• No compound names, dosages, or Protocol specifics — the aggregate doesn't carry them, and you must not guess.",
   "• Use the numbers provided verbatim. Percentages arrive as whole numbers: if pctPercent is 86, say 86 %, not \"strong\" or \"most\".",
+  "• Check-in averages (energyAvg, sleepQualityAvg, recoveryAvg, moodAvg, focusAvg) are 1-5 self-ratings, not hours or percentages. sleepQualityAvg is how well the user rated their sleep, not hours slept.",
+  "• Write in the language named after the aggregate.",
+  "• Never use emoji.",
   "",
   "Structure:",
   "1. One sentence opener: how the week went overall.",
-  "2. 2-3 specific observations grounded in the numbers present. Lead with training days, nutrition, sleep, HRV and resting heart rate, and check-in averages; mention Protocol adherence and streak only when they're present.",
+  "2. 2-3 specific observations grounded in the numbers present. Lead with training days, nutrition, HRV, and check-in averages such as sleep; mention Protocol adherence and streak only when they're present.",
   "3. One forward-looking line for next week — encouraging, not prescriptive.",
   "",
   "Output: plain text, no markdown, no bullet points, no headings. The iOS card renders the paragraphs as-is."
@@ -65,7 +81,7 @@ const SYSTEM_PROMPT = [
 // is retry-loop noise or abuse. The principal is derived exactly as on
 // the other routes; see `principalFor` in `_lib/anthropic-proxy.js`.
 function checkRateLimit(principal) {
-  const limit = parseInt(process.env.WEEKLY_RPM || '6', 10);
+  const limit = intEnv('WEEKLY_RPM', 6);
   return allowRate({ name: 'weekly-summary', key: principal, limit: principalLimit(principal, limit), windowSeconds: 60 });
 }
 
@@ -85,6 +101,12 @@ function checkRateLimit(principal) {
  */
 function asNum(v) {
   return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+}
+// Averages arrive as raw quotients (3.6666666666666665); the prompt
+// quotes numbers verbatim, so they are rounded to one decimal here.
+function asRounded(v) {
+  const n = asNum(v);
+  return n === undefined ? undefined : Math.round(n * 10) / 10;
 }
 function asInt(v) {
   const n = asNum(v);
@@ -137,12 +159,13 @@ function sanitiseAggregate(agg) {
   const o = agg.outcomes;
   if (o && typeof o === 'object') {
     clean.outcomes = {
-      energyAvg: asNum(o.energyAvg) ?? 0,
-      sleepAvg: asNum(o.sleepAvg) ?? 0,
-      recoveryAvg: asNum(o.recoveryAvg) ?? 0,
-      moodAvg: asNum(o.moodAvg) ?? 0,
-      focusAvg: asNum(o.focusAvg) ?? 0,
-      compositeDelta: asNum(o.compositeDelta) ?? 0,
+      energyAvg: asRounded(o.energyAvg) ?? 0,
+      // Renamed so the model can't read a 1-5 rating as hours slept.
+      sleepQualityAvg: asRounded(o.sleepAvg) ?? 0,
+      recoveryAvg: asRounded(o.recoveryAvg) ?? 0,
+      moodAvg: asRounded(o.moodAvg) ?? 0,
+      focusAvg: asRounded(o.focusAvg) ?? 0,
+      compositeDelta: asRounded(o.compositeDelta) ?? 0,
       checkInsCount: asInt(o.checkInsCount) ?? 0,
     };
   }
@@ -163,8 +186,6 @@ function sanitiseAggregate(agg) {
     const bio = {};
     if (asInt(b.hrvAvg) !== undefined) bio.hrvAvg = asInt(b.hrvAvg);
     if (asInt(b.hrvDelta) !== undefined) bio.hrvDelta = asInt(b.hrvDelta);
-    if (asInt(b.rhrAvg) !== undefined) bio.rhrAvg = asInt(b.rhrAvg);
-    if (asNum(b.sleepHoursAvg) !== undefined) bio.sleepHoursAvg = asNum(b.sleepHoursAvg);
     clean.biometrics = bio;
   }
 
@@ -188,20 +209,36 @@ function sanitiseAggregate(agg) {
   return clean;
 }
 
-function buildUserPrompt(aggregate) {
-  // Pretty-printed JSON is what the model reads best. Stays
-  // deterministic per aggregate so identical aggregates (rare but
-  // possible) hit any downstream caching cleanly.
+// The app ships English and Swedish. The body's `locale` (the app's UI
+// language plus region) picks the recap language; older builds sent only
+// Accept-Language, so that header is the fallback. Either way the tag goes
+// through the shared, capped check before it reaches the prompt, and any
+// language other than Swedish gets English.
+function recapLocale(req) {
+  if (req.body?.locale !== undefined) return localeTag(req.body.locale);
+  const header = req.headers?.['accept-language'];
+  return localeTag(typeof header === 'string' ? header.split(',')[0].split(';')[0].trim() : undefined);
+}
+
+function recapLanguage(locale) {
+  return locale.split(/[-_]/)[0].toLowerCase() === 'sv' ? 'Swedish' : 'English';
+}
+
+function buildUserPrompt(aggregate, locale) {
+  // Pretty-printed JSON is what the model reads best.
   return [
     "Here is the user's aggregate for the past week. Write the summary.",
     "",
     "```json",
     JSON.stringify(aggregate, null, 2),
-    "```"
+    "```",
+    "",
+    `User locale: ${locale}. Write the summary in ${recapLanguage(locale)}.`
   ].join("\n");
 }
 
 export default async function handler(req, res) {
+  const startedAt = Date.now();
   if (req.method !== 'POST') {
     res.status(405).json({ error: { message: 'Use POST' } });
     return;
@@ -216,7 +253,7 @@ export default async function handler(req, res) {
   // the limits count against. Same semantics as the main proxy routes.
   const attest = await checkAppAttest(req, { logLabel: 'weekly-summary' });
   if (!attest.ok) {
-    res.status(401).json({ error: { message: 'Unauthorised', code: attest.code } });
+    refuseAttest(res, attest);
     return;
   }
 
@@ -294,13 +331,23 @@ export default async function handler(req, res) {
     messages: [
       {
         role: 'user',
-        content: buildUserPrompt(aggregate)
+        // The aggregate is numbers only, so without the locale the model
+        // has no text to mirror and always answered in English.
+        content: buildUserPrompt(aggregate, recapLocale(req))
       }
     ]
   };
 
+  const upstreamMs = remainingUpstreamMs(startedAt, TIMEOUT_MS);
+  if (upstreamMs < MIN_UPSTREAM_MS) {
+    console.error('[weekly-summary] too little time left for the upstream call');
+    await refundSpend({ principal, cost });
+    refuse(res, 'unavailable');
+    return;
+  }
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25_000);
+  const timeout = setTimeout(() => controller.abort(), upstreamMs);
   try {
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

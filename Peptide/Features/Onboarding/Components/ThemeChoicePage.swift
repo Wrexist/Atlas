@@ -65,21 +65,7 @@ struct ThemeChoicePage: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.lg)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(
-                        isSelected
-                            ? AppColor.accentPrimary.opacity(0.10)
-                            : AppColor.surfaceSecondary.opacity(0.6)
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(
-                                isSelected ? AppColor.accentPrimary.opacity(0.55) : AppColor.glassBorder,
-                                lineWidth: isSelected ? 1.5 : 0.5
-                            )
-                    }
-            }
+            .onboardingChoice(isSelected: isSelected, cornerRadius: Spacing.cardCornerRadius)
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(mode.displayName)
@@ -114,29 +100,17 @@ struct ThemeChoicePage: View {
                     }
 
                 if isSelected {
+                    // Inverse ink: the pill is the theme's ink stops,
+                    // bright in dark mode, where near-white vanishes on it.
                     Image(systemName: "checkmark")
                         .font(AppFont.scaled(13, weight: .semibold))
-                        .foregroundStyle(AppColor.onAccent)
+                        .foregroundStyle(AppColor.inverseInk)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(
-                        isSelected
-                            ? themeColor.primary.opacity(0.10)
-                            : AppColor.surfaceSecondary.opacity(0.55)
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .strokeBorder(
-                                isSelected ? themeColor.primary.opacity(0.55) : AppColor.glassBorder,
-                                lineWidth: isSelected ? 1.5 : 0.5
-                            )
-                    }
-            }
+            .onboardingChoice(isSelected: isSelected, tint: themeColor.primary)
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(themeColor.displayName)

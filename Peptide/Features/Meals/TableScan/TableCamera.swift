@@ -179,6 +179,8 @@ struct TableCameraPreview: UIViewRepresentable {
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
         view.backgroundColor = .black
+        // A live camera feed, not UI: Smart Invert must leave it alone.
+        view.accessibilityIgnoresInvertColors = true
         view.previewLayer?.session = camera.session
         view.previewLayer?.videoGravity = .resizeAspectFill
         if let layer = view.previewLayer { view.rotation = camera.previewRotation(for: layer) }

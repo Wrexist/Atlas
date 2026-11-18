@@ -83,14 +83,14 @@ enum FridgeScanService {
     /// The groceries in a proxy response. Keys outside the library are
     /// dropped and boxes clamped to the photo; a photo with nothing in it
     /// throws `noFoodDetected`.
-    static func parse(_ data: Data, pantryKeys: Set<String>, calendar: Calendar) throws -> [Found] {
+    static func parse(_ data: Data, pantryKeys: Set<String>, calendar: Calendar, now: Date = .now) throws -> [Found] {
         let result = try JSONDecoder().decode(Response.self, from: data).result
-        let found = result.items.compactMap { grocery(from: $0, pantryKeys: pantryKeys, calendar: calendar) }
+        let found = result.items.compactMap { grocery(from: $0, pantryKeys: pantryKeys, calendar: calendar, now: now) }
         guard result.isGroceries, !found.isEmpty else { throw MealScannerService.ScanError.noFoodDetected }
         return found
     }
 
-    private static func grocery(from item: Item, pantryKeys: Set<String>, calendar: Calendar) -> Found? {
+    private static func grocery(from item: Item, pantryKeys: Set<String>, calendar: Calendar, now: Date) -> Found? {
         let name = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
         let box = CGRect(x: item.box.x, y: item.box.y, width: item.box.width, height: item.box.height)
             .intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
@@ -102,7 +102,7 @@ enum FridgeScanService {
             count: min(max(1, item.count), 99),
             place: FridgePlace(rawValue: item.place) ?? .fridge,
             shelfDays: item.shelfDays.map { min(max(0, $0), 730) },
-            printedExpiry: item.printedExpiry.flatMap { day(from: $0, calendar: calendar) },
+            printedExpiry: item.printedExpiry.flatMap { day(from: $0, calendar: calendar, now: now) },
             pantryKey: item.pantryKey.flatMap { pantryKeys.contains($0) ? $0 : nil },
             box: box,
             per100g: nutriments(item)
@@ -121,13 +121,24 @@ enum FridgeScanService {
         )
     }
 
+    /// Days either side of today a printed date may fall: a misread one
+    /// outside it falls back to the shelf-life guess.
+    static let printedExpiryWindow = -365...1100
+
     /// The model writes ISO dates, which are Gregorian whatever calendar
-    /// the phone uses; only the time zone comes from `calendar`.
-    static func day(from text: String, calendar: Calendar) -> Date? {
+    /// the phone uses; only the time zone comes from `calendar`. A date
+    /// that doesn't exist, or one implausibly far from `now`, is no date.
+    static func day(from text: String, calendar: Calendar, now: Date = .now) -> Date? {
         let parts = text.split(separator: "-").compactMap { Int($0) }
-        guard parts.count == 3 else { return nil }
+        guard parts.count == 3, parts[0] >= 2000, (1...12).contains(parts[1]), (1...31).contains(parts[2]) else { return nil }
         var gregorian = Calendar(identifier: .gregorian)
         gregorian.timeZone = calendar.timeZone
-        return gregorian.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
+        let components = DateComponents(year: parts[0], month: parts[1], day: parts[2])
+        guard components.isValidDate(in: gregorian),
+              let date = gregorian.date(from: components),
+              let offset = gregorian.dateComponents([.day], from: gregorian.startOfDay(for: now), to: date).day,
+              printedExpiryWindow.contains(offset)
+        else { return nil }
+        return date
     }
 }

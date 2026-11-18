@@ -209,7 +209,7 @@ struct WorkoutWeeklyProgressView: View {
                             ForEach(week.days) { day in
                                 VStack(spacing: Spacing.sm) {
                                     Text(day.count.formatted()).font(AppFont.subheadline).monospacedDigit()
-                                    RoundedRectangle(cornerRadius: 4)
+                                    RoundedRectangle(cornerRadius: Spacing.iconCornerRadius)
                                         .fill(day.count > 0 ? AppColor.accentFill : AppColor.surfaceSecondary)
                                         .frame(height: day.count == 0 ? 2 : 100 * CGFloat(day.count) / CGFloat(max(1, week.days.map(\.count).max() ?? 1)))
                                     Text(day.date.formatted(.dateTime.weekday(.narrow))).font(AppFont.subheadline)
@@ -230,7 +230,13 @@ struct WorkoutWeeklyProgressView: View {
                         }
                     }
                 }
-                if week.count == 0 { Text("No completed workouts this week yet.").font(AppFont.body) }
+                if week.count == 0 {
+                    Group {
+                        if week.isCurrent { Text("No completed workouts this week yet.") }
+                        else { Text("No completed workouts that week.") }
+                    }
+                    .font(AppFont.body)
+                }
             }.padding(Spacing.screenPadding)
                 .task(id: OnDeviceSummaryEngine.week(week, unit: unit)) {
                     if let facts = OnDeviceSummaryEngine.week(week, unit: unit) { await summaryService.prepare(facts) }

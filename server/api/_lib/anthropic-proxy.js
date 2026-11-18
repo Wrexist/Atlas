@@ -5,7 +5,7 @@
  * `api.anthropic.com/v1/messages`. The iOS client never sees the
  * upstream Anthropic key.
  *
- * Routes (meal-scan, food-scan, ai-research) thin-wrap
+ * Routes (meal-scan, food-scan, lab-scan, fridge-scan, ai-research) thin-wrap
  * `forwardToAnthropic`, so a new defense is a one-place change.
  * weekly-summary shares the limiter and `refuse` but owns its upstream
  * call.
@@ -75,6 +75,7 @@ import {
   abuseBlockSeconds,
   allowRate,
   costForBody,
+  intEnv,
   isBlocked,
   principalLimit,
   recordLimitStrike,
@@ -162,7 +163,7 @@ export function principalFor(req, attest) {
 // spend is bounded by the daily quota and budget, and charging a photo
 // ~4 units here throttled a user after a handful of scans.
 function checkRateLimit(principal, logLabel) {
-  const limit = parseInt(process.env.RATE_LIMIT_RPM || '20', 10);
+  const limit = intEnv('RATE_LIMIT_RPM', 20);
   return allowRate({ name: logLabel, key: principal, limit: principalLimit(principal, limit), windowSeconds: 60 });
 }
 
@@ -191,6 +192,19 @@ export function refuse(res, code) {
   const { status, message, retryAfter } = REFUSALS[code];
   if (retryAfter) res.setHeader('Retry-After', String(retryAfter()));
   res.status(status).json({ error: { message, code } });
+}
+
+/**
+ * Answers a failed App Attest check: 401 with its code, except when
+ * the key registry was unreachable — a 503 the app treats as transient,
+ * so a Redis blip doesn't make every install discard its key.
+ */
+export function refuseAttest(res, attest) {
+  if (attest.code === 'attest_unavailable') {
+    refuse(res, 'unavailable');
+    return;
+  }
+  res.status(401).json({ error: { message: 'Unauthorised', code: attest.code } });
 }
 
 /**
@@ -311,6 +325,20 @@ function sanitiseBody(raw, options) {
   return out;
 }
 
+/**
+ * Vercel kills a function at its maxDuration without running `finally`,
+ * so a free scan or quota charged before a slow Redis round trip would
+ * never be refunded. A route's `timeoutMs` (kept a few seconds under its
+ * maxDuration) therefore bounds the whole request: the upstream call
+ * gets what is left of it, and is not started with less than
+ * MIN_UPSTREAM_MS to go.
+ */
+export const MIN_UPSTREAM_MS = 5_000;
+
+export function remainingUpstreamMs(startedAt, timeoutMs) {
+  return timeoutMs - (Date.now() - startedAt);
+}
+
 export async function forwardToAnthropic(req, res, {
   logLabel,
   systemPrefix,
@@ -328,6 +356,7 @@ export async function forwardToAnthropic(req, res, {
   scanSucceeded,
   timeoutMs = 25_000,
 }) {
+  const startedAt = Date.now();
   if (req.method !== 'POST') {
     res.status(405).json({ error: { message: 'Use POST' } });
     return;
@@ -350,7 +379,7 @@ export async function forwardToAnthropic(req, res, {
   // `attest_clock` tells it to correct its clock and keep the key.
   const attest = await checkAppAttest(req, { logLabel });
   if (!attest.ok) {
-    res.status(401).json({ error: { message: 'Unauthorised', code: attest.code } });
+    refuseAttest(res, attest);
     return;
   }
 
@@ -463,8 +492,17 @@ export async function forwardToAnthropic(req, res, {
     return;
   }
 
+  const upstreamMs = remainingUpstreamMs(startedAt, timeoutMs);
+  if (upstreamMs < MIN_UPSTREAM_MS) {
+    console.error(`[${logLabel}] too little time left for the upstream call`);
+    await refundSpend({ principal, cost });
+    await scan?.refund();
+    refuse(res, 'unavailable');
+    return;
+  }
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const timeout = setTimeout(() => controller.abort(), upstreamMs);
   try {
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

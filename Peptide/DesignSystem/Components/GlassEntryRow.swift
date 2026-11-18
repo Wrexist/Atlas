@@ -19,9 +19,10 @@ struct GlassEntryRow: View {
         title: LocalizedStringKey,
         subtitle: Text? = nil,
         badge: Badge? = nil,
+        surface: GlassEntryRowLabel.Surface = .inset,
         action: @escaping () -> Void
     ) {
-        label = GlassEntryRowLabel(icon: icon, title: title, subtitle: subtitle, badge: badge)
+        label = GlassEntryRowLabel(icon: icon, title: title, subtitle: subtitle, badge: badge, surface: surface)
         self.action = action
     }
 
@@ -38,10 +39,19 @@ struct GlassEntryRow: View {
 /// (a `LocalizedStringResource`, a literal key, an interpolated string)
 /// while the row owns the styling.
 struct GlassEntryRowLabel: View {
+    enum Surface {
+        /// A well inside a card: the secondary surface, no lift.
+        case inset
+        /// A row standing on the page between cards, raised like them. An
+        /// inset well on the page reads as a hole next to raised cards.
+        case card
+    }
+
     let icon: String
     let title: LocalizedStringKey
     var subtitle: Text?
     var badge: Badge?
+    var surface: Surface = .inset
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -81,7 +91,7 @@ struct GlassEntryRowLabel: View {
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .insetRowBackground()
+        .entryRowSurface(surface)
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
     }
@@ -97,6 +107,16 @@ extension View {
         border: Color = AppColor.glassBorder
     ) -> some View {
         background { InsetRowFill(cornerRadius: cornerRadius, border: border) }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func entryRowSurface(_ surface: GlassEntryRowLabel.Surface) -> some View {
+        switch surface {
+        case .inset: insetRowBackground()
+        case .card: glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        }
     }
 }
 

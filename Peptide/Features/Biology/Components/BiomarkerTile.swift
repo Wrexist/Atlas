@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// One biomarker card on the Biology tab: a soft wash of the metric's
-/// colour over glass, the reading large and light with its unit small
-/// beside it, a thin trend line, and the average underneath. Three
+/// One biomarker card on the Biology tab: a glass card in the app's one
+/// accent, the reading large and light with its unit small beside it, a
+/// thin trend line, and the average underneath. Three
 /// sizes, picked from the card's menu: small sits two to a row, medium
 /// and large take the full width with a longer and a taller line.
 ///
@@ -12,13 +12,19 @@ struct BiomarkerTile: View {
     let snapshot: BiomarkerSnapshot
     let size: BiomarkerTileSize
     let unit: MeasurementUnit
+    /// Whether this device reads Apple Health, so an empty card asks
+    /// for the step still missing rather than one already taken.
+    let healthConnected: Bool
     var onTap: () -> Void
     var onResize: (BiomarkerTileSize) -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var biomarker: Biomarker { snapshot.biomarker }
-    private var tint: Color { biomarker.tint }
+    /// One accent for every card: a hue per metric put a palette beside
+    /// the page's single accent without telling the metrics apart any
+    /// better than their names do.
+    private var tint: Color { AppColor.accentPrimary }
 
     var body: some View {
         Button(action: onTap) {
@@ -45,9 +51,8 @@ struct BiomarkerTile: View {
                     footer
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: size == .small ? 148 : nil, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: size == .small ? 148 : nil, maxHeight: .infinity, alignment: .topLeading)
             .padding(Spacing.md)
-            .background { wash }
             .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
@@ -89,7 +94,7 @@ struct BiomarkerTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .contentTransition(.numericText())
-            if let unitText = biomarker.displayUnit(for: unit) {
+            if let unitText = biomarker.displayUnit(for: unit) ?? snapshot.unitLabel {
                 Text(unitText)
                     .font(AppFont.scaled(13, weight: .medium))
                     .foregroundStyle(AppColor.textSecondary)
@@ -127,19 +132,6 @@ struct BiomarkerTile: View {
         }
     }
 
-    /// The metric's colour, strongest in the top corner and fading out,
-    /// under the glass so light and dark mode each get their own depth.
-    private var wash: some View {
-        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [tint.opacity(0.26), tint.opacity(0.04)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-    }
-
     @ViewBuilder
     private var sizeMenu: some View {
         Picker("Card size", selection: Binding(get: { size }, set: onResize)) {
@@ -152,8 +144,19 @@ struct BiomarkerTile: View {
     // MARK: - Text
 
     private var emptyHint: LocalizedStringKey {
-        if biomarker == .latestLabPanel { return "Add results in Labs" }
-        return biomarker.supportsManualEntry ? "Tap to log a reading" : "Connect Apple Health to fill this in"
+        switch biomarker {
+        case .latestLabPanel:
+            return "Add results in Labs"
+        case .weight:
+            return "Log a weigh-in to fill this in"
+        case .bodyFat, .waist, .bloodPressure, .bodyTemperature:
+            return "Tap to log a reading"
+        case .hrvBaseline, .rhrBaseline, .sleepBaseline, .stepsBaseline:
+            guard healthConnected else { return "Connect Apple Health to fill this in" }
+            return biomarker == .stepsBaseline
+                ? "Carry your iPhone or wear Apple Watch to record this"
+                : "Wear Apple Watch to record this"
+        }
     }
 
     private var valueText: String {
@@ -165,7 +168,12 @@ struct BiomarkerTile: View {
     }
 
     /// "Avg 58 ms · Steady", or the stale note once the reading is old.
+    /// A lab reading always leads with its panel name, so the number
+    /// never stands alone.
     private var footerText: String {
+        if let context = snapshot.contextLabel {
+            return [context, snapshot.staleNote()].compactMap { $0 }.joined(separator: " · ")
+        }
         let verb = snapshot.changeText.components(separatedBy: " · ").first ?? ""
         var parts: [String] = []
         if snapshot.samples.count >= 2, snapshot.latestSecondary == nil {
@@ -187,24 +195,6 @@ struct BiomarkerTile: View {
         case .up:   "arrow.up.right"
         case .down: "arrow.down.right"
         case .flat, .insufficient: nil
-        }
-    }
-}
-
-extension Biomarker {
-    /// The metric family's colour, shared by its card wash, icon and line.
-    var tint: Color {
-        switch self {
-        case .weight:           AppColor.macroProtein
-        case .hrvBaseline:      AppColor.metricHRV
-        case .rhrBaseline:      AppColor.metricHeartRate
-        case .sleepBaseline:    AppColor.metricSleep
-        case .stepsBaseline:    AppColor.metricActivity
-        case .bodyTemperature:  AppColor.textSecondary
-        case .bodyFat:          AppColor.streak
-        case .waist:            AppColor.accentLight
-        case .bloodPressure:    AppColor.metricHeartRate
-        case .latestLabPanel:   AppColor.accentPrimary
         }
     }
 }

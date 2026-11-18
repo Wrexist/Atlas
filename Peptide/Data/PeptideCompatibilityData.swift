@@ -6,6 +6,13 @@ import Foundation
 /// knowledge and interaction warnings beyond what commonStacks provides.
 enum PeptideCompatibilityData {
 
+    /// The prose in this file and in PeptideTimingData stays English so
+    /// matching (goal terms, "fasted" checks) is language-independent; this
+    /// looks each sentence up in the string catalog at the point it is shown.
+    static func displayText(_ english: String) -> String {
+        Bundle.main.localizedString(forKey: english, value: english, table: nil)
+    }
+
     // MARK: - Validated Stacks
 
     /// Clinically or research-validated peptide combinations with known synergy mechanisms.

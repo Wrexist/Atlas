@@ -58,12 +58,39 @@ final class StepGoalEngineTests: XCTestCase {
 
     // MARK: - Fetch window
 
-    func test_fetchDays_today_usesLookback() {
-        XCTAssertEqual(StepGoalEngine.fetchDays(forDayOffset: 0), StepGoalEngine.lookbackDays)
+    func test_fetchDays_oldestBrowsableDay_readsItsBucket() {
+        // Buckets as the full fetch returns them: one per day, the oldest
+        // `fetchDays - 1` days before today.
+        let today = october(19)
+        let buckets: [(date: Date, value: Double)] = (0..<StepGoalEngine.fetchDays).compactMap { back in
+            calendar.date(byAdding: .day, value: -back, to: today).map { (date: $0, value: Double(1_000 + back)) }
+        }
+        let oldest = calendar.date(byAdding: .day, value: -LifestyleDataLogic.maxMealDayLookback, to: today) ?? today
+        XCTAssertEqual(
+            StepGoalEngine.steps(on: oldest, from: buckets, calendar: calendar),
+            Double(1_000 + LifestyleDataLogic.maxMealDayLookback)
+        )
     }
 
-    func test_fetchDays_farPastDay_coversThatDay() {
-        XCTAssertEqual(StepGoalEngine.fetchDays(forDayOffset: -30), 31)
+    func test_merging_recentRead_replacesOnlyTheRecentDays() {
+        let full = [
+            (date: october(16), value: 5_000.0),
+            (date: october(18), value: 3_000.0),
+            (date: october(19), value: 1_200.0)
+        ]
+        let recent = [(date: october(19), value: 4_800.0)]
+        let merged = StepGoalEngine.merging(recent: recent, into: full, now: october(19, 14), calendar: calendar)
+        XCTAssertEqual(StepGoalEngine.steps(on: october(16, 9), from: merged, calendar: calendar), 5_000)
+        // Yesterday is inside the recent window and the fresh read has no
+        // bucket for it, so its stale count drops out.
+        XCTAssertEqual(StepGoalEngine.steps(on: october(18, 9), from: merged, calendar: calendar), 0)
+        XCTAssertEqual(StepGoalEngine.steps(on: october(19, 9), from: merged, calendar: calendar), 4_800)
+    }
+
+    func test_merging_emptyFullWindow_keepsTheRecentRead() {
+        let recent = [(date: october(19), value: 2_500.0)]
+        let merged = StepGoalEngine.merging(recent: recent, into: [], now: october(19, 8), calendar: calendar)
+        XCTAssertEqual(StepGoalEngine.steps(on: october(19, 20), from: merged, calendar: calendar), 2_500)
     }
 
     // MARK: - Day lookup

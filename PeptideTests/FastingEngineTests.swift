@@ -22,6 +22,22 @@ final class FastingEngineTests: XCTestCase {
         )
     }
 
+    // MARK: - Open fasts from two devices (C240)
+
+    func test_supersededOpenFasts_twoOpenFasts_closesOlderAtNewerStart() {
+        let older = fast(start: date(2026, 10, 20, 18), hours: nil)
+        let newer = fast(start: date(2026, 10, 20, 20), hours: nil)
+        let superseded = FastingEngine.supersededOpenFasts(in: [newer, older])
+        XCTAssertEqual(superseded.map(\.id), [older.id])
+        XCTAssertEqual(superseded.first?.endedAt, newer.startedAt)
+    }
+
+    func test_supersededOpenFasts_oneOpenFast_closesNothing() {
+        let open = fast(start: date(2026, 10, 20, 20), hours: nil)
+        let ended = fast(start: date(2026, 10, 19, 20), hours: 16)
+        XCTAssertTrue(FastingEngine.supersededOpenFasts(in: [open, ended]).isEmpty)
+    }
+
     // MARK: - Stage at time t
 
     func test_stage_followsElapsedHourThresholds() {
@@ -235,6 +251,23 @@ final class FastingStoreTests: XCTestCase {
         XCTAssertEqual(store.active?.startedAt, now)
     }
 
+    func test_updateStart_beforePreviousFastEnded_clampsToThatEnd() {
+        let now = Date()
+        let previousEnd = now.addingTimeInterval(-5 * 3600)
+        store.start(plan: .sixteen, targetHours: 16, remindsAtEnd: false, at: now.addingTimeInterval(-20 * 3600))
+        store.end(at: previousEnd)
+        store.start(plan: .sixteen, targetHours: 16, remindsAtEnd: false, at: now.addingTimeInterval(-3600))
+        store.updateStart(now.addingTimeInterval(-10 * 3600), now: now)
+        XCTAssertEqual(store.active?.startedAt, previousEnd)
+    }
+
+    func test_updateStart_daysBack_clampsToElapsedCeiling() {
+        let now = Date()
+        store.start(plan: .sixteen, targetHours: 16, remindsAtEnd: false, at: now.addingTimeInterval(-3600))
+        store.updateStart(now.addingTimeInterval(-30 * 24 * 3600), now: now)
+        XCTAssertEqual(store.active?.startedAt, now.addingTimeInterval(-FastingWindow.elapsedCeiling))
+    }
+
     func test_delete_removesFromHistory() {
         let start = Date(timeIntervalSince1970: 1_790_000_000)
         store.start(plan: .sixteen, targetHours: 16, remindsAtEnd: false, at: start)
@@ -242,6 +275,20 @@ final class FastingStoreTests: XCTestCase {
         guard let id = store.ended.first?.id else { return XCTFail("Expected an ended fast") }
         store.delete(id: id)
         XCTAssertTrue(repo.loadFasts().isEmpty)
+    }
+
+    func test_load_twoOpenFastsFromSync_keepsOnlyTheNewestRunning() {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let older = FastSession(startedAt: start, targetHours: 16, plan: .sixteen)
+        let newer = FastSession(startedAt: start.addingTimeInterval(3600), targetHours: 16, plan: .sixteen)
+        repo.upsertFast(older)
+        repo.upsertFast(newer)
+
+        store.load()
+        store.end(at: start.addingTimeInterval(5 * 3600))
+
+        XCTAssertNil(store.active, "Ending the newest fast must not resurrect the older one")
+        XCTAssertEqual(store.ended.count, 2)
     }
 
     func test_lastPlan_defaultsToSixteenEight() {

@@ -51,6 +51,23 @@ enum LifestyleDataLogic {
         return byDay.values.sorted { $0.date < $1.date }
     }
 
+    /// How long a weigh-in stands in for the stored body weight.
+    static let currentWeightWindow: TimeInterval = 30 * 86_400
+
+    /// Body metrics with the newest weigh-in from the last 30 days in
+    /// place of the stored weight, which only the profile editor writes.
+    /// Targets sized from it follow a cut or a bulk instead of staying on
+    /// the onboarding weight; with no recent weigh-in the stored value stands.
+    static func currentBodyMetrics(_ profile: UserProfile, now: Date = Date()) -> BodyMetrics {
+        var metrics = profile.bodyMetrics
+        let cutoff = now.addingTimeInterval(-currentWeightWindow)
+        let latest = profile.weightHistory
+            .filter { $0.date >= cutoff && $0.date <= now && $0.kg.isFinite && $0.kg > 0 }
+            .max { $0.date < $1.date }
+        if let latest { metrics.weightKg = latest.kg }
+        return metrics
+    }
+
     /// Removes a bodyweight entry by id. Used by the entry-list editor
     /// inside the weight log sheet.
     static func deleteWeight(from profile: inout UserProfile, id: UUID) {
@@ -68,10 +85,11 @@ enum LifestyleDataLogic {
         proteinG: Int,
         carbsG: Int,
         fatG: Int,
-        date: Date
+        date: Date,
+        calendar: Calendar = .current
     ) {
-        let key = consumptionKey(for: date)
-        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
+        let key = consumptionKey(for: date, calendar: calendar)
+        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date, calendar: calendar)
         bucket.caloriesKcal += calories
         bucket.proteinG += proteinG
         bucket.carbsG += carbsG
@@ -150,9 +168,9 @@ enum LifestyleDataLogic {
     /// the fraction, so a metric +1 L reads back as exactly 1000 mL
     /// instead of the 1005 mL that rounding to 34 oz produced. Clamps
     /// the day at zero so an undo can't push it negative.
-    static func logWater(into profile: inout UserProfile, fluidOunces: Double, date: Date) {
-        let key = consumptionKey(for: date)
-        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
+    static func logWater(into profile: inout UserProfile, fluidOunces: Double, date: Date, calendar: Calendar = .current) {
+        let key = consumptionKey(for: date, calendar: calendar)
+        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date, calendar: calendar)
         bucket.addWater(fluidOunces: fluidOunces)
         profile.dailyConsumption[key] = bucket
     }
@@ -229,7 +247,7 @@ enum LifestyleDataLogic {
     ///
     /// Compacts the oldest entries past `maxDetailedMealEntries` so the
     /// profile blob grows slowly; no meal is ever dropped.
-    static func logMealEntry(into profile: inout UserProfile, entry: MealEntry) {
+    static func logMealEntry(into profile: inout UserProfile, entry: MealEntry, calendar: Calendar = .current) {
         profile.mealHistory.append(entry)
         compactMealHistoryIfNeeded(into: &profile)
         logMeal(
@@ -238,8 +256,28 @@ enum LifestyleDataLogic {
             proteinG: entry.proteinG,
             carbsG: entry.carbsG,
             fatG: entry.fatG,
-            date: entry.date
+            date: entry.date,
+            calendar: calendar
         )
+        creditWater(of: entry, sign: 1, into: &profile, calendar: calendar)
+    }
+
+    /// Adds (sign 1) or takes back (sign -1) the water a hydrating drink
+    /// entry carries, so the water ring follows the drink's own log.
+    private static func creditWater(of entry: MealEntry, sign: Double, into profile: inout UserProfile, calendar: Calendar = .current) {
+        guard let ml = entry.waterMillilitres, ml.isFinite, ml > 0 else { return }
+        logWater(into: &profile, fluidOunces: sign * fluidOunces(millilitres: ml), date: entry.date, calendar: calendar)
+    }
+
+    /// The water an edited drink carries: the logged credit rescaled by
+    /// how its portion changed. Unchanged when either side has no
+    /// portion to compare.
+    static func rescaledWater(previous: MealEntry, updated: MealEntry) -> Double? {
+        guard let water = previous.waterMillilitres else { return nil }
+        let before = previous.components?.reduce(0) { $0 + $1.grams } ?? 0
+        let after = updated.components?.reduce(0) { $0 + $1.grams } ?? 0
+        guard before > 0, after > 0, before.isFinite, after.isFinite else { return water }
+        return water * after / before
     }
 
     /// Removes a `MealEntry` by id and reverses its contribution to
@@ -259,6 +297,7 @@ enum LifestyleDataLogic {
             date: entry.date,
             calendar: calendar
         )
+        creditWater(of: entry, sign: -1, into: &profile, calendar: calendar)
     }
 
     /// Replaces a `MealEntry` in place AND moves its contribution
@@ -269,8 +308,8 @@ enum LifestyleDataLogic {
     /// rings in lockstep with history — the invariant `logMealEntry`
     /// documents, which a bare array replacement silently broke.
     /// No-op when the id isn't in history.
-    static func applyMealEntryEdit(into profile: inout UserProfile, updated: MealEntry) {
-        guard let index = profile.mealHistory.firstIndex(where: { $0.id == updated.id }) else { return }
+    static func applyMealEntryEdit(into profile: inout UserProfile, updated edited: MealEntry, calendar: Calendar = .current) {
+        guard let index = profile.mealHistory.firstIndex(where: { $0.id == edited.id }) else { return }
         // Out of history while undoing, so `unlogMeal` can tell which
         // bucket held it (see `loggedKey`).
         let previous = profile.mealHistory.remove(at: index)
@@ -280,8 +319,12 @@ enum LifestyleDataLogic {
             proteinG: previous.proteinG,
             carbsG: previous.carbsG,
             fatG: previous.fatG,
-            date: previous.date
+            date: previous.date,
+            calendar: calendar
         )
+        creditWater(of: previous, sign: -1, into: &profile, calendar: calendar)
+        var updated = edited
+        updated.waterMillilitres = rescaledWater(previous: previous, updated: edited)
         profile.mealHistory.insert(updated, at: index)
         logMeal(
             into: &profile,
@@ -289,8 +332,10 @@ enum LifestyleDataLogic {
             proteinG: updated.proteinG,
             carbsG: updated.carbsG,
             fatG: updated.fatG,
-            date: updated.date
+            date: updated.date,
+            calendar: calendar
         )
+        creditWater(of: updated, sign: 1, into: &profile, calendar: calendar)
     }
 
     /// Per-category macro totals for a single calendar day. Powers
@@ -391,7 +436,8 @@ enum LifestyleDataLogic {
             fatG: entry.fatG,
             sourceID: entry.sourceID,
             source: entry.source,
-            components: entry.components
+            components: entry.components,
+            waterMillilitres: entry.waterMillilitres
         )
     }
 

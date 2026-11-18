@@ -19,19 +19,19 @@ enum WidgetPalette {
     /// `WatchPalette.protocolDose`, darkened in light mode for contrast.
     static let protocolDose = dynamic(light: 0x6D4FD1, dark: WatchPalette.protocolDose)
     /// `AppColor.positive`.
-    static let done = dynamic(light: 0x2F8F5B, dark: 0x66C78C)
+    static let done = dynamic(light: 0x23784A, dark: 0x66C78C)
     /// `AppColor.warning`.
     static let over = dynamic(light: 0x9A6B00, dark: 0xFFB800)
 
     /// `AppColor.macroProtein`, `.macroCarbs`, `.macroFat`.
-    static let protein = dynamic(light: 0xB56F0B, dark: WatchPalette.protein)
+    static let protein = dynamic(light: 0x955B07, dark: WatchPalette.protein)
     static let carbs = dynamic(light: 0x6D4FC2, dark: 0xA78BFA)
     static let fat = dynamic(light: 0x9E4055, dark: 0xE8899F)
 
     /// `AppColor.mealBreakfast`, `.mealLunch`, `.mealDinner`, `.mealSnack`.
     /// Darkened in light mode: the dark-mode yellow is unreadable on white.
     static let breakfast = dynamic(light: 0xB85A12, dark: 0xFF9E4D)
-    static let lunch = dynamic(light: 0x9C7714, dark: 0xFAC733)
+    static let lunch = dynamic(light: 0x7F6110, dark: 0xFAC733)
     static let dinner = dynamic(light: 0x5A5FCF, dark: 0x7A80EB)
     static let snack = dynamic(light: 0x2A7A47, dark: 0x5CC78C)
 

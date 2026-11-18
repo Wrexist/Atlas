@@ -103,6 +103,11 @@ final class SwiftDataRepository {
             || Self.needsDecision(movingStoreTo: token, storeHasData: Self.sharedStoreHasData()) {
             beginHold()
         } else {
+            if CloudIdentityChangeEngine.forgetsDeviceLocalRecords(
+                Self.storeIdentityChange(movingStoreTo: token), heldForDecision: false
+            ) {
+                forgetDeviceLocalRecords()
+            }
             isInoperable = true
             reopenContainer(signedIn: token != nil)
             if container == nil {
@@ -192,8 +197,14 @@ final class SwiftDataRepository {
         isUsingFallbackStore = false
         // A first sign-in (no previous token) keeps the device-local
         // records: only a sign-out or a switch to another account hands
-        // them to someone else.
-        if prev != nil { forgetDeviceLocalRecords() }
+        // them to someone else. A held store leaves them to the user's
+        // answer, so Keep keeps them.
+        let change = CloudIdentityChangeEngine.change(
+            previousSignedIn: prev != nil, currentSignedIn: current != nil, sameAccount: false
+        )
+        if CloudIdentityChangeEngine.forgetsDeviceLocalRecords(change, heldForDecision: holdForDecision) {
+            forgetDeviceLocalRecords()
+        }
         mealDraftStore.resetForAccountChange()
         cloudSyncState = current != nil ? .unavailable : .noAccount
 
@@ -223,7 +234,10 @@ final class SwiftDataRepository {
     /// holding, when the store couldn't be destroyed.
     func resolveAccountChange(removingLocalData: Bool) -> Bool {
         guard isAwaitingAccountDecision else { return true }
-        if removingLocalData, !Self.destroySharedStore() { return false }
+        if removingLocalData {
+            guard Self.destroySharedStore() else { return false }
+            forgetDeviceLocalRecords()
+        }
         isAwaitingAccountDecision = false
         UserDefaults.standard.removeObject(forKey: AccountChangeKey.holdPending)
         let current = FileManager.default.ubiquityIdentityToken
@@ -276,17 +290,23 @@ final class SwiftDataRepository {
         movingStoreTo current: (any NSObjectProtocol)?,
         storeHasData: @autoclosure () -> Bool
     ) -> Bool {
-        let recorded = recordedStoreIdentity()
-        let change = CloudIdentityChangeEngine.change(
-            previousSignedIn: recorded != nil,
-            currentSignedIn: current != nil,
-            sameAccount: recorded != nil && current != nil && isSameIdentity(recorded, current)
-        )
+        let change = storeIdentityChange(movingStoreTo: current)
         guard change != .unchanged else { return false }
         return CloudIdentityChangeEngine.needsUserDecision(
             change,
             storeHasData: storeHasData(),
             hadEarlierIdentity: UserDefaults.standard.bool(forKey: AccountChangeKey.hadIdentity)
+        )
+    }
+
+    /// How the identity moves from the account the store was last opened
+    /// under to `current`.
+    private static func storeIdentityChange(movingStoreTo current: (any NSObjectProtocol)?) -> CloudIdentityChange {
+        let recorded = recordedStoreIdentity()
+        return CloudIdentityChangeEngine.change(
+            previousSignedIn: recorded != nil,
+            currentSignedIn: current != nil,
+            sameAccount: recorded != nil && current != nil && isSameIdentity(recorded, current)
         )
     }
 
@@ -1129,7 +1149,7 @@ final class SwiftDataRepository {
         profile.weeklySummaries = summaryStore.load() ?? syncedSummaries
         let hasSyncedSummaries = stored.summariesData != nil || !syncedSummaries.isEmpty
         let optInChanged = WeeklySummaryOptInMigration.apply(to: &profile)
-        if hasSyncedSummaries || optInChanged {
+        if hasSyncedSummaries || optInChanged || stored.bodyMetricsLackAgeStamp {
             saveProfile(profile)
         }
         return profile
@@ -1252,14 +1272,22 @@ final class SwiftDataRepository {
     static let workoutHistoryFetchLimit: Int = 200
 
     func loadWorkoutSessions(limit: Int = SwiftDataRepository.workoutHistoryFetchLimit) -> [WorkoutSession] {
-        guard let context else { return [] }
+        loadWorkoutSessionPage(limit: limit).sessions
+    }
+
+    /// The newest `limit` stored rows, decoded, plus whether the store held
+    /// that many. `reachedLimit` counts rows before an undecodable one is
+    /// skipped or CloudKit twins are collapsed, so a pager reading it still
+    /// knows older workouts exist.
+    func loadWorkoutSessionPage(limit: Int) -> (sessions: [WorkoutSession], reachedLimit: Bool) {
+        guard let context else { return ([], false) }
         var descriptor = FetchDescriptor<StoredWorkoutSession>(
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
         descriptor.fetchLimit = max(1, limit)
         do {
             let stored = try context.fetch(descriptor)
-            return Self.keepingFirstPerID(stored.compactMap {
+            let sessions = Self.keepingFirstPerID(stored.compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
@@ -1267,9 +1295,10 @@ final class SwiftDataRepository {
                     return nil
                 }
             })
+            return (sessions, stored.count >= max(1, limit))
         } catch {
             AppLog.swiftData.error("Load workout sessions failed: \(error.localizedDescription, privacy: .public)")
-            return []
+            return ([], false)
         }
     }
 
@@ -1665,11 +1694,13 @@ final class SwiftDataRepository {
             predicate: #Predicate { $0.id == fastID }
         )
         do {
-            if let existing = try context.fetch(descriptor).first {
-                existing.update(from: fast)
-            } else {
+            // CloudKit can hold duplicate rows for one id; write every one
+            // so a stale copy can't surface again on the next load.
+            let rows = try context.fetch(descriptor)
+            if rows.isEmpty {
                 context.insert(StoredFast.make(from: fast))
             }
+            for row in rows { row.update(from: fast) }
             commit()
         } catch {
             AppLog.swiftData.error("upsert fast failed: \(error.localizedDescription, privacy: .public)")
@@ -1701,7 +1732,7 @@ final class SwiftDataRepository {
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
         do {
-            return try context.fetch(descriptor).map { $0.toFastSession() }
+            return Self.keepingFirstPerID(try context.fetch(descriptor).map { $0.toFastSession() })
         } catch {
             AppLog.swiftData.error("Load fasts failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1729,7 +1760,7 @@ final class SwiftDataRepository {
     }
 
     private static func hasRows(in context: ModelContext) -> Bool {
-        let descriptors: [() throws -> Int] = [
+        anyCountPositive([
             { try context.fetchCount(FetchDescriptor<StoredProtocol>()) },
             { try context.fetchCount(FetchDescriptor<StoredEntry>()) },
             { try context.fetchCount(FetchDescriptor<StoredProfile>()) },
@@ -1738,12 +1769,19 @@ final class SwiftDataRepository {
             { try context.fetchCount(FetchDescriptor<StoredRoutine>()) },
             { try context.fetchCount(FetchDescriptor<StoredPersonalRecord>()) },
             { try context.fetchCount(FetchDescriptor<StoredFast>()) },
-        ]
-        for descriptor in descriptors {
+        ])
+    }
+
+    /// A count that fails means the table may hold rows: the account-change
+    /// check must ask rather than open one account's data under another,
+    /// the same safe side `sharedStoreHasData` and `hasProfileRow` take.
+    static func anyCountPositive(_ counts: [() throws -> Int]) -> Bool {
+        for count in counts {
             do {
-                if try descriptor() > 0 { return true }
+                if try count() > 0 { return true }
             } catch {
                 AppLog.swiftData.error("hasAnyData fetchCount failed: \(error.localizedDescription, privacy: .public)")
+                return true
             }
         }
         return false

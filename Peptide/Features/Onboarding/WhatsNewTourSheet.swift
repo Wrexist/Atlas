@@ -174,7 +174,6 @@ struct WhatsNewTourSheet: View {
                     )
                 )
                 .frame(height: 160)
-                .shadow(color: page.accent.opacity(0.45), radius: 18, y: 8)
 
             // Decorative circle ornaments give the hero card depth
             // without an illustration commitment. Two ovals + the
@@ -196,6 +195,7 @@ struct WhatsNewTourSheet: View {
                 .accessibilityHidden(true)
         }
         .clipShape(RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
+        .appShadow(AppShadow.glassElevated)
         .frame(height: 160)
     }
 

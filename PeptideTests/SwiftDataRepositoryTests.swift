@@ -30,6 +30,19 @@ final class SwiftDataRepositoryTests: XCTestCase {
         super.tearDown()
     }
 
+    // MARK: - Account-change row count (C241)
+
+    private struct CountFailure: Error {}
+
+    func test_anyCountPositive_failingCount_reportsPossibleData() {
+        XCTAssertTrue(SwiftDataRepository.anyCountPositive([{ throw CountFailure() }, { 0 }]),
+                      "An unknown count must make the account-change check ask")
+    }
+
+    func test_anyCountPositive_allZero_reportsEmpty() {
+        XCTAssertFalse(SwiftDataRepository.anyCountPositive([{ 0 }, { 0 }]))
+    }
+
     // MARK: - Empty state
 
     func test_loadProtocols_whenEmpty_returnsEmptyArray() {

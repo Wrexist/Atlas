@@ -18,6 +18,9 @@ struct SessionBuilderSheet: View {
     @State private var library = ExerciseLibrary.shared
     @State private var sessionService = WorkoutSessionService.shared
     @State private var history: [WorkoutSession] = []
+    /// Worked out once in `load()`: `DeloadEngine` walks the whole history,
+    /// and `preview` reads this on every render.
+    @State private var isDeload = false
     @State private var recovery: [AnatomicalMuscle: MuscleRecoveryEngine.Recovery] = [:]
     @State private var states: [Target: SessionBuilderEngine.State] = [:]
     @State private var focus: Target?
@@ -28,6 +31,10 @@ struct SessionBuilderSheet: View {
 
     private typealias Target = SessionBuilderEngine.Target
     private static let minuteOptions = [30, 45, 60, 75]
+    /// The map's two fills, shared with its key so the dots match the
+    /// muscles they label in both modes.
+    private static let focusColor = AppColor.trainingPrimaryMuscleTint
+    private static let companionColor = AppColor.trainingSecondaryMuscleTint
 
     private var profileRequest: ProgramRequest {
         ProgramRequest(profile: dataStore.profile, experienceRaw: storedExperience)
@@ -46,7 +53,7 @@ struct SessionBuilderSheet: View {
             .navigationTitle(routine == nil ? "Plan a workout" : "Your workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
-            .pinnedFooter { footer }
+            .pinnedFooter(fadeHeight: Spacing.md) { footer }
             .task { await load() }
         }
     }
@@ -65,7 +72,8 @@ struct SessionBuilderSheet: View {
                 Button(isSaved ? LocalizedStringKey("routine.saved") : "Save as routine") { save(routine) }
                     .disabled(isSaved || routine.exercises.isEmpty)
             } else {
-                Button("Pick for me", systemImage: "wand.and.stars") { pickForMe() }
+                // Dice, not the wand: the wand is Create workout's, below.
+                Button("Pick for me", systemImage: "dice") { pickForMe() }
                     .disabled(states.isEmpty)
             }
         }
@@ -78,18 +86,24 @@ struct SessionBuilderSheet: View {
             VStack(spacing: Spacing.sm) {
                 MuscleMapView(
                     highlights: mapHighlights,
-                    primaryColor: AppColor.trainingPrimaryMuscleTint,
-                    secondaryColor: AppColor.trainingSecondaryMuscleTint,
+                    primaryColor: Self.focusColor,
+                    secondaryColor: Self.companionColor,
                     onIdentify: { select(Target($0)) }
                 )
                 .frame(maxWidth: .infinity)
                 .appAnimation(AppAnimation.quick, value: focus)
-                // Kept in the layout once a muscle is picked, so the
-                // chips below don't jump up when the legend stops applying.
-                MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
-                                 highLabel: String(localized: "Needs rest"))
-                    .opacity(focus == nil ? 1 : 0)
-                    .accessibilityHidden(focus != nil)
+                // One slot, two keys: recovery heat before a pick, the
+                // focus and companion colours after. Both stay in the
+                // layout so the chips below never jump.
+                ZStack {
+                    MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
+                                     highLabel: String(localized: "Needs rest"))
+                        .opacity(focus == nil ? 1 : 0)
+                        .accessibilityHidden(focus != nil)
+                    roleKey
+                        .opacity(focus == nil ? 0 : 1)
+                        .accessibilityHidden(focus == nil)
+                }
             }
 
             section("MUSCLE") {
@@ -118,7 +132,11 @@ struct SessionBuilderSheet: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        .padding(.vertical, Spacing.lg)
+        // The pinned footer's inset already lifts the last row clear of
+        // the button, so the bottom only needs the fade's depth: any more
+        // and the end of the scroll is an empty band above the button.
+        .padding(.top, Spacing.lg)
+        .padding(.bottom, Spacing.md)
     }
 
     /// Fatigue heat before a pick; the session's muscles after.
@@ -168,7 +186,7 @@ struct SessionBuilderSheet: View {
                     .fill(AppColor.track)
                     .overlay(alignment: .leading) {
                         Capsule()
-                            .fill(AppColor.trainingPrimaryMuscle)
+                            .fill(AppColor.accentPrimary)
                             .scaleEffect(x: fraction, anchor: .leading)
                     }
                     .frame(height: 6)
@@ -249,6 +267,27 @@ struct SessionBuilderSheet: View {
         }
     }
 
+    /// What the map's two colours mean once a muscle is picked. The only
+    /// place the orange and blue appear off the figure: the chips below
+    /// select in the one accent, like every other chip in the app.
+    private var roleKey: some View {
+        HStack(spacing: Spacing.lg) {
+            roleKeyItem("Focus", color: Self.focusColor)
+            roleKeyItem("Train with it", color: Self.companionColor)
+        }
+        .font(AppFont.caption2)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func roleKeyItem(_ title: LocalizedStringKey, color: Color) -> some View {
+        Label {
+            Text(title).foregroundStyle(AppColor.textSecondary)
+        } icon: {
+            Image(systemName: "circle.fill").foregroundStyle(color)
+        }
+    }
+
     private func chips(
         _ targets: [Target],
         isSelected: @escaping (Target) -> Bool,
@@ -282,28 +321,28 @@ struct SessionBuilderSheet: View {
                             .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.textSecondary)
                     }
-                    GlassButton(title: "Create workout", icon: "wand.and.stars", isFullWidth: true) { build() }
+                    // The same button as "Start workout", which takes this
+                    // slot once the workout is built.
+                    PrimaryCTAButton(title: "Create workout", icon: "wand.and.stars") { build() }
                         .disabled(focus == nil || !library.isLoaded)
                 }
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        // Deeper than the footer's fade, so the fade ends above the
-        // button instead of letting the section headers show through it.
-        .padding(.top, Spacing.xl)
+        // Deeper than the footer's fade (`Spacing.md`), so the fade ends
+        // above the button instead of letting the section headers show
+        // through it.
+        .padding(.top, Spacing.lg)
         .padding(.bottom, Spacing.sm)
     }
 
     // MARK: - Actions
 
-    private var isDeload: Bool {
-        DeloadEngine.reason(history: history, now: Date(), calendar: .current) != nil
-    }
-
     private func load() async {
         await library.load()
         await sessionService.refreshReadiness()
-        history = TrainOverviewView.finishedHistory(SwiftDataRepository.shared.loadAllWorkoutSessions())
+        history = dataStore.finishedWorkoutHistory()
+        isDeload = DeloadEngine.reason(history: history, now: Date(), calendar: .current) != nil
         recovery = MuscleRecoveryEngine.recovery(from: history, library: library,
                                                  readiness: sessionService.readiness.level)
         states = SessionBuilderEngine.states(

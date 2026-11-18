@@ -142,7 +142,7 @@ final class OpenFoodFactsService: Sendable {
                     comment: "Local rate-limiter hit. Seconds is the time until the next slot opens."
                 )
             case .networkUnavailable:
-                String(localized: "You're offline. We'll use cached results when available.")
+                String(localized: "You're offline, and this isn't saved on your phone yet. Reconnect, or photograph the label.")
             case .requestFailed:
                 String(localized: "Couldn't look up that product. Please try again.")
             case .serviceUnavailable:
@@ -716,20 +716,33 @@ private extension OpenFoodFactsService {
             // Prefer `energy-kcal_100g`. OFF normalises `energy_100g` to
             // kJ whatever unit the contributor typed (`energy_unit`
             // describes their entry, not this field), so it always
-            // converts.
-            let calories = n?.energyKcal100g.plausiblePer100g
-                ?? n?.energy100g.plausiblePer100g.map { $0 / 4.184 }
-            let protein = n?.proteins100g.plausiblePer100g
-            let carbs = n?.carbohydrates100g.plausiblePer100g
-            let fat = n?.fat100g.plausiblePer100g
+            // converts. A kcal field past what pure fat carries
+            // (900 per 100 g) is usually kJ typed into it, so it falls
+            // back to the kJ field.
+            var calories = n?.energyKcal100g.plausible(within: 0...900)
+                ?? n?.energy100g.plausible(within: 0...3_800)
+                    .map { $0 / 4.184 }
+                    .flatMap { (0...900).contains($0) ? $0 : nil }
+            let rawMacros = [n?.proteins100g, n?.carbohydrates100g, n?.fat100g]
+            var protein = n?.proteins100g.plausible(within: 0...100)
+            var carbs = n?.carbohydrates100g.plausible(within: 0...100)
+            var fat = n?.fat100g.plausible(within: 0...100)
+            // A stated macro outside 0–100 g is a typo, and logging it as
+            // 0 g would be a silent zero. 100 g of food also can't hold
+            // much more than 100 g of macros. Either way the record has
+            // no nutrition worth logging, so the user is sent to Edit.
+            let statedMacroRejected = rawMacros.contains { $0?.value != nil && $0.plausible(within: 0...100) == nil }
+            if statedMacroRejected || (protein ?? 0) + (carbs ?? 0) + (fat ?? 0) > 105 {
+                (calories, protein, carbs, fat) = (nil, nil, nil, nil)
+            }
 
             let per100 = ScannedProduct.Nutriments(
                 calories: calories ?? 0,
                 proteinG: protein ?? 0,
                 carbsG:   carbs ?? 0,
                 fatG:     fat ?? 0,
-                fiberG:   n?.fiber100g.plausiblePer100g,
-                sugarsG:  n?.sugars100g.plausiblePer100g,
+                fiberG:   n?.fiber100g.plausible(within: 0...100),
+                sugarsG:  n?.sugars100g.plausible(within: 0...100),
                 micros:   n?.micronutrients(servingGrams: servingQuantity?.value?.positiveOrNil)
             )
 
@@ -887,12 +900,12 @@ private struct FlexibleInt: Decodable {
 }
 
 private extension Optional where Wrapped == FlexibleDouble {
-    /// The per-100 g value when OFF states a usable one. Crowd-sourced
-    /// records can carry "nan", "inf" or "1e30", which would trap the
-    /// `Int(...)` conversions that render and log them, so anything
-    /// non-finite, negative or above 10 000 per 100 g counts as absent.
-    var plausiblePer100g: Double? {
-        guard let value = self?.value, value.isFinite, (0...10_000).contains(value) else { return nil }
+    /// The per-100 g value when OFF states one inside `range`.
+    /// Crowd-sourced records can carry "nan", "inf", "1e30" or a value
+    /// typed into the wrong field, so anything non-finite or outside
+    /// what 100 g of food can physically hold counts as absent.
+    func plausible(within range: ClosedRange<Double>) -> Double? {
+        guard let value = self?.value, value.isFinite, range.contains(value) else { return nil }
         return value
     }
 }

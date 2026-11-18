@@ -22,9 +22,11 @@ final class ExportService {
     /// call is the expensive part of an otherwise cheap reduce.
     /// `nonisolated(unsafe)`: the PDF renders off the main actor, and
     /// DateFormatter is thread-safe for formatting; it is never mutated
-    /// after this initializer.
+    /// after this initializer. Its locale follows the language the
+    /// report's text resolves to, so month names match the copy around them.
     nonisolated(unsafe) private static let monthFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
         f.dateFormat = "LLLL yyyy"
         return f
     }()
@@ -215,7 +217,7 @@ final class ExportService {
         exerciseName: (String) -> String,
         timeZone: TimeZone = .current
     ) -> String {
-        var csv = "Date,Workout,Exercise,Set,Reps,Weight (kg),RPE,Set Type,Superset,Duration (min),Set Note,Workout Note\n"
+        var csv = "Date,Workout,Exercise,Set,Reps,Weight (kg),RPE,Measurement,Load,Seconds,Meters,Set Type,Superset,Duration (min),Set Note,Workout Note\n"
         let dateStyle = Date.ISO8601FormatStyle(timeZoneSeparator: .colon, timeZone: timeZone)
         let finished = sessions.filter { !$0.isActive }.sorted { $0.startedAt > $1.startedAt }
         for session in finished {
@@ -224,21 +226,34 @@ final class ExportService {
             // Quick-logged workouts carry no sets, only a note; keep them
             // as one session-level row so the export doesn't drop them.
             if !session.exercises.contains(where: { $0.sets.contains(where: \.completed) }) {
-                let fields = [dateStr, csvQuote(session.displayName), "", "", "", "", "", "", "", minutes, "", csvQuote(session.note ?? "")]
+                let fields: [String] = [dateStr, csvQuote(session.displayName)] + Array(repeating: "", count: 11) + [minutes, "", csvQuote(session.note ?? "")]
                 csv += fields.joined(separator: ",") + "\n"
                 continue
             }
             for entry in session.exercises.sorted(by: { $0.index < $1.index }) {
                 let superset = session.supersetLetter(for: entry.id) ?? ""
                 for set in entry.sets.sorted(by: { $0.index < $1.index }) where set.completed {
-                    let fields = [
+                    let measurement = set.measurement
+                    let kind: String = measurement?.kind.rawValue ?? SetEntry.Measurement.Kind.repetitions.rawValue
+                    let load: String = measurement?.load.rawValue ?? SetEntry.Measurement.Load.recorded.rawValue
+                    let seconds: String = measurement?.seconds.map { formatPlainNumber($0) } ?? ""
+                    let meters: String = measurement?.meters.map { formatPlainNumber($0) } ?? ""
+                    let rpe: String = set.rpe.map { formatPlainNumber($0) } ?? ""
+                    let fields: [String] = [
                         dateStr,
                         csvQuote(session.displayName),
                         csvQuote(exerciseName(entry.exerciseID)),
                         "\(set.index)",
                         "\(set.reps)",
                         formatPlainNumber(set.weightKg),
-                        set.rpe.map { formatPlainNumber($0) } ?? "",
+                        rpe,
+                        // Timed, distance and assisted sets keep their real
+                        // values here; Weight (kg) of an assisted set is the
+                        // assistance, which Measurement says.
+                        kind,
+                        load,
+                        seconds,
+                        meters,
                         set.isWarmup ? "Warm-up" : "Working",
                         superset,
                         minutes,
@@ -298,7 +313,8 @@ final class ExportService {
         routines: [Routine] = [],
         customExercises: [CustomExercise] = [],
         personalRecords: [PersonalRecord] = [],
-        customPeptides: [Peptide] = []
+        customPeptides: [Peptide] = [],
+        fasts: [FastSession] = []
     ) -> Data? {
         let backup = AppBackup(
             exportDate: Date(),
@@ -310,7 +326,8 @@ final class ExportService {
             routines: routines,
             customExercises: customExercises,
             personalRecords: personalRecords,
-            customPeptides: customPeptides
+            customPeptides: customPeptides,
+            fasts: fasts
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -336,8 +353,9 @@ final class ExportService {
         let pageRect = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
 
         let format = UIGraphicsPDFRendererFormat()
+        let reportTitle = String(localized: "Atlas Protocol Report", comment: "PDF export title")
         format.documentInfo = [
-            kCGPDFContextTitle as String: "Atlas Protocol Report",
+            kCGPDFContextTitle as String: reportTitle,
             kCGPDFContextAuthor as String: "Atlas",
         ]
 
@@ -353,8 +371,12 @@ final class ExportService {
                 y = margin
             }
 
-            func checkPageBreak(for height: CGFloat) {
-                if y + height > pageHeight - margin - 20 { startPage() }
+            /// True when it started a new page, so a table can repeat its header.
+            @discardableResult
+            func checkPageBreak(for height: CGFloat) -> Bool {
+                guard y + height > pageHeight - margin - 20 else { return false }
+                startPage()
+                return true
             }
 
             @discardableResult
@@ -428,19 +450,23 @@ final class ExportService {
 
             startPage()
 
-            let titleH = drawText("Atlas Protocol Report", font: titleFont, color: accentColor)
+            let titleH = drawText(reportTitle, font: titleFont, color: accentColor)
             y += titleH + 4
 
             let userName = profile.name.trimmingCharacters(in: .whitespaces).isEmpty
-                ? "Atlas User" : profile.name
+                ? String(localized: "Atlas User", comment: "PDF export — fallback when the profile has no name")
+                : profile.name
             let dateStr = Date().formatted(date: .long, time: .omitted)
-            let subH = drawText("\(userName)  ·  Exported \(dateStr)", font: captionFont, color: mutedColor)
+            let subH = drawText(
+                String(localized: "\(userName)  ·  Exported \(dateStr)", comment: "PDF export subtitle — name and export date"),
+                font: captionFont, color: mutedColor
+            )
             y += subH + 12
 
             drawRule(color: accentColor.withAlphaComponent(0.5))
             y += 14
 
-            let sumTH = drawText("SUMMARY", font: sectionFont)
+            let sumTH = drawText(String(localized: "SUMMARY", comment: "PDF export section heading"), font: sectionFont)
             y += sumTH + 8
 
             let completedDoses = entries.filter(\.completed).count
@@ -448,9 +474,9 @@ final class ExportService {
             let activeCount    = protocols.filter { $0.status == .active }.count
 
             for (label, value) in [
-                ("Active Protocols", "\(activeCount) of \(protocols.count)"),
-                ("Doses Logged", "\(completedDoses) of \(entries.count)"),
-                ("Overall Adherence", "\(compliancePct)%"),
+                (String(localized: "Active Protocols"), String(localized: "\(activeCount) of \(protocols.count)")),
+                (String(localized: "Doses Logged"), String(localized: "\(completedDoses) of \(entries.count)")),
+                (String(localized: "Overall Adherence"), "\(compliancePct)%"),
             ] {
                 let h = drawText(label, font: bodyFont, color: mutedColor)
                 drawText(value, font: labelFont, x: pageWidth - margin - 60, width: 60, align: .right)
@@ -472,16 +498,18 @@ final class ExportService {
 
                 checkPageBreak(for: 80)
 
-                // Protocol header
-                let proH = drawText(proto.name, font: sectionFont)
-                drawText(proto.status.rawValue.capitalized, font: captionFont,
+                // Protocol header. The name stops short of the 60 pt status
+                // column so a long name wraps instead of running into it.
+                let proH = drawText(proto.name, font: sectionFont, width: contentWidth - 70)
+                drawText(proto.status.displayName, font: captionFont,
                          color: mutedColor, x: pageWidth - margin - 60, width: 60, align: .right)
                 y += proH + 3
 
                 let startStr   = proto.startDate.formatted(date: .abbreviated, time: .omitted)
                 let peptideStr = proto.peptides.map(\.abbreviation).joined(separator: ", ")
                 let metaH = drawText(
-                    "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% adherence",
+                    String(localized: "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% adherence",
+                           comment: "PDF export — protocol start date, cycle length in weeks, adherence percent"),
                     font: captionFont, color: mutedColor
                 )
                 y += metaH + 2
@@ -495,7 +523,7 @@ final class ExportService {
                 // suppressed.
                 let monthlyBuckets = Self.monthlyBuckets(for: protoEntries)
                 if !monthlyBuckets.isEmpty {
-                    let summaryHeaderH = drawText("MONTHLY SUMMARY",
+                    let summaryHeaderH = drawText(String(localized: "MONTHLY SUMMARY", comment: "PDF export section heading"),
                         font: labelFont, color: mutedColor)
                     y += summaryHeaderH + 3
                     drawRule()
@@ -503,7 +531,8 @@ final class ExportService {
                     for bucket in monthlyBuckets {
                         checkPageBreak(for: 18)
                         let lineH = drawText(
-                            "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% adherence",
+                            String(localized: "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% adherence",
+                                   comment: "PDF export — month, logged doses, missed doses, adherence percent"),
                             font: captionFont
                         )
                         y += lineH + 3
@@ -512,30 +541,38 @@ final class ExportService {
                 }
 
                 guard !protoEntries.isEmpty else {
-                    let emptyH = drawText("No entries recorded.", font: captionFont, color: mutedColor)
+                    let emptyH = drawText(String(localized: "No entries recorded.", comment: "PDF export — protocol with no entries"), font: captionFont, color: mutedColor)
                     y += emptyH + 10
                     drawRule()
                     y += 14
                     continue
                 }
 
-                // Table header row
-                drawRule()
-                y += 4
-                var hdrH: CGFloat = 0
-                for (text, x, width) in [
-                    ("DATE", cDate, 68.0),
-                    ("PEPTIDE", cPep, 110.0),
-                    ("DOSE", cDose, 75.0),
-                    ("TIME", cTime, 70.0),
-                    ("SITE", cSite, 95.0),
-                    ("DONE", cDone, 40.0),
-                ] {
-                    hdrH = max(hdrH, drawText(text, font: labelFont, color: mutedColor, x: x, width: width))
+                // Table header row — kept with the first entry row and
+                // repeated on every page the table continues onto.
+                let headerColumns: [(String, CGFloat, CGFloat)] = [
+                    (String(localized: "DATE", comment: "PDF export table column"), cDate, 68.0),
+                    (String(localized: "PEPTIDE", comment: "PDF export table column"), cPep, 110.0),
+                    (String(localized: "DOSE", comment: "PDF export table column"), cDose, 75.0),
+                    (String(localized: "TIME", comment: "PDF export table column"), cTime, 70.0),
+                    (String(localized: "SITE", comment: "PDF export table column"), cSite, 95.0),
+                    (String(localized: "DONE", comment: "PDF export table column"), cDone, 40.0),
+                ]
+                let headerHeight = headerColumns
+                    .map { measureText($0.0, font: labelFont, width: $0.2) }
+                    .max() ?? 12
+                func drawTableHeader() {
+                    drawRule()
+                    y += 4
+                    for (text, x, width) in headerColumns {
+                        drawText(text, font: labelFont, color: mutedColor, x: x, width: width)
+                    }
+                    y += headerHeight + 3
+                    drawRule()
+                    y += 5
                 }
-                y += hdrH + 3
-                drawRule()
-                y += 5
+                checkPageBreak(for: 4 + headerHeight + 3 + 5 + 1 + 18)
+                drawTableHeader()
 
                 // Entry rows. Two modes based on volume:
                 //   - ≤ Self.pdfFullDetailLimit (90): paginate every
@@ -554,8 +591,12 @@ final class ExportService {
                     let dateVal = entry.date.formatted(date: .abbreviated, time: .omitted)
                     let timeVal = (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
                     let doseVal = entry.actualDose ?? entry.dose
-                    let siteVal = entry.injectionSite ?? "—"
-                    let doneVal = entry.completed ? "Yes" : "No"
+                    let siteVal = entry.injectionSite.map { raw in
+                        InjectionSite(rawValue: raw).map { String(localized: $0.displayName) } ?? raw
+                    } ?? "—"
+                    let doneVal = entry.completed
+                        ? String(localized: "Yes", comment: "PDF export — dose taken")
+                        : String(localized: "No", comment: "PDF export — dose not taken")
 
                     let rowH = [
                         measureText(dateVal, font: bodyFont, width: 68),
@@ -565,7 +606,9 @@ final class ExportService {
                         measureText(siteVal, font: bodyFont, width: 95),
                         measureText(doneVal, font: bodyFont, width: 40),
                     ].max() ?? 14
-                    checkPageBreak(for: rowH + 3)
+                    if checkPageBreak(for: rowH + 3) {
+                        drawTableHeader()
+                    }
 
                     for (text, x, width) in [
                         (dateVal, cDate, 68.0),
@@ -584,7 +627,8 @@ final class ExportService {
                 if protoEntries.count > entriesToRender.count {
                     let hidden = protoEntries.count - entriesToRender.count
                     let moreH = drawText(
-                        "… \(hidden) earlier entries · use the CSV export in Profile → Settings → Data Export for the complete log",
+                        String(localized: "… \(hidden) earlier entries · use the CSV export in Profile → Settings → Data Export for the complete log",
+                               comment: "PDF export — entries left out of the table"),
                         font: captionFont, color: mutedColor
                     )
                     y += moreH + 3
@@ -598,7 +642,8 @@ final class ExportService {
             // Footer
             y = pageHeight - margin + 6
             drawText(
-                "Generated by Atlas  ·  \(Date().formatted(date: .abbreviated, time: .shortened))",
+                String(localized: "Generated by Atlas  ·  \(Date().formatted(date: .abbreviated, time: .shortened))",
+                       comment: "PDF export footer — generation date and time"),
                 font: captionFont, color: mutedColor, align: .center
             )
         }
@@ -703,6 +748,9 @@ struct AppBackup: Codable, Sendable {
     var customExercises: [CustomExercise]?
     var personalRecords: [PersonalRecord]?
     var customPeptides: [Peptide]?
+    /// Fasting history. Optional for the same reason: `nil` (a backup
+    /// from before fasts were carried) leaves the live fasts alone.
+    var fasts: [FastSession]?
 
     init(
         exportDate: Date,
@@ -714,7 +762,8 @@ struct AppBackup: Codable, Sendable {
         routines: [Routine]? = nil,
         customExercises: [CustomExercise]? = nil,
         personalRecords: [PersonalRecord]? = nil,
-        customPeptides: [Peptide]? = nil
+        customPeptides: [Peptide]? = nil,
+        fasts: [FastSession]? = nil
     ) {
         self.exportDate = exportDate
         self.version = version
@@ -726,6 +775,7 @@ struct AppBackup: Codable, Sendable {
         self.customExercises = customExercises
         self.personalRecords = personalRecords
         self.customPeptides = customPeptides
+        self.fasts = fasts
     }
 }
 

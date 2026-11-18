@@ -1,3 +1,4 @@
+import PDFKit
 import XCTest
 @testable import Peptide
 
@@ -89,6 +90,29 @@ final class ExportServiceTests: XCTestCase {
         )
         let magic = data.prefix(5)
         XCTAssertEqual(String(bytes: magic, encoding: .ascii), "%PDF-")
+    }
+
+    func test_pdfExport_tableRunningOntoNextPage_repeatsColumnHeader() throws {
+        let proto = try XCTUnwrap(dataStore.protocols.first)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let start = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 8)))
+        let entries = (0..<80).map { day in
+            ProtocolEntry(
+                id: UUID(), protocolId: proto.id, peptide: MockPeptides.bpc157,
+                date: start.addingTimeInterval(Double(day) * 86_400), dose: "250 mcg", notes: "", completed: true
+            )
+        }
+
+        let data = try ExportService.shared.exportPDF(protocols: [proto], entries: entries, profile: dataStore.profile)
+
+        let document = try XCTUnwrap(PDFDocument(data: data))
+        XCTAssertGreaterThan(document.pageCount, 1)
+        let header = String(localized: "DATE", comment: "PDF export table column")
+        for index in 1..<document.pageCount {
+            let text = document.page(at: index)?.string ?? ""
+            XCTAssertTrue(text.contains(header), "Page \(index + 1) has no column header")
+        }
     }
 
     func test_writePDF_returnsURL_andFileExists() throws {

@@ -213,6 +213,32 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(updated?.schedule(for: MockPeptides.tb500.id), moved)
     }
 
+    func test_addPeptides_withAlreadyPresentPeptide_addsOnlyNewOnesAndReturnsCount() {
+        let target = PeptideProtocol(
+            id: UUID(),
+            name: "Target",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .paused,
+            notes: ""
+        )
+        store.addProtocol(target)
+
+        let added = store.addPeptides(
+            [MockPeptides.bpc157, MockPeptides.tb500, MockPeptides.semax],
+            toProtocolId: target.id
+        )
+
+        let updated = store.protocols.first { $0.id == target.id }
+        XCTAssertEqual(added, 2)
+        XCTAssertEqual(
+            updated?.peptides.map(\.id),
+            [MockPeptides.bpc157.id, MockPeptides.tb500.id, MockPeptides.semax.id]
+        )
+    }
+
     func test_todayEntries_areSortedByDate() {
         let today = store.todayEntries
         for (earlier, later) in zip(today, today.dropFirst()) {
@@ -426,6 +452,17 @@ final class DataStoreTests: XCTestCase {
         store.handleAppActivation()
         let countAfterSecond = store.entries.filter { Calendar.current.isDateInToday($0.date) }.count
         XCTAssertEqual(countAfterFirst, countAfterSecond)
+    }
+
+    func test_handleAppActivation_afterDayChange_incrementsRevision() throws {
+        store.handleAppActivation()
+        let before = store.revision
+        let tomorrow = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: 1, to: Date()))
+
+        store.handleAppActivation(now: tomorrow)
+
+        XCTAssertGreaterThan(store.revision, before,
+                             "Strips keyed on revision must redraw after midnight")
     }
 
     // MARK: - Meal reminder "Same as yesterday"

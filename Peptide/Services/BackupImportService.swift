@@ -87,6 +87,10 @@ enum BackupImportService {
         var workoutSessionsCount: Int = 0
         var routinesCount: Int = 0
         var customPeptidesCount: Int = 0
+        /// True when the backup carries any v2 training key, so a Replace
+        /// rewrites workouts (to none, when the counts are zero). False
+        /// for a v1 backup, which leaves training untouched.
+        var hasTrainingData: Bool = false
         /// Set on the realized preview `apply` returns: true only when
         /// the pre-apply safety copy was actually written, so the sheet
         /// never promises one that a full disk prevented.
@@ -107,7 +111,8 @@ enum BackupImportService {
         profile: UserProfile,
         workoutSessionsCount: Int = 0,
         routinesCount: Int = 0,
-        customPeptidesCount: Int = 0
+        customPeptidesCount: Int = 0,
+        hasTrainingData: Bool = false
     ) -> Preview {
         Preview(
             exportDate: exportDate,
@@ -120,7 +125,8 @@ enum BackupImportService {
             hasWeightHistory: !profile.weightHistory.isEmpty,
             workoutSessionsCount: workoutSessionsCount,
             routinesCount: routinesCount,
-            customPeptidesCount: customPeptidesCount
+            customPeptidesCount: customPeptidesCount,
+            hasTrainingData: hasTrainingData
         )
     }
 
@@ -134,7 +140,8 @@ enum BackupImportService {
             profile: backup.profile,
             workoutSessionsCount: backup.workoutSessions?.count ?? 0,
             routinesCount: backup.routines?.count ?? 0,
-            customPeptidesCount: backup.customPeptides?.count ?? 0
+            customPeptidesCount: backup.customPeptides?.count ?? 0,
+            hasTrainingData: backup.carriesTrainingData
         )
     }
 
@@ -213,6 +220,7 @@ enum BackupImportService {
         try rejectDuplicateIDs(in: backup.routines ?? [], label: "routines", id: \.id)
         try rejectDuplicateIDs(in: backup.customExercises ?? [], label: "custom exercises", id: \.id)
         try rejectDuplicateIDs(in: backup.personalRecords ?? [], label: "personal records", id: \.exerciseID)
+        try rejectDuplicateIDs(in: backup.fasts ?? [], label: "fasts", id: \.id)
     }
 
     private nonisolated static func rejectDuplicateIDs<T, ID: Hashable>(
@@ -278,6 +286,11 @@ enum BackupImportService {
             var profile = backup.profile
             profile.workoutLegacyMigrationCompleted = true
             profile.workoutHistory = []
+            // Health permission and the biometric lock belong to this
+            // device: another phone's backup can't grant HealthKit here or
+            // switch on a lock nobody proved they can pass on it.
+            profile.healthConnected = dataStore.profile.healthConnected
+            profile.biometricLockEnabled = dataStore.profile.biometricLockEnabled
             resolvedProfile = profile
         case .merge:
             // Merge logic: take the current state as the base, then
@@ -326,6 +339,7 @@ enum BackupImportService {
         } catch {
             throw ImportError.applyFailed(error.localizedDescription)
         }
+        restoreFasts(backup.fasts, strategy: strategy)
 
         var realized = preview(
             exportDate: backup.exportDate,
@@ -335,7 +349,8 @@ enum BackupImportService {
             profile: resolvedProfile,
             workoutSessionsCount: training?.workoutSessions.count ?? 0,
             routinesCount: training?.routines.count ?? 0,
-            customPeptidesCount: training?.customPeptides.count ?? 0
+            customPeptidesCount: training?.customPeptides.count ?? 0,
+            hasTrainingData: training != nil
         )
         realized.safetyCopySaved = snapshot != nil
         return realized
@@ -363,12 +378,7 @@ enum BackupImportService {
         @MainActor
         init?(backup: AppBackup, strategy: Strategy, dataStore: DataStore) {
             // All-nil means a v1 backup: nothing to do.
-            guard backup.workoutSessions != nil
-                || backup.routines != nil
-                || backup.customExercises != nil
-                || backup.personalRecords != nil
-                || backup.customPeptides != nil
-            else { return nil }
+            guard backup.carriesTrainingData else { return nil }
 
             let incomingSessions = backup.workoutSessions ?? []
             let incomingRoutines = backup.routines ?? []
@@ -418,6 +428,28 @@ enum BackupImportService {
         }
     }
 
+    /// Fasting history lives in its own store, outside `applyImport`.
+    /// `nil` is a backup from before fasts were carried: the live fasts
+    /// stay as they are. Replace deletes the fasts the backup does not
+    /// carry and writes every carried one, so a live fast cannot survive
+    /// next to the backup's; Merge keeps the current one on an id
+    /// conflict, like every other collection.
+    private static func restoreFasts(_ fasts: [FastSession]?, strategy: Strategy) {
+        guard let fasts else { return }
+        let repository = SwiftDataRepository.shared
+        let currentIDs = Set(repository.loadFasts().map(\.id))
+        if strategy == .replace {
+            let carriedIDs = Set(fasts.map(\.id))
+            for id in currentIDs.subtracting(carriedIDs) {
+                repository.deleteFast(id: id)
+            }
+        }
+        for fast in fasts where strategy == .replace || !currentIDs.contains(fast.id) {
+            repository.upsertFast(fast)
+        }
+        FastingStore.shared.load()
+    }
+
     /// Field-level merge for `UserProfile`: the same union sync uses, so
     /// every logged record (habits, notes, meals and their day totals,
     /// momentum) comes back, and current state wins on conflict. Weekly
@@ -427,5 +459,17 @@ enum BackupImportService {
         var merged = ProfileMergeEngine.reconcile(current, with: incoming)
         merged.weeklySummaries.merge(incoming.weeklySummaries) { currentRecap, _ in currentRecap }
         return merged
+    }
+}
+
+extension AppBackup {
+    /// Any v2 key present. A v1 backup has none, and restoring it leaves
+    /// the live workouts, routines, records and custom compounds alone.
+    var carriesTrainingData: Bool {
+        workoutSessions != nil
+            || routines != nil
+            || customExercises != nil
+            || personalRecords != nil
+            || customPeptides != nil
     }
 }

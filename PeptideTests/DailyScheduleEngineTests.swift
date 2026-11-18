@@ -260,6 +260,26 @@ final class DailyScheduleEngineTests: XCTestCase {
         XCTAssertEqual(plan.headline, "All doses logged today")
     }
 
+    // MARK: - Past-day record headline
+
+    func test_recordHeadline_noDoses_saysNothingWasScheduled() {
+        XCTAssertEqual(DailyScheduleEngine.plan(for: []).recordHeadline, "Nothing was scheduled")
+    }
+
+    func test_recordHeadline_allTaken_saysAllTaken() {
+        let plan = DailyScheduleEngine.plan(for: [entry("AOD-9604", hour: 7, completed: true)])
+        XCTAssertEqual(plan.recordHeadline, "All doses taken")
+    }
+
+    func test_recordHeadline_someTaken_countsTakenWithoutInstructing() {
+        let plan = DailyScheduleEngine.plan(for: [
+            entry("AOD-9604", hour: 7, completed: true),
+            entry("Epitalon", hour: 22)
+        ])
+        XCTAssertEqual(plan.recordHeadline, "1 of 2 doses taken")
+        XCTAssertFalse(plan.recordHeadline.contains("Epitalon"), plan.recordHeadline)
+    }
+
     // MARK: - Fasted notes
 
     func test_plan_twoFastedPeptidesInOneSlot_oneStayFastedNoteAndNoConflictCount() {

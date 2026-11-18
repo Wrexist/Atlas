@@ -233,3 +233,10 @@ test('test_schema_objectsAllForbidExtraKeys', () => {
   };
   walk(LAB_SCAN_SCHEMA);
 });
+
+test('test_schema_markerCarriesRequiredCensoredResultQualifier', () => {
+  const marker = LAB_SCAN_SCHEMA.properties.markers.items;
+  assert.ok(marker.required.includes('value_qualifier'));
+  assert.deepEqual(marker.properties.value_qualifier.anyOf[0].enum, ['<', '>']);
+  assert.match(buildLabScanRequest({ images: [JPEG] }).system, /sign in value_qualifier/);
+});

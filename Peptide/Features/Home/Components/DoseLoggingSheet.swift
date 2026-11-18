@@ -107,6 +107,9 @@ struct DoseLoggingSheet: View {
                                 .labelsHidden()
                                 .tint(AppColor.accentPrimary)
                         }
+                        // Nothing in here stretches the way the dose field
+                        // and site grid do, so pin the width to match them.
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     // Injection site

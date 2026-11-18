@@ -197,7 +197,7 @@ struct RecipeEditorSheet: View {
                         Text("Add")
                             .font(AppFont.scaled(11, weight: .semibold))
                     }
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentInkOnWash)
                     .padding(.horizontal, Spacing.sm)
                     .padding(.vertical, 6)
                     .background {

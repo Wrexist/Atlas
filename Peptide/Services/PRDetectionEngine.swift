@@ -105,7 +105,9 @@ final class PRDetectionEngine {
             guard !allSets.isEmpty else { continue }
 
             let bestE1RM = allSets.compactMap(\.estimatedOneRepMaxKg).max() ?? 0
-            let bestAbs = allSets.map(\.weightKg).max() ?? 0
+            // A set checked off with no reps lifted nothing, so it can't
+            // be the heaviest set — the same rule e1RM and volume follow.
+            let bestAbs = allSets.filter { $0.reps > 0 }.map(\.weightKg).max() ?? 0
             let sessionVolume = allSets.reduce(0) { $0 + $1.volumeKg }
             // Bodyweight track: best reps across all weight-0 sets.
             // This is what "I did 35 push-ups today" looks like —

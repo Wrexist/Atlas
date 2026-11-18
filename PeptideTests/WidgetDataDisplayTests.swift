@@ -117,6 +117,61 @@ final class WidgetDataDisplayTests: XCTestCase {
         XCTAssertNil(data.activeWorkoutPausedElapsed)
     }
 
+    // MARK: - Redundant writes
+
+    func test_isRedundant_identicalRestDayOnNextDay_isFalse() {
+        let yesterday = payload(totalToday: 0)
+        let today = payload(writtenAt: written.addingTimeInterval(86_400), totalToday: 0)
+        XCTAssertFalse(today.isRedundant(after: yesterday, calendar: calendar))
+    }
+
+    func test_isRedundant_identicalLaterSameDay_isTrue() {
+        let morning = payload(totalToday: 0)
+        let later = payload(writtenAt: written.addingTimeInterval(3600), totalToday: 0)
+        XCTAssertTrue(later.isRedundant(after: morning, calendar: calendar))
+    }
+
+    func test_isRedundant_changedContentSameDay_isFalse() {
+        XCTAssertFalse(payload(totalToday: 3).isRedundant(after: payload(totalToday: 2), calendar: calendar))
+    }
+
+    // MARK: - Overdue
+
+    func test_isOverdue_atDoseMinute_isFalse() {
+        XCTAssertFalse(WidgetData.isOverdue(written, at: written))
+    }
+
+    func test_isOverdue_pastTakeNowWindow_isTrue() {
+        XCTAssertFalse(WidgetData.isOverdue(written, at: written.addingTimeInterval(4 * 60)))
+        XCTAssertTrue(WidgetData.isOverdue(written, at: written.addingTimeInterval(5 * 60)))
+    }
+
+    #if canImport(ActivityKit)
+    func test_overdueGrace_matchesLiveActivityTakeNowWindow() {
+        XCTAssertEqual(WidgetData.overdueGrace, TimeInterval(DoseWindowAttributes.ContentState.dueNowToleranceMinutes * 60))
+    }
+    #endif
+
+    // MARK: - Last workout
+
+    private let english = Locale(identifier: "en_US")
+
+    func test_relativeDay_lastEveningSeenNextMorning_isYesterday() {
+        let lastEvening = written.addingTimeInterval(6 * 3600)
+        let nextMorning = written.addingTimeInterval(20 * 3600)
+        XCTAssertEqual(WidgetData.relativeDay(lastEvening, from: nextMorning, calendar: calendar, locale: english), "yesterday")
+    }
+
+    func test_relativeDay_threeDaysBack_ignoresHourOfDay() {
+        let late = written.addingTimeInterval(11 * 3600)
+        let threeDaysLaterEarly = written.addingTimeInterval(3 * 86_400 - 11 * 3600)
+        XCTAssertEqual(WidgetData.relativeDay(late, from: threeDaysLaterEarly, calendar: calendar, locale: english), "3 days ago")
+    }
+
+    func test_relativeDay_sameDay_isToday() {
+        XCTAssertEqual(WidgetData.relativeDay(written, from: written.addingTimeInterval(3600), calendar: calendar, locale: english), "today")
+    }
+
     // MARK: - Reload schedule
 
     func test_nextRefresh_midDay_isFifteenMinutesOut() {

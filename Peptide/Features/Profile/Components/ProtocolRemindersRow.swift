@@ -43,15 +43,16 @@ struct ProtocolRemindersRow: View {
     }
 
     private var statusRow: some View {
-        let limit = NotificationService.pendingRequestLimit
-        let overLimit = notificationService.requestedCount > limit
+        // Doses share iOS's pending-request pool with habit, daily and
+        // supplement reminders, so drops can happen well below 64 doses.
+        let overLimit = notificationService.scheduledCount < notificationService.requestedCount
         return HStack(spacing: Spacing.sm) {
             Image(systemName: overLimit ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(overLimit ? AppColor.warning : AppColor.accentPrimary)
 
             if overLimit {
-                Text("\(notificationService.scheduledCount) of \(notificationService.requestedCount) reminders active (iOS limit: \(limit))")
+                Text("\(notificationService.scheduledCount) of \(notificationService.requestedCount) reminders active — other reminders share iOS's \(NotificationService.pendingRequestLimit)-reminder limit")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
             } else {

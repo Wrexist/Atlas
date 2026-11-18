@@ -23,6 +23,16 @@ enum WeeklyMuscleHeatmap {
         }
     }
 
+    /// Earliest `startedAt` that `frequencies` counts: the start of the
+    /// day `days - 1` calendar days before `now`. Calendar days so DST
+    /// flips don't push the boundary an hour off, and so a workout at
+    /// 23:50 doesn't fall out of the window when re-rendered 10 minutes
+    /// later (audit Train M6). Lets a caller fetch only that window.
+    static func windowStart(days: Int, now: Date, calendar: Calendar = .current) -> Date {
+        let today = calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+    }
+
     /// Frequency map per anatomical region for sessions whose
     /// `startedAt` falls within the past `days` days from `now`.
     /// Returns an empty dictionary when no sessions qualify.
@@ -42,13 +52,7 @@ enum WeeklyMuscleHeatmap {
         calendar: Calendar = .current
     ) -> [AnatomicalMuscle: Double] {
         guard days > 0 else { return [:] }
-        // Calendar-day window so DST flips don't push the boundary an
-        // hour off, and so a workout at 23:50 doesn't fall out of the
-        // window when re-rendered 10 minutes later (audit Train M6).
-        // Anchored at startOfDay so the window is a clean N calendar
-        // days ending today, not a rolling time-of-day cut.
-        let today = calendar.startOfDay(for: now)
-        let cutoff = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+        let cutoff = windowStart(days: days, now: now, calendar: calendar)
         var counts: [AnatomicalMuscle: Double] = [:]
 
         for session in sessions where session.startedAt >= cutoff && session.startedAt <= now {

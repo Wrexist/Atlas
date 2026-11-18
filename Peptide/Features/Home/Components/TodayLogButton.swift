@@ -32,6 +32,7 @@ struct TodayLogButton: View {
                         value: isOpen
                     )
                 Text("Log")
+                    .fixedSize()
             }
             .font(AppFont.scaled(16, weight: .semibold))
             .foregroundStyle(AppColor.inverseInk)

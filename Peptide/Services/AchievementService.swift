@@ -23,7 +23,7 @@ final class AchievementService {
 
     /// The achievement the celebration toast should currently show —
     /// the head of `pendingUnlocks`. Consumers observe this, present
-    /// the toast, then call `acknowledgeLatestUnlock()` to advance.
+    /// the toast, then call `acknowledgeUnlocks(_:)` to advance.
     var latestUnlock: Achievement? { pendingUnlocks.first }
 
     /// True while nothing is stored on this install. Achievements live
@@ -40,7 +40,7 @@ final class AchievementService {
     }
 
     func checkAchievements(totalDoses: Int, currentStreak: Int, bestStreak: Int, protocolCount: Int, daysLogged: Int) {
-        // Don't reset latestUnlock here — see `acknowledgeLatestUnlock`.
+        // Don't reset latestUnlock here — see `acknowledgeUnlocks`.
         // Resetting clobbers any unlock another check method just wrote
         // when the two methods run back-to-back on the same save.
         let unlocksBefore = pendingUnlocks.count
@@ -82,7 +82,7 @@ final class AchievementService {
         recipesCount: Int,
         checkInsLogged: Int
     ) {
-        // No reset — the consumer drains via `acknowledgeLatestUnlock`.
+        // No reset — the consumer drains via `acknowledgeUnlocks`.
         let unlocksBefore = pendingUnlocks.count
         unlock("first_meal", if: mealsLogged >= 1)
         unlock("fifty_meals", if: mealsLogged >= 50)
@@ -168,11 +168,12 @@ final class AchievementService {
         saveAchievements()
     }
 
-    /// Clears the celebration slot. Call after the toast has been
-    /// presented so the next check can write a fresh unlock without
-    /// the observer seeing a redundant change.
-    func acknowledgeLatestUnlock() {
-        if !pendingUnlocks.isEmpty { pendingUnlocks.removeFirst() }
+    /// Drains the first `count` queued unlocks once their toast has been
+    /// shown. One toast stands for every unlock queued when it appeared,
+    /// so a save that crossed many milestones isn't a minute of toasts;
+    /// unlocks queued while it was up stay for the next one.
+    func acknowledgeUnlocks(_ count: Int) {
+        pendingUnlocks.removeFirst(min(max(count, 0), pendingUnlocks.count))
     }
 
     var unlockedCount: Int {
@@ -214,7 +215,7 @@ final class AchievementService {
         }
         do {
             let saved = try JSONDecoder().decode([Achievement].self, from: data)
-            achievements = mergeWithDefaults(saved)
+            achievements = Self.mergeWithDefaults(saved)
         } catch {
             AppLog.achievements.error("Failed to decode achievements; reverting to defaults: \(error.localizedDescription, privacy: .public)")
             achievements = Self.defaultAchievements
@@ -230,13 +231,15 @@ final class AchievementService {
         }
     }
 
-    private func mergeWithDefaults(_ saved: [Achievement]) -> [Achievement] {
-        let savedMap = Dictionary(uniqueKeysWithValues: saved.map { ($0.id, $0) })
-        return Self.defaultAchievements.map { def in
-            if let saved = savedMap[def.id] {
-                return saved
-            }
-            return def
+    /// Only the unlock state persists: title and description come from
+    /// the defaults, resolved in the current language. The saved strings
+    /// are whatever language was active at first save.
+    static func mergeWithDefaults(_ saved: [Achievement]) -> [Achievement] {
+        let savedMap = Dictionary(saved.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return defaultAchievements.map { def in
+            var merged = def
+            merged.unlockedDate = savedMap[def.id]?.unlockedDate
+            return merged
         }
     }
 

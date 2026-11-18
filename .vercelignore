@@ -10,7 +10,6 @@ scripts/
 Gemfile
 project.yml
 *.md
-!docs/*.md
 .git/
 .github/
 .claude/

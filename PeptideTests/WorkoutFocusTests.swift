@@ -270,6 +270,74 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertEqual(sets.map(\.completed), [true, true, false, false])
     }
 
+    func test_completeNextSet_restIntoNextExercise_movesFocusToIt() throws {
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: "Incline_Dumbbell_Press", index: 0, targetSets: 1, targetReps: 10),
+            RoutineExercise(exerciseID: "Standing_Military_Press", index: 1, targetSets: 2, targetReps: 8),
+        ]))
+        let next = session.exercises[1]
+        service.completeNextSet()
+        XCTAssertEqual(service.activeSession?.focus?.rest?.targetEntryID, next.id)
+
+        service.completeNextSet()
+
+        XCTAssertTrue(try XCTUnwrap(service.activeSession?.exercises[1].sets[0].completed))
+        XCTAssertEqual(service.activeSession?.focus?.selectedEntryID, next.id)
+    }
+
+    private func entryWithWarmup(warmupDone: Bool, workingDone: [Bool]) -> WorkoutExerciseEntry {
+        var sets = [SetEntry(index: 1, weightKg: 40, reps: 10, completed: warmupDone, isWarmup: true)]
+        for (offset, done) in workingDone.enumerated() {
+            sets.append(SetEntry(index: offset + 2, weightKg: 80, reps: 8, completed: done))
+        }
+        return WorkoutExerciseEntry(exerciseID: "Barbell_Squat", index: 0, sets: sets)
+    }
+
+    func test_skippedWarmupWithEveryWorkingSetLogged_exerciseIsDone() {
+        let entry = entryWithWarmup(warmupDone: false, workingDone: [true, true])
+        XCTAssertTrue(entry.workingSetsDone)
+        XCTAssertNil(entry.nextSetToDo)
+        XCTAssertEqual(entry.setToLoad?.id, entry.sets.last?.id)
+    }
+
+    func test_skippedWarmupAfterWorkingSetStarted_nextSetIsTheNextWorkingSet() {
+        let entry = entryWithWarmup(warmupDone: false, workingDone: [true, false])
+        XCTAssertFalse(entry.workingSetsDone)
+        XCTAssertEqual(entry.nextSetToDo?.id, entry.sets[2].id)
+    }
+
+    func test_onlyWarmupsLogged_titleAsksForAWorkingSet() {
+        let entry = entryWithWarmup(warmupDone: true, workingDone: [])
+        XCTAssertFalse(entry.workingSetsDone)
+        XCTAssertEqual(WorkoutFocusView.progressTitle(entry), String(localized: "Add a working set"))
+    }
+
+    func test_everyWorkingSetLogged_titleSaysExerciseComplete() {
+        let entry = entryWithWarmup(warmupDone: true, workingDone: [true])
+        XCTAssertEqual(WorkoutFocusView.progressTitle(entry), String(localized: "Exercise complete"))
+    }
+
+    func test_warmupBeforeAnyWorkingSet_leadsTheExercise() {
+        let entry = entryWithWarmup(warmupDone: false, workingDone: [false, false])
+        XCTAssertEqual(entry.nextSetToDo?.id, entry.sets[0].id)
+    }
+
+    func test_loggedExerciseCount_skipsExercisesWithNoCompletedWorkingSet() {
+        let session = WorkoutSession(exercises: [
+            entryWithWarmup(warmupDone: true, workingDone: [true]),
+            entryWithWarmup(warmupDone: true, workingDone: [false]),
+            WorkoutExerciseEntry(exerciseID: "Barbell_Squat", index: 2),
+        ])
+        XCTAssertEqual(session.loggedExerciseCount, 1)
+    }
+
+    func test_workingNumber_skipsWarmups() {
+        let entry = entryWithWarmup(warmupDone: true, workingDone: [false, false])
+        XCTAssertNil(entry.workingNumber(of: entry.sets[0]))
+        XCTAssertEqual(entry.workingNumber(of: entry.sets[1]), 1)
+        XCTAssertEqual(entry.workingNumber(of: entry.sets[2]), 2)
+    }
+
     func test_completeNextSet_whilePaused_changesNothing() {
         start()
         service.togglePause()

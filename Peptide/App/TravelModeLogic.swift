@@ -38,14 +38,36 @@ enum TravelModeLogic {
         }
     }
 
+    /// Device-local key for the zone this device last acknowledged.
+    static let acknowledgedTimezoneKey = "lastAcknowledgedTimezone"
+
     /// Records the post-shift (or post-decline) timezone so the
     /// detector won't fire again until the user crosses into a
     /// *different* zone. Single canonical write site for the flag.
+    ///
+    /// Detection reads the device-local copy: the profile field syncs,
+    /// so a device left at home would see the travelling phone's
+    /// acknowledgment as a change and offer to shift the protocols a
+    /// second time. The profile keeps the value only to seed a device
+    /// that has none yet, and for older builds.
     static func acknowledgeTimezoneChange(
         in profile: inout UserProfile,
-        to identifier: String
+        to identifier: String,
+        defaults: UserDefaults = .standard
     ) {
         profile.lastKnownTimezoneIdentifier = identifier
+        defaults.set(identifier, forKey: acknowledgedTimezoneKey)
+    }
+
+    /// The zone this device last acknowledged, seeded once from the
+    /// synced profile value when the device has none recorded.
+    static func acknowledgedTimezone(
+        seededFrom synced: String?,
+        defaults: UserDefaults = .standard
+    ) -> String? {
+        if let local = defaults.string(forKey: acknowledgedTimezoneKey) { return local }
+        if let synced { defaults.set(synced, forKey: acknowledgedTimezoneKey) }
+        return synced
     }
 
     /// Returns `schedule` with every `preferredTimes` entry shifted

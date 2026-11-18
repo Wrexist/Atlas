@@ -88,7 +88,7 @@ struct AccountSection: View {
                 Image(systemName: state == .active ? "icloud.fill" : "icloud.slash.fill")
                     .font(AppFont.scaled(13))
                     .foregroundStyle(state == .active ? AppColor.accentLight : AppColor.textTertiary)
-                    .frame(width: 20)
+                    .frame(width: settingsIconColumnWidth)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("iCloud Sync")
@@ -179,7 +179,7 @@ struct AccountSection: View {
             Image(systemName: icon)
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textTertiary)
-                .frame(width: 20)
+                .frame(width: settingsIconColumnWidth)
 
             Text(label)
                 .font(AppFont.subheadline)

@@ -127,13 +127,21 @@ struct BioAgeTrendCard: View {
                 .font(AppFont.scaled(20, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
                 .accessibilityHidden(true)
-            Text("Your trend appears once Atlas has estimates from two different weeks.")
+            Text(emptyMessage)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    /// The 30-day window can be empty while the 90-day one has a line;
+    /// then the way to it is the picker, not more weeks of data.
+    private var emptyMessage: LocalizedStringKey {
+        points.count >= 2 && range == .month
+            ? "Not enough estimates in the last 30 days. Switch to 90 days to see your trend."
+            : "Your trend appears once Atlas has estimates from two different weeks."
     }
 
     /// Days the shown points actually cover. A new user's history can be

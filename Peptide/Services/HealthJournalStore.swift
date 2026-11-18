@@ -23,20 +23,23 @@ final class HealthJournalStore {
             .appendingPathComponent("health-journal.json")
     }
 
+    /// Matched by calendar day, not by instant, so a day written in
+    /// another time zone is still found.
     func entry(on date: Date, calendar: Calendar = .current) -> HealthJournalEntry? {
-        let day = calendar.startOfDay(for: date)
-        return entries.first { $0.day == day }
+        let key = HealthJournalEntry.dayKey(for: date, calendar: calendar)
+        return entries.first { $0.dayKey == key }
     }
 
     /// Sets the mood and note for `date`'s day, replacing that day's entry.
     func save(mood: HealthJournalEntry.Mood, note: String, on date: Date = .now, calendar: Calendar = .current) {
-        let day = calendar.startOfDay(for: date)
+        let key = HealthJournalEntry.dayKey(for: date, calendar: calendar)
         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let index = entries.firstIndex(where: { $0.day == day }) {
+        if let index = entries.firstIndex(where: { $0.dayKey == key }) {
             entries[index].mood = mood
             entries[index].note = trimmed
         } else {
-            entries.append(HealthJournalEntry(day: day, mood: mood, note: trimmed))
+            let day = calendar.startOfDay(for: date)
+            entries.append(HealthJournalEntry(day: day, mood: mood, note: trimmed, calendar: calendar))
             entries.sort { $0.day > $1.day }
         }
         persist()

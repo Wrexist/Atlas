@@ -55,4 +55,26 @@ final class MealDaySwitcherTests: XCTestCase {
         XCTAssertEqual(MealDaySwitcher.inlineTitle(for: older, calendar: calendar),
                        MealDaySwitcher.title(for: older, calendar: calendar))
     }
+
+    func test_loggedOffsets_marksEntryDaysAndLegacyTotalsInWeekOnly() throws {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let today = try XCTUnwrap(utc.date(from: DateComponents(year: 2026, month: 3, day: 12, hour: 15)))
+        let todayStart = utc.startOfDay(for: today)
+        func noon(_ offset: Int) throws -> Date {
+            try XCTUnwrap(utc.date(byAdding: .hour, value: offset * 24 + 12, to: todayStart))
+        }
+        var profile = UserProfile.fresh
+        for offset in [-2, -10] {
+            let date = try noon(offset)
+            profile.mealHistory.append(MealEntry(date: date, category: .lunch, name: "Meal",
+                                                 calories: 500, proteinG: 30, carbsG: 50, fatG: 20, source: .manual))
+        }
+        let legacyDay = try noon(-4)
+        profile.dailyConsumption[LifestyleDataLogic.consumptionKey(for: legacyDay, calendar: utc)] = DailyConsumption(
+            date: utc.startOfDay(for: legacyDay), caloriesKcal: 300, proteinG: 0, carbsG: 0, fatG: 0, waterOz: 0)
+
+        let logged = WeekDayStrip.loggedOffsets(in: -6..<1, profile: profile, today: today, calendar: utc)
+        XCTAssertEqual(logged, [-2, -4])
+    }
 }

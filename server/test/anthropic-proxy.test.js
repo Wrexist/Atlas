@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync } from 'node:fs';
-import { forwardToAnthropic } from '../api/_lib/anthropic-proxy.js';
+import { forwardToAnthropic, refuseAttest } from '../api/_lib/anthropic-proxy.js';
 import mealScan from '../api/meal-scan.js';
 import aiResearch from '../api/ai-research.js';
 import { makeStoreKitChain, signTransaction, transactionPayload } from '../testutil/storekit-fixtures.js';
@@ -455,4 +455,81 @@ test('a route can allow a longer client system prompt than the default cut', asy
 
   await forwardToAnthropic(req, makeRes(), { logLabel: 'test-system' });
   assert.equal(JSON.parse(upstream[1][1].body).system.length, 4000);
+});
+
+// Slow Redis round trips eat into the route's deadline before the
+// upstream call starts; the header read stands in for them here.
+function reqThatTakes(t, ip, ms) {
+  const req = makeReq(ip);
+  let secret = req.headers['x-peptide-proxy'];
+  Object.defineProperty(req.headers, 'x-peptide-proxy', {
+    enumerable: true,
+    get() {
+      t.mock.timers.tick(ms);
+      ms = 0;
+      return secret;
+    },
+  });
+  return req;
+}
+
+test('test_forward_tooLittleTimeLeftAfterChecks_refusesAndRefundsQuota', async (t) => {
+  setEnv(t, { ...BASE_ENV, DEVICE_DAILY_QUOTA: '1', RATE_LIMIT_RPM: '1000' });
+  t.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 10, 18, 12, 0, 30) });
+  const upstream = stubUpstream(t);
+
+  for (let i = 0; i < 2; i += 1) {
+    const res = makeRes();
+    await forwardToAnthropic(reqThatTakes(t, '10.0.9.1', 21_000), res, { logLabel: 'test-deadline' });
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.body.error.code, 'unavailable');
+  }
+  assert.equal(upstream.length, 0);
+
+  // The refused calls gave their quota back, so a prompt one still runs.
+  const ok = makeRes();
+  await forwardToAnthropic(makeReq('10.0.9.1'), ok, { logLabel: 'test-deadline' });
+  assert.equal(ok.statusCode, 200);
+});
+
+test('test_forward_enoughTimeLeft_reachesUpstream', async (t) => {
+  setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: '1000' });
+  t.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 10, 18, 12, 0, 30) });
+  const upstream = stubUpstream(t);
+  const res = makeRes();
+  await forwardToAnthropic(reqThatTakes(t, '10.0.9.2', 19_000), res, { logLabel: 'test-deadline-ok' });
+  assert.equal(res.statusCode, 200);
+  assert.equal(upstream.length, 1);
+});
+
+test('test_rateLimit_nonNumericRpmEnv_keepsDefaultLimitOf20', async (t) => {
+  setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: 'twenty' });
+  holdClockMidMinute(t);
+  stubUpstream(t);
+
+  for (let i = 0; i < 20; i += 1) {
+    assert.equal((await forward(makeReq('10.0.9.3'), 'test-rpm-typo')).statusCode, 200);
+  }
+  assert.equal((await forward(makeReq('10.0.9.3'), 'test-rpm-typo')).statusCode, 429);
+});
+
+test('test_refuseAttest_registryUnavailable_answers503NotReRegister', () => {
+  const down = makeRes();
+  refuseAttest(down, { ok: false, code: 'attest_unavailable' });
+  assert.equal(down.statusCode, 503);
+  assert.equal(down.body.error.code, 'unavailable');
+
+  const unknown = makeRes();
+  refuseAttest(unknown, { ok: false, code: 'attest_required' });
+  assert.equal(unknown.statusCode, 401);
+  assert.equal(unknown.body.error.code, 'attest_required');
+});
+
+test('test_mealScanPrefix_defersNotFoodAnswerToTheAppPrompt', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  assert.equal((await callRoute(mealScan, withContent('10.0.9.20', [image, { type: 'text', text: 'Estimate macros.' }]))).statusCode, 200);
+  const { system } = JSON.parse(upstream[0][1].body);
+  assert.match(system, /follow the user message's instructions for that case/);
+  assert.doesNotMatch(system, /notes field/);
 });

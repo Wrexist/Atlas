@@ -191,6 +191,38 @@ final class WeeklySummaryServiceTests: XCTestCase {
         XCTAssertFalse(WeeklySummaryService.sourceFingerprint(of: a).isEmpty)
     }
 
+    func test_weeklySummaryCache_languageSwitch_changesFingerprint() throws {
+        let entries = [
+            entry(daysFromMonday: 0, completed: true),
+            entry(daysFromMonday: 1, completed: true),
+            entry(daysFromMonday: 2, completed: true),
+        ]
+        let aggregate = try XCTUnwrap(WeeklySummaryEngine.build(
+            profile: .fresh, protocols: [], entries: entries, referenceDate: weekMonday
+        ))
+        XCTAssertNotEqual(
+            WeeklySummaryService.sourceFingerprint(of: aggregate, locale: "en_SE"),
+            WeeklySummaryService.sourceFingerprint(of: aggregate, locale: "sv_SE"),
+            "A summary written in English must regenerate after switching to Swedish"
+        )
+    }
+
+    func test_weeklySummaryCache_regionOnlySwitch_keepsFingerprint() throws {
+        let entries = [
+            entry(daysFromMonday: 0, completed: true),
+            entry(daysFromMonday: 1, completed: true),
+            entry(daysFromMonday: 2, completed: true),
+        ]
+        let aggregate = try XCTUnwrap(WeeklySummaryEngine.build(
+            profile: .fresh, protocols: [], entries: entries, referenceDate: weekMonday
+        ))
+        XCTAssertEqual(
+            WeeklySummaryService.sourceFingerprint(of: aggregate, locale: "en_US"),
+            WeeklySummaryService.sourceFingerprint(of: aggregate, locale: "en_SE"),
+            "The summary's language is unchanged, so a region change must not regenerate it"
+        )
+    }
+
     func test_staleSummary_generatedRecently_isNotDueForRegeneration() throws {
         var profile = UserProfile.fresh
         let entries = [

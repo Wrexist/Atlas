@@ -26,6 +26,8 @@ enum TodaySection: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
+    /// The section's on-screen header, so a toggle in Edit Today names
+    /// the card it controls.
     var displayName: String {
         switch self {
         case .atAGlance: String(localized: "At a glance")
@@ -34,13 +36,13 @@ enum TodaySection: String, CaseIterable, Identifiable, Sendable {
         case .habits: String(localized: "Habits")
         case .checklist: String(localized: "Daily checklist")
         case .doses: String(localized: "Doses")
-        case .wellness: String(localized: "Wellness check-in")
-        case .movement: String(localized: "Movement")
+        case .wellness: String(localized: "How you're feeling")
+        case .movement: String(localized: "Training")
         case .steps: String(localized: "Steps")
         case .overview: String(localized: "Overview")
-        case .momentum: String(localized: "Goal & Atlas Score")
+        case .momentum: String(localized: "Your goal")
         case .explore: String(localized: "Explore")
-        case .timeline: String(localized: "Timeline")
+        case .timeline: String(localized: "Your day")
         case .healthMonitor: String(localized: "Health monitor")
         }
     }

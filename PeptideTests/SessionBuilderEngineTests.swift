@@ -123,11 +123,24 @@ final class SessionBuilderEngineTests: XCTestCase {
         XCTAssertTrue(groups.values.allSatisfy { $0.count == 2 })
     }
 
-    func test_build_deload_halvesVolumeAndEasesEffort() {
+    /// The workout's suggestions apply the deload when it starts, so the
+    /// builder only eases the effort; halving sets too deloaded it twice.
+    func test_build_deload_keepsSetsAndEasesEffort() {
         let normal = build(focus: .quads, companions: [.glutes])
         let deload = build(focus: .quads, companions: [.glutes], deload: true)
-        XCTAssertLessThan(RoutineSeedEngine.totalSets(in: deload), RoutineSeedEngine.totalSets(in: normal))
+        XCTAssertEqual(RoutineSeedEngine.totalSets(in: deload), RoutineSeedEngine.totalSets(in: normal))
         XCTAssertTrue(deload.exercises.allSatisfy { $0.targetRPE == 6.5 })
+    }
+
+    func test_build_companionsThatFit_areNamedInTheSubtitle() {
+        let routine = build(focus: .chest, companions: [.triceps])
+        XCTAssertEqual(routine.subtitle, "Triceps")
+    }
+
+    func test_build_shortSessionTrimsACompanion_subtitleDropsIt() {
+        let routine = build(focus: .chest, companions: [.shoulders, .back, .triceps], minutes: 20)
+        XCTAssertLessThan(routine.exercises.count, 5, "A 20-minute session trims the trailing isolation work")
+        XCTAssertFalse(routine.subtitle?.contains("Triceps") ?? false, routine.subtitle ?? "")
     }
 
     func test_plannedSets_recoveringCompanionGetsLess() {

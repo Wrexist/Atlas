@@ -14,6 +14,9 @@ struct StagedMuscleMap: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var revealed = 0
+    /// Set once the reveal has played. From then on the map tracks
+    /// `highlights` whole, however many stages a later pick splits into.
+    @State private var revealDone = false
     @State private var scanProgress: CGFloat = 0
     @State private var scanVisible = false
 
@@ -22,7 +25,7 @@ struct StagedMuscleMap: View {
     }
 
     private var shown: [AnatomicalMuscle: MuscleHighlight] {
-        revealed >= stages.count ? highlights : (revealed == 0 ? [:] : stages[revealed - 1])
+        revealDone ? highlights : (revealed == 0 ? [:] : stages[min(revealed, stages.count) - 1])
     }
 
     var body: some View {
@@ -32,7 +35,7 @@ struct StagedMuscleMap: View {
             secondaryColor: secondaryColor,
             identifiesOnTap: identifiesOnTap,
             onIdentify: onIdentify,
-            selectedMuscle: revealed >= stages.count ? selectedMuscle : nil
+            selectedMuscle: revealDone ? selectedMuscle : nil
         )
         .overlay { scanBeam }
         .task { await reveal() }
@@ -59,6 +62,7 @@ struct StagedMuscleMap: View {
         guard revealed == 0 else { return }
         if reduceMotion {
             revealed = stages.count
+            revealDone = true
             return
         }
         scanVisible = true
@@ -68,6 +72,7 @@ struct StagedMuscleMap: View {
             guard !Task.isCancelled else { return }
             withAnimation(AppAnimation.springSmooth) { revealed = stage }
         }
+        revealDone = true
         withAnimation(AppAnimation.fadeInSlow) { scanVisible = false }
     }
 }

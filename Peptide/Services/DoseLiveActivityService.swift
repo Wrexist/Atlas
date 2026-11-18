@@ -95,8 +95,11 @@ final class DoseLiveActivityService {
     /// no app-side timer, so it clears even if the app is suspended.
     func markCompleted(_ entryId: UUID) {
         guard areLiveActivitiesEnabled else { return }
+        // An activity already ended with its Logged badge stays listed
+        // until dismissal; skip it so a log, undo, log sequence ends the
+        // live one started by the undo.
         guard let activity = Activity<DoseWindowAttributes>.activities.first(where: {
-            $0.attributes.entryId == entryId
+            $0.attributes.entryId == entryId && [.active, .stale].contains($0.activityState)
         }) else { return }
 
         let currentState = activity.content.state

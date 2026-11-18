@@ -42,7 +42,7 @@ final class FridgeStoreTests: XCTestCase {
         store.add(FridgeProduct(name: "mjölk", brand: "arla"), expiresOn: date(day: 31, hour: 0), now: date(day: 29), calendar: calendar)
 
         XCTAssertEqual(store.products.count, 1)
-        XCTAssertEqual(store.products.first?.shelfDays, 2)
+        XCTAssertEqual(store.products.first?.shelfLife(in: .fridge), 2)
         XCTAssertEqual(store.items.count, 1, "same product, same day, same place stacks")
         XCTAssertEqual(store.items.first?.count, 2)
     }
@@ -77,14 +77,80 @@ final class FridgeStoreTests: XCTestCase {
         XCTAssertTrue(store.products.isEmpty)
     }
 
-    func test_deleteAll_leavesNothingOnDisk() {
+    func test_addWithPhoto_isCachedAtOnceAndLoadsFromDiskAfterRelaunch() async throws {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Smör"), photo: UIImage(systemName: "star"), now: date(), calendar: calendar)
+        let product = try XCTUnwrap(store.products.first)
+        XCTAssertNotNil(store.cachedPhoto(for: product), "the row draws the new photo before the PNG is written")
+
+        await store.photoWritesSettled()
+
+        let relaunched = FridgeStore(directory: directory)
+        let reloaded = try XCTUnwrap(relaunched.products.first)
+        XCTAssertNil(relaunched.cachedPhoto(for: reloaded))
+        let loaded = await relaunched.loadPhoto(for: reloaded)
+        XCTAssertNotNil(loaded)
+        XCTAssertNotNil(relaunched.cachedPhoto(for: reloaded))
+    }
+
+    func test_photoWriteFails_hasPhotoIsClearedAgain() async throws {
+        // A plain file where the directory should be: every write under it fails.
+        try Data().write(to: directory)
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Smör"), photo: UIImage(systemName: "star"), now: date(), calendar: calendar)
+        XCTAssertEqual(store.products.first?.hasPhoto, true)
+
+        await store.photoWritesSettled()
+
+        let product = try XCTUnwrap(store.products.first)
+        XCTAssertFalse(product.hasPhoto)
+        XCTAssertNil(store.cachedPhoto(for: product))
+    }
+
+    func test_twoQuickPhotoUpdates_leaveTheNewerPhotoOnDisk() async throws {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Smör"), now: date(), calendar: calendar)
+        let product = try XCTUnwrap(store.products.first)
+
+        store.update(product, photo: solidImage(side: 40))
+        store.update(product, photo: solidImage(side: 20))
+        await store.photoWritesSettled()
+
+        let file = directory.appendingPathComponent("product-\(product.id.uuidString).png")
+        let onDisk = try XCTUnwrap(UIImage(contentsOfFile: file.path))
+        XCTAssertEqual(onDisk.size.width * onDisk.scale, 20)
+    }
+
+    func test_forgetWhilePhotoIsWriting_leavesNoOrphanFile() async throws {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Smör"), photo: solidImage(side: 20), now: date(), calendar: calendar)
+        let product = try XCTUnwrap(store.products.first)
+
+        store.forget(product.id)
+        await store.photoWritesSettled()
+
+        let file = directory.appendingPathComponent("product-\(product.id.uuidString).png")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+    }
+
+    func test_deleteAll_leavesNothingOnDisk() async {
         let store = FridgeStore(directory: directory)
         store.add(FridgeProduct(name: "Smör"), photo: UIImage(systemName: "star"), now: date(), calendar: calendar)
 
         store.deleteAll()
+        await store.photoWritesSettled()
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: directory.path))
         XCTAssertTrue(FridgeStore(directory: directory).products.isEmpty)
+    }
+
+    private func solidImage(side: CGFloat) -> UIImage {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { context in
+            UIColor.gray.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: side, height: side))
+        }
     }
 
     func test_pantry_countsTheFridgeAsAtHomeWithoutATick() {
@@ -97,5 +163,71 @@ final class FridgeStoreTests: XCTestCase {
         XCTAssertTrue(pantry.has("milk"))
         XCTAssertTrue(pantry.isInFridge("milk"))
         XCTAssertTrue(pantry.manualKeys.isEmpty, "a fridge-held ingredient isn't ticked by hand")
+    }
+
+    func test_shelfLife_learnedInTheFreezer_doesNotDateTheFridge() {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Mjölk"), place: .freezer, expiresOn: date(day: 31, hour: 0), now: date(), calendar: calendar)
+
+        let product = store.products.first
+
+        XCTAssertEqual(product?.shelfLife(in: .freezer), 2)
+        XCTAssertNil(product?.shelfLife(in: .fridge))
+    }
+
+    func test_shelfLife_savedBeforePerPlace_countsForTheProductsPlaceOnly() {
+        let product = FridgeProduct(name: "Mjölk", place: .fridge, shelfDays: 7)
+
+        XCTAssertEqual(product.shelfLife(in: .fridge), 7)
+        XCTAssertNil(product.shelfLife(in: .freezer))
+    }
+
+    func test_addingAScan_putsEveryItemIn() {
+        let store = FridgeStore(directory: directory)
+
+        store.add([
+            FridgeStore.Addition(product: FridgeProduct(name: "Ost"), count: 2),
+            FridgeStore.Addition(product: FridgeProduct(name: "Smör"), place: .pantry),
+        ], now: date(), calendar: calendar)
+
+        let reopened = FridgeStore(directory: directory)
+        XCTAssertEqual(reopened.items.count, 2)
+        XCTAssertEqual(reopened.items.first?.count, 2)
+        XCTAssertEqual(reopened.items.last?.place, .pantry)
+    }
+
+    func test_add_storesTheUseByDayAtNoon() {
+        let store = FridgeStore(directory: directory)
+
+        let item = store.add(FridgeProduct(name: "Ägg"), expiresOn: date(day: 31, hour: 0), now: date(), calendar: calendar)
+
+        XCTAssertEqual(item.expiresOn, date(day: 31, hour: 12))
+    }
+
+    func test_movingALegacyProductWithADate_keepsItsShelfLifeInTheOldPlace() {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Mjölk", place: .fridge, shelfDays: 7), now: date(day: 20), calendar: calendar)
+        var moved = store.products[0]
+        moved.place = .freezer
+
+        store.add(moved, place: .freezer, expiresOn: date(day: 31, hour: 0), now: date(), calendar: calendar)
+
+        let product = store.products.first
+        XCTAssertEqual(store.products.count, 1)
+        XCTAssertEqual(product?.shelfLife(in: .fridge), 7)
+        XCTAssertEqual(product?.shelfLife(in: .freezer), 2)
+    }
+
+    func test_movingALegacyProductWithoutADate_keepsItsShelfLifeOutOfTheNewPlace() {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Mjölk", place: .fridge, shelfDays: 7), now: date(day: 20), calendar: calendar)
+        var moved = store.products[0]
+        moved.place = .freezer
+
+        store.add(moved, place: .freezer, now: date(), calendar: calendar)
+
+        let product = store.products.first
+        XCTAssertEqual(product?.shelfLife(in: .fridge), 7)
+        XCTAssertNil(product?.shelfLife(in: .freezer))
     }
 }

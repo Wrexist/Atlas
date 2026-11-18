@@ -85,7 +85,7 @@ struct PeptideDetailView: View {
                         .accessibilityElement(children: .combine)
 
                         GlassButton(
-                            title: memberProtocols.isEmpty ? "Add to protocol" : "Add to Another Protocol",
+                            title: memberProtocols.isEmpty ? "Add to protocol" : "Add to another protocol",
                             icon: "plus",
                             style: .primary
                         ) {

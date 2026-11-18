@@ -2,9 +2,10 @@ import SwiftUI
 
 /// Brand color identities surfaced on the onboarding "Make it yours"
 /// step and reapplied across the app via `AppColor.accent*`. The first
-/// case (`.teal`) is the brand default — a refined emerald→cyan pair
-/// that renders every `LinearGradient(colors: [primary, light])` site
-/// in the app as the signature green-to-cool-cyan gradient.
+/// case (`.teal`) is the brand default, emerald. Every theme is one hue:
+/// a `LinearGradient(colors: [primary, light])` site sweeps from the
+/// brand colour to a lighter step of the same colour, never into a
+/// second accent.
 enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
     case teal
     case purpleGradient
@@ -49,17 +50,17 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
     // trait-resolving closure — cheap once, wasteful per frame.
     private static let tealRamp = Ramp(
         primary:   Color(light: 0x077A55, dark: 0x10B981),   // emerald-500
-        light:     Color(light: 0x0E7490, dark: 0x22D3EE),   // cyan-400
+        light:     Color(light: 0x047857, dark: 0x34D399),   // emerald-400
         dark:      Color(light: 0x065F46, dark: 0x047857),   // emerald-700
         highlight: Color(light: 0x047857, dark: 0xA7F3D0),   // emerald-200
-        washInk:   Color(light: 0x065F46, dark: 0x22D3EE)
+        washInk:   Color(light: 0x065F46, dark: 0x6EE7B7)
     )
     private static let purpleRamp = Ramp(
         primary:   Color(light: 0x5B52B8, dark: 0x7F77DD),
-        light:     Color(light: 0xB03060, dark: 0xE2769A),
+        light:     Color(light: 0x4F47A8, dark: 0xA39BEF),
         dark:      Color(light: 0x3E3773, dark: 0x685EBB),
         highlight: Color(light: 0x534B96, dark: 0xE8D2E2),
-        washInk:   Color(light: 0x3E3773, dark: 0xE2769A)
+        washInk:   Color(light: 0x3E3773, dark: 0xA39BEF)
     )
     private static let oceanRamp = Ramp(
         primary:   Color(light: 0x1F6FC0, dark: 0x378ADD),
@@ -111,9 +112,8 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
 
     var primary: Color { ramp.primary }
 
-    /// Second stop for the marketing gradient. For the default emerald
-    /// theme this is a cool cyan partner so every `[primary, light]`
-    /// gradient renders as a green→cyan sweep without per-site changes.
+    /// The lighter step of the theme's one hue: accent ink on a surface,
+    /// and the second stop of every `[primary, light]` gradient.
     var light: Color { ramp.light }
 
     var dark: Color { ramp.dark }

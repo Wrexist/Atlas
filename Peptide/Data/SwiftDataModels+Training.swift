@@ -11,6 +11,9 @@ import SwiftData
 private let trainingEncoder: JSONEncoder = {
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
+    // Equal values must encode to equal bytes: `update(from:)` compares
+    // blobs to leave unchanged CloudKit fields untouched.
+    encoder.outputFormatting = [.sortedKeys]
     return encoder
 }()
 
@@ -100,18 +103,19 @@ final class StoredWorkoutSession {
         )
     }
 
+    /// Writes only the columns that changed (see `assignIfChanged`).
     func update(from session: WorkoutSession) throws {
-        name = session.name
-        routineID = session.routineID
-        programID = session.programID
-        startedAt = session.startedAt
-        finishedAt = session.finishedAt
-        note = session.note
-        perceivedEffort = session.perceivedEffort
-        focusData = try session.focus.map { try trainingEncoder.encode($0) }
-        exercisesData = try trainingEncoder.encode(session.exercises)
-        totalVolumeKg = session.totalVolumeKg
-        completedSetCount = session.completedSetCount
+        assignIfChanged(self, \.name, session.name)
+        assignIfChanged(self, \.routineID, session.routineID)
+        assignIfChanged(self, \.programID, session.programID)
+        assignIfChanged(self, \.startedAt, session.startedAt)
+        assignIfChanged(self, \.finishedAt, session.finishedAt)
+        assignIfChanged(self, \.note, session.note)
+        assignIfChanged(self, \.perceivedEffort, session.perceivedEffort)
+        assignIfChanged(self, \.focusData, try session.focus.map { try trainingEncoder.encode($0) })
+        assignIfChanged(self, \.exercisesData, try trainingEncoder.encode(session.exercises))
+        assignIfChanged(self, \.totalVolumeKg, session.totalVolumeKg)
+        assignIfChanged(self, \.completedSetCount, session.completedSetCount)
     }
 
     func toWorkoutSession() throws -> WorkoutSession {
@@ -195,12 +199,13 @@ final class StoredCustomExercise {
         )
     }
 
+    /// Writes only the columns that changed (see `assignIfChanged`).
     func update(from exercise: CustomExercise) throws {
-        name = exercise.name
-        equipment = exercise.equipment
-        primaryMusclesData = try trainingEncoder.encode(exercise.primaryMuscles)
-        secondaryMusclesData = try trainingEncoder.encode(exercise.secondaryMuscles)
-        instructionsData = try trainingEncoder.encode(exercise.instructions)
+        assignIfChanged(self, \.name, exercise.name)
+        assignIfChanged(self, \.equipment, exercise.equipment)
+        assignIfChanged(self, \.primaryMusclesData, try trainingEncoder.encode(exercise.primaryMuscles))
+        assignIfChanged(self, \.secondaryMusclesData, try trainingEncoder.encode(exercise.secondaryMuscles))
+        assignIfChanged(self, \.instructionsData, try trainingEncoder.encode(exercise.instructions))
     }
 
     func toCustomExercise() throws -> CustomExercise {
@@ -264,13 +269,15 @@ final class StoredRoutine {
         )
     }
 
+    /// Writes only the columns that changed (see `assignIfChanged`), so a
+    /// drag-reorder re-exports `sortIndex` and nothing else.
     func update(from routine: Routine) throws {
-        name = routine.name
-        subtitle = routine.subtitle
-        defaultRestSeconds = routine.defaultRestSeconds
-        updatedAt = routine.updatedAt
-        exercisesData = try trainingEncoder.encode(routine.exercises)
-        sortIndex = routine.sortIndex ?? 0
+        assignIfChanged(self, \.name, routine.name)
+        assignIfChanged(self, \.subtitle, routine.subtitle)
+        assignIfChanged(self, \.defaultRestSeconds, routine.defaultRestSeconds)
+        assignIfChanged(self, \.updatedAt, routine.updatedAt)
+        assignIfChanged(self, \.exercisesData, try trainingEncoder.encode(routine.exercises))
+        assignIfChanged(self, \.sortIndex, routine.sortIndex ?? 0)
     }
 
     func toRoutine() throws -> Routine {

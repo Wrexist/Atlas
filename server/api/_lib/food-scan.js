@@ -14,6 +14,8 @@
  *                      quality comes from the image, not long thinking.
  */
 
+import { localeTag } from './locale.js';
+
 const DEFAULT_MODEL = 'claude-opus-5-5';
 const EFFORTS = new Set(['low', 'medium', 'high']);
 // Thinking and the JSON share this budget. A ten-item plate is ~3k
@@ -173,6 +175,8 @@ questions are at most three one-tap questions about a detail the photo cannot sh
 
 summary is one short sentence in the user's language describing what you found. title is the dish name for a meal, the product name for a package. Write title, summary, item names, portion_label, every portion_options label, the package serving label, tips, questions and every question's answer labels in the user's language (the language part of the user locale), even when the package or menu is in another language.
 
+Never use emoji in any text field.
+
 If there is no food or drink at all, return kind "not_food", an empty items array and a summary saying what you see instead.`;
 
 const PHOTO_TASK = `Task: the user photographed something they ate or are about to eat. List each distinct food or drink as its own item — a burger, fries and a soda are three items. For a packaged product, read the label: brand, product name, net weight and nutrition panel values beat estimates whenever they are legible.`;
@@ -190,10 +194,7 @@ function cleanString(value, max = MAX_FIELD_CHARS) {
 }
 
 function userContext(raw) {
-  // iOS identifiers can carry keywords (`sv_SE@rg=sezzzz`,
-  // `en_US@calendar=japanese`); only the language and region matter here.
-  const base = String(raw.locale ?? '').split('@')[0];
-  const locale = /^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$/.test(base) ? base : 'en_US';
+  const locale = localeTag(raw.locale);
   const currency = /^[A-Z]{3}$/.test(raw.currency ?? '') ? raw.currency : 'USD';
   return `User locale: ${locale}. Currency: ${currency}.`;
 }

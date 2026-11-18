@@ -14,6 +14,7 @@ struct HabitCompletionChip: View {
     let onTap: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var completionTrigger = 0
 
     var body: some View {
@@ -55,13 +56,16 @@ struct HabitCompletionChip: View {
             .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.95))
-        .appSensoryFeedback(.success, trigger: completionTrigger)
         .accessibilityLabel(habit.name)
         .accessibilityValue(accessibilityValue)
         .onChange(of: isCompleted) { _, completed in
             if completed { completionTrigger &+= 1 }
         }
     }
+
+    /// The marker's circles are fixed, so its glyphs stop growing at
+    /// xxxLarge instead of spilling past the ring.
+    private var markerTypeSize: DynamicTypeSize { min(dynamicTypeSize, .xxxLarge) }
 
     private var marker: some View {
         ZStack {
@@ -73,12 +77,12 @@ struct HabitCompletionChip: View {
                     .fill(habit.tint)
                     .frame(width: 14, height: 14)
                 Image(systemName: "checkmark")
-                    .font(AppFont.scaled(8, weight: .bold))
+                    .font(AppFont.scaled(8, weight: .bold, in: markerTypeSize))
                     .foregroundStyle(AppColor.background)
                     .symbolEffect(.bounce, value: completionTrigger)
             } else {
                 Image(systemName: habit.iconSymbol)
-                    .font(AppFont.scaled(8, weight: .semibold))
+                    .font(AppFont.scaled(8, weight: .semibold, in: markerTypeSize))
                     .foregroundStyle(habit.tint)
             }
         }

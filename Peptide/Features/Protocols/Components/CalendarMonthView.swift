@@ -148,7 +148,7 @@ struct CalendarMonthView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel(for: date, marks: marks))
+        .accessibilityLabel(accessibilityLabel(for: date, marks: marks, isToday: isToday))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -168,12 +168,14 @@ struct CalendarMonthView: View {
     }
 
     private func doseDot(for mark: CalendarDoseMark, dimmed: Bool) -> some View {
-        let palette = VialPalette.colors(for: mark.peptideName)
+        let palette = VialPalette.colors(for: mark.peptideName, category: mark.peptideCategory)
         let tint = dimmed ? AppColor.onAccent.opacity(0.9) : palette.fill
         return Group {
             switch mark.kind {
             case .logged:
                 Circle().fill(tint)
+            case .missed:
+                Circle().strokeBorder(tint.opacity(0.45), lineWidth: 1.2)
             case .scheduled:
                 Circle().strokeBorder(tint, lineWidth: 1.2)
             }
@@ -219,11 +221,18 @@ struct CalendarMonthView: View {
         return AppColor.textPrimary
     }
 
-    private func accessibilityLabel(for date: Date, marks: [CalendarDoseMark]) -> Text {
-        let dateString = date.formatted(.dateTime.weekday(.wide).day(.defaultDigits).month(.wide))
+    /// Today is marked only by colour and weight on screen, so VoiceOver
+    /// hears it named.
+    private func accessibilityLabel(for date: Date, marks: [CalendarDoseMark], isToday: Bool) -> Text {
+        let formatted = date.formatted(.dateTime.weekday(.wide).day(.defaultDigits).month(.wide))
+        let dateString = isToday ? String(localized: "Today, \(formatted)") : formatted
         if marks.isEmpty { return Text(dateString) }
         let logged = marks.filter { $0.kind == .logged }.count
         let scheduled = marks.filter { $0.kind == .scheduled }.count
+        let missed = marks.filter { $0.kind == .missed }.count
+        if missed > 0 {
+            return Text("\(dateString), \(logged) logged, \(missed) not logged")
+        }
         return Text("\(dateString), \(logged) logged, \(scheduled) scheduled")
     }
 }

@@ -100,17 +100,22 @@ enum PerformanceAgeEngine {
         let drivers: [Driver]
         /// Signals the estimate could use but had no data for.
         let missing: [Driver.Kind]
+        /// True when the drivers summed past `maxDriftYears` and the age
+        /// was held at the cap, so the rows add up to more than it shows.
+        let isCapped: Bool
 
         init(
             biologicalAge: Double,
             confidence: Double,
             drivers: [Driver],
-            missing: [Driver.Kind] = []
+            missing: [Driver.Kind] = [],
+            isCapped: Bool = false
         ) {
             self.biologicalAge = biologicalAge
             self.confidence = confidence
             self.drivers = drivers
             self.missing = missing
+            self.isCapped = isCapped
         }
     }
 
@@ -300,7 +305,8 @@ enum PerformanceAgeEngine {
             biologicalAge: Double(inputs.chronologicalAge) + cappedDelta,
             confidence: confidence,
             drivers: sortedByImpact(present),
-            missing: Driver.Kind.allCases.filter { !presentKinds.contains($0) }
+            missing: Driver.Kind.allCases.filter { !presentKinds.contains($0) },
+            isCapped: abs(summedDelta) > maxDriftYears
         )
     }
 

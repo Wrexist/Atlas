@@ -330,4 +330,50 @@ final class RecipeLibraryEngineTests: XCTestCase {
         XCTAssertEqual(RecipeLibraryEngine.recipe(named: " \(recipe.name) ")?.id, recipe.id)
         XCTAssertNil(RecipeLibraryEngine.recipe(named: "Light Protein Cheese"))
     }
+
+    /// Smoke check only: `static let` is once-guarded by the language, so
+    /// a racing reader cannot cause a second decode and there is no count
+    /// to assert. This checks warm-up leaves the library and its by-name
+    /// index usable.
+    func test_warmUp_withAConcurrentReader_leavesLibraryAndIndexUsable() async throws {
+        async let warm: Void = RecipeLibraryEngine.warmUp()
+        let read = RecipeLibraryEngine.bundled.count
+        await warm
+
+        XCTAssertGreaterThan(read, 0)
+        XCTAssertEqual(RecipeLibraryEngine.bundled.count, read)
+        let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first)
+        XCTAssertEqual(RecipeLibraryEngine.recipe(named: recipe.name)?.id, recipe.id)
+    }
+
+    func test_matches_queryWithoutAccents_findsAccentedNamesAndIngredients() throws {
+        let meatballs = try XCTUnwrap(RecipeLibraryEngine.bundled.first { $0.nameSV.hasPrefix("Köttbullar") })
+        let creamy = try XCTUnwrap(RecipeLibraryEngine.bundled.first { recipe in
+            recipe.ingredients.contains { $0.name.hasPrefix("Crème fraîche") }
+        })
+
+        XCTAssertTrue(RecipeLibraryEngine.matches(meatballs, query: "kottbullar"))
+        XCTAssertTrue(RecipeLibraryEngine.matches(creamy, query: "creme"))
+        XCTAssertFalse(RecipeLibraryEngine.matches(meatballs, query: "zzzz"))
+        XCTAssertTrue(RecipeLibraryEngine.matches(meatballs, query: ""))
+    }
+
+    func test_matches_queryInOtherCase_findsAnIngredientInEitherLanguage() throws {
+        let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first)
+        let ingredient = try XCTUnwrap(recipe.ingredients.first)
+
+        XCTAssertTrue(RecipeLibraryEngine.matches(recipe, query: ingredient.name.uppercased()))
+        XCTAssertTrue(RecipeLibraryEngine.matches(recipe, query: ingredient.nameSV.lowercased()))
+    }
+
+    func test_distinctIngredients_listsEveryPantryKeyOnceSortedByTheLocalesName() {
+        let swedish = Locale(identifier: "sv_SE")
+        let ingredients = RecipeLibraryEngine.distinctIngredients(locale: swedish)
+        let keys = ingredients.map(\.pantryKey)
+        let names = ingredients.map { $0.displayName(locale: swedish) }
+
+        XCTAssertEqual(Set(keys), Set(RecipeLibraryEngine.bundled.flatMap(\.pantryKeys)))
+        XCTAssertEqual(keys.count, Set(keys).count)
+        XCTAssertEqual(names, names.sorted { $0.compare($1, locale: Locale(identifier: "sv")) == .orderedAscending })
+    }
 }

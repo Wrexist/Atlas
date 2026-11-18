@@ -10,6 +10,10 @@ struct WelcomeHeader: View {
     var logButton: TodayLogButton? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The Log pill's height at the default size, so the two trailing
+    /// controls line up; scales so the initial stays inside its circle.
+    @ScaledMetric(relativeTo: .title2) private var avatarSize: CGFloat = Spacing.minimumHitTarget
     @State private var hasGreeted = false
     @State private var greetTrigger = 0
     @State private var iconBounce = 0
@@ -20,35 +24,68 @@ struct WelcomeHeader: View {
     }
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                if displayName.isEmpty {
-                    Text(greeting)
-                        .font(AppFont.largeTitle)
-                        .foregroundStyle(AppColor.textPrimary)
-                } else {
-                    Text("\(greeting),")
-                        .font(AppFont.title)
-                        .foregroundStyle(AppColor.textPrimary)
-
-                    Text(displayName)
-                        .font(AppFont.largeTitle)
-                        .foregroundStyle(AppColor.textPrimary)
+        Group {
+            // At accessibility sizes the controls take their own row above
+            // the greeting; beside it they squeezed the text to a few
+            // letters a line and pushed the header past both screen edges.
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    HStack {
+                        Spacer(minLength: 0)
+                        controls
+                    }
+                    greetingStack
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                Text(date)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-
-            Spacer()
-
-            HStack(spacing: Spacing.sm) {
-                if let logButton { logButton }
-                avatarButton
+            } else {
+                HStack {
+                    greetingStack
+                    Spacer()
+                    controls
+                }
             }
         }
         .padding(.top, Spacing.sm)
+    }
+
+    private var greetingStack: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            if displayName.isEmpty {
+                Text(greeting)
+                    .font(AppFont.largeTitle)
+                    .foregroundStyle(AppColor.textPrimary)
+            } else {
+                // Beside the controls the comma leads into the name; on a
+                // line of its own at accessibility sizes it just dangles.
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        Text(greeting)
+                    } else {
+                        Text("\(greeting),")
+                    }
+                }
+                .font(AppFont.title)
+                .foregroundStyle(AppColor.textPrimary)
+
+                Text(displayName)
+                    .font(AppFont.largeTitle)
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+
+            Text(date)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        // Past AX2 a large-title name broke mid-word a few letters a line;
+        // the page title stops growing where the rest of the text keeps on.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    }
+
+    private var controls: some View {
+        HStack(spacing: Spacing.sm) {
+            if let logButton { logButton }
+            avatarButton
+        }
     }
 
     @ViewBuilder
@@ -72,8 +109,9 @@ struct WelcomeHeader: View {
             if let data = avatarImageData, let uiImage = AvatarImageCache.shared.image(for: data) {
                 Image(uiImage: uiImage)
                     .resizable()
+                    .accessibilityIgnoresInvertColors()
                     .scaledToFill()
-                    .frame(width: 52, height: 52)
+                    .frame(width: avatarSize, height: avatarSize)
                     .clipShape(Circle())
                     .overlay {
                         Circle()
@@ -82,12 +120,11 @@ struct WelcomeHeader: View {
             } else {
                 Circle()
                     .fill(LinearGradient(colors: [AppColor.tileTop, AppColor.tileBottom], startPoint: .top, endPoint: .bottom))
-                    .frame(width: 52, height: 52)
+                    .frame(width: avatarSize, height: avatarSize)
                     .overlay {
                         Circle()
                             .strokeBorder(AppColor.paperEdge, lineWidth: 0.5)
                     }
-                    .appShadow(AppShadow.tileDrop)
 
                 if displayName.isEmpty {
                     Image(systemName: "person.fill")

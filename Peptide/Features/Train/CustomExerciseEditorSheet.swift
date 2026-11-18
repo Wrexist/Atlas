@@ -33,6 +33,7 @@ struct CustomExerciseEditorSheet: View {
                     TextField("Exercise name", text: $name)
                         .focused($nameFocused)
                         .submitLabel(.done)
+                        .onSubmit { if canSave { commit() } }
                         .onChange(of: name) { _, new in
                             // 64-char cap at the input boundary so a
                             // paste flood can't balloon the field.
@@ -60,7 +61,9 @@ struct CustomExerciseEditorSheet: View {
                 }
 
                 Section("Supporting muscles (optional)") {
-                    ForEach(MuscleGroup.allCases) { group in
+                    // The primary muscle isn't offered: commit drops it, so
+                    // its switch would show on and do nothing.
+                    ForEach(MuscleGroup.allCases.filter { $0 != primaryMuscle }) { group in
                         Toggle(group.displayName,
                                isOn: Binding(
                                 get: { secondaryMuscles.contains(group) },

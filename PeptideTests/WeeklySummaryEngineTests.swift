@@ -21,6 +21,11 @@ final class WeeklySummaryEngineTests: XCTestCase {
         return calendar.date(from: components)!
     }
 
+    /// Sunday evening of the test week, after every fixture dose.
+    private var weekSunday: Date {
+        calendar.date(byAdding: .hour, value: 6 * 24 + 12, to: weekMonday)!
+    }
+
     private func entry(daysFromMonday: Int, hour: Int = 9, completed: Bool) -> ProtocolEntry {
         let date = calendar.date(
             byAdding: .day, value: daysFromMonday, to: weekMonday
@@ -139,11 +144,29 @@ final class WeeklySummaryEngineTests: XCTestCase {
             profile: .fresh,
             protocols: [],
             entries: entries,
-            referenceDate: weekMonday
+            referenceDate: weekSunday
         )
         XCTAssertEqual(agg?.compliance.completed, 4)
         XCTAssertEqual(agg?.compliance.total, 5)
         XCTAssertEqual(try XCTUnwrap(agg?.compliance.pct), 0.8, accuracy: 0.001)
+    }
+
+    func test_compliance_doseLaterToday_isNotCountedAsMissed() throws {
+        let entries = [
+            entry(daysFromMonday: 0, completed: true),
+            entry(daysFromMonday: 1, completed: true),
+            entry(daysFromMonday: 2, hour: 8, completed: true),
+            entry(daysFromMonday: 2, hour: 20, completed: false),
+        ]
+        let middayWednesday = calendar.date(byAdding: .hour, value: 2 * 24 + 3, to: weekMonday)!
+        let agg = WeeklySummaryEngine.build(
+            profile: .fresh,
+            protocols: [],
+            entries: entries,
+            referenceDate: middayWednesday
+        )
+        XCTAssertEqual(agg?.compliance.total, 3)
+        XCTAssertEqual(try XCTUnwrap(agg?.compliance.pct), 1.0, accuracy: 0.001)
     }
 
     func test_compliance_bestDay_reportsHighestDayFraction() throws {
@@ -159,7 +182,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
             profile: .fresh,
             protocols: [],
             entries: entries,
-            referenceDate: weekMonday
+            referenceDate: weekSunday
         )
         XCTAssertEqual(try XCTUnwrap(agg?.compliance.bestDayPct), 1.0, accuracy: 0.001)
     }
@@ -254,7 +277,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
         let agg = WeeklySummaryEngine.build(
             profile: .fresh, protocols: [], entries: entries,
             referenceDate: weekMonday,
-            hrvSeries: [], rhrSeries: [], sleepSeries: []
+            hrvSeries: []
         )
         XCTAssertNil(agg?.biometrics)
     }

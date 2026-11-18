@@ -113,6 +113,13 @@ final class InsightEngineTests: XCTestCase {
         XCTAssertTrue(insights.contains { $0.title == "Many active protocols" })
     }
 
+    func test_generateInsights_manyProtocols_saysAdherenceNotCompliance() {
+        let protocols = [makeProtocol(), makeProtocol(), makeProtocol()]
+        let insight = InsightEngine.generateInsights(from: [], protocols: protocols)
+            .first { $0.title == "Many active protocols" }
+        XCTAssertEqual(insight?.description, "Running 3 protocols. Consider focusing on fewer for better adherence.")
+    }
+
     func test_generateInsights_twoActiveProtocols_noProtocolWarning() {
         let protocols = [makeProtocol(), makeProtocol()]
         let insights = InsightEngine.generateInsights(from: [], protocols: protocols)

@@ -99,6 +99,51 @@ enum HabitsService {
         )
     }
 
+    // MARK: - Streak at risk
+
+    /// True when a day-counted habit streak (2 or more) ran into yesterday,
+    /// yesterday was a due day that was missed, and it isn't frozen yet, so
+    /// freezing yesterday would keep the streak alive. Weekly habits are out:
+    /// every day reads as due for them and their week streak ignores freezes.
+    static func streakAtRisk(
+        habits: [Habit],
+        entries: [HabitEntry],
+        frozenDayKeys: Set<String>,
+        on date: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Bool {
+        let today = calendar.startOfDay(for: date)
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today),
+              let dayBefore = calendar.date(byAdding: .day, value: -2, to: today)
+        else { return false }
+        if frozenDayKeys.contains(StreakFreezeService.dayKey(for: yesterday, calendar: calendar)) { return false }
+
+        return habits.contains { habit in
+            guard !habit.schedule.countsStreakInWeeks,
+                  habit.schedule.isDue(on: yesterday, calendar: calendar)
+            else { return false }
+            let target = habit.targetValue ?? 1
+            let doneYesterday = entries.contains {
+                $0.habitId == habit.id
+                    && calendar.isDate($0.date, inSameDayAs: yesterday)
+                    && $0.value >= target
+            }
+            if doneYesterday { return false }
+            // The streak as it stood at the end of the day before
+            // yesterday. That day is finished, so a miss on it breaks the
+            // run and a freeze on yesterday alone couldn't save it.
+            let priorStreak = summary(
+                for: habit,
+                entries: entries,
+                frozenDayKeys: frozenDayKeys,
+                on: dayBefore,
+                allowsMissingDay: false,
+                calendar: calendar
+            ).currentStreak
+            return priorStreak >= 2
+        }
+    }
+
     // MARK: - Heatmap matrix
 
     /// Per-day status used to colour the heatmap grid. `notDue`
@@ -129,10 +174,12 @@ enum HabitsService {
             by: { calendar.startOfDay(for: $0.date) }
         )
         let target = habit.targetValue ?? 1
+        let created = calendar.startOfDay(for: habit.createdAt)
 
         return (0..<dayCount).reversed().compactMap { offset in
             guard let day = calendar.date(byAdding: .day, value: -offset, to: end) else { return nil }
-            let isDue = habit.schedule.isDue(on: day, calendar: calendar)
+            // A day before the habit existed can't have been missed.
+            let isDue = day >= created && habit.schedule.isDue(on: day, calendar: calendar)
             // Take the max value per day so a CloudKit race that
             // produces two entries for one day doesn't silently
             // undercount the higher one (audit L2).
@@ -346,7 +393,7 @@ enum HabitsService {
         let target = habit.targetValue ?? 1
         return Set(
             entries
-                .filter { $0.value >= target }
+                .filter { $0.habitId == habit.id && $0.value >= target }
                 .map { calendar.startOfDay(for: $0.date) }
         )
     }
@@ -375,7 +422,8 @@ enum HabitsService {
 
     /// Overall completion rate across `habits` over the trailing `days`
     /// window ending on `endDate`: (completed due-days) / (total due-days),
-    /// where a due-day is one (habit, day) pair the schedule marked due and
+    /// where a due-day is one (habit, day) pair the schedule marked due on
+    /// or after the habit's creation day, and
     /// "completed" means the day's max entry value reached the target.
     /// `.timesPerWeek` habits are excluded — their `isDue` is true every
     /// day, so per-day completion would misrepresent a weekly cadence.
@@ -417,12 +465,38 @@ enum HabitsService {
                 let target = habit.targetValue ?? 1
                 let isDone = (bestValue[ConsistencyKey(habitId: habit.id, day: day)] ?? 0) >= target
                 if isPending && !isDone { continue }
+                // Days before the habit existed aren't misses; a backfilled
+                // completion on one still counts, matching the heatmap.
+                if day < calendar.startOfDay(for: habit.createdAt) && !isDone { continue }
                 due += 1
                 if isDone { done += 1 }
             }
         }
         guard due > 0 else { return nil }
         return Double(done) / Double(due)
+    }
+
+    /// True when every habit that existed for the whole trailing 7-day
+    /// window ending on `endDate` was completed on each of its due days.
+    /// Habits created inside the window are left out, so a habit made and
+    /// ticked today can't stand in for a full week.
+    static func isPerfectWeek(
+        habits: [Habit],
+        entries: [HabitEntry],
+        endingOn endDate: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Bool {
+        let end = calendar.startOfDay(for: endDate)
+        guard let windowStart = calendar.date(byAdding: .day, value: -6, to: end) else { return false }
+        let fullWeekHabits = habits.filter { calendar.startOfDay(for: $0.createdAt) <= windowStart }
+        guard let rate = completionRate(
+            habits: fullWeekHabits,
+            entries: entries,
+            days: 7,
+            endingOn: end,
+            calendar: calendar
+        ) else { return false }
+        return rate >= 1.0
     }
 
     private struct ConsistencyKey: Hashable {

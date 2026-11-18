@@ -1,5 +1,6 @@
 import StoreKit
 import SwiftUI
+import UIKit
 
 /// The single, app-wide presenter for celebrations. Mounted once over the
 /// root `TabView` (`PeptideApp.mainContent`) so a habit completion,
@@ -11,11 +12,13 @@ import SwiftUI
 ///     level-up moments. Drained one at a time.
 ///   • `AchievementService.latestUnlock` — achievement unlocks. The host
 ///     shows the confetti and the explanatory toast together, so an unlock
-///     earned on Train or Meals is explained where it happened.
+///     earned on Train or Meals is explained where it happened. Unlocks
+///     queued together share one summary toast.
 ///
 /// Reduce Motion suppresses confetti (the level-up card still shows, and
 /// fades rather than pops). Confetti is decorative and never blocks
 /// touches; only the level-up dim is interactive (tap to dismiss).
+/// Nothing presents while a sheet or cover hides the host.
 struct CelebrationHostView: View {
     @State private var center = CelebrationCenter.shared
     @State private var achievements = AchievementService.shared
@@ -24,7 +27,8 @@ struct CelebrationHostView: View {
 
     @State private var burst: ConfettiBurst?
     @State private var levelUp: LevelUpPresentation?
-    @State private var toastAchievement: Achievement?
+    /// The unlocks the current toast stands for, head first.
+    @State private var toastUnlocks: [Achievement] = []
     @State private var showAchievementToast = false
 
     /// Milestones big enough to be a good moment for the review prompt —
@@ -55,7 +59,8 @@ struct CelebrationHostView: View {
                 Color.black.opacity(0.35)
                     .ignoresSafeArea()
                     .transition(.opacity)
-                    .onTapGesture { withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) { self.levelUp = nil } }
+                    .onTapGesture { dismissLevelUp() }
+                    .accessibilityAction(.escape) { dismissLevelUp() }
 
                 CelebrationOverlayView(
                     level: levelUp.level,
@@ -81,20 +86,27 @@ struct CelebrationHostView: View {
         .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: levelUp?.id)
         // Outside the hit-testing gate so the toast's Dismiss stays tappable.
         .overlay {
-            if center.current == nil, let toastAchievement {
-                AchievementToastView(achievement: toastAchievement, isShowing: $showAchievementToast)
+            if center.current == nil, let first = toastUnlocks.first {
+                AchievementToastView(achievement: first, count: toastUnlocks.count, isShowing: $showAchievementToast)
             }
         }
         .task(id: center.current?.id) { await present(center.current) }
-        .task(id: achievements.latestUnlock?.id) { presentAchievement() }
+        .task(id: achievements.latestUnlock?.id) {
+            do { try await waitUntilUncovered() } catch { return }
+            presentAchievement()
+        }
         .onChange(of: showAchievementToast) { _, isShowing in
             guard !isShowing else { return }
-            if let shown = toastAchievement, Self.reviewWorthyAchievements.contains(shown.id) {
+            if toastUnlocks.contains(where: { Self.reviewWorthyAchievements.contains($0.id) }) {
                 ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
             }
-            // Drain one queued unlock when its toast finishes, surfacing
-            // the next one if a single save crossed several milestones.
-            achievements.acknowledgeLatestUnlock()
+            // Drain what this toast showed once it has slid away, so the
+            // next one never overlaps the outgoing card.
+            let shownCount = toastUnlocks.count
+            Task { @MainActor in
+                try? await Task.sleep(for: AppAnimation.toastHandoffDelay)
+                achievements.acknowledgeUnlocks(shownCount)
+            }
         }
     }
 
@@ -102,6 +114,7 @@ struct CelebrationHostView: View {
 
     private func present(_ event: CelebrationEvent?) async {
         guard let event else { return }
+        do { try await waitUntilUncovered() } catch { return }
         switch event.kind {
         case let .habitComplete(tintHex, allHabitsDone):
             // No haptic here — `DataStore.toggleHabitEntry` already fires
@@ -141,9 +154,40 @@ struct CelebrationHostView: View {
         }
     }
 
+    /// Tapping (or VoiceOver's escape) ends the level-up card early and
+    /// drains it from the queue, so a waiting toast or celebration shows
+    /// at once instead of after the card's full 2.6 s.
+    private func dismissLevelUp() {
+        withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) { levelUp = nil }
+        center.acknowledgeCurrent()
+    }
+
+    /// Sheets and full-screen covers present above this overlay, so a
+    /// celebration started under one would play unseen and its toast
+    /// would time out and be acknowledged. Waits, without acknowledging,
+    /// until nothing is presented over the root.
+    private func waitUntilUncovered() async throws {
+        while Self.isCoveredByModal {
+            try await Task.sleep(for: .milliseconds(400))
+        }
+    }
+
+    @MainActor private static var isCoveredByModal: Bool {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .contains { $0.isKeyWindow && $0.rootViewController?.presentedViewController != nil }
+    }
+
     private func presentAchievement() {
-        guard let unlock = achievements.latestUnlock else { return }
-        toastAchievement = unlock
+        let unlocks = achievements.pendingUnlocks
+        guard !unlocks.isEmpty else { return }
+        // Screenshot captures stay clear of celebration chrome.
+        guard !ScreenshotMode.shared.isEnabled else {
+            achievements.acknowledgeUnlocks(unlocks.count)
+            return
+        }
+        toastUnlocks = unlocks
         AppAnimation.with(AppAnimation.springBouncy) { showAchievementToast = true }
         // The toast carries its own artwork. Avoid replacing an in-flight
         // habit/level-up burst with a second celebration for one tap.

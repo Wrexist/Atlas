@@ -135,15 +135,27 @@ struct EditNutritionSheet: View {
             let c = MacroInput.parse(carbs),
             let f = MacroInput.parse(fat)
         else { return }
+        onSave(Self.corrected(initial, calories: kcal, proteinG: p, carbsG: c, fatG: f))
+    }
+
+    /// The typed macros, rescaled onto a single component's per-100 g
+    /// values. Only the four typed values change: fibre, sugar and
+    /// micronutrients the product already carried are kept.
+    nonisolated static func corrected(
+        _ initial: LoggableMeal?, calories kcal: Int, proteinG p: Int, carbsG c: Int, fatG f: Int
+    ) -> LoggableMeal {
         var result = LoggableMeal(calories: kcal, proteinG: p, carbsG: c, fatG: f)
         if var component = initial?.components?.first, initial?.components?.count == 1,
            component.grams.isFinite, component.grams > 0 {
+            let previous = component.per100g
             component.per100g = .init(calories: Double(kcal) / component.grams * 100,
                                      proteinG: Double(p) / component.grams * 100,
                                      carbsG: Double(c) / component.grams * 100,
-                                     fatG: Double(f) / component.grams * 100, fiberG: nil, sugarsG: nil)
+                                     fatG: Double(f) / component.grams * 100,
+                                     fiberG: previous.fiberG, sugarsG: previous.sugarsG,
+                                     micros: previous.micros)
             result.components = [component]
         }
-        onSave(result)
+        return result
     }
 }

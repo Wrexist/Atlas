@@ -124,7 +124,7 @@ struct TodayHabitsHero: View {
             chipsRow
             viewAllButton
         }
-        .padding(Spacing.md)
+        .padding(Spacing.cardPadding)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
@@ -150,7 +150,7 @@ struct TodayHabitsHero: View {
             strokeWidth: 7,
             gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
             appearAnimated: true,
-            celebrateAtCompletion: true
+            celebrateAtCompletion: !isReadOnly
         ) {
             if snapshot.dueCount > 0 {
                 VStack(spacing: 0) {
@@ -284,7 +284,7 @@ struct TodayHabitsHero: View {
 
             StarterHabitSuggestions(onPick: addStarter)
         }
-        .padding(Spacing.md)
+        .padding(Spacing.cardPadding)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 

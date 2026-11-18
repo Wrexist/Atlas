@@ -100,6 +100,26 @@ final class BackupImportServiceTests: XCTestCase {
 
     // MARK: - Apply
 
+    func test_validate_v1Backup_reportsNoTrainingData() throws {
+        let backup = AppBackup(exportDate: Date(), version: "1.0", protocols: [], entries: [], profile: .fresh)
+
+        let preview = try BackupImportService.validate(encode(backup)).preview
+
+        XCTAssertFalse(preview.hasTrainingData)
+    }
+
+    func test_validate_v2BackupWithZeroWorkouts_reportsTrainingDataThatReplaceWillApply() throws {
+        let backup = AppBackup(
+            exportDate: Date(), version: "2.0", protocols: [], entries: [], profile: .fresh,
+            workoutSessions: [], routines: []
+        )
+
+        let preview = try BackupImportService.validate(encode(backup)).preview
+
+        XCTAssertTrue(preview.hasTrainingData)
+        XCTAssertEqual(preview.workoutSessionsCount, 0)
+    }
+
     func test_dryRun_doesNotMutate() throws {
         let dataStore = makeDataStore()
         let initialCount = dataStore.protocols.count
@@ -165,6 +185,54 @@ final class BackupImportServiceTests: XCTestCase {
                       "Replace must force the migration marker so the next launch doesn't re-migrate")
         XCTAssertTrue(dataStore.profile.workoutHistory.isEmpty,
                       "Legacy array must be cleared on the restored profile")
+    }
+
+    func test_replace_withRemindersOff_cancelsDoseRemindersScheduledBefore() throws {
+        let dataStore = makeDataStore()
+        let notifications = NotificationService.shared
+        defer { notifications.cancelAll() }
+        let oldProtocol = PeptideProtocol(
+            id: UUID(),
+            name: "Before restore",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5, 6, 7], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .active,
+            notes: ""
+        )
+        notifications.scheduleNotifications(for: [oldProtocol])
+        XCTAssertGreaterThan(notifications.requestedCount, 0)
+        var backupProfile = makeProfile(named: "Reminders off")
+        backupProfile.doseRemindersEnabled = false
+        let backup = AppBackup(exportDate: Date(), version: "1.0", protocols: [], entries: [], profile: backupProfile)
+
+        _ = try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertEqual(notifications.requestedCount, 0)
+        XCTAssertEqual(notifications.scheduledCount, 0)
+    }
+
+    func test_replace_keepsThisDevicesHealthConnectionAndBiometricLock() throws {
+        let dataStore = makeDataStore()
+        dataStore.profile.healthConnected = false
+        dataStore.profile.biometricLockEnabled = false
+        var backupProfile = makeProfile(named: "Other phone")
+        backupProfile.healthConnected = true
+        backupProfile.biometricLockEnabled = true
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "1.0",
+            protocols: [],
+            entries: [],
+            profile: backupProfile
+        )
+
+        _ = try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertEqual(dataStore.profile.name, "Other phone")
+        XCTAssertFalse(dataStore.profile.healthConnected)
+        XCTAssertFalse(dataStore.profile.biometricLockEnabled)
     }
 
     func test_merge_keepsExistingOnConflict() throws {
@@ -333,6 +401,73 @@ final class BackupImportServiceTests: XCTestCase {
         repo.forceCommitFailureForTesting = true
         XCTAssertThrowsError(try BackupImportService.apply(backup, strategy: .replace, into: dataStore))
         XCTAssertEqual(dataStore.lastError, DataStore.saveFailureMessage)
+    }
+
+    // MARK: - Fasting history (C239)
+
+    func test_exportThenReplace_restoresFastingHistory() throws {
+        let dataStore = makeDataStore()
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let fast = FastSession(
+            startedAt: start,
+            endedAt: start.addingTimeInterval(16 * 3600),
+            targetHours: 16,
+            plan: .sixteen
+        )
+        let data = try XCTUnwrap(ExportService.shared.exportFullBackup(
+            protocols: [],
+            entries: [],
+            profile: makeProfile(named: "Faster"),
+            fasts: [fast]
+        ))
+        let (backup, _) = try BackupImportService.validate(data)
+
+        try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertEqual(SwiftDataRepository.shared.loadFasts().map(\.id), [fast.id])
+        XCTAssertEqual(FastingStore.shared.ended.map(\.id), [fast.id])
+    }
+
+    func test_replace_withBackupPredatingFasts_leavesLiveFastsAlone() throws {
+        let dataStore = makeDataStore()
+        let live = FastSession(startedAt: Date(timeIntervalSince1970: 1_790_000_000), targetHours: 16, plan: .sixteen)
+        SwiftDataRepository.shared.upsertFast(live)
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "2.0",
+            protocols: [],
+            entries: [],
+            profile: makeProfile(named: "Old backup")
+        )
+
+        try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertEqual(SwiftDataRepository.shared.loadFasts().map(\.id), [live.id])
+    }
+
+    func test_replace_withCarriedFasts_dropsUncarriedLiveFast() throws {
+        let dataStore = makeDataStore()
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let carried = FastSession(
+            startedAt: start,
+            endedAt: start.addingTimeInterval(16 * 3600),
+            targetHours: 16,
+            plan: .sixteen
+        )
+        let live = FastSession(startedAt: start.addingTimeInterval(3 * 86_400), targetHours: 16, plan: .sixteen)
+        SwiftDataRepository.shared.upsertFast(live)
+        let data = try XCTUnwrap(ExportService.shared.exportFullBackup(
+            protocols: [],
+            entries: [],
+            profile: makeProfile(named: "Snapshot"),
+            fasts: [carried]
+        ))
+        let (backup, _) = try BackupImportService.validate(data)
+
+        try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertEqual(SwiftDataRepository.shared.loadFasts().map(\.id), [carried.id])
+        XCTAssertNil(FastingStore.shared.active)
     }
 
     // MARK: - Helpers

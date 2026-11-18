@@ -51,6 +51,24 @@ final class CloudIdentityChangeEngineTests: XCTestCase {
         XCTAssertTrue(decision(.signedIn, hasData: true, hadEarlier: true))
     }
 
+    // MARK: - Device-local records (C234)
+
+    func test_forgetsDeviceLocalRecords_switchOpenedWithoutPrompt_erases() {
+        XCTAssertTrue(CloudIdentityChangeEngine.forgetsDeviceLocalRecords(.switchedAccount, heldForDecision: false))
+        XCTAssertTrue(CloudIdentityChangeEngine.forgetsDeviceLocalRecords(.signedOut, heldForDecision: false))
+    }
+
+    func test_forgetsDeviceLocalRecords_heldForDecision_leavesThemToTheAnswer() {
+        for kind: CloudIdentityChange in [.unchanged, .signedIn, .signedOut, .switchedAccount] {
+            XCTAssertFalse(CloudIdentityChangeEngine.forgetsDeviceLocalRecords(kind, heldForDecision: true), "\(kind)")
+        }
+    }
+
+    func test_forgetsDeviceLocalRecords_firstSignIn_keeps() {
+        XCTAssertFalse(CloudIdentityChangeEngine.forgetsDeviceLocalRecords(.signedIn, heldForDecision: false))
+        XCTAssertFalse(CloudIdentityChangeEngine.forgetsDeviceLocalRecords(.unchanged, heldForDecision: false))
+    }
+
     private func decision(_ change: CloudIdentityChange, hasData: Bool, hadEarlier: Bool) -> Bool {
         CloudIdentityChangeEngine.needsUserDecision(
             change,

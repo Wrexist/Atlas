@@ -127,7 +127,7 @@ extension MeasurementUnit {
     private static let millilitresPerFluidOunce = 29.5735
 
     var volumeSuffix: String {
-        self == .metric ? "mL" : "oz"
+        self == .metric ? String(localized: "mL") : "oz"
     }
 
     /// Spelled out for VoiceOver, which reads "oz" as two letters.
@@ -145,7 +145,7 @@ extension MeasurementUnit {
     func volumeLabel(_ fluidOunces: Double) -> String {
         let value = volumeValue(fluidOunces)
         guard self == .metric else { return "\(value) oz" }
-        guard value >= 1_000 else { return "\(value) mL" }
+        guard value >= 1_000 else { return "\(value) \(volumeSuffix)" }
         return "\((Double(value) / 1_000).formatted(.number.precision(.fractionLength(1)))) L"
     }
 
@@ -207,6 +207,23 @@ struct BodyMetrics: Codable, Hashable, Sendable {
         }
     }
 
+    /// Weight as every screen shows it: at most one decimal, with its unit.
+    var weightLabel: String? {
+        weightKg.map { "\(unit.weightValue($0, fractionDigits: 0...1)) \(unit.weightSuffix)" }
+    }
+
+    /// Height as every screen shows it: centimetres to one decimal, or
+    /// feet + inches ("5'11\""), rounding total inches first so it never
+    /// reads "5'12\"".
+    var heightLabel: String? {
+        guard let heightCm else { return nil }
+        if unit == .metric {
+            return "\(heightCm.formatted(.number.precision(.fractionLength(0...1)).grouping(.never))) cm"
+        }
+        let totalInches = Int((heightCm / 2.54).rounded())
+        return "\(totalInches / 12)'\(totalInches % 12)\""
+    }
+
     func ageAsOf(_ date: Date, calendar: Calendar = .current) -> Int? {
         guard let enteredAge else { return nil }
         guard let ageRecordedAt else { return enteredAge }
@@ -214,12 +231,15 @@ struct BodyMetrics: Codable, Hashable, Sendable {
         return enteredAge + max(0, years)
     }
 
+    /// An age is stored but the date it was entered is not.
+    var lacksAgeRecordedAt: Bool { enteredAge != nil && ageRecordedAt == nil }
+
     /// Stamps metrics saved without `ageRecordedAt` with `date`. Pass
     /// the load date, never an earlier guess such as `memberSince`: the
     /// age may have been entered or corrected since, and an early stamp
     /// would advance it too far.
     func backfillingAgeRecordedAt(_ date: Date) -> BodyMetrics {
-        guard enteredAge != nil, ageRecordedAt == nil else { return self }
+        guard lacksAgeRecordedAt else { return self }
         var copy = self
         copy.ageRecordedAt = date
         return copy
@@ -344,9 +364,9 @@ struct DailyConsumption: Codable, Hashable, Sendable {
     /// it existed decode unchanged and it's omitted from the JSON when nil.
     var waterOzRemainder: Double?
 
-    static func empty(on date: Date) -> DailyConsumption {
+    static func empty(on date: Date, calendar: Calendar = .current) -> DailyConsumption {
         DailyConsumption(
-            date: Calendar.current.startOfDay(for: date),
+            date: calendar.startOfDay(for: date),
             caloriesKcal: 0,
             proteinG: 0,
             carbsG: 0,

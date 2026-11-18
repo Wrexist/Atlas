@@ -49,12 +49,11 @@ struct RoutineEntityQuery: EntityQuery {
         }
     }
 
-    /// Routine names are the user's own ("Push A", "Legs"), so a
-    /// case-insensitive containment match is enough.
+    /// Routine names are the user's own ("Push A", "Ben & Rygg"), so a
+    /// folded containment match is enough.
     func entities(matching string: String) async throws -> [RoutineEntity] {
-        let needle = string.lowercased()
         let all = try await suggestedEntities()
-        return all.filter { $0.displayName.lowercased().contains(needle) }
+        return all.filter { FoodLibraryLogic.spokenQuery(string, matches: $0.displayName) }
     }
 
     /// Routines that can seed a workout, in library order with the next

@@ -69,8 +69,10 @@ struct HomeMealsSection: View {
         Calendar.current.date(byAdding: .day, value: -1, to: selectedDay) ?? selectedDay
     }
 
+    /// `.zero` when unset, so the rings show no budget rather than an
+    /// invented 2000 kcal one beside "Set your daily targets first".
     private var targets: NutritionTargets {
-        dataStore.profile.nutritionTargets ?? .placeholder
+        dataStore.profile.nutritionTargets ?? .zero
     }
 
     var body: some View {
@@ -202,7 +204,7 @@ struct HomeMealsSection: View {
         .sheet(isPresented: $showTargetsEditor) {
             NutritionTargetsEditor(
                 initial: dataStore.profile.nutritionTargets ?? .zero,
-                bodyMetrics: dataStore.profile.bodyMetrics,
+                bodyMetrics: dataStore.currentBodyMetrics,
                 goalRaw: dataStore.profile.primaryGoal,
                 expenditure: dataStore.expenditureEstimate(),
                 onSave: { targets in
@@ -412,14 +414,14 @@ struct HomeMealsSection: View {
                 Text("Set your daily targets first")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("Add height, weight, age, and gender on Profile to compute calorie and macro targets, or tap Edit targets to set them manually.")
+                Text("Add your height, weight and age in Profile to get calorie and macro targets, or tap Edit targets to set them yourself.")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Button("Edit targets") { showTargetsEditor = true }
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentInkOnWash)
                     .minimumHitArea()
                     .padding(.top, Spacing.xs)
             }

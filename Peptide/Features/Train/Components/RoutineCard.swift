@@ -127,8 +127,10 @@ struct RoutineCard: View {
             startTaps += 1
             onStart()
         } label: {
+            // The circle is a fixed 44pt target, so the glyph stops
+            // growing at xxxLarge instead of spilling past it.
             Image(systemName: "play.fill")
-                .font(AppFont.scaled(16, weight: .bold))
+                .font(AppFont.scaled(16, weight: .bold, in: min(dynamicTypeSize, .xxxLarge)))
                 .foregroundStyle(AppColor.onAccent)
                 .symbolEffect(.bounce, value: startTaps)
                 .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
@@ -136,6 +138,7 @@ struct RoutineCard: View {
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel("Start \(routine.name)")
+        .accessibilityShowsLargeContentViewer()
         .disabled(routine.exercises.isEmpty)
         .opacity(routine.exercises.isEmpty ? 0.4 : 1)
     }

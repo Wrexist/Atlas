@@ -36,6 +36,12 @@ struct TrainingBodyExplorer: View {
         case intensity(low: String, high: String)
     }
 
+    /// Both figures while nothing is lit and the facing control is hidden,
+    /// unless large text needs the room of a single figure.
+    private var shownSide: Side {
+        highlights.isEmpty && !dynamicTypeSize.isAccessibilitySize ? .both : side
+    }
+
     private var trainedGroups: [String] {
         Array(Set(highlights.keys.map(\.displayName))).sorted()
     }
@@ -53,28 +59,32 @@ struct TrainingBodyExplorer: View {
 
     private var content: some View {
         VStack(spacing: Spacing.md) {
-            GlassSegmentedControl(
-                options: Side.allCases,
-                selected: $side,
-                label: { LocalizedStringKey($0.title) }
-            )
-            .accessibilityIdentifier("training-body-side")
+            // A bare body has nothing to inspect up close, so the facing
+            // control only appears once a muscle is lit.
+            if !highlights.isEmpty {
+                GlassSegmentedControl(
+                    options: Side.allCases,
+                    selected: $side,
+                    label: { LocalizedStringKey($0.title) }
+                )
+                .accessibilityIdentifier("training-body-side")
+            }
 
             MuscleMapView(
                 highlights: highlights,
-                orientation: side.orientation,
+                orientation: shownSide.orientation,
                 primaryColor: primaryColor,
                 secondaryColor: secondaryColor,
                 onIdentify: { select($0) },
                 selectedMuscle: selected
             )
-            .frame(maxWidth: side == .both ? .infinity : 340)
+            .frame(maxWidth: shownSide == .both ? .infinity : 340)
             .frame(maxWidth: .infinity)
             .appAnimation(AppAnimation.quick, value: selected)
 
             HStack {
-                if side != .back { Text("Front").frame(maxWidth: .infinity) }
-                if side != .front { Text(Side.back.title).frame(maxWidth: .infinity) }
+                if shownSide != .back { Text("Front").frame(maxWidth: .infinity) }
+                if shownSide != .front { Text(Side.back.title).frame(maxWidth: .infinity) }
             }
             .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)
@@ -110,7 +120,7 @@ struct TrainingBodyExplorer: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.accentPrimary)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget, alignment: .leading)
                     .padding(Spacing.md)
                     .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: Spacing.smallCornerRadius))
                 }
@@ -138,14 +148,16 @@ struct TrainingBodyExplorer: View {
                 } label: {
                     HStack(spacing: Spacing.sm) {
                         Image(systemName: "list.bullet")
+                            .accessibilityHidden(true)
                         Text("Explore trained muscles")
                             .multilineTextAlignment(.leading)
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.down")
+                            .accessibilityHidden(true)
                     }
                     .font(AppFont.subheadline)
                     .padding(Spacing.md)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                     .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: Spacing.smallCornerRadius))
                 }
                 .accessibilityIdentifier("explore-trained-muscles")
@@ -166,8 +178,18 @@ struct TrainingBodyExplorer: View {
 
     @ViewBuilder
     private var roleLabels: some View {
-        Label("Primary", systemImage: "circle.fill").foregroundStyle(primaryColor)
-        Label("Supporting", systemImage: "circle.lefthalf.filled").foregroundStyle(secondaryColor)
+        // The dots carry the multiply tints the figure uses; the words are
+        // ink, since those tints sit near 2:1 on a light card.
+        Label {
+            Text("Primary").foregroundStyle(AppColor.textSecondary)
+        } icon: {
+            Image(systemName: "circle.fill").foregroundStyle(primaryColor)
+        }
+        Label {
+            Text("Supporting").foregroundStyle(AppColor.textSecondary)
+        } icon: {
+            Image(systemName: "circle.lefthalf.filled").foregroundStyle(secondaryColor)
+        }
     }
 
     private var selectionDescription: String {

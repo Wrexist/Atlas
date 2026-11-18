@@ -142,10 +142,19 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void
     ) {
-        let isRestEnd = notification.request.identifier.hasPrefix(
+        let identifier = notification.request.identifier
+        let deliveredAt = notification.date
+        let isRestEnd = identifier.hasPrefix(
             NotificationService.adHocIDPrefix + WorkoutSessionService.restNotificationPrefix
         )
-        Task { @MainActor [appState] in
+        Task { @MainActor [appState, dataStore] in
+            // A meal, weigh-in or workout logged in the app since the last
+            // reconcile makes its reminder redundant: drop it and re-plan.
+            if DailyReminderScheduler.isAlreadyDone(requestID: identifier, on: deliveredAt, dataStore: dataStore) {
+                completionHandler([])
+                await DailyReminderScheduler.reconcile(dataStore: dataStore)
+                return
+            }
             // The workout screen marks rest end with a haptic and an
             // announcement; a banner over it on top of that is noise.
             // Everything else also goes to Notification Center, so a

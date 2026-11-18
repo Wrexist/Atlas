@@ -83,6 +83,10 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
         XCTAssertEqual(BiomarkerSeriesService.formatValue(58.7, for: .hrvBaseline), "59")
     }
 
+    func test_formatValue_waistKeepsHalfUnits() {
+        XCTAssertEqual(BiomarkerSeriesService.formatValue(32.5, for: .waist), "32.5")
+    }
+
     func test_formatValue_sleepOneDecimal() {
         XCTAssertEqual(BiomarkerSeriesService.formatValue(7.83, for: .sleepBaseline), "7.8")
     }
@@ -277,7 +281,7 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
 
     func test_changeText_waistImperial_convertsToInches() {
         let text = BiomarkerSeriesService.changeText(for: .waist, trend: .flat, latest: 86, unit: .imperial)
-        XCTAssertEqual(text, "Holding · 34 in")
+        XCTAssertEqual(text, "Holding · 33.9 in")
     }
 
     func test_changeText_bloodPressure_showsBothHalves() {
@@ -308,5 +312,99 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
         )
         XCTAssertNil(snapshot.latest)
         XCTAssertNil(snapshot.latestSecondary)
+    }
+
+    // MARK: - labSnapshot
+
+    /// A lab draw is nearly always older than the stale cut-off, so the
+    /// tile can't rely on changeText to say which marker the number is.
+    func test_labSnapshot_carriesPanelNameAndUnit() {
+        let lab = LabValue(date: Date(timeIntervalSince1970: 1_700_000_000), panel: .totalTestosterone, value: 720)
+
+        let snapshot = BiomarkerSeriesService.labSnapshot(latestLab: lab)
+
+        XCTAssertEqual(snapshot.contextLabel, LabPanel.totalTestosterone.displayName)
+        XCTAssertEqual(snapshot.unitLabel, "ng/dL")
+    }
+
+    func test_labSnapshot_noLab_hasNoContext() {
+        let snapshot = BiomarkerSeriesService.labSnapshot(latestLab: nil)
+        XCTAssertNil(snapshot.contextLabel)
+        XCTAssertNil(snapshot.unitLabel)
+    }
+
+    // MARK: - averageComparisonText
+
+    func test_averageComparison_subUnitHRVDifference_readsAtAverage() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 58.3, average: 58, for: .hrvBaseline, unit: .metric)
+        XCTAssertEqual(text, "Right at your recent average.")
+    }
+
+    func test_averageComparison_weightBelowRoundingStep_readsAtAverage() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 71.97, average: 72, for: .weight, unit: .metric)
+        XCTAssertEqual(text, "Right at your recent average.")
+    }
+
+    func test_averageComparison_realHRVDifference_readsAbove() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 62, average: 58, for: .hrvBaseline, unit: .metric)
+        XCTAssertEqual(text, "4 ms above your recent average.")
+    }
+
+    func test_averageComparison_realWeightDifference_readsBelow() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 71.6, average: 72, for: .weight, unit: .metric)
+        XCTAssertEqual(text, "0.4 kg below your recent average.")
+    }
+
+    func test_averageComparison_halfStepHRVTie_neverReadsZeroAbove() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 58.5, average: 58, for: .hrvBaseline, unit: .metric)
+        XCTAssertFalse(text.hasPrefix("0 "), text)
+    }
+
+    func test_averageComparison_halfStepStepsTie_neverReadsZeroAbove() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 8000, average: 7999.5, for: .stepsBaseline, unit: .metric)
+        XCTAssertFalse(text.hasPrefix("0 "), text)
+    }
+
+    // MARK: - sleepSeries
+
+    func test_sleepSeries_bucketsEachNightByWakeDayInHours() {
+        let wake = Date(timeIntervalSince1970: 1_700_000_000)
+        let night = SleepScoreEngine.Night(
+            start: wake.addingTimeInterval(-8 * 3600),
+            end: wake,
+            deep: 3600, core: 4 * 3600, rem: 3600, unspecified: 0,
+            awake: 1800
+        )
+        let earlier = SleepScoreEngine.Night(
+            start: wake.addingTimeInterval(-32 * 3600),
+            end: wake.addingTimeInterval(-24 * 3600),
+            deep: 0, core: 0, rem: 0, unspecified: 7 * 3600,
+            awake: 0
+        )
+
+        let series = BiomarkerSeriesService.sleepSeries(from: [night, earlier], days: 2, now: wake, calendar: utc)
+
+        XCTAssertEqual(series.map(\.value), [7, 6])
+        XCTAssertEqual(series.map(\.date), [utc.startOfDay(for: earlier.end), utc.startOfDay(for: wake)])
+    }
+
+    func test_sleepSeries_nightBeforeWindow_isDropped() {
+        let wake = Date(timeIntervalSince1970: 1_700_000_000)
+        let recent = SleepScoreEngine.Night(
+            start: wake.addingTimeInterval(-8 * 3600),
+            end: wake,
+            deep: 0, core: 0, rem: 0, unspecified: 7 * 3600,
+            awake: 0
+        )
+        let truncated = SleepScoreEngine.Night(
+            start: wake.addingTimeInterval(-50 * 3600),
+            end: wake.addingTimeInterval(-48 * 3600),
+            deep: 0, core: 0, rem: 0, unspecified: 2 * 3600,
+            awake: 0
+        )
+
+        let series = BiomarkerSeriesService.sleepSeries(from: [recent, truncated], days: 2, now: wake, calendar: utc)
+
+        XCTAssertEqual(series.map(\.value), [7])
     }
 }

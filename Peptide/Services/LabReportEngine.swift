@@ -33,6 +33,9 @@ enum LabReportEngine {
         let name: String
         /// Nil when the result isn't a number ("Negative").
         let value: Double?
+        /// "<" or ">" when the report printed a limit ("<0.5") rather
+        /// than a measurement; `value` is then the limit itself.
+        var valueQualifier: String? = nil
         let unit: String
         let referenceLow: Double?
         let referenceHigh: Double?
@@ -41,11 +44,19 @@ enum LabReportEngine {
 
         enum CodingKeys: String, CodingKey {
             case name, value, unit
+            case valueQualifier = "value_qualifier"
             case referenceLow  = "reference_low"
             case referenceHigh = "reference_high"
             case referenceText = "reference_text"
             case collectedOn   = "collected_on"
         }
+    }
+
+    /// A censored result ("<0.5") isn't a measurement: saving its limit
+    /// as an exact value would put a false point on the trend line, so
+    /// such a row is never ticked for the user.
+    static func startsIncluded(_ marker: Marker, convertedValue: Double?) -> Bool {
+        convertedValue != nil && marker.valueQualifier == nil
     }
 
     private struct Envelope: Decodable {
@@ -74,7 +85,7 @@ enum LabReportEngine {
     }
 
     /// Rows for the review screen. A row starts included only when it is
-    /// matched, converted, and the first row for its panel — a second
+    /// matched, converted, exact (not "<0.5"), and the first row for its panel — a second
     /// "Glucose" on the same report is more often a urine or repeat value
     /// than the one the user wants charted.
     static func rows(
@@ -93,7 +104,7 @@ enum LabReportEngine {
                 panel: matched,
                 value: value,
                 date: date(from: marker.collectedOn, notAfter: today, calendar: calendar),
-                isIncluded: value != nil && isFirst
+                isIncluded: isFirst && startsIncluded(marker, convertedValue: value)
             )
         }
     }

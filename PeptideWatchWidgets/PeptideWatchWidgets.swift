@@ -10,8 +10,8 @@ struct WatchDoseEntry: TimelineEntry {
     let nextDoseTime: Date?
     let completedToday: Int
     let totalToday: Int
-    /// The last push is from an earlier day, so today's doses are unknown
-    /// rather than none.
+    /// The last push is from an earlier day, or none has arrived yet, so
+    /// today's doses are unknown rather than none.
     var awaitsToday = false
 
     var compliance: Double {
@@ -65,9 +65,11 @@ struct WatchDoseProvider: TimelineProvider {
               let data = try? Data(contentsOf: url),
               let watchData = try? Self.decoder.decode(WatchData.self, from: data).forDisplay(at: date)
         else {
+            // Never synced: "Open Atlas on iPhone", not "No doses today".
             return WatchDoseEntry(
                 date: date, nextPeptide: "", nextDose: "",
-                nextDoseTime: nil, completedToday: 0, totalToday: 0
+                nextDoseTime: nil, completedToday: 0, totalToday: 0,
+                awaitsToday: true
             )
         }
 

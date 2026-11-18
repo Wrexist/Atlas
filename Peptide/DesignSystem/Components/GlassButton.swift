@@ -7,9 +7,10 @@ enum GlassButtonStyle {
     case destructive
 }
 
-/// The app's one button. Every CTA — paywall, sheets, empty states, settings
-/// rows — routes through this so there's a single press response, a single
-/// glass recipe, and a single set of accent weights.
+/// The in-card button: sheets, empty states, settings rows. `.primary` is a
+/// compact solid-ink pill, `.secondary` and `.destructive` are glass
+/// capsules, `.ghost` is bare text. A screen's one full-width call to action
+/// is `PrimaryCTAButton` instead.
 struct GlassButton: View {
     let title: LocalizedStringKey
     var icon: String?
@@ -37,22 +38,33 @@ struct GlassButton: View {
                 // A solid ink pill, the same "do this" mark as
                 // PrimaryCTAButton and the selected segment. A tinted-glass
                 // primary read as one more pastel chip on a calm page.
-                label.background(Capsule(style: .continuous).fill(AppColor.textPrimary))
-            case .secondary, .destructive:
-                // ScalePressStyle owns the press response; interactive
-                // glass would run a second, competing scale on iOS 26.
-                label.glassControl(.capsule, tint: tint, border: border, interactive: false)
+                // Disabled, it drops to the track with tertiary ink rather
+                // than fading the heaviest shape on screen to a grey slab.
+                label.background(Capsule(style: .continuous).fill(isEnabled ? AppColor.textPrimary : AppColor.track))
+            // ScalePressStyle owns the press response; interactive glass
+            // would run a second, competing scale on iOS 26.
+            case .secondary:
+                label.glassControl(.capsule, border: AppColor.glassBorder, interactive: false)
+            case .destructive:
+                // Kept at ~0.15: above that the tint stops reading as
+                // coloured glass and starts reading as a flat painted button.
+                label.glassControl(
+                    .capsule,
+                    tint: AppColor.destructive.opacity(0.15),
+                    border: AppColor.destructive.opacity(0.3),
+                    interactive: false
+                )
             }
         }
         .buttonStyle(ScalePressStyle())
-        .opacity(isEnabled ? 1 : AppOpacity.disabled)
+        .opacity(isEnabled || style == .primary ? 1 : AppOpacity.disabled)
     }
 
     private var label: some View {
-        HStack(spacing: Spacing.xs) {
+        HStack(spacing: Spacing.sm) {
             if let icon {
                 Image(systemName: icon)
-                    .font(AppFont.scaled(13, weight: .semibold))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .accessibilityHidden(true)
             }
             Text(title)
@@ -73,33 +85,12 @@ struct GlassButton: View {
         .foregroundStyle(foregroundColor)
     }
 
-    /// Kept at ~0.15–0.18. Above that the tint stops reading as coloured glass
-    /// and starts reading as a flat painted button — the previous 0.30–0.35
-    /// values were the reason tinted controls looked opaque on iOS 26.
-    private var tint: Color? {
-        switch style {
-        case .primary: nil
-        case .secondary: nil
-        case .ghost: nil
-        case .destructive: AppColor.destructive.opacity(0.15)
-        }
-    }
-
-    private var border: Color {
-        switch style {
-        case .primary: AppColor.glassBorderActive
-        case .secondary: AppColor.glassBorder
-        case .ghost: .clear
-        case .destructive: AppColor.destructive.opacity(0.3)
-        }
-    }
-
     private var foregroundColor: Color {
         switch style {
-        case .primary: AppColor.inverseInk
+        case .primary: isEnabled ? AppColor.inverseInk : AppColor.textTertiary
         case .secondary: AppColor.textPrimary
         case .ghost: AppColor.accentPrimary
-        case .destructive: AppColor.destructive
+        case .destructive: AppColor.destructiveInk
         }
     }
 }
@@ -111,11 +102,16 @@ struct GlassIconButton: View {
     var tinted: Bool = false
     var action: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         Button(action: action) {
+            // The circle is a fixed hit target, so the glyph stops growing
+            // at xxxLarge instead of spilling past the glass edge; the
+            // large content viewer covers the accessibility sizes.
             Image(systemName: icon)
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(tinted ? AppColor.accentLight : AppColor.textPrimary)
+                .font(AppFont.scaled(16, weight: .semibold, in: min(dynamicTypeSize, .xxxLarge)))
+                .foregroundStyle(tinted ? AppColor.accentInkOnWash : AppColor.textPrimary)
                 .frame(width: max(size, Spacing.minimumHitTarget),
                        height: max(size, Spacing.minimumHitTarget))
                 .glassControl(
@@ -127,6 +123,7 @@ struct GlassIconButton: View {
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(accessibilityLabel)
+        .accessibilityShowsLargeContentViewer()
     }
 }
 

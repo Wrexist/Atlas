@@ -29,6 +29,10 @@ struct MacroSummaryRow: View {
     @State private var selectedWaterAmount: Double?
     /// Per-view-lifetime, so a tab switch back doesn't replay the fill.
     @State private var hasAppeared = false
+    /// Grows with the eyebrow it marks, so it stays a dot, not a speck,
+    /// but stops at 12pt so accessibility sizes don't swell it into a disc.
+    @ScaledMetric(relativeTo: .caption2) private var scaledLegendDotSize: CGFloat = 8
+    private var legendDotSize: CGFloat { min(scaledLegendDotSize, 12) }
 
     init(
         targets: NutritionTargets,
@@ -59,6 +63,13 @@ struct MacroSummaryRow: View {
         consumed.waterFluidOunces / Double(Self.waterTargetOz)
     }
 
+    /// The water target in the unit shown: whole ounces, or millilitres
+    /// rounded to 100 so the 100 oz goal reads 3000 mL, not 2957 mL.
+    private var waterTargetDisplay: Int {
+        let value = unit.volumeValue(Double(Self.waterTargetOz))
+        return unit == .metric ? Int((Double(value) / 100).rounded()) * 100 : value
+    }
+
     /// Rings and numbers start at zero until the first appear; Reduce
     /// Motion shows final values from the first frame.
     private var isRevealed: Bool {
@@ -78,7 +89,7 @@ struct MacroSummaryRow: View {
                 : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.lg))
             ringsAndLegend {
                 ringStack
-                    .frame(width: 132, height: 132)
+                    .frame(width: Self.ringDiameter, height: Self.ringDiameter)
 
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     legend(
@@ -103,7 +114,7 @@ struct MacroSummaryRow: View {
                         value: LifestyleDataLogic.displayedWater(consumed, unit: unit),
                         // Same unit as the number beside it: "1000/3000 mL",
                         // never "1000/3,0 L".
-                        target: Self.targetText(unit.volumeValue(Double(Self.waterTargetOz)), unit: unit == .metric ? "mL" : "oz"),
+                        target: Self.targetText(waterTargetDisplay, unit: unit == .metric ? "mL" : "oz"),
                         color: AppColor.macroWater,
                         index: 2,
                         goalMet: consumed.waterFluidOunces >= Double(Self.waterTargetOz)
@@ -137,9 +148,11 @@ struct MacroSummaryRow: View {
         }
     }
 
-    /// Same legend style as the ring rows.
+    /// Same legend style as the ring rows, on the same grid: carbs under
+    /// the rings, fat under the Calories / Protein / Water column.
     private var carbsAndFat: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
+        let isStacked = dynamicTypeSize.isAccessibilitySize
+        let layout = isStacked
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
             : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.lg))
         return layout {
@@ -151,7 +164,8 @@ struct MacroSummaryRow: View {
                 index: 3,
                 progress: Self.fraction(consumed.carbsG, of: targets.carbsG)
             )
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(width: isStacked ? nil : Self.ringDiameter, alignment: .leading)
+            .frame(maxWidth: isStacked ? .infinity : nil, alignment: .leading)
             legend(
                 title: "Fat",
                 value: consumed.fatG,
@@ -185,32 +199,40 @@ struct MacroSummaryRow: View {
         .accessibilityLabel(accessibilitySummary)
     }
 
+    private static let ringDiameter: CGFloat = 132
     private static let ringLineWidth: CGFloat = 12
 
+    /// Track and fill both sit inside `diameter`, so the outer ring lines
+    /// up with the card's content edge instead of bleeding past it.
     private func ring(diameter: CGFloat, progress: Double, colors: [Color], index: Int) -> some View {
         ZStack {
             Circle()
-                .stroke(colors[1].opacity(0.16), lineWidth: Self.ringLineWidth)
-            ringFill(progress: min(1, progress), colors: colors, index: index)
+                .strokeBorder(colors[1].opacity(0.16), lineWidth: Self.ringLineWidth)
+            ringFill(progress: min(1, progress), colors: colors, index: index, diameter: diameter)
             // Past the goal the ring keeps going, Activity style: a second
             // lap in a deeper shade of the same colour, with a soft shadow
             // under its leading cap so the overlap reads as "one more lap".
             if progress > 1 {
-                ringFill(progress: min(1, progress - 1), colors: [colors[1], colors[1].mix(with: .black, by: 0.35)], index: index)
-                    .shadow(color: .black.opacity(0.35), radius: 2.5)
+                ringFill(progress: min(1, progress - 1), colors: [colors[1], colors[1].mix(with: .black, by: 0.35)], index: index, diameter: diameter)
+                    .appShadow(AppShadow.ringLap)
             }
         }
         .frame(width: diameter, height: diameter)
     }
 
-    private func ringFill(progress: Double, colors: [Color], index: Int) -> some View {
-        Circle()
+    private func ringFill(progress: Double, colors: [Color], index: Int, diameter: CGFloat) -> some View {
+        // The gradient starts a cap's width behind 0° so the round start
+        // cap samples the first stop, not the clamped last one. The fill is
+        // inset by half a stroke, so its centre line is a stroke narrower.
+        let capDegrees = RingGeometry.capDegrees(strokeWidth: Self.ringLineWidth, diameter: diameter - Self.ringLineWidth)
+        return Circle()
+            .inset(by: Self.ringLineWidth / 2)
             .trim(from: 0, to: isRevealed ? progress : 0)
             .stroke(
                 AngularGradient(
                     gradient: Gradient(colors: colors),
                     center: .center,
-                    startAngle: .degrees(0),
+                    startAngle: .degrees(-capDegrees),
                     endAngle: .degrees(360 * max(progress, 0.01))
                 ),
                 style: StrokeStyle(lineWidth: Self.ringLineWidth, lineCap: .round)
@@ -236,60 +258,60 @@ struct MacroSummaryRow: View {
         goalMet: Bool = false,
         progress: Double? = nil
     ) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
-            Circle()
-                .fill(color)
-                .frame(width: 8, height: 8)
-                .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
+            // The dot rides the eyebrow's centre line at every text
+            // size, rather than sitting on its baseline like a period.
+            HStack(alignment: .center, spacing: Spacing.xs) {
+                Circle()
+                    .fill(color)
+                    .frame(width: legendDotSize, height: legendDotSize)
                 Text(title)
                     .font(AppFont.eyebrow)
                     .foregroundStyle(AppColor.textSecondary)
                     .textCase(.uppercase)
                     .tracking(0.8)
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    let shown = isRevealed ? value : 0
-                    Text(String(shown))
-                        .font(AppFont.scaled(20, weight: .semibold))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .monospacedDigit()
-                        .fixedSize()
-                        .contentTransition(.numericText(value: Double(shown)))
-                        .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: value)
-                        .animation(revealAnimation(index: index), value: isRevealed)
-                    Text(target)
-                        .font(AppFont.scaled(11, weight: .semibold))
-                        .foregroundStyle(AppColor.textTertiary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    if goalMet && isRevealed {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(AppFont.scaled(11, weight: .bold))
-                            .foregroundStyle(AppColor.positive)
-                            .transition(.scale.combined(with: .opacity))
-                            .accessibilityLabel("Goal reached")
-                    }
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                let shown = isRevealed ? value : 0
+                Text(String(shown))
+                    .font(AppFont.scaled(20, weight: .semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .monospacedDigit()
+                    .fixedSize()
+                    .contentTransition(.numericText(value: Double(shown)))
+                    .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: value)
+                    .animation(revealAnimation(index: index), value: isRevealed)
+                Text(target)
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if goalMet && isRevealed {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(AppFont.scaled(11, weight: .bold))
+                        .foregroundStyle(AppColor.positive)
+                        .transition(.scale.combined(with: .opacity))
+                        .accessibilityLabel("Goal reached")
                 }
-                .appAnimation(AppAnimation.springSnappy, value: goalMet)
-                if overBy > 0 && targets.calories > 0 {
-                    Text("+\(overBy) over")
-                        .font(AppFont.scaled(11, weight: .semibold))
-                        .foregroundStyle(color)
-                        .monospacedDigit()
-                } else if let remaining, remaining > 0 {
-                    Text("\(remaining) kcal left")
-                        .font(AppFont.scaled(11, weight: .semibold))
-                        .foregroundStyle(AppColor.textSecondary)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                }
-                if let progress {
-                    GlassProgressBar(progress: progress, height: 4, gradient: [color])
-                        .padding(.top, Spacing.xxs)
-                        .accessibilityHidden(true)
-                }
+            }
+            .appAnimation(AppAnimation.springSnappy, value: goalMet)
+            if overBy > 0 && targets.calories > 0 {
+                Text("+\(overBy) over")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(color)
+                    .monospacedDigit()
+            } else if let remaining, remaining > 0 {
+                Text("\(remaining) kcal left")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            }
+            if let progress {
+                GlassProgressBar(progress: progress, height: 4, gradient: [color])
+                    .padding(.top, Spacing.xxs)
+                    .accessibilityHidden(true)
             }
         }
         .accessibilityElement(children: .combine)
@@ -345,14 +367,17 @@ struct MacroSummaryRow: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .foregroundStyle(AppColor.macroWaterLight)
+            .foregroundStyle(AppColor.macroWaterInk)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
+            // ScalePressStyle owns the press; interactive glass would run a
+            // second, competing scale on iOS 26.
             .glassControl(
                 .capsule,
                 tint: AppColor.macroWater.opacity(0.18),
-                border: AppColor.macroWater.opacity(0.32)
+                border: AppColor.macroWater.opacity(0.32),
+                interactive: false
             )
             .minimumHitArea()
         }
@@ -371,7 +396,8 @@ struct MacroSummaryRow: View {
                 .glassControl(
                     .capsule,
                     tint: AppColor.surfaceElevated.opacity(0.3),
-                    border: AppColor.glassBorder
+                    border: AppColor.glassBorder,
+                    interactive: false
                 )
                 .minimumHitArea()
         }
@@ -381,7 +407,14 @@ struct MacroSummaryRow: View {
 
     private var accessibilitySummary: String {
         let water = LifestyleDataLogic.displayedWater(consumed, unit: unit)
-        let waterTarget = unit.volumeValue(Double(Self.waterTargetOz))
+        let waterTarget = waterTargetDisplay
+        // No targets yet: read the intake alone rather than "of 0".
+        guard targets.calories > 0 else {
+            return String(
+                localized: "Calories \(consumed.caloriesKcal). Protein \(consumed.proteinG) grams. Water \(water) of \(waterTarget) \(unit.volumeSpokenUnit).",
+                comment: "VoiceOver summary of the day's calories, protein and water when no nutrition targets are set."
+            )
+        }
         return String(
             localized: "Calories \(consumed.caloriesKcal) of \(targets.calories). Protein \(consumed.proteinG) of \(targets.proteinG) grams. Water \(water) of \(waterTarget) \(unit.volumeSpokenUnit).",
             comment: "VoiceOver summary of the day's calories, protein and water against targets."

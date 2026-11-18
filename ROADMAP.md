@@ -80,7 +80,7 @@ CI/CD to TestFlight via Fastlane.
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
 | 2.2 | **Date scrubber** | Shipped | Today's day switcher browses earlier days read-only, with `PastDayBanner` as the one-tap way back |
-| 2.3 | **Edit Home customization** | Shipped | "Customize Today" opens `EditTodaySheet`: section visibility toggles with drag-to-reorder |
+| 2.3 | **Edit Home customization** | Shipped | "Edit Today" opens `EditTodaySheet`: section visibility toggles with drag-to-reorder |
 | 2.4 | **MetricRing consolidation** | 1 day | Migrate `GlassProgressRing` and `SegmentedCalorieRing` to the unified `MetricRing` primitive; port the celebration-at-100% animation in once, not twice |
 | 2.5 | **Hero detail sheets** | 1 day | Tap any of the trio's rings → expanded sheet (HRV trend, sleep stages, today's dose timeline) |
 

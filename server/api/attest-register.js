@@ -32,7 +32,7 @@ import { randomBytes } from 'node:crypto';
 import { clientKey } from './_lib/anthropic-proxy.js';
 import { storeAttestKey, verifyAttestation } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
-import { allowRate, principalLimit } from './_lib/rate-limit.js';
+import { allowRate, intEnv, principalLimit } from './_lib/rate-limit.js';
 import { redisConfigured, redisPipeline } from './_lib/redis.js';
 
 const CHALLENGE_TTL_SECONDS = 300;
@@ -41,8 +41,8 @@ const challengeSlot = (id) => `attest:challenge:${id}`;
 
 function checkRateLimit(req) {
   const [name, limit] = req.method === 'GET'
-    ? ['attest-challenge', parseInt(process.env.ATTEST_CHALLENGE_RPM || '60', 10)]
-    : ['attest-register', parseInt(process.env.ATTEST_RPM || '30', 10)];
+    ? ['attest-challenge', intEnv('ATTEST_CHALLENGE_RPM', 60)]
+    : ['attest-register', intEnv('ATTEST_RPM', 30)];
   return allowRate({ name, key: clientKey(req), limit, windowSeconds: 60 });
 }
 
@@ -50,7 +50,7 @@ function checkRateLimit(req) {
 // never use up an address's allowance.
 function withinDailyRegistrations(req) {
   const ip = clientKey(req);
-  const limit = parseInt(process.env.ATTEST_REGISTRATIONS_PER_DAY || '10', 10);
+  const limit = intEnv('ATTEST_REGISTRATIONS_PER_DAY', 10);
   return allowRate({
     name: 'attest-register-day',
     key: ip,

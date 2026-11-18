@@ -20,6 +20,17 @@ struct BodyMeasurementEntrySheet: View {
     private var isBloodPressure: Bool { biomarker == .bloodPressure }
 
     var body: some View {
+        // Scrolls and grows to full height, so Save stays reachable under
+        // the keyboard at large text sizes or with the Health warning.
+        ScrollView {
+            content
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .onAppear { isFieldFocused = true }
+        .liquidGlassPresentation(detents: [.medium, .large])
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(biomarker.displayName)
@@ -55,8 +66,6 @@ struct BodyMeasurementEntrySheet: View {
             .disabled(!canSave || isSaving)
         }
         .padding(Spacing.screenPadding)
-        .onAppear { isFieldFocused = true }
-        .liquidGlassPresentation(detents: [.medium])
     }
 
     @ViewBuilder

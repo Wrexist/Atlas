@@ -107,8 +107,12 @@ struct ReconstitutionCalculator: View {
                     .contentTransition(.numericText())
                     .fixedSize()
             }
+            // The slider carries the name and value below.
+            .accessibilityHidden(true)
             Slider(value: bind, in: range, step: step)
                 .tint(AppColor.accentPrimary)
+                .accessibilityLabel(Text(label))
+                .accessibilityValue(Text(verbatim: "\(formatted(value)) \(unit)"))
                 // Through Haptics so the in-app haptics switch applies.
                 .onChange(of: value) { _, _ in Haptics.selection() }
             HStack(spacing: Spacing.xs) {
@@ -119,7 +123,7 @@ struct ReconstitutionCalculator: View {
                     } label: {
                         Text(verbatim: formatted(pick))
                             .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.accentInkOnWash)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, Spacing.xs)
                             .background {
@@ -162,6 +166,12 @@ struct ReconstitutionCalculator: View {
                 Text("mcg")
                     .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
+            }
+            if ReconstitutionEngine.hasAmbiguousSeparator(amountText) {
+                Text("Check the number. Write it without thousands separators, for example 1000 or 12.5.")
+                    .font(AppFont.scaled(11, weight: .medium))
+                    .foregroundStyle(AppColor.warning)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Text("A unit-conversion calculator for educational use. It doesn't recommend an amount. Follow your clinician's instructions.")
                 .font(AppFont.scaled(11))
@@ -219,10 +229,7 @@ struct ReconstitutionCalculator: View {
     /// Rounded for display, but the math stays precise underneath so a
     /// 12.6 result reads honestly as "≈ 13" rather than silently "13".
     private var unitsHeadline: String {
-        guard let units = unitsOnSyringe, let rounded = ReconstitutionEngine.roundedUnits(units) else {
-            return "—"
-        }
-        return ReconstitutionEngine.hasFractionalUnits(units) ? "≈ \(rounded)" : "\(rounded)"
+        unitsOnSyringe.flatMap { ReconstitutionEngine.unitsLabel($0) } ?? "—"
     }
 
     private var concentrationFootnote: some View {
@@ -373,8 +380,9 @@ struct SyringeDiagram: View {
                 comment: "VoiceOver readout for the reconstitution calculator's syringe diagram when the result exceeds one syringe."
             )
         }
+        let shown = ReconstitutionEngine.unitsLabel(unitsToFill, approximate: false) ?? "\(units)"
         return String(
-            localized: "Syringe diagram. Equivalent volume: \(units) units on a 100-unit syringe.",
+            localized: "Syringe diagram. Equivalent volume: \(shown) units on a 100-unit syringe.",
             comment: "VoiceOver readout for the reconstitution calculator's syringe diagram."
         )
     }

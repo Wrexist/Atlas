@@ -215,6 +215,22 @@ final class MigrationServiceTests: XCTestCase {
                        "Archives must not accumulate past the retention window")
     }
 
+    func test_archiveLegacyFiles_longUntouchedFile_survivesNextCleanup() throws {
+        persistence.saveProtocols(MockProtocols.all)
+        let documents = try XCTUnwrap(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first)
+        let legacy = documents.appendingPathComponent("protocols.json")
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date().addingTimeInterval(-200 * 86_400)],
+            ofItemAtPath: legacy.path
+        )
+
+        persistence.archiveLegacyFiles()
+        persistence.cleanUpExpiredArchivedLegacyFiles()
+
+        XCTAssertTrue(persistence.hasArchivedLegacyFiles,
+                      "Retention must count from the archive date, not the old build's last write")
+    }
+
     func test_clearAll_removesArchivedLegacyFiles() {
         persistence.saveProtocols(MockProtocols.all)
         migration.migrateIfNeeded()

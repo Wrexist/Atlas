@@ -31,9 +31,12 @@ enum NutritionCoachEngine {
         calendar: Calendar = .current
     ) -> Summary {
         let today = calendar.startOfDay(for: now)
-        let window = (0..<days).compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }
+        // The `days` complete days before today. Today's log is still
+        // partial, so a lunchtime breakfast would read as a full day and
+        // pull the averages down (as AdaptiveTDEEEngine also avoids).
+        let window = (0..<max(days, 0)).compactMap { calendar.date(byAdding: .day, value: -($0 + 1), to: today) }
         let logged = window
-            .map { LifestyleDataLogic.consumption(in: profile, for: $0) }
+            .map { LifestyleDataLogic.consumption(in: profile, for: $0, calendar: calendar) }
             .filter { $0.caloriesKcal > 0 }
 
         func average(_ value: (DailyConsumption) -> Int) -> Int? {

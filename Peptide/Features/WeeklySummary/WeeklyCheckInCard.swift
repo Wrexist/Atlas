@@ -253,6 +253,10 @@ struct WeeklyCheckInCard: View {
             String(localized: "You're losing fast: add \(kcal) kcal a day to protect muscle")
         case .gainingFast(let kcal):
             String(localized: "You're gaining fast: cut \(kcal) kcal a day")
+        case .gainingOnCut(let kcal):
+            String(localized: "Weight went up this week: cut \(kcal) kcal a day")
+        case .losingOnBulk(let kcal):
+            String(localized: "Weight went down this week: add \(kcal) kcal a day")
         case .prioritizeProtein:
             String(localized: "Get protein into every meal to reach your target")
         case .planWorkouts(let goal):
@@ -268,7 +272,8 @@ struct WeeklyCheckInCard: View {
 
     private var suggestionSymbol: String {
         switch checkIn.suggestion {
-        case .hitCalorieTarget, .weightStalledEatLess, .weightStalledEatMore, .losingFast, .gainingFast:
+        case .hitCalorieTarget, .weightStalledEatLess, .weightStalledEatMore, .losingFast, .gainingFast,
+             .gainingOnCut, .losingOnBulk:
             "dial.medium.fill"
         case .prioritizeProtein: "fork.knife"
         case .planWorkouts: "calendar.badge.plus"

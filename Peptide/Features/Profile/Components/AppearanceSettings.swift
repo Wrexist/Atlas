@@ -162,14 +162,15 @@ private struct ThemePickerRow: View {
                         .padding(-3)
                 )
                 .overlay(
+                    // The swatch is the theme's ink stop, bright in dark
+                    // mode, so the check takes the scheme's inverse ink.
                     Image(systemName: "checkmark")
                         .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.onAccent)
+                        .foregroundStyle(AppColor.inverseInk)
                         .opacity(isSelected ? 1 : 0)
                 )
                 .minimumHitArea()
                 .accessibilityLabel(theme.displayName)
-                .accessibilityValue(isSelected ? Text("Selected") : Text(verbatim: ""))
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
         .buttonStyle(.plain)
@@ -240,6 +241,5 @@ struct SettingsPickerRow<Control: View>: View {
             .padding(Spacing.screenPadding)
     }
     .environment(DataStore(seedSampleData: true))
-    .environment(LocalizationManager.shared)
     .preferredColorScheme(.dark)
 }

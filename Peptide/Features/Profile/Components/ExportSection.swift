@@ -161,6 +161,7 @@ struct ExportSection: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 18)
+                    .accessibilityHidden(true)
                 Text(title)
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
@@ -168,6 +169,7 @@ struct ExportSection: View {
                 Image(systemName: "square.and.arrow.up")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
+                    .accessibilityHidden(true)
             }
             .padding(.vertical, Spacing.sm)
             .padding(.horizontal, Spacing.sm)
@@ -222,6 +224,7 @@ struct ExportSection: View {
         let customExercises = dataStore.customExercisesForBackup()
         let personalRecords = dataStore.personalRecordsForBackup()
         let customPeptides = dataStore.customPeptides
+        let fasts = SwiftDataRepository.shared.loadFasts()
         isPreparingBackup = true
         Task {
             let data = await Task.detached(priority: .userInitiated) {
@@ -233,7 +236,8 @@ struct ExportSection: View {
                     routines: routines,
                     customExercises: customExercises,
                     personalRecords: personalRecords,
-                    customPeptides: customPeptides
+                    customPeptides: customPeptides,
+                    fasts: fasts
                 )
             }.value
             isPreparingBackup = false

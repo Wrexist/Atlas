@@ -623,11 +623,19 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
             app.dismissOverlaysIfNeeded()
 
-            let checkIn = app.buttons.matching(NSPredicate(
-                format: "label BEGINSWITH 'Daily check-in' OR label BEGINSWITH \"Today's check-in\""
-            )).firstMatch
+            // By identifier, and tapped only once the scroll has come to
+            // rest mid-screen: the card sits right under "Today's doses",
+            // so a tap while a swipe is still coasting lands on a dose row
+            // and opens "Log dose" instead.
+            let checkIn = app.buttons["daily-check-in-card"].firstMatch
             if findByScrolling(checkIn) {
+                let midline = app.windows.firstMatch.frame.midY
+                drag(by: midline - checkIn.frame.midY)
                 checkIn.tap()
+                let sheetTitle = app.navigationBars.matching(NSPredicate(
+                    format: "identifier == 'Edit check-in' OR identifier == 'How are you feeling?'"
+                )).firstMatch
+                XCTAssertTrue(sheetTitle.waitForExistence(timeout: 5))
                 capture(named: "sym-\(appearance)-01-checkin")
                 closeSheet("Cancel")
             }
@@ -816,12 +824,9 @@ final class ScreenshotTests: XCTestCase {
             if !train.isSelected { train.tap() }
             XCTAssertTrue(train.isSelected)
             discardLeftoverWorkout()
-            let period = app.otherElements["training-map-period"]
-            XCTAssertTrue(period.waitForExistence(timeout: 10))
-            period.buttons["Today"].tap()
-            capture(named: "body-\(appearance)-01-today")
-            period.buttons["30 days"].tap()
-            capture(named: "body-\(appearance)-02-month")
+            // Demo data seeds no finished Atlas session, so the period
+            // control is hidden until this run finishes one below.
+            capture(named: "body-\(appearance)-00-before-workout")
             let start = app.buttons["Empty workout"]
             reveal(start)
             start.tap()
@@ -883,6 +888,12 @@ final class ScreenshotTests: XCTestCase {
             capture(named: "body-\(appearance)-05-completed")
             summaryDone.tap()
             app.dismissOverlaysIfNeeded()
+            let period = app.otherElements["training-map-period"]
+            reveal(period)
+            period.buttons["Today"].tap()
+            capture(named: "body-\(appearance)-01-today")
+            period.buttons["30 days"].tap()
+            capture(named: "body-\(appearance)-02-month")
             scrollToTop()
             capture(named: "body-\(appearance)-06-training-history")
             app.terminate()

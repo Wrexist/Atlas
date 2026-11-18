@@ -49,7 +49,7 @@ struct DoseWindowLiveActivity: Widget {
         return DynamicIsland {
             DynamicIslandExpandedRegion(.leading) {
                 IslandLeadingBadge(
-                    tint: tint,
+                    tint: statusAccent(for: context.state, tint: tint),
                     state: context.state
                 )
             }
@@ -81,7 +81,7 @@ struct DoseWindowLiveActivity: Widget {
                 IslandBottomBar(
                     entryId: context.attributes.entryId,
                     state: context.state,
-                    tint: tint
+                    tint: statusAccent(for: context.state, tint: tint)
                 )
             }
         } compactLeading: {
@@ -503,6 +503,7 @@ private struct MinimalGlyph: View {
 private struct IslandLeadingBadge: View {
     let tint: Color
     let state: DoseWindowAttributes.ContentState
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -517,7 +518,7 @@ private struct IslandLeadingBadge: View {
                 .shadow(color: tint.opacity(0.55), radius: 6, y: 2)
             Image(systemName: statusGlyph(for: state))
                 .font(.system(size: 18, weight: .heavy))
-                .foregroundStyle(.white)
+                .foregroundStyle(labelColor(on: tint, in: colorScheme))
         }
         .frame(width: 38, height: 38)
     }

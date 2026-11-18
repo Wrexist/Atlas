@@ -143,14 +143,6 @@ struct WidgetData: Codable, Equatable, Sendable {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
     }
 
-    /// Fraction of the day's calorie target consumed. Clamped at 1.0
-    /// so the widget ring never overdraws past full when the user
-    /// exceeds their target.
-    var calorieProgress: Double {
-        guard calorieTarget > 0 else { return 0 }
-        return min(1.0, Double(caloriesToday) / Double(calorieTarget))
-    }
-
     /// True while a workout is in progress — the training widget swaps
     /// to a live elapsed-time layout.
     var workoutInProgress: Bool { activeWorkoutStartedAt != nil }
@@ -234,6 +226,42 @@ struct WidgetData: Codable, Equatable, Sendable {
         return restamped == self
     }
 
+    /// True when writing this payload over `previous` would change
+    /// nothing a widget shows: same content, stamped the same day. A
+    /// new day must still write, or `isProtocolOutdated(at:)` keeps
+    /// asking the user to open Atlas after they have — two rest days
+    /// in a row build identical content.
+    func isRedundant(after previous: WidgetData, calendar: Calendar = .current) -> Bool {
+        hasSameContent(as: previous) && calendar.isDate(lastUpdated, inSameDayAs: previous.lastUpdated)
+    }
+
+    /// How long past its time an unlogged dose waits before the widgets
+    /// call it overdue: the dose Live Activity's "Take now" window
+    /// (`DoseWindowAttributes.ContentState.dueNowToleranceMinutes`), so
+    /// the two surfaces flip together.
+    static let overdueGrace: TimeInterval = 5 * 60
+
+    /// When an unlogged dose due at `due` turns overdue.
+    static func overdueAt(_ due: Date) -> Date { due.addingTimeInterval(overdueGrace) }
+
+    static func isOverdue(_ due: Date, at now: Date) -> Bool { now >= overdueAt(due) }
+
+    /// "today", "yesterday", "3 days ago": whole calendar days from
+    /// `day` to `now`. Measured against the timeline entry's date, not
+    /// the render clock, so a pre-built midnight entry rolls "12 hours
+    /// ago" over to "yesterday".
+    static func relativeDay(
+        _ day: Date, from now: Date, calendar: Calendar = .current, locale: Locale = .current
+    ) -> String {
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: day), to: calendar.startOfDay(for: now)).day ?? 0
+        let formatter = RelativeDateTimeFormatter()
+        formatter.calendar = calendar
+        formatter.locale = locale
+        formatter.dateTimeStyle = .named
+        formatter.unitsStyle = .full
+        return formatter.localizedString(from: DateComponents(day: -max(0, days)))
+    }
+
     /// Weight-unit suffix, mirroring `MeasurementUnit.weightSuffix`.
     /// Deliberately unlocalised: "kg" and "lb" are the symbols in every
     /// locale Atlas ships.
@@ -243,15 +271,6 @@ struct WidgetData: Codable, Equatable, Sendable {
     func volumeInUserUnit(_ kilograms: Double) -> Double {
         measurementUnit == "imperial" ? kilograms * 2.20462 : kilograms
     }
-
-    static let empty = WidgetData(
-        nextPeptideName: "",
-        nextDose: "",
-        nextDoseTime: nil,
-        completedToday: 0,
-        totalToday: 0,
-        lastUpdated: .distantPast
-    )
 
     // MARK: - Codable (backwards-compatible: every nutrition and
     // training field is optional so older payloads — written before

@@ -17,7 +17,7 @@ struct FridgeView: View {
     @State private var editor: EditorTarget?
     @State private var showScan = false
     @State private var shelfFloating = false
-    @State private var toast: LocalizedStringKey?
+    @State private var toast: LocalizedStringResource?
     @State private var toastTask: Task<Void, Never>?
 
     private var calendar: Calendar { .current }
@@ -82,8 +82,7 @@ struct FridgeView: View {
         EmptyStateView(
             icon: "refrigerator",
             title: "Your fridge, kept track of",
-            message: "Scan the fridge or your shopping and Atlas keeps an eye on use-by dates and cooks from what you have.",
-            action: .init(title: "Scan the fridge", icon: "camera.viewfinder") { showScan = true }
+            message: "Scan the fridge or your shopping and Atlas keeps an eye on use-by dates and cooks from what you have."
         )
     }
 
@@ -97,7 +96,9 @@ struct FridgeView: View {
 
     private func summary(_ items: [FridgeItem], now: Date) -> some View {
         let total = items.reduce(0) { $0 + $1.count }
-        let soon = items.filter { FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar).needsUse }.count
+        let soon = items
+            .filter { FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar).needsUse }
+            .reduce(0) { $0 + $1.count }
         return HStack(spacing: Spacing.sm) {
             StatChip(icon: "basket.fill", text: Self.itemCount(total), tint: AppColor.accentLight)
             if soon > 0 {
@@ -241,7 +242,15 @@ struct FridgeView: View {
 
     @ViewBuilder
     private func sections(_ items: [FridgeItem], products: [UUID: FridgeProduct], now: Date) -> some View {
-        let soon = items.filter { FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar).needsUse }
+        let needsUse = items.filter { FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar).needsUse }
+        let expired = needsUse.filter {
+            if case .expired = FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar) { return true }
+            return false
+        }
+        let soon = needsUse.filter { item in !expired.contains { $0.id == item.id } }
+        if !expired.isEmpty {
+            itemSection(eyebrow: "Past use-by", title: "Check or throw out", items: expired, products: products, now: now)
+        }
         if !soon.isEmpty {
             itemSection(eyebrow: "Use soon", title: "About to go off", items: soon, products: products, now: now)
         }
@@ -358,10 +367,13 @@ struct FridgeView: View {
 
     /// Back in, with a use-by date from how long it kept last time.
     private func quickAdd(_ product: FridgeProduct) {
-        let days = product.shelfDays ?? FridgeEngine.defaultShelfDays(place: product.place, pantryKey: product.pantryKey)
+        let days = product.shelfLife(in: product.place)
+            ?? FridgeEngine.defaultShelfDays(place: product.place, pantryKey: product.pantryKey)
+        let expiresOn = FridgeEngine.expiry(from: .now, shelfDays: days, calendar: calendar)
         AppAnimation.with(AppAnimation.springSnappy) {
-            store.add(product, expiresOn: FridgeEngine.expiry(from: .now, shelfDays: days, calendar: calendar))
+            store.add(product, expiresOn: expiresOn)
         }
+        if expiresOn != nil { Task { await store.askForRemindersIfNeeded() } }
         Haptics.success()
         show("\(product.name) put in")
     }
@@ -381,7 +393,7 @@ struct FridgeView: View {
         Haptics.impact(.light)
     }
 
-    private static func putInMessage(_ count: Int) -> LocalizedStringKey {
+    private static func putInMessage(_ count: Int) -> LocalizedStringResource {
         if count == 1 { return "1 item put in" }
         return "\(count) items put in"
     }
@@ -391,8 +403,11 @@ struct FridgeView: View {
         return "\(count) items"
     }
 
-    private func show(_ message: LocalizedStringKey) {
+    /// A resource rather than a key so the same words reach VoiceOver:
+    /// the toast appears at the foot of the screen, away from focus.
+    private func show(_ message: LocalizedStringResource) {
         AppAnimation.with(AppAnimation.toast) { toast = message }
+        AccessibilityNotification.Announcement(String(localized: message)).post()
         toastTask?.cancel()
         toastTask = Task {
             try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
@@ -404,7 +419,11 @@ struct FridgeView: View {
     @ViewBuilder
     private var toastView: some View {
         if let toast {
-            Label(toast, systemImage: "checkmark.circle.fill")
+            Label {
+                Text(toast)
+            } icon: {
+                Image(systemName: "checkmark.circle.fill")
+            }
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.positive)
                 .padding(.horizontal, Spacing.xl)

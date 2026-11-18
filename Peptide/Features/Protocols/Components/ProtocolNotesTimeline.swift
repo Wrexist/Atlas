@@ -122,7 +122,7 @@ struct ProtocolNotesTimeline: View {
                 Text("Add note")
                     .font(AppFont.chipText)
             }
-            .foregroundStyle(AppColor.accentLight)
+            .foregroundStyle(AppColor.accentInkOnWash)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.xs + Spacing.xxs)
             .background {
@@ -279,7 +279,7 @@ struct ProtocolNoteEditorSheet: View {
                 }
 
                 Section("When") {
-                    DatePicker("Date", selection: $date, displayedComponents: [.date, .hourAndMinute])
+                    DatePicker("Date", selection: $date, in: ...Date(), displayedComponents: [.date, .hourAndMinute])
                 }
 
                 Section {

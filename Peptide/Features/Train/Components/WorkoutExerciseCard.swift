@@ -20,6 +20,9 @@ struct WorkoutExerciseCard: View {
     let supersetLetter: String?
     /// False for the last exercise, or when it's already in the superset below.
     let canSupersetWithNext: Bool
+    /// While paused only checking sets off is held; values stay editable,
+    /// as on the focus screen.
+    let isPaused: Bool
     /// The live copy of a set, so a row's writes never start from the
     /// render-time snapshot (see `WorkoutSessionService.currentSet`).
     let currentSet: (UUID) -> SetEntry?
@@ -178,8 +181,10 @@ struct WorkoutExerciseCard: View {
                         set: { onSetUpdate($0) }
                     ),
                     previousSet: hints[setSnapshot.id],
+                    displayNumber: entry.workingNumber(of: setSnapshot),
                     unit: unit,
-                    onDelete: { onRemoveSet(setSnapshot.id) }
+                    onDelete: { onRemoveSet(setSnapshot.id) },
+                    isPaused: isPaused
                 )
                 if setSnapshot.id != entry.sets.last?.id {
                     Divider()

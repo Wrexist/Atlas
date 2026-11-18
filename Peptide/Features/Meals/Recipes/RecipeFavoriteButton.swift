@@ -9,6 +9,8 @@ struct RecipeFavoriteButton: View {
     @Environment(DataStore.self) private var dataStore
 
     private var isFavorite: Bool { dataStore.isFavoriteRecipe(id: recipe.id) }
+    /// Grows with the heart, which follows Dynamic Type.
+    private var disc: CGFloat { AppFont.scaledValue(diameter) }
 
     var body: some View {
         Button {
@@ -19,7 +21,7 @@ struct RecipeFavoriteButton: View {
                 .foregroundStyle(isFavorite ? AppColor.metricHeartRate : AppColor.textPrimary)
                 .contentTransition(.symbolEffect(.replace))
                 .symbolEffect(.bounce, value: isFavorite)
-                .frame(width: diameter, height: diameter)
+                .frame(width: disc, height: disc)
                 .glassControl(.circle)
                 .minimumHitArea()
         }

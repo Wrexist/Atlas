@@ -9,7 +9,10 @@ struct ImportedCardioWorkout: Identifiable, Hashable, Sendable {
     let id: UUID
     let activity: CardioActivity
     let start: Date
-    /// Seconds.
+    /// Health's end date. Not `start + duration`: a paused workout's
+    /// duration leaves out the pause, so that would end it too early.
+    let end: Date
+    /// Seconds of activity, pauses excluded.
     let duration: TimeInterval
     let distanceMeters: Double?
     let activeKilocalories: Double?
@@ -18,8 +21,6 @@ struct ImportedCardioWorkout: Identifiable, Hashable, Sendable {
     /// The app or device that recorded it ("Strava", "Apple Watch").
     let sourceName: String
 
-    var end: Date { start.addingTimeInterval(duration) }
-
     /// The same workout shown as `activity` — the type the user picked
     /// when Health's own type was wrong or too vague.
     func categorized(as activity: CardioActivity) -> ImportedCardioWorkout {
@@ -27,6 +28,7 @@ struct ImportedCardioWorkout: Identifiable, Hashable, Sendable {
             id: id,
             activity: activity,
             start: start,
+            end: end,
             duration: duration,
             distanceMeters: distanceMeters,
             activeKilocalories: activeKilocalories,

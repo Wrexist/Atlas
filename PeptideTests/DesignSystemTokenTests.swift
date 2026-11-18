@@ -25,6 +25,20 @@ final class DesignSystemTokenTests: XCTestCase {
         XCTAssertEqual(Spacing.minimumHitTarget, 44)
     }
 
+    // MARK: - RingGeometry
+
+    /// A 12pt round cap on a 132pt ring covers 6pt of a 414.7pt centre
+    /// line: about 5.2 degrees the gradient has to start behind 0°.
+    func test_capDegrees_halfStrokeAlongCentreLine_matchesArcAngle() {
+        let degrees = RingGeometry.capDegrees(strokeWidth: 12, diameter: 132)
+        XCTAssertEqual(degrees, 6 / (Double.pi * 132) * 360, accuracy: 0.0001)
+        XCTAssertEqual(degrees, 5.21, accuracy: 0.01)
+    }
+
+    func test_capDegrees_zeroDiameter_isZeroInsteadOfInfinite() {
+        XCTAssertEqual(RingGeometry.capDegrees(strokeWidth: 12, diameter: 0), 0)
+    }
+
     // MARK: - Progress clamping
 
     /// A 0/0 score must draw an empty ring, not a full one — `min(1, .nan)`

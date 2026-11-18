@@ -225,11 +225,14 @@ private struct OutcomeLevelRow: View {
 
     private var label: some View {
         HStack(spacing: Spacing.md) {
+            // Neutral medallion, accent bars: one hue for the whole sheet.
+            // The five dimension colours belong where series must be told
+            // apart, like the correlation chart.
             Image(systemName: dimension.icon)
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(dimension.tint)
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
                 .frame(width: AppFont.scaledValue(34), height: AppFont.scaledValue(34))
-                .background(dimension.tint.opacity(0.18), in: Circle())
+                .background(AppColor.surfaceSecondary, in: Circle())
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(dimension.displayName)
                     .font(AppFont.headline)
@@ -238,7 +241,7 @@ private struct OutcomeLevelRow: View {
                     .minimumScaleFactor(0.75)
                 Text(Self.word(for: value))
                     .font(AppFont.footnote)
-                    .foregroundStyle(dimension.tint)
+                    .foregroundStyle(AppColor.textSecondary)
                     .contentTransition(.interpolate)
             }
         }
@@ -248,7 +251,7 @@ private struct OutcomeLevelRow: View {
         HStack(alignment: .bottom, spacing: Self.barGap) {
             ForEach(Self.range, id: \.self) { rating in
                 RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
-                    .fill(rating <= value ? dimension.tint : AppColor.track)
+                    .fill(rating <= value ? AppColor.accentPrimary : AppColor.track)
                     .frame(width: barWidth, height: barWidth * 0.5 + barStep * CGFloat(rating))
             }
         }

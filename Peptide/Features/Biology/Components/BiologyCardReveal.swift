@@ -31,12 +31,10 @@ struct BiologySectionHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
-            HStack(spacing: Spacing.sm) {
-                AccentMarker()
-                Text(title)
-                    .font(AppFont.sectionTitle)
-                    .foregroundStyle(AppColor.textPrimary)
-            }
+            // A plain title, as Today's sections set theirs.
+            Text(title)
+                .font(AppFont.sectionTitle)
+                .foregroundStyle(AppColor.textPrimary)
             if let subtitle {
                 Text(subtitle)
                     .font(AppFont.subheadline)

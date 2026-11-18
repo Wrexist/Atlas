@@ -99,20 +99,21 @@ struct LabScanReviewView: View {
         let current = row.wrappedValue
         let value = parsedValue(for: current)
         let canInclude = current.panel != nil && value != nil
+        let included = current.isIncluded && canInclude
         return VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                 Button {
                     Haptics.selection()
                     row.wrappedValue.isIncluded.toggle()
                 } label: {
-                    Image(systemName: current.isIncluded && canInclude ? "checkmark.circle.fill" : "circle")
+                    Image(systemName: included ? "checkmark.circle.fill" : "circle")
                         .font(AppFont.scaled(20))
-                        .foregroundStyle(current.isIncluded && canInclude ? AppColor.accentPrimary : AppColor.textTertiary)
+                        .foregroundStyle(included ? AppColor.accentPrimary : AppColor.textTertiary)
                 }
                 .buttonStyle(.plain)
                 .minimumHitArea()
                 .disabled(!canInclude)
-                .accessibilityLabel(current.isIncluded ? "Included" : "Skipped")
+                .accessibilityLabel(included ? "Included" : "Skipped")
                 .accessibilityHint("Toggles whether this result is saved.")
 
                 printed(current.marker)
@@ -172,7 +173,7 @@ struct LabScanReviewView: View {
     }
 
     private func printedValue(_ marker: LabReportEngine.Marker) -> String {
-        let value = marker.value.map { "\(LabValueFormat.string($0)) \(marker.unit)" }
+        let value = marker.value.map { "\(marker.valueQualifier ?? "")\(LabValueFormat.string($0)) \(marker.unit)" }
             ?? String(localized: "No numeric value")
         guard let range = marker.referenceText?.nilIfEmpty else {
             return String(localized: "Report: \(value)")
@@ -200,7 +201,7 @@ struct LabScanReviewView: View {
                 let converted = panel.flatMap { LabReportEngine.convertedValue(row.wrappedValue.marker, to: $0) }
                 row.wrappedValue.panel = panel
                 row.wrappedValue.value = converted
-                row.wrappedValue.isIncluded = converted != nil
+                row.wrappedValue.isIncluded = LabReportEngine.startsIncluded(row.wrappedValue.marker, convertedValue: converted)
                 valueTexts[row.wrappedValue.id] = converted.map(LabValueFormat.string) ?? ""
             }
         )

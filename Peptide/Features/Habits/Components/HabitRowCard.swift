@@ -8,9 +8,12 @@ struct HabitRowCard: View {
     let habit: Habit
     let summary: HabitsService.Summary
     let onToggleToday: () -> Void
+    /// Takes one off a countable habit's count for today.
+    let onRemoveOne: () -> Void
     let onTap: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var completionTrigger = 0
 
     private static let todayButtonSize: CGFloat = 28
@@ -48,6 +51,11 @@ struct HabitRowCard: View {
         .accessibilityAction(named: summary.isCompletedToday ? Text("Mark incomplete") : Text("Mark complete")) {
             onToggleToday()
         }
+        .accessibilityActions {
+            if canRemoveOne {
+                Button("Remove one", action: onRemoveOne)
+            }
+        }
         .onChange(of: summary.isCompletedToday) { _, completed in
             guard completed else { return }
             completionTrigger &+= 1
@@ -81,6 +89,13 @@ struct HabitRowCard: View {
                 .frame(width: Self.todayButtonSize, height: Self.todayButtonSize)
                 .anchorPreference(key: TodayButtonSlotKey.self, value: .bounds) { $0 }
         }
+    }
+
+    /// A tap past the target resets a countable habit to zero, so an
+    /// over-tap needs its own way back down. The row's context menu
+    /// offers the same action.
+    private var canRemoveOne: Bool {
+        habit.isCountable && summary.todayValue > 0
     }
 
     private var todayStatus: String {
@@ -126,8 +141,10 @@ struct HabitRowCard: View {
                         .fill(habit.tint)
                         .frame(width: 22, height: 22)
                         .transition(.scale.combined(with: .opacity))
+                    // The circles are fixed, so the glyph stops growing at
+                    // xxxLarge instead of spilling over the ring.
                     Image(systemName: "checkmark")
-                        .font(AppFont.scaled(11, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold, in: min(dynamicTypeSize, .xxxLarge)))
                         .foregroundStyle(AppColor.background)
                         .symbolEffect(.bounce, value: summary.isCompletedToday)
                         .transition(.scale.combined(with: .opacity))

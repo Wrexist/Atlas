@@ -32,14 +32,25 @@ struct MuscleHistorySheet: View {
                                             NavigationLink {
                                                 WorkoutSessionDetailView(session: session)
                                             } label: {
-                                                VStack(alignment: .leading, spacing: 4) {
-                                                    Text(session.displayName)
-                                                    Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
-                                                        .font(AppFont.caption2)
-                                                        .foregroundStyle(AppColor.textSecondary)
+                                                HStack {
+                                                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                                                        Text(session.displayName)
+                                                            .foregroundStyle(AppColor.textPrimary)
+                                                        Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
+                                                            .font(AppFont.caption2)
+                                                            .foregroundStyle(AppColor.textSecondary)
+                                                    }
+                                                    Spacer(minLength: Spacing.sm)
+                                                    Image(systemName: "chevron.right")
+                                                        .font(AppFont.scaled(13, weight: .semibold))
+                                                        .foregroundStyle(AppColor.textTertiary)
+                                                        .accessibilityHidden(true)
                                                 }
                                                 .padding(.vertical, Spacing.sm)
+                                                .contentShape(Rectangle())
                                             }
+                                            // A row, not an action: the accent stays on actions.
+                                            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
                                         }
                                     }
                                     .font(AppFont.subheadline)

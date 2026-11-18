@@ -71,7 +71,7 @@ struct LabPanelDetailView: View {
             LabEntryEditor(
                 initial: nil,
                 defaultPanel: panel,
-                carryOver: LabEntryEditor.carryOverEntry(from: dataStore.profile.labHistory, now: Date()),
+                carryOver: LabEntryEditor.carryOverEntry(lastCreated: dataStore.lastCreatedLabValue, now: Date()),
                 sex: userSex,
                 onSave: { value in
                     AppAnimation.with(AppAnimation.springSnappy) { dataStore.saveLabValue(value) }

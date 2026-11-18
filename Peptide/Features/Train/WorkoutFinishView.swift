@@ -180,8 +180,10 @@ struct WorkoutFinishView: View {
                 }
             } else {
                 Text(summary.name).font(AppFont.title).multilineTextAlignment(.center)
-                if let date = summary.session.finishedAt {
-                    Text(date.formatted(date: .complete, time: .shortened))
+                // The day it started, like history and the detail header, so
+                // a workout past midnight reads as one day everywhere.
+                if summary.session.finishedAt != nil {
+                    Text(summary.session.dayAnchor.formatted(date: .complete, time: .shortened))
                         .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                         .multilineTextAlignment(.center)
                 }

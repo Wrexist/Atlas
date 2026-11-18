@@ -200,6 +200,16 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertEqual(UserDefaults.standard.double(forKey: "disclaimerAcknowledgedAt"), 1_800_000_000)
     }
 
+    func test_deleteAllData_clearsAcknowledgedTravelZone() {
+        SwiftDataRepository.shared.configureForTesting()
+        _ = DataStore(seedSampleData: true)
+        UserDefaults.standard.set("Asia/Tokyo", forKey: TravelModeLogic.acknowledgedTimezoneKey)
+
+        auth.deleteAllData()
+
+        XCTAssertNil(UserDefaults.standard.string(forKey: TravelModeLogic.acknowledgedTimezoneKey))
+    }
+
     func test_deleteAllData_resetsAchievements() {
         SwiftDataRepository.shared.configureForTesting()
         _ = DataStore(seedSampleData: true)

@@ -126,6 +126,17 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertEqual(summary.muscles.map(\.displayName), ["Full Body"])
     }
 
+    func test_datasetMuscleNames_readAsCatalogNames_unknownCapitalised() {
+        func name(_ raw: String) -> String {
+            WorkoutRecapEngine.Muscle(name: raw, contributions: []).displayName
+        }
+        XCTAssertEqual(name("quadriceps"), "Quads")
+        XCTAssertEqual(name("middle back"), "Mid back")
+        XCTAssertEqual(name("lower back"), "Lower back")
+        XCTAssertEqual(name("chest"), "Chest")
+        XCTAssertEqual(name("obliques"), "Obliques")
+    }
+
     func test_warmupOnlyUnfinishedAndTimedHaveNoInventedVolume() {
         var session = WorkoutRecapFixture.push()
         for e in session.exercises.indices {
@@ -420,6 +431,15 @@ final class WorkoutCompletionPersistenceTests: XCTestCase {
         try store.saveEdits(edited)
 
         XCTAssertTrue(store.wasEdited)
+    }
+
+    func test_recapSetFormat_assistedPerSideLoad_isOneSentenceInOrder() {
+        let set = SetEntry(index: 1, weightKg: 20, reps: 8, completed: true,
+                           measurement: .init(kind: .assisted, load: .perSide))
+        let label = RecapFormat.set(set, unit: .metric)
+
+        XCTAssertTrue(label.contains("kg assistance per side · recorded side × "), label)
+        XCTAssertFalse(label.contains("  "), "No doubled spaces from joined fragments: \(label)")
     }
 
     func test_recapSetFormat_quarterKiloLoad_keepsBothDecimals() {

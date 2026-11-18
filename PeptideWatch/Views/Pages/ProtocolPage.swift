@@ -65,7 +65,7 @@ struct ProtocolPage: View {
     @ViewBuilder
     private func stats(_ data: WatchData) -> some View {
         let parts = [
-            data.currentStreak.map { String(localized: "\($0)-day streak") },
+            data.currentStreak.flatMap { $0 > 0 ? String(localized: "\($0)-day streak") : nil },
             data.weeklyCompliance.map { String(localized: "\(Int(($0 * 100).rounded()))% this week") },
         ].compactMap { $0 }
         if !parts.isEmpty {

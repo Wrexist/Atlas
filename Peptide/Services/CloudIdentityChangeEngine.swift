@@ -41,4 +41,17 @@ enum CloudIdentityChangeEngine {
         case .signedOut, .switchedAccount: return true
         }
     }
+
+    /// True when the device-local records (recaps, Apple Health
+    /// weigh-ins, scan history) must be erased as the store opens. They
+    /// belong to whoever was signed in, so a sign-out or switch hands
+    /// them on, but while the store is held the user's Keep or Remove
+    /// decides instead.
+    static func forgetsDeviceLocalRecords(_ change: CloudIdentityChange, heldForDecision: Bool) -> Bool {
+        guard !heldForDecision else { return false }
+        switch change {
+        case .unchanged, .signedIn: return false
+        case .signedOut, .switchedAccount: return true
+        }
+    }
 }

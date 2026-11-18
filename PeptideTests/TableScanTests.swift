@@ -142,6 +142,50 @@ final class TableScanTests: XCTestCase {
         XCTAssertEqual(reading.kind, .drink)
     }
 
+    // MARK: - Reviewing a dish
+
+    func test_drinkReading_afterKindPickedByHand_keepsTheUsersKind() {
+        var dish = reviewDish()
+        dish.pickKind(.other)
+        dish.apply(.read(drinkReading()))
+        XCTAssertEqual(dish.kind, .other)
+    }
+
+    func test_drinkReading_withoutAPick_sortsAsDrink() {
+        var dish = reviewDish()
+        dish.apply(.read(drinkReading()))
+        XCTAssertEqual(dish.kind, .drink)
+    }
+
+    func test_notFoodReading_leavesTheDishOut() {
+        var dish = reviewDish()
+        dish.apply(.failure(MealScannerService.ScanError.noFoodDetected))
+        XCTAssertEqual(dish.reading, .notFood)
+        XCTAssertFalse(dish.include)
+        XCTAssertFalse(dish.isTickedButUnread)
+    }
+
+    func test_failure_needingADifferentPhoto_isNotRetryable() {
+        guard case .failed(_, let retryable) = ReviewDish.Reading.failure(MealScannerService.ScanError.declined) else {
+            return XCTFail("expected a failed reading")
+        }
+        XCTAssertFalse(retryable)
+    }
+
+    func test_failure_offline_isRetryable() {
+        guard case .failed(_, let retryable) = ReviewDish.Reading.failure(MealScannerService.ScanError.offline) else {
+            return XCTFail("expected a failed reading")
+        }
+        XCTAssertTrue(retryable)
+    }
+
+    func test_tickedFailedDish_isCountedAsUnreadAndNotKept() {
+        var dish = reviewDish()
+        dish.apply(.failure(MealScannerService.ScanError.offline))
+        XCTAssertTrue(dish.isTickedButUnread)
+        XCTAssertFalse(dish.isKeepable)
+    }
+
     // MARK: - Keeping a table
 
     func test_keep_logsEveryDish_writesStickers_andSurvivesReload() async throws {
@@ -246,6 +290,14 @@ final class TableScanTests: XCTestCase {
             kind: .food,
             sticker: sticker()
         )
+    }
+
+    private func reviewDish() -> ReviewDish {
+        ReviewDish(.init(id: UUID(), sticker: sticker(), frame: CGRect(x: 0, y: 0, width: 0.5, height: 0.5)))
+    }
+
+    private func drinkReading() -> TableDishReader.Reading {
+        TableDishReader.reading(insight: insight(kind: .drink, title: "Iced coffee"), items: [item("iced coffee", calories: 120)])
     }
 
     private func sticker() -> UIImage {

@@ -125,7 +125,7 @@ struct TrackCalendarSection: View {
                 }
             }
             .padding(.horizontal, Spacing.xs)
-            .padding(.vertical, Spacing.xs)
+            .padding(.vertical, Spacing.sm)
         }
     }
 

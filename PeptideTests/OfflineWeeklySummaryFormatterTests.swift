@@ -24,7 +24,7 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
             streak: .init(current: 0, best: 0),
             outcomes: outcomes,
             nutrition: nutrition,
-            biometrics: hrvDelta.map { WeeklyAggregate.Biometrics(hrvAvg: 60, hrvDelta: $0, rhrAvg: nil, sleepHoursAvg: nil) },
+            biometrics: hrvDelta.map { WeeklyAggregate.Biometrics(hrvAvg: 60, hrvDelta: $0) },
             training: training,
             labs: .init(newPanelsLogged: newPanels),
             topInsightCategory: nil
@@ -134,5 +134,10 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
     func test_summary_labPanels_pluralisesPanelWord() {
         XCTAssertTrue(summary(aggregate(newPanels: 1)).contains("Logged 1 new lab panel this week."))
         XCTAssertTrue(summary(aggregate(newPanels: 2)).contains("Logged 2 new lab panels this week."))
+    }
+
+    func test_summary_trainingDays_pluraliseThroughCatalog() {
+        XCTAssertTrue(summary(aggregate(training: .init(sessionDays: 1))).contains("Trained on 1 day this week."))
+        XCTAssertTrue(summary(aggregate(training: .init(sessionDays: 3))).contains("Trained on 3 days this week."))
     }
 }

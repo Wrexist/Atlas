@@ -63,14 +63,6 @@ extension StackRecommendationEngine {
 
     enum Confidence: Comparable {
         case low, medium, high
-
-        var label: String {
-            switch self {
-            case .low: return String(localized: "Exploratory")
-            case .medium: return String(localized: "Suggested")
-            case .high: return "Research-backed"
-            }
-        }
     }
 
     struct Recommendation: Identifiable {

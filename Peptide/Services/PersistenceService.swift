@@ -230,6 +230,9 @@ final class PersistenceService: @unchecked Sendable {
             let archived = url.deletingPathExtension().appendingPathExtension("migrated")
             do {
                 try fileManager.moveItem(at: url, to: archived)
+                // A rename keeps the old build's last-write date; retention
+                // counts from the archive, not from that write.
+                try? fileManager.setAttributes([.modificationDate: Date()], ofItemAtPath: archived.path)
             } catch {
                 AppLog.persistence.error("Failed to archive \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }

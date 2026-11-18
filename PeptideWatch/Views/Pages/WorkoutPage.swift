@@ -25,7 +25,7 @@ struct WorkoutPage: View {
                 VStack(spacing: 10) {
                     WorkoutClockRow(workout: workout, isOnWatch: isOnWatch)
                     stage(at: context.date)
-                    if !(workout.exercises.isEmpty && isOnWatch) {
+                    if !workout.exercises.isEmpty {
                         NavigationLink {
                             WorkoutExerciseList()
                         } label: {
@@ -65,8 +65,8 @@ struct WorkoutPage: View {
         } else if let next = workout.upNext {
             SetLogger(exercise: next.exercise, set: next.set, unit: unit)
                 .id(next.set.id)
-        } else if workout.exercises.isEmpty, isOnWatch {
-            EmptyWorkoutCard()
+        } else if workout.exercises.isEmpty {
+            if isOnWatch { EmptyWorkoutCard() } else { NoExercisesCard() }
         } else {
             AllSetsDoneCard(exercise: workout.selectedExercise)
         }
@@ -197,7 +197,7 @@ private struct SetLogger: View {
     }
 
     private var weightTile: some View {
-        ValueTile(value: unit.format(weightKg), label: unit.symbol, isFocused: focus == .weight)
+        ValueTile(value: unit.format(weightKg), label: unit.caption(for: set.measurement), isFocused: focus == .weight)
             .focusable()
             .focusEffectDisabled()
             .focused($focus, equals: .weight)
@@ -213,7 +213,7 @@ private struct SetLogger: View {
             .onTapGesture { toggleFocus(.weight) }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Weight")
-            .accessibilityValue("\(unit.format(weightKg)) \(unit.symbol)")
+            .accessibilityValue("\(unit.format(weightKg)) \(unit.caption(for: set.measurement))")
             // Snapped to the Crown's grid, so a swipe logs the same load
             // a Crown detent would rather than an off-plate weight.
             .accessibilityAdjustableAction { direction in
@@ -275,6 +275,8 @@ private struct ValueTile: View {
                 .font(.system(.caption2, design: .rounded, weight: .semibold))
                 .tracking(0.6)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 6)
@@ -342,7 +344,7 @@ private struct RestCard: View {
                     Text("Up next · \(upNext.exercise.name)")
                         .lineLimit(1)
                     if upNext.set.logsReps {
-                        Text("\(unit.format(upNext.set.weightKg)) \(unit.symbol) × \(upNext.set.reps)")
+                        Text("\(unit.format(upNext.set.weightKg)) \(unit.caption(for: upNext.set.measurement)) × \(upNext.set.reps)")
                             .monospacedDigit()
                     }
                 }
@@ -414,6 +416,22 @@ private struct AllSetsDoneCard: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
+        }
+        .entrance(0)
+    }
+}
+
+/// A phone workout started with no exercises: nothing is logged yet, so
+/// no checkmark, and exercises are added where the workout lives.
+private struct NoExercisesCard: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 30))
+                .foregroundStyle(WatchPalette.training)
+            Text("Add exercises on your iPhone")
+                .font(.system(.headline, design: .rounded))
+                .multilineTextAlignment(.center)
         }
         .entrance(0)
     }

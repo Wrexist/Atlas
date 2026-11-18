@@ -120,6 +120,33 @@ final class OnDeviceSummaryTests: XCTestCase {
         XCTAssertNotEqual(today.cacheKey, tomorrow.cacheKey)
     }
 
+    func test_instructions_swedish_asksForSwedish() {
+        XCTAssertTrue(OnDeviceSummaryEngine.instructions(language: "sv").hasSuffix("Write in Swedish."))
+        XCTAssertTrue(OnDeviceSummaryEngine.instructions(language: "en").hasSuffix("Write in English."))
+    }
+
+    func test_cacheKey_differsByLanguage() throws {
+        let facts = try coachingFacts()
+        XCTAssertNotEqual(OnDeviceSummaryEngine.cacheKey(facts, language: "en"),
+                          OnDeviceSummaryEngine.cacheKey(facts, language: "sv"))
+    }
+
+    func test_service_languageSwitch_dropsReplyCachedInOtherLanguage() async throws {
+        let facts = try coachingFacts()
+        let language = SendableBox("sv")
+        let sut = OnDeviceSummaryService(
+            defaults: defaults, modelAvailable: { true }, languageCode: { language.value }
+        ) { instructions, _ in
+            instructions.hasSuffix("Write in Swedish.") ? "Ta det lugnt i dag." : "Keep today light."
+        }
+
+        await sut.prepare(facts)
+        XCTAssertEqual(sut.text(for: facts), "Ta det lugnt i dag.")
+
+        language.set("en")
+        XCTAssertEqual(sut.text(for: facts), "Cap intensity today.")
+    }
+
     // MARK: - Validation
 
     func test_numbers_normalizesGroupingAndDecimals() {

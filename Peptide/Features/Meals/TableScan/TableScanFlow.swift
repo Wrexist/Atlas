@@ -63,6 +63,8 @@ struct TableScanFlow: View {
     @State private var readQueues: [Task<Void, Never>] = []
     @State private var isFinished = false
     @State private var shutterCount = 0
+    /// The last shutter press came back without a photo.
+    @State private var captureMissed = false
     @State private var isSweeping = false
     @State private var confirmsDiscard = false
     @Namespace private var lift
@@ -90,6 +92,17 @@ struct TableScanFlow: View {
         .background(AppColor.background)
         .accessibilityIdentifier("table-scan-flow")
         .appAnimation(AppAnimation.step, value: phase)
+        // The stage swaps when the lift lands; tell VoiceOver what arrived.
+        .onChange(of: phase) { _, phase in
+            switch phase {
+            case .review:
+                AccessibilityNotification.Announcement(String(localized: "Results ready. Review before logging.")).post()
+            case .failed:
+                AccessibilityNotification.Announcement(errorText ?? String(localized: "Something went wrong. Try again.")).post()
+            case .capture, .lifting:
+                break
+            }
+        }
         .interactiveDismissDisabled(phase == .lifting || isReading)
         .task { await startCamera() }
         .onDisappear(perform: finishOnDismiss)
@@ -312,6 +325,7 @@ struct TableScanFlow: View {
                 if let photo {
                     Image(uiImage: photo)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                 }
             }
@@ -386,6 +400,7 @@ struct TableScanFlow: View {
                     let rect = TableStageLayout.place(dish.frame, photo: photo.size, card: cardSize)
                     Image(uiImage: dish.sticker)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFit()
                         .frame(width: rect.width, height: rect.height)
                         .matchedGeometryEffect(id: dish.id, in: lift)
@@ -435,11 +450,15 @@ struct TableScanFlow: View {
         }
     }
 
+    private var captureCaption: LocalizedStringKey {
+        captureMissed ? "Couldn't take the photo. Try again." : "One photo of the whole table."
+    }
+
     private var captureControls: some View {
         VStack(spacing: Spacing.md) {
-            Text("One photo of the whole table.")
+            Text(captureCaption)
                 .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
+                .foregroundStyle(captureMissed ? AppColor.warning : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
 
             HStack(alignment: .center) {
@@ -497,10 +516,17 @@ struct TableScanFlow: View {
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(minHeight: Spacing.minimumHitTarget)
-            if !isReading && keepableCount > 0 {
-                Text("Swipe down anytime — you're done.")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
+            if !isReading && (keepableCount > 0 || unreadTickedCount > 0) {
+                Group {
+                    if unreadTickedCount > 0 {
+                        Text("^[\(unreadTickedCount) dish](inflect: true) couldn't be read and won't be kept.")
+                    } else {
+                        Text("Swipe down anytime — you're done.")
+                    }
+                }
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
             }
         }
     }
@@ -511,6 +537,8 @@ struct TableScanFlow: View {
     }
 
     private var keepableCount: Int { dishes.filter(\.isKeepable).count }
+
+    private var unreadTickedCount: Int { dishes.filter(\.isTickedButUnread).count }
 
     private var isReading: Bool { dishes.contains { $0.reading == .pending } }
 
@@ -566,8 +594,13 @@ struct TableScanFlow: View {
         Haptics.impact(.medium)
         if !reduceMotion { shutterCount += 1 }
         work?.cancel()
+        captureMissed = false
         work = Task {
-            guard let image = await camera.capture() else { return }
+            guard let image = await camera.capture() else {
+                Haptics.error()
+                captureMissed = true
+                return
+            }
             capturedAt = nil
             if saveOriginal { Task { await saveToPhotos(image) } }
             await liftDishes(from: image)
@@ -596,6 +629,8 @@ struct TableScanFlow: View {
 
     private func importPhoto(_ item: PhotosPickerItem) async {
         guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+            // The failure card hides the viewfinder; Try again restarts it.
+            camera.stop()
             errorText = String(localized: "Couldn't open that photo. Try another one.")
             phase = .failed
             return
@@ -607,6 +642,7 @@ struct TableScanFlow: View {
     // MARK: - Lifting
 
     private func liftDishes(from image: UIImage) async {
+        captureMissed = false
         photo = image
         dishes = []
         landed = []
@@ -625,7 +661,10 @@ struct TableScanFlow: View {
             land()
         } catch {
             guard !Task.isCancelled else { return }
-            errorText = error.localizedDescription
+            // Vision's own errors read "com.apple.Vision error 9."
+            AppLog.diagnostics.error("Table lift failed: \(error.localizedDescription, privacy: .public)")
+            errorText = (error as? TableLiftEngine.Failure)?.errorDescription
+                ?? String(localized: "Couldn't lift the dishes from that photo. Try another one, or cut them out yourself.")
             phase = .failed
             Haptics.error()
         }
@@ -683,6 +722,7 @@ struct TableScanFlow: View {
         capturedAt = nil
         dishes = []
         errorText = nil
+        captureMissed = false
         phase = .capture
         camera.start()
     }
@@ -729,17 +769,11 @@ struct TableScanFlow: View {
             let reading = try await TableDishReader.read(dish.sticker, myFoods: dataStore.profile.customFoods)
             result = .read(reading)
             spendScanOnce()
-        } catch MealScannerService.ScanError.noFoodDetected {
-            result = .notFood
         } catch {
-            result = .failed(error.localizedDescription)
+            result = .failure(error)
         }
         guard !Task.isCancelled, let index = dishes.firstIndex(where: { $0.id == id }) else { return }
-        dishes[index].reading = result
-        if result == .notFood { dishes[index].include = false }
-        if case .read(let reading) = result, reading.kind == .drink {
-            dishes[index].kind = .drink
-        }
+        dishes[index].apply(result)
     }
 
     /// A whole table costs one of the week's free scans, however many

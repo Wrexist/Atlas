@@ -150,7 +150,7 @@ final class StackRecommendationEngineTests: XCTestCase {
             let (score, reason) = StackRecommendationEngine.scoreRouteDiversity(candidate: semax, context: context)
             XCTAssertGreaterThan(score, 0, "Intranasal peptide should get route diversity bonus")
             if case .routeDiversity(route: let text) = reason {
-                XCTAssertTrue(text.contains("intranasal"), "Should mention the route type")
+                XCTAssertEqual(text, "Available as a nasal spray — reduces injection burden")
             }
         }
     }
@@ -264,6 +264,17 @@ final class StackRecommendationEngineTests: XCTestCase {
         XCTAssertEqual(confidence, .medium)
     }
 
+    func test_confidence_manySignalsWithoutValidatedStack_capsAtMedium() {
+        let reasons: [StackRecommendationEngine.RecommendationReason] = [
+            .commonStack(pairsWith: ["BPC-157"]),
+            .goalMatch(goal: "recovery"),
+            .routeDiversity(route: "Available orally — reduces injection burden"),
+            .sharedBenefits(count: 2),
+        ]
+        let confidence = StackRecommendationEngine.computeConfidence(reasons: reasons, score: 9)
+        XCTAssertEqual(confidence, .medium)
+    }
+
     func test_confidence_lowForSingleSignal() {
         let reasons: [StackRecommendationEngine.RecommendationReason] = [
             .sharedBenefits(count: 2),
@@ -355,6 +366,20 @@ final class StackRecommendationEngineTests: XCTestCase {
             $0.title.contains("past its cycle") && $0.kind == .cycleOverrun
         }
         XCTAssertTrue(hasCycleWarning, "Should warn about BPC-157 being over its recommended cycle")
+    }
+
+    func test_cycleLengthWarning_oneWeekOver_readsSingularWeek() {
+        guard let bpc = peptide(abbrev: "BPC-157") else { return XCTFail("Fixture peptides missing from the database") }
+        // BPC-157 runs 6 weeks on; 52 days in is week 7, one week over.
+        let started = Calendar.current.date(byAdding: .day, value: -52, to: Date())!
+        let proto = PeptideProtocol(
+            id: UUID(), name: "Test", peptides: [bpc],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 12, startDate: started, status: .active, notes: ""
+        )
+        let title = StackRecommendationEngine.warnings(for: [bpc], activeProtocols: [proto])
+            .first { $0.kind == .cycleOverrun }?.title
+        XCTAssertEqual(title, "BPC-157 is 1 week past its cycle")
     }
 
     func test_desensitizationRisk_triggersAtRiskOnset() {
@@ -493,6 +518,44 @@ final class StackRecommendationEngineTests: XCTestCase {
         if let result {
             XCTAssertGreaterThan(result.score, 0, "Should have positive score with Wolverine stack")
         }
+    }
+
+    func test_completeness_wolverineForRecoveryGoal_coversBothDimensions() {
+        // C238: the validated-stack match keys on the category's stable raw
+        // value and English goal text, never the localized display name.
+        let stack = peptides(abbrevs: ["BPC-157", "TB-500"])
+        guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
+        let result = StackRecommendationEngine.stackCompleteness(
+            for: stack, goals: ["recovery"], from: database
+        )
+        XCTAssertEqual(result?.score, 1.0)
+    }
+
+    func test_displayText_sentenceWithoutCatalogEntry_returnsTheEnglishSource() {
+        let english = "An uncatalogued compatibility sentence."
+        XCTAssertEqual(PeptideCompatibilityData.displayText(english), english)
+    }
+
+    /// These sentences are data, so the localization lint cannot see
+    /// them; a reworded or new one would ship English-only in Swedish.
+    func test_displayedCompatibilityProse_everySentence_hasSwedishEntry() throws {
+        let path = try XCTUnwrap(Bundle.main.path(forResource: "sv", ofType: "lproj"))
+        let swedish = try XCTUnwrap(Bundle(path: path))
+        var displayed = Set<String>()
+        displayed.formUnion(PeptideCompatibilityData.validatedStacks.map(\.synergy))
+        displayed.formUnion(PeptideCompatibilityData.knownInteractions.flatMap { [$0.reason, $0.recommendation] })
+        displayed.formUnion(PeptideCompatibilityData.pathwayGroups.flatMap { [$0.pathway, $0.warningText] })
+        displayed.formUnion(PeptideTimingData.timingRecommendations.values.map(\.notes))
+        displayed.formUnion(PeptideTimingData.cycleProtocols.values.map(\.reason))
+        displayed.formUnion(PeptideTimingData.desensitizationRisks.values.map(\.description))
+        displayed.formUnion(PeptideTimingData.TimingWindow.allCases.map(\.rawValue))
+        displayed.remove("")
+
+        let marker = "\u{1}missing"
+        let missing = displayed.filter {
+            swedish.localizedString(forKey: $0, value: marker, table: nil) == marker
+        }
+        XCTAssertTrue(missing.isEmpty, "No Swedish entry for: \(missing.sorted())")
     }
 
     func test_completeness_suggestsMissingCategories() {

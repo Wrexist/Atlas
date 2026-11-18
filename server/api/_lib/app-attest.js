@@ -233,8 +233,14 @@ export async function storeAttestKey(keyIdB64, record) {
   return results?.[0]?.result === 'OK';
 }
 
+// Returned by the registry reads when Redis didn't answer: the key may
+// be fine, so the client must not be told to throw it away.
+export const ATTEST_STORE_UNAVAILABLE = Object.freeze({ unavailable: true });
+
+/** The stored key record, null when unknown, or ATTEST_STORE_UNAVAILABLE. */
 export async function loadAttestKey(keyIdB64) {
   const results = await redisPipeline([['GET', keySlot(keyIdB64)]]);
+  if (!results) return ATTEST_STORE_UNAVAILABLE;
   const raw = results?.[0]?.result;
   if (typeof raw !== 'string') return null;
   try {
@@ -253,8 +259,9 @@ const CLIENT_DATA_MAX_AGE_MS = 5 * 60 * 1000;
 const SEEN_COUNTER_TTL_SECONDS = (2 * CLIENT_DATA_MAX_AGE_MS) / 1000;
 
 /**
- * Atomically marks `counter` as used for this key; false when it
- * already was (a replay) or Redis couldn't record it.
+ * Atomically marks `counter` as used for this key: 'claimed', or
+ * 'replayed' when it already was, or 'unavailable' when Redis didn't
+ * answer.
  *
  * Apple's "strictly greater than the stored counter" rule assumes
  * requests arrive in the order the device signed them. They don't: a
@@ -273,7 +280,8 @@ async function claimCounter(keyIdB64, counter) {
     // verified, so a key in use never ages out.
     ['EXPIRE', keySlot(keyIdB64), String(ATTEST_KEY_TTL_SECONDS)],
   ]);
-  return results?.[0]?.result === 'OK';
+  if (!results) return 'unavailable';
+  return results[0]?.result === 'OK' ? 'claimed' : 'replayed';
 }
 
 function attestMode() {
@@ -288,7 +296,9 @@ function attestMode() {
  * enforce mode, and callers reject with 401 and `code` when it is:
  * `attest_clock` when the client's timestamp is outside the freshness
  * window (the app corrects its clock from the `Date` header and keeps
- * its key), `attest_required` for everything else (re-register). `keyId` is set only
+ * its key), `attest_unavailable` when the key registry didn't answer
+ * (callers answer 503 so the client retries with its key), and
+ * `attest_required` for everything else (re-register). `keyId` is set only
  * when an assertion actually verified — it's the one per-install
  * identity the server can trust, so the rate limiter keys on it in
  * preference to the client IP (which rotates freely on mobile data
@@ -338,6 +348,7 @@ export async function checkAppAttest(req, { logLabel }) {
   if (Math.abs(Date.now() - stampedAt) > CLIENT_DATA_MAX_AGE_MS) return deny('stale client data', 'attest_clock');
 
   const record = await loadAttestKey(String(keyIdB64));
+  if (record === ATTEST_STORE_UNAVAILABLE) return deny('redis unavailable', 'attest_unavailable');
   if (!record) return deny('unknown attest key');
   if (record.environment === 'development' && enforce && process.env.APP_ATTEST_ALLOW_DEVELOPMENT !== '1') {
     return deny('development key in enforce mode');
@@ -351,7 +362,9 @@ export async function checkAppAttest(req, { logLabel }) {
       appId,
       previousCounter: record.counter ?? 0,
     });
-    if (!(await claimCounter(String(keyIdB64), counter))) return deny('assertion counter replayed');
+    const claim = await claimCounter(String(keyIdB64), counter);
+    if (claim === 'unavailable') return deny('redis unavailable', 'attest_unavailable');
+    if (claim !== 'claimed') return deny('assertion counter replayed');
     if (!enforce) console.log(`[${logLabel}] app-attest ok (counter ${counter})`);
     return { ok: true, keyId: String(keyIdB64) };
   } catch (err) {

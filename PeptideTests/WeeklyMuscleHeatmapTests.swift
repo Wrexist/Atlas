@@ -16,6 +16,25 @@ final class WeeklyMuscleHeatmapTests: XCTestCase {
         super.tearDown()
     }
 
+    func test_windowStart_sevenDays_isStartOfDaySixCalendarDaysBack() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 3, day: 10, hour: 23, minute: 50))!
+
+        let start = WeeklyMuscleHeatmap.windowStart(days: 7, now: now, calendar: calendar)
+
+        XCTAssertEqual(start, calendar.date(from: DateComponents(year: 2026, month: 3, day: 4)))
+    }
+
+    func test_windowStart_oneDay_isStartOfToday() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 3, day: 10, hour: 9))!
+
+        XCTAssertEqual(WeeklyMuscleHeatmap.windowStart(days: 1, now: now, calendar: calendar),
+                       calendar.startOfDay(for: now))
+    }
+
     // MARK: - AnatomicalMuscle.regions(forRawMuscle:)
 
     func test_completedExercises_excludesPlannedWarmupAndUndoneWork() {

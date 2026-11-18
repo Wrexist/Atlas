@@ -30,8 +30,8 @@ enum DailyScheduleEngine {
             case .morning:          return String(localized: "Morning")
             case .morningWithFood:  return String(localized: "Morning · With Food")
             case .midday:           return String(localized: "Midday")
-            case .preWorkout:       return "Pre-Workout"
-            case .postWorkout:      return "Post-Workout"
+            case .preWorkout:       return String(localized: "Pre-Workout")
+            case .postWorkout:      return String(localized: "Post-Workout")
             case .evening:          return String(localized: "Evening")
             case .preBed:           return String(localized: "Before Bed")
             }
@@ -55,7 +55,7 @@ enum DailyScheduleEngine {
             case .morningFasted:    return String(localized: "On waking, empty stomach")
             case .morning:          return String(localized: "Early in the day")
             case .morningWithFood:  return String(localized: "After breakfast")
-            case .midday:           return "Mid-day"
+            case .midday:           return String(localized: "Around midday")
             case .preWorkout:       return String(localized: "30–45 min before training")
             case .postWorkout:      return String(localized: "Within 30 min of training")
             case .evening:          return String(localized: "Late afternoon / evening")
@@ -222,6 +222,16 @@ enum DailyScheduleEngine {
             }
         }
 
+        /// The headline for a day already past: what was recorded rather
+        /// than an instruction for a dose that can no longer be taken.
+        var recordHeadline: String {
+            let doses = slots.flatMap(\.doses)
+            guard !doses.isEmpty else { return String(localized: "Nothing was scheduled") }
+            let taken = doses.filter(\.entry.completed).count
+            guard taken < doses.count else { return String(localized: "All doses taken") }
+            return String(localized: "\(taken) of \(doses.count) doses taken")
+        }
+
         var summary: String {
             let slotCount = slots.count
             var parts: [String] = []
@@ -257,7 +267,7 @@ enum DailyScheduleEngine {
                 && (info?.notes.lowercased().contains("fasted") == true
                     || info?.notes.lowercased().contains("empty stomach") == true)
             let usualWindow = placement.usualSlot.map { String(localized: "Usually taken: \($0.title).") }
-            let note = [usualWindow, info?.notes].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
+            let note = [usualWindow, info.map { PeptideCompatibilityData.displayText($0.notes) }].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
             return (entry, placement.slot, fasted, note)
         }
 
@@ -395,7 +405,7 @@ enum DailyScheduleEngine {
                 seenPairs.insert(partner)
                 hints.append(CombinationHint(
                     withAbbreviation: partner,
-                    synergy: stack.synergy
+                    synergy: PeptideCompatibilityData.displayText(stack.synergy)
                 ))
             }
         }
@@ -436,7 +446,7 @@ enum DailyScheduleEngine {
                 hints.append(ConflictHint(
                     severity: mapped,
                     title: String(localized: "Avoid same-day with \(partner)"),
-                    detail: interaction.reason,
+                    detail: PeptideCompatibilityData.displayText(interaction.reason),
                     counterpart: partner
                 ))
             }
@@ -453,7 +463,7 @@ enum DailyScheduleEngine {
                 hints.append(ConflictHint(
                     severity: .caution,
                     title: String(localized: "Same pathway as \(partner)"),
-                    detail: "\(group.pathway) — \(group.warningText)",
+                    detail: "\(PeptideCompatibilityData.displayText(group.pathway)) — \(PeptideCompatibilityData.displayText(group.warningText))",
                     counterpart: partner
                 ))
             }

@@ -239,6 +239,33 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(try fetchAllRows().count, 1)
     }
 
+    func test_loadProfile_metricsWithoutAgeStamp_persistsTheBackfilledStamp() throws {
+        var profile = baseProfile()
+        profile.bodyMetrics = BodyMetrics(weightKg: 80, heightCm: 180, age: 30,
+                                          sex: .male, activityLevel: .moderate, unit: .metric,
+                                          ageRecordedAt: day)
+        repo.saveProfile(profile)
+        let row = try XCTUnwrap(fetchAllRows().first)
+        var metrics = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: XCTUnwrap(row.bodyMetricsData)) as? [String: Any]
+        )
+        metrics.removeValue(forKey: "ageRecordedAt")
+        row.bodyMetricsData = try JSONSerialization.data(withJSONObject: metrics)
+        try XCTUnwrap(repo.contextForTesting).save()
+        XCTAssertTrue(row.bodyMetricsLackAgeStamp)
+
+        _ = try XCTUnwrap(repo.loadProfile())
+
+        XCTAssertFalse(try XCTUnwrap(fetchAllRows().first).bodyMetricsLackAgeStamp,
+                       "The backfilled stamp must be written, or every load stamps 'now' again")
+        let reloaded = try XCTUnwrap(repo.loadProfile())
+        let stamp = try XCTUnwrap(reloaded.bodyMetrics.ageRecordedAt)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let yearLater = try XCTUnwrap(calendar.date(byAdding: .year, value: 1, to: stamp))
+        XCTAssertEqual(reloaded.bodyMetrics.ageAsOf(yearLater, calendar: calendar), 31)
+    }
+
     func test_duplicateRowWithUnreadableColumn_movesItToTheWinner() throws {
         let unreadable = Data("written by a newer build".utf8)
         let olderRow = try StoredProfile.make(from: .fresh)

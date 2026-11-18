@@ -93,6 +93,14 @@ CASES = [
      'Image(systemName: "photo").font(.system(size: 40))',
      'Image(systemName: "photo").font(AppFont.scaled(40, relativeTo: .largeTitle))'),
 
+    ("rule_bare_text_style_font", "Foo.swift",
+     'Image(systemName: icon).font(.caption)\nText("a").font(.title2.weight(.bold))',
+     'Image(systemName: icon).font(AppFont.caption2)\nText("a").font(AppFont.title2)'),
+
+    ("rule_accent_ink_on_wash", "Foo.swift",
+     'Text(title)\n    .font(AppFont.chipText)\n    .foregroundStyle(AppColor.accentLight)\n    .padding(.horizontal, Spacing.md)\n    .background { Capsule().fill(AppColor.accentPrimary.opacity(0.18)) }',
+     'Text(title)\n    .foregroundStyle(AppColor.accentInkOnWash)\n    .background { Capsule().fill(AppColor.accentPrimary.opacity(0.18)) }\nImage(systemName: "pill")\n    .foregroundStyle(AppColor.accentLight)\n    .background(Circle().fill(AppColor.accentPrimary.opacity(0.15)))'),
+
     ("rule_glow", "Foo.swift",
      'MetricRing().appShadow(AppShadow.accentGlow)',
      'MetricRing().appShadow(AppShadow.glassElevated)'),
@@ -233,5 +241,16 @@ def unknown_rule_fails() -> int:
     return 0
 
 
+def max_warnings_gates() -> int:
+    """--max-warnings must fail above the cap and only above it."""
+    cases = (((0, 1, None), 0), ((0, 1, 0), 1), ((0, 0, 0), 0), ((0, 2, 2), 0), ((1, 0, None), 1))
+    bad = [(args, want) for args, want in cases if lint.exit_code(*args) != want]
+    for args, want in bad:
+        print(f"FAIL  exit_code{args} != {want}")
+    if not bad:
+        print("--max-warnings gates on the warning count")
+    return 1 if bad else 0
+
+
 if __name__ == "__main__":
-    sys.exit(max(run(), unknown_rule_fails()))
+    sys.exit(max(run(), unknown_rule_fails(), max_warnings_gates()))

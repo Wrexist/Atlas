@@ -85,4 +85,31 @@ final class DailyReminderSchedulerTests: XCTestCase {
         XCTAssertFalse(isDone(.weighIn, profile: profile))
         XCTAssertFalse(isDone(.workout, profile: profile))
     }
+
+    func test_kindForRequestID_dailyReminderID_returnsItsKind() {
+        for kind in DailyReminderKind.allCases {
+            let id = DailyReminderEngine.identifier(kind: kind, triggerKey: "repeat-12-30")
+            XCTAssertEqual(DailyReminderScheduler.kind(forRequestID: id), kind)
+        }
+    }
+
+    func test_kindForRequestID_supplementOrOtherNamespace_returnsNil() {
+        let supplement = "\(NotificationService.dailyIDPrefix)supplement-\(UUID().uuidString)-key"
+        XCTAssertNil(DailyReminderScheduler.kind(forRequestID: supplement))
+        XCTAssertNil(DailyReminderScheduler.kind(forRequestID: "\(NotificationService.habitIDPrefix)lunch-key"))
+    }
+
+    func test_isAlreadyDoneForRequest_lunchLoggedInAppAfterPlanning_suppressesOnlyLunch() {
+        SwiftDataRepository.shared.configureForTesting()
+        defer { SwiftDataRepository.shared.deleteAll() }
+        let store = DataStore(seedSampleData: false)
+        let now = Date()
+        store.logMealEntry(meal(.lunch, at: now))
+
+        let lunchID = DailyReminderEngine.identifier(kind: .lunch, triggerKey: "repeat")
+        let dinnerID = DailyReminderEngine.identifier(kind: .dinner, triggerKey: "repeat")
+
+        XCTAssertTrue(DailyReminderScheduler.isAlreadyDone(requestID: lunchID, on: now, dataStore: store))
+        XCTAssertFalse(DailyReminderScheduler.isAlreadyDone(requestID: dinnerID, on: now, dataStore: store))
+    }
 }

@@ -11,6 +11,8 @@ import SwiftUI
 struct TrainContainerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(AppState.self) private var appState
     @State private var exerciseBrowsing = ExerciseBrowsingState()
     @State private var overviewScroll = ScrollPosition(edge: .top)
     @Namespace private var exerciseTransition
@@ -59,7 +61,7 @@ struct TrainContainerView: View {
             }
         }
         .environment(\.resumeActiveWorkout, { showActiveWorkout = true })
-        .fullScreenCover(isPresented: $showActiveWorkout) {
+        .fullScreenCover(isPresented: $showActiveWorkout, onDismiss: { appState.activeWorkoutCoverDidDismiss() }) {
             ActiveWorkoutView()
         }
         .onAppear {
@@ -79,6 +81,11 @@ struct TrainContainerView: View {
             }
         }
         .onDisappear { isVisible = false }
+        .onChange(of: appState.minimizeActiveWorkoutRequest) {
+            // A deep link or quick action is routing elsewhere; the cover
+            // would hide where it lands.
+            showActiveWorkout = false
+        }
         .onChange(of: sessionService.staleClosure) { _, closure in
             guard closure != nil else { return }
             // Left open overnight, the workout screen would come back
@@ -283,27 +290,46 @@ struct TrainContainerView: View {
         // "system settings" for this surface.
         //
         // Three pills fit an iPhone at default sizes; at the largest
-        // Dynamic Type sizes they don't, so the row falls back to scrolling
-        // and keeps the chosen section in view rather than clipping it.
-        ViewThatFits(in: .horizontal) {
-            sectionControl
-                .padding(.horizontal, Spacing.screenPadding)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
+        // Dynamic Type sizes they don't, so the row scrolls and keeps the
+        // chosen section in view rather than clipping it. Accessibility
+        // sizes go straight to the scrolling row: a wrapping, shrinkable
+        // label lets the fixed row "fit" by truncating, so measuring it
+        // can't be trusted there.
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                scrollingSectionControl
+            } else {
+                ViewThatFits(in: .horizontal) {
                     sectionControl
                         .padding(.horizontal, Spacing.screenPadding)
-                }
-                .scrollClipDisabled()
-                .onChange(of: section) { _, newSection in
-                    AppAnimation.with(AppAnimation.springSnappy) {
-                        proxy.scrollTo(newSection, anchor: .center)
-                    }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    scrollingSectionControl
                 }
             }
         }
         .padding(.top, Spacing.xs)
-        .padding(.bottom, Spacing.sm)
+        // The tab's one vertical rhythm, so the first card doesn't sit
+        // tighter under the pills than any other gap on the screen.
+        .padding(.bottom, Spacing.lg)
+    }
+
+    private var scrollingSectionControl: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                sectionControl
+                    // Every label at its full single-line width, so the
+                    // row grows past the screen and scrolls instead of
+                    // truncating "Routines" at the edge.
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.horizontal, Spacing.screenPadding)
+            }
+            .scrollClipDisabled()
+            .onChange(of: section) { _, newSection in
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    proxy.scrollTo(newSection, anchor: .center)
+                }
+            }
+        }
     }
 
     private var sectionControl: some View {

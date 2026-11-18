@@ -367,6 +367,7 @@ final class AuthService {
         HealthJournalStore.shared.deleteAll()
         WeeklyPrepStore.shared.deleteAll()
         PantryStore.shared.deleteAll()
+        GroceryChecklistStore.shared.deleteAll()
         FridgeStore.shared.deleteAll()
         TableMomentStore.shared.deleteAll()
         BackupSnapshotService.deleteAll()
@@ -395,6 +396,10 @@ final class AuthService {
         // (see docs/DATA_ERASURE_POLICY.md).
         OnboardingFunnelTracker.eraseAll()
         UserDefaults.standard.removeObject(forKey: Self.experienceLevelKey)
+        // The acknowledged travel zone is device-local, outside the
+        // profile: left behind, a fresh onboarding elsewhere would be
+        // offered a timezone shift against the erased account's zone.
+        UserDefaults.standard.removeObject(forKey: TravelModeLogic.acknowledgedTimezoneKey)
         if let store { resetInMemoryState(of: store) }
     }
 

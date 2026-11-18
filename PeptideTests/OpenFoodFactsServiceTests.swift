@@ -276,18 +276,56 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertFalse(product.hasNutrition)
     }
 
-    func test_fetch_nonFiniteOrHugeNutriments_areDroppedAsMissing() async throws {
+    func test_fetch_nonFiniteOrHugeNutriments_marksNutritionMissing() async throws {
         MockURLProtocol.handler = { request in
             (Self.ok(for: request), Data(Fixtures.malformedNutriments.utf8))
         }
         let product = try await service.fetch(barcode: "9999999999999")
         XCTAssertEqual(product.per100g.calories, 0)
         XCTAssertEqual(product.per100g.proteinG, 0)
-        XCTAssertEqual(product.per100g.carbsG, 12)
+        XCTAssertEqual(product.per100g.carbsG, 0)
         XCTAssertEqual(product.per100g.fatG, 0)
         XCTAssertNil(product.per100g.fiberG)
         XCTAssertNil(product.novaGroup)
+        XCTAssertFalse(product.hasNutrition)
+    }
+
+    func test_fetch_unreadableMacroString_keepsTheReadableMacros() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.unreadableFat.utf8))
+        }
+        let product = try await service.fetch(barcode: "4444444444444")
+        XCTAssertEqual(product.per100g.carbsG, 60)
+        XCTAssertEqual(product.per100g.fatG, 0)
         XCTAssertTrue(product.hasNutrition)
+    }
+
+    func test_kcalFieldHoldingKilojoules_fallsBackToEnergyConversion() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.kilojoulesInKcalField.utf8))
+        }
+        let product = try await service.fetch(barcode: "4444444444441")
+        XCTAssertEqual(product.per100g.calories, 2100 / 4.184, accuracy: 0.5)
+        XCTAssertEqual(product.per100g.fatG, 30)
+    }
+
+    func test_fetch_macrosAbovePhysicalLimit_hasNoNutrition() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.impossibleMacros.utf8))
+        }
+        let product = try await service.fetch(barcode: "4444444444442")
+        XCTAssertFalse(product.hasNutrition)
+        XCTAssertEqual(product.per100g.calories, 0)
+    }
+
+    func test_fetch_proteinAbove100gPer100g_marksNutritionMissing() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.proteinTypo.utf8))
+        }
+        let product = try await service.fetch(barcode: "4444444444443")
+        XCTAssertFalse(product.hasNutrition)
+        XCTAssertEqual(product.per100g.proteinG, 0)
+        XCTAssertEqual(product.per100g.calories, 0)
     }
 
     func test_fetch_onlyMalformedNutriments_hasNoNutrition() async throws {
@@ -924,6 +962,71 @@ private enum Fixtures {
           "carbohydrates_100g": "12",
           "fat_100g": "1e30",
           "fiber_100g": -4
+        }
+      }
+    }
+    """
+
+    static let kilojoulesInKcalField = """
+    {
+      "status": 1,
+      "code": "4444444444441",
+      "product": {
+        "product_name": "Milk chocolate",
+        "nutriments": {
+          "energy-kcal_100g": 2100,
+          "energy_100g": 2100,
+          "proteins_100g": 7,
+          "carbohydrates_100g": 57,
+          "fat_100g": 30
+        }
+      }
+    }
+    """
+
+    static let impossibleMacros = """
+    {
+      "status": 1,
+      "code": "4444444444442",
+      "product": {
+        "product_name": "Typo bar",
+        "nutriments": {
+          "energy-kcal_100g": 400,
+          "proteins_100g": 60,
+          "carbohydrates_100g": 60,
+          "fat_100g": 10
+        }
+      }
+    }
+    """
+
+    static let proteinTypo = """
+    {
+      "status": 1,
+      "code": "4444444444443",
+      "product": {
+        "product_name": "Protein oats",
+        "nutriments": {
+          "energy-kcal_100g": 380,
+          "proteins_100g": 250,
+          "carbohydrates_100g": 60,
+          "fat_100g": 7
+        }
+      }
+    }
+    """
+
+    static let unreadableFat = """
+    {
+      "status": 1,
+      "code": "4444444444444",
+      "product": {
+        "product_name": "Plain oats",
+        "nutriments": {
+          "energy-kcal_100g": 370,
+          "proteins_100g": 13,
+          "carbohydrates_100g": 60,
+          "fat_100g": "n/a"
         }
       }
     }

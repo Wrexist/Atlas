@@ -75,6 +75,16 @@ struct TrainOverviewView: View {
         !frequencies.isEmpty
     }
 
+    /// Training inside the widest period, so switching periods can change
+    /// the map. Without it the period control filters nothing.
+    private var hasTrainingToFilter: Bool {
+        let calendar = Calendar.current
+        let widest = TrainingMapPeriod.allCases.map(\.rawValue).max() ?? 1
+        guard let cutoff = calendar.date(byAdding: .day, value: -(widest - 1), to: calendar.startOfDay(for: Date()))
+        else { return true }
+        return sessions.contains { $0.startedAt >= cutoff }
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
@@ -93,20 +103,24 @@ struct TrainOverviewView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .scrollPosition($scrollPosition)
-        .refreshable { refresh() }
+        // Re-reads the store: the bump drops the cached history and
+        // re-runs the `.task(id:)` below.
+        .refreshable { dataStore.workoutHistoryDidChange() }
         // On the scroll view, not the start buttons: starting the workout
         // hides those buttons, and a sheet attached inside them would be
         // torn down mid-dismissal.
         .sheet(isPresented: $showsSessionBuilder, onDismiss: startBuiltWorkout) {
             SessionBuilderSheet { routine, linksRoutine in builtWorkout = (routine, linksRoutine) }
         }
-        // `recordWorkoutFinished` bumps `dataStore.revision` precisely
-        // so mounted views can recompute — before this listener existed
-        // the overview kept serving pre-workout data after the finish
-        // cover dismissed, until a pull-to-refresh or tab switch.
+        // `recordWorkoutFinished` bumps `dataStore.trainingRevision`
+        // precisely so mounted views can recompute — before this listener
+        // existed the overview kept serving pre-workout data after the
+        // finish cover dismissed, until a pull-to-refresh or tab switch.
+        // Keyed on the training revision, not `revision`, so a meal, dose
+        // or profile edit doesn't re-run the all-time engines.
         // This one task also covers first appear: a second plain `.task`
         // ran every engine pass twice. `load()` is a no-op once loaded.
-        .task(id: dataStore.revision) { @MainActor in
+        .task(id: dataStore.trainingRevision) { @MainActor in
             await library.load()
             routineStore.load()
             refresh()
@@ -226,6 +240,7 @@ struct TrainOverviewView: View {
 
     @ViewBuilder
     private func otherStarts(showsPlan: Bool) -> some View {
+        // Outline, like the wand on "Plan a workout" beside it.
         GlassButton(title: "Empty workout", icon: "play", style: .secondary, isFullWidth: true) {
             Haptics.impact(.medium)
             sessionService.startWorkout()
@@ -317,12 +332,13 @@ struct TrainOverviewView: View {
         return Set(days).count
     }
 
-    /// Pulls the latest sessions out of SwiftData. Called on appear,
-    /// on pull-to-refresh, and whenever `dataStore.revision` bumps —
-    /// which `recordWorkoutFinished` does on every workout finish, so
-    /// the heatmap, recents, and calendar update live.
+    /// Pulls the latest sessions out of SwiftData. Called on appear and
+    /// whenever `dataStore.trainingRevision` bumps — which
+    /// `recordWorkoutFinished` does on every workout finish, so the
+    /// heatmap, recents, and calendar update live. The history itself is
+    /// decoded once per revision, not on every appear.
     private func refresh() {
-        allSessions = Self.finishedHistory(SwiftDataRepository.shared.loadAllWorkoutSessions())
+        allSessions = dataStore.finishedWorkoutHistory()
         sessions = Array(allSessions.prefix(SwiftDataRepository.workoutHistoryFetchLimit))
         refreshFrequencies()
         totalFrequencies = MuscleGainsEngine.totalFrequencies(
@@ -413,12 +429,14 @@ struct TrainOverviewView: View {
                     }
                 }
 
-                GlassSegmentedControl(
-                    options: TrainingMapPeriod.allCases,
-                    selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
-                    label: { LocalizedStringKey($0.title) }
-                )
-                .accessibilityIdentifier("training-map-period")
+                if hasTrainingToFilter {
+                    GlassSegmentedControl(
+                        options: TrainingMapPeriod.allCases,
+                        selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
+                        label: { LocalizedStringKey($0.title) }
+                    )
+                    .accessibilityIdentifier("training-map-period")
+                }
 
                 TrainingBodyExplorer(
                     highlights: MuscleMapView.intensityHighlights(from: frequencies),
@@ -474,21 +492,37 @@ struct TrainOverviewView: View {
 
     // MARK: - Recent workouts
 
+    private var latestWorkoutTitle: some View {
+        Text("Latest workout")
+            .font(AppFont.headline)
+            .foregroundStyle(AppColor.textPrimary)
+    }
+
+    /// Always offered: the history also lists Apple Health workouts (Watch
+    /// dives, runs), which exist even before the first Atlas session.
+    private var viewAllWorkoutsLink: some View {
+        NavigationLink(value: TrainNavigation.workoutHistory) {
+            Text("View all").font(AppFont.subheadline).minimumHitArea()
+        }
+        .accessibilityLabel("View workout history")
+    }
+
     private var recentWorkoutsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack {
-                    Text("Latest workout")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer()
-                    // Always offered: the history also lists Apple Health
-                    // workouts (Watch dives, runs), which exist even before
-                    // the first Atlas session.
-                    NavigationLink(value: TrainNavigation.workoutHistory) {
-                        Text("View all").font(AppFont.subheadline).minimumHitArea()
+                // Title and link share a row while both fit whole; at the
+                // largest text sizes the link moves under the title rather
+                // than hyphenating it into three lines.
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        latestWorkoutTitle
+                        Spacer()
+                        viewAllWorkoutsLink
                     }
-                    .accessibilityLabel("View workout history")
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        latestWorkoutTitle
+                        viewAllWorkoutsLink
+                    }
                 }
 
                 if sessions.isEmpty {

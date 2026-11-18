@@ -67,13 +67,44 @@ final class TableMomentStore {
         moments.filter { calendar.isDate($0.date, inSameDayAs: day) }.sorted { $0.date < $1.date }
     }
 
+    /// The cut-out, read from disk on a cache miss. For callers that need
+    /// it synchronously (physics, the share image, the dish sheet); view
+    /// bodies use `cachedSticker(for:)` and `loadStickers(for:)`.
     func sticker(for dish: TableDish) -> UIImage? {
-        guard let filename = dish.stickerFilename else { return nil }
-        if let cached = stickers.object(forKey: filename as NSString) { return cached }
-        guard let url = directory?.appendingPathComponent(filename),
+        if let cached = cachedSticker(for: dish) { return cached }
+        guard let filename = dish.stickerFilename,
+              let url = directory?.appendingPathComponent(filename),
               let image = UIImage(contentsOfFile: url.path) else { return nil }
         stickers.setObject(image, forKey: filename as NSString)
         return image
+    }
+
+    /// The cut-out if it is already in memory. Never touches the disk, so
+    /// a view body can call it on every render.
+    func cachedSticker(for dish: TableDish) -> UIImage? {
+        guard let filename = dish.stickerFilename else { return nil }
+        return stickers.object(forKey: filename as NSString)
+    }
+
+    /// Reads and decodes the dishes' cut-outs off the main thread and
+    /// caches them, keyed by dish id, so a table's first render doesn't
+    /// decode every PNG on main.
+    func loadStickers(for dishes: [TableDish]) async -> [UUID: UIImage] {
+        var loaded: [UUID: UIImage] = [:]
+        for dish in dishes {
+            if let cached = cachedSticker(for: dish) {
+                loaded[dish.id] = cached
+                continue
+            }
+            guard let filename = dish.stickerFilename, let url = directory?.appendingPathComponent(filename) else { continue }
+            let image = await Task.detached(priority: .userInitiated) {
+                UIImage(contentsOfFile: url.path)?.preparingForDisplay()
+            }.value
+            guard let image else { continue }
+            stickers.setObject(image, forKey: filename as NSString)
+            loaded[dish.id] = image
+        }
+        return loaded
     }
 
     // MARK: - Writing

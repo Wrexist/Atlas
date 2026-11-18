@@ -17,8 +17,19 @@ final class RoutineStore {
 
     /// Blank routines this device opened from "New routine". Only these may
     /// be discarded as abandoned: an empty "New routine" synced from
-    /// another device may still be open in that device's builder.
-    private var untitledDrafts: Set<UUID> = []
+    /// another device may still be open in that device's builder. Kept in
+    /// this device's defaults, not CloudKit, so a draft whose builder was
+    /// open when the app was killed is still discarded after relaunch.
+    private var untitledDrafts: Set<UUID> {
+        get {
+            Set((UserDefaults.standard.stringArray(forKey: Self.untitledDraftsKey) ?? []).compactMap(UUID.init(uuidString:)))
+        }
+        set {
+            if newValue.isEmpty { UserDefaults.standard.removeObject(forKey: Self.untitledDraftsKey) }
+            else { UserDefaults.standard.set(newValue.map(\.uuidString), forKey: Self.untitledDraftsKey) }
+        }
+    }
+    static let untitledDraftsKey = "routineStore.untitledDraftIDs"
 
     private var repository: SwiftDataRepository { .shared }
 
@@ -29,7 +40,11 @@ final class RoutineStore {
     /// exercise list is a single JSON blob per routine.
     func load() {
         routines = repository.loadRoutines()
+        let firstLoad = !hasLoaded
         hasLoaded = true
+        // No builder is open yet this launch, so a draft still listed was
+        // left behind by one the app was killed in.
+        if firstLoad, !untitledDrafts.isEmpty { discardAbandonedDrafts() }
         DataStore.current?.pushTrainingCatalogToWatch()
     }
 

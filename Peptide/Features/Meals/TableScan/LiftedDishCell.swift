@@ -5,10 +5,20 @@ struct ReviewDish: Identifiable {
     enum Reading: Equatable {
         case pending
         case read(TableDishReader.Reading)
-        case failed(String)
+        /// `retryable` is false when the same cut-out would get the same
+        /// answer (declined, implausible, too large), so a retry would
+        /// only spend another paid read.
+        case failed(String, retryable: Bool)
         /// The scan found nothing edible — a phone or a napkin cut out of
         /// the table. Reading it again can't change that.
         case notFood
+
+        /// What a failed read turns into.
+        static func failure(_ error: Error) -> Reading {
+            let scanError = error as? MealScannerService.ScanError
+            if case .noFoodDetected? = scanError { return .notFood }
+            return .failed(error.localizedDescription, retryable: !(scanError?.needsDifferentPhoto ?? false))
+        }
     }
 
     let id: UUID
@@ -19,6 +29,9 @@ struct ReviewDish: Identifiable {
     var kind: DishKind = .food
     var name = ""
     var reading: Reading = .pending
+    /// Set once the user picks Food / Drinks / Others, so a reading that
+    /// lands afterwards doesn't flip their choice.
+    var kindPickedByHand = false
 
     init(_ lifted: TableLiftEngine.Lifted) {
         id = lifted.id
@@ -29,6 +42,27 @@ struct ReviewDish: Identifiable {
     var isKeepable: Bool {
         guard include, case .read = reading else { return false }
         return true
+    }
+
+    /// Ticked, read through, and still not kept: its reading failed.
+    var isTickedButUnread: Bool {
+        guard include, case .failed = reading else { return false }
+        return true
+    }
+
+    mutating func pickKind(_ kind: DishKind) {
+        self.kind = kind
+        kindPickedByHand = true
+    }
+
+    /// Stores what the scan read. Not-food leaves the dish out, and a
+    /// drink sorts itself unless the user already chose a kind.
+    mutating func apply(_ result: Reading) {
+        reading = result
+        if result == .notFood { include = false }
+        if case .read(let read) = result, read.kind == .drink, !kindPickedByHand {
+            kind = .drink
+        }
     }
 }
 
@@ -47,7 +81,7 @@ struct LiftedDishCell: View {
     var body: some View {
         VStack(spacing: Spacing.sm) {
             sticker
-            DishKindPicker(selection: $dish.kind)
+            DishKindPicker(selection: Binding(get: { dish.kind }, set: { dish.pickKind($0) }))
             TextField("Name it (optional)", text: $dish.name)
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColor.textPrimary)
@@ -73,6 +107,7 @@ struct LiftedDishCell: View {
                     if isLanded {
                         Image(uiImage: dish.sticker)
                             .resizable()
+                            .accessibilityIgnoresInvertColors()
                             .scaledToFit()
                             .frame(height: Self.stickerHeight)
                             .matchedGeometryEffect(id: dish.id, in: namespace)
@@ -85,7 +120,7 @@ struct LiftedDishCell: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                Image(systemName: dish.include ? "checkmark.circle.fill" : "circle")
+                Image(systemName: tickSymbol)
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(dish.include ? AppColor.accentPrimary : AppColor.textTertiary)
                     .background(Circle().fill(AppColor.background).padding(Spacing.xxs))
@@ -96,9 +131,18 @@ struct LiftedDishCell: View {
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.96))
+        // Not food can't be kept, so it can't be ticked again either.
+        .disabled(isNotFood)
         .accessibilityLabel(Text(dish.name.isEmpty ? suggestedName : dish.name))
         .accessibilityAddTraits(dish.include ? .isSelected : [])
-        .accessibilityHint("Keeps or leaves out this dish.")
+        .accessibilityHint(isNotFood ? Text("Not food — left out") : Text("Keeps or leaves out this dish."))
+    }
+
+    private var isNotFood: Bool { dish.reading == .notFood }
+
+    private var tickSymbol: String {
+        if isNotFood { return "circle.slash" }
+        return dish.include ? "checkmark.circle.fill" : "circle"
     }
 
     private var suggestedName: String {
@@ -150,23 +194,25 @@ struct LiftedDishCell: View {
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
             .minimumHitArea()
             .accessibilityHint("Uses this name for the dish.")
-        case .failed(let message):
+        case .failed(let message, let retryable):
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(message)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
-                Button(action: onRetry) {
-                    Label("Retry", systemImage: "arrow.clockwise")
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.warning)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .frame(minHeight: Spacing.minimumHitTarget)
-                        .contentShape(Rectangle())
+                if retryable {
+                    Button(action: onRetry) {
+                        Label("Retry", systemImage: "arrow.clockwise")
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.warning)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(minHeight: Spacing.minimumHitTarget)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Retry reading this dish")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Retry reading this dish")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         case .notFood:

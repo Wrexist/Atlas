@@ -31,6 +31,13 @@ struct BioAgeDriversCard: View {
                         row(driver, index: index)
                     }
                     legend
+                    if estimate.isCapped {
+                        Text("Capped at \(Int(PerformanceAgeEngine.maxDriftYears)) years from your age")
+                            .font(AppFont.scaled(11))
+                            .foregroundStyle(AppColor.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     if estimate.drivers.contains(where: { placement(for: $0) != nil }) {
                         Text("Age-group comparisons: FRIEND registry (VO2 max) and CDC NHANES (resting heart rate).")
                             .font(AppFont.scaled(11))

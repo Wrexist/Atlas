@@ -299,9 +299,9 @@ struct WorkoutHistoryView: View {
     }
 
     private func summaryLine(for session: WorkoutSession) -> String {
-        let exercises = session.exercises.count == 1
+        let exercises = session.loggedExerciseCount == 1
             ? String(localized: "1 exercise")
-            : String(localized: "\(session.exercises.count) exercises")
+            : String(localized: "\(session.loggedExerciseCount) exercises")
         let sets = session.completedSetCount == 1
             ? String(localized: "1 set")
             : String(localized: "\(session.completedSetCount) sets")
@@ -333,9 +333,9 @@ struct WorkoutHistoryView: View {
     }
 
     private func reload() {
-        let loaded = SwiftDataRepository.shared.loadWorkoutSessions(limit: fetchLimit)
-        hasOlderSessions = loaded.count >= fetchLimit
-        groupedSessions = Self.group(loaded.filter { $0.finishedAt != nil })
+        let page = SwiftDataRepository.shared.loadWorkoutSessionPage(limit: fetchLimit)
+        hasOlderSessions = page.reachedLimit
+        groupedSessions = Self.group(page.sessions.filter { $0.finishedAt != nil })
         hasLoaded = true
     }
 }

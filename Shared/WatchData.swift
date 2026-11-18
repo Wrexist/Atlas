@@ -14,6 +14,15 @@ struct WatchEntry: Codable, Identifiable, Equatable, Sendable {
     /// non-en_US user).
     let scheduledTime: Date
     var completed: Bool
+
+    /// The order the Watch lists doses in: open ones first, then by time.
+    /// Shared by the phone's push and the Watch's optimistic tap, so a
+    /// ticked dose moves at once instead of jumping when the push lands.
+    static func displayOrder(_ lhs: WatchEntry, _ rhs: WatchEntry) -> Bool {
+        lhs.completed == rhs.completed
+            ? lhs.scheduledTime < rhs.scheduledTime
+            : !lhs.completed
+    }
 }
 
 /// Compact nutrition snapshot for the Watch app. Mirrors the
@@ -194,7 +203,7 @@ struct WatchData: Codable, Equatable, Sendable {
     /// Workout page and the live state of the Training complication.
     private(set) var workout: WatchWorkoutSnapshot?
     /// This week's training, for the Training complication between workouts.
-    let training: WatchTrainingSnapshot?
+    private(set) var training: WatchTrainingSnapshot?
     /// The phone's Haptic Feedback setting, so the wrist honours it too.
     /// Nil from an older phone build, which reads as on.
     let hapticsEnabled: Bool?
@@ -298,7 +307,7 @@ struct WatchData: Codable, Equatable, Sendable {
     /// ones the caller forgot to re-pass.
     func replacingEntries(_ entries: [WatchEntry]) -> WatchData {
         var copy = self
-        copy.todayEntries = entries
+        copy.todayEntries = entries.sorted(by: WatchEntry.displayOrder)
         copy.completedToday = entries.filter(\.completed).count
         copy.totalToday = entries.count
         return copy
@@ -372,8 +381,9 @@ struct WatchData: Codable, Equatable, Sendable {
     /// midnight, nor yesterday's habit totals as today's: habits due on
     /// set weekdays change from day to day. A workout the phone stopped
     /// pushing hours ago is dropped, and so is a night too old to show as
-    /// last night.
-    func forDisplay(at now: Date) -> WatchData {
+    /// last night. One sent in an earlier week counts no workouts this
+    /// week, the rule `WidgetSnapshotBuilder` uses on the phone.
+    func forDisplay(at now: Date, calendar: Calendar = .current) -> WatchData {
         var copy = self
         if now.timeIntervalSince(lastUpdated) > Self.workoutStaleAfter {
             copy.workout = nil
@@ -381,7 +391,10 @@ struct WatchData: Codable, Equatable, Sendable {
         if let sleep = vitals?.sleep, now.timeIntervalSince(sleep.end) > Self.sleepStaleAfter {
             copy.vitals = vitals?.withoutSleep
         }
-        guard !Calendar.current.isDate(lastUpdated, inSameDayAs: now) else { return copy }
+        if !calendar.isDate(lastUpdated, equalTo: now, toGranularity: .weekOfYear) {
+            copy.training = training.map { WatchTrainingSnapshot(workoutsThisWeek: 0, lastWorkout: $0.lastWorkout) }
+        }
+        guard !calendar.isDate(lastUpdated, inSameDayAs: now) else { return copy }
         copy.todayEntries = []
         copy.completedToday = 0
         copy.totalToday = 0

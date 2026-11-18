@@ -87,6 +87,9 @@ struct BiomarkerListSection: View {
                         Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
                     }
                 }
+                // Both cards of a row take the taller one's height, so
+                // the glass edges line up.
+                .fixedSize(horizontal: false, vertical: true)
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 .staggeredAppear(index: index)
             }
@@ -100,6 +103,7 @@ struct BiomarkerListSection: View {
             snapshot: tileSnapshot,
             size: tileSize(for: biomarker),
             unit: dataStore.profile.bodyMetrics.unit,
+            healthConnected: dataStore.profile.healthConnected,
             onTap: { onSelectBiomarker?(tileSnapshot) },
             onResize: { onResize?(biomarker, $0) }
         )

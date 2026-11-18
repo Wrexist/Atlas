@@ -20,15 +20,18 @@ struct OfflineStartPage: View {
                         RoutineButton(routine: routine)
                             .entrance(min(index + 1, 4))
                     }
-                    Button {
-                        store.startOfflineWorkout(nil)
-                    } label: {
-                        Label("Quick workout", systemImage: "bolt.fill")
-                            .font(.system(.footnote, design: .rounded, weight: .semibold))
-                            .frame(maxWidth: .infinity)
+                    // Only with lifts to pick from, or it opens a blank picker.
+                    if !catalog.allLifts.isEmpty {
+                        Button {
+                            store.startOfflineWorkout(nil)
+                        } label: {
+                            Label("Quick workout", systemImage: "bolt.fill")
+                                .font(.system(.footnote, design: .rounded, weight: .semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .tint(WatchPalette.training)
+                        .entrance(min(catalog.routines.count + 1, 5))
                     }
-                    .tint(WatchPalette.training)
-                    .entrance(min(catalog.routines.count + 1, 5))
                 } else {
                     Text("Open Atlas on your iPhone once to bring your routines here.")
                         .font(.caption2)
@@ -116,19 +119,27 @@ struct OfflineLiftPicker: View {
 
     var body: some View {
         let unit = WatchWeightUnit(store.watchData.measurementUnit)
-        List(store.watchData.trainingCatalog?.allLifts ?? [], id: \.exerciseID) { lift in
-            Button {
-                store.addOfflineLift(lift)
-                dismiss()
-            } label: {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(lift.name)
-                        .font(.system(.body, design: .rounded))
-                        .lineLimit(2)
-                    Text("\(lift.sets) × \(lift.reps) · \(unit.format(lift.weightKg)) \(unit.symbol)")
-                        .font(.caption2)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+        let lifts = store.watchData.trainingCatalog?.allLifts ?? []
+        List {
+            if lifts.isEmpty {
+                Text("Log a workout on your iPhone to bring lifts here.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(lifts, id: \.exerciseID) { lift in
+                Button {
+                    store.addOfflineLift(lift)
+                    dismiss()
+                } label: {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(lift.name)
+                            .font(.system(.body, design: .rounded))
+                            .lineLimit(2)
+                        Text("\(lift.sets) × \(lift.reps) · \(unit.format(lift.weightKg)) \(unit.caption(for: lift.measurement))")
+                            .font(.caption2)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }

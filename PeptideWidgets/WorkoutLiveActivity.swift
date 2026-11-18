@@ -82,6 +82,7 @@ struct WorkoutLiveActivity: Widget {
             Image(systemName: WorkoutActivityStyle.glyph(for: context.state))
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(accent)
+                .accessibilityHidden(true)
         } compactTrailing: {
             if idle {
                 Text("Idle")
@@ -97,9 +98,12 @@ struct WorkoutLiveActivity: Widget {
                 )
             }
         } minimal: {
+            // The only element in this region, so it names the activity
+            // rather than reading out the symbol's name.
             Image(systemName: WorkoutActivityStyle.glyph(for: context.state))
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(accent)
+                .accessibilityLabel(Text("Workout"))
         }
         .widgetURL(WidgetDeepLink.train)
         .keylineTint(accent)
@@ -450,6 +454,7 @@ private struct IslandGlyph: View {
                 .foregroundStyle(accent)
         }
         .frame(width: 38, height: 38)
+        .accessibilityHidden(true)
     }
 }
 

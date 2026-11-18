@@ -80,6 +80,24 @@ enum DailyReminderScheduler {
         }
     }
 
+    /// The reminder kind a daily request was planned for; nil for
+    /// supplement reminders and every other namespace.
+    nonisolated static func kind(forRequestID id: String) -> DailyReminderKind? {
+        guard id.hasPrefix(NotificationService.dailyIDPrefix) else { return nil }
+        let rest = id.dropFirst(NotificationService.dailyIDPrefix.count)
+        return DailyReminderKind(rawValue: String(rest.prefix { $0 != "-" }))
+    }
+
+    /// Whether a daily reminder about to show while Atlas is open was
+    /// already done in the app. Logging a meal, weigh-in or workout does
+    /// not re-plan reminders until the next background or activation, so
+    /// the foreground banner checks again at delivery.
+    static func isAlreadyDone(requestID: String, on day: Date, dataStore: DataStore, calendar: Calendar = .current) -> Bool {
+        guard let reminderKind = Self.kind(forRequestID: requestID) else { return false }
+        let trainedDays = dataStore.workoutSummary(for: day).count > 0 ? [day] : []
+        return isAlreadyDone(reminderKind, day: day, profile: dataStore.profile, trainedDays: trainedDays, calendar: calendar)
+    }
+
     /// Whether `kind` is already logged on the day containing `day`, so
     /// its reminder would only nag: a weigh-in that day, a trained day,
     /// or a meal logged under that same category.

@@ -1,0 +1,36 @@
+name: Set up XcodeGen
+description: >
+  Install the pinned XcodeGen release and put it on PATH, so every lane
+  generates the project with the version PR Checks validated (B344).
+inputs:
+  version:
+    description: >
+      XcodeGen release. This default is the project's only pin: every lane,
+      PR Checks included, uses it, so bump it here.
+    required: false
+    default: "2.46.0"
+runs:
+  using: composite
+  steps:
+    - name: Cache XcodeGen
+      uses: actions/cache@v6
+      with:
+        path: ~/.ci-tools/xcodegen-${{ inputs.version }}
+        key: xcodegen-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}
+
+    - name: Install XcodeGen
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        DIR="$HOME/.ci-tools/xcodegen-$VERSION"
+        if [ ! -x "$DIR/xcodegen/bin/xcodegen" ]; then
+          mkdir -p "$DIR"
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${VERSION}/xcodegen.zip"
+          unzip -q -o "$RUNNER_TEMP/xcodegen.zip" -d "$DIR"
+        fi
+        # Only XcodeGen lives in this directory, so prepending it cannot
+        # shadow setup-ruby's Ruby the way Homebrew's bin did.
+        echo "$DIR/xcodegen/bin" >> "$GITHUB_PATH"
+        echo "XcodeGen $("$DIR/xcodegen/bin/xcodegen" --version)"

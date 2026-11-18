@@ -10,6 +10,8 @@ struct LatestTableCard: View {
     let onOpen: () -> Void
 
     private var store: TableMomentStore { TableMomentStore.shared }
+    /// Cut-outs decoded off the main thread by `loadStickers`.
+    @State private var stickers: [UUID: UIImage] = [:]
 
     var body: some View {
         Button(action: onOpen) {
@@ -55,6 +57,7 @@ struct LatestTableCard: View {
         .accessibilityHint("Opens the table.")
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("latest-table-card")
+        .task(id: dishes.map(\.id)) { stickers = await store.loadStickers(for: dishes) }
     }
 
     private var summary: String {
@@ -69,9 +72,10 @@ struct LatestTableCard: View {
         HStack(spacing: -Spacing.xl) {
             ForEach(Array(dishes.prefix(5).enumerated()), id: \.element.id) { index, dish in
                 Group {
-                    if let sticker = store.sticker(for: dish) {
+                    if let sticker = store.cachedSticker(for: dish) ?? stickers[dish.id] {
                         Image(uiImage: sticker)
                             .resizable()
+                            .accessibilityIgnoresInvertColors()
                             .scaledToFit()
                     } else {
                         Circle().fill(AppColor.surfaceSecondary)

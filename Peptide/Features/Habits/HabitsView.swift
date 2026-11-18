@@ -6,6 +6,7 @@ import SwiftUI
 struct HabitsView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The day the rows were built for; rolling it over rebuilds them so
     /// "done today" and the heatmap follow midnight.
     @State private var day = Calendar.current.startOfDay(for: .now)
@@ -84,11 +85,21 @@ struct HabitsView: View {
                                 onToggleToday: {
                                     dataStore.toggleHabitEntry(habitId: row.habit.id)
                                 },
+                                onRemoveOne: {
+                                    dataStore.removeOneHabitCount(habitId: row.habit.id)
+                                },
                                 onTap: {
                                     editing = .existing(row.habit)
                                 }
                             )
                             .contextMenu {
+                                if row.habit.isCountable && row.summary.todayValue > 0 {
+                                    Button {
+                                        dataStore.removeOneHabitCount(habitId: row.habit.id)
+                                    } label: {
+                                        Label("Remove one", systemImage: "minus.circle")
+                                    }
+                                }
                                 Button {
                                     editing = .existing(row.habit)
                                 } label: {
@@ -140,11 +151,15 @@ struct HabitsView: View {
                     Button {
                         editing = .new
                     } label: {
+                        // Weight and cap match the profile glyph beside it:
+                        // the toolbar doesn't grow past xxxLarge, so neither
+                        // does the plus; the large content viewer covers the rest.
                         Image(systemName: "plus")
-                            .font(AppFont.scaled(20, weight: .regular))
+                            .font(AppFont.scaled(16, weight: .semibold, in: min(dynamicTypeSize, .xxxLarge)))
                             .foregroundStyle(AppColor.textPrimary)
                     }
                     .accessibilityLabel("Add habit")
+                    .accessibilityShowsLargeContentViewer()
                 }
                 ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
             }
@@ -299,7 +314,7 @@ struct HabitsView: View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "snowflake")
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.macroWater)
+                .foregroundStyle(AppColor.accentPrimary)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Streak at risk")
                     .font(AppFont.subheadline.weight(.semibold))
@@ -321,21 +336,14 @@ struct HabitsView: View {
                     .foregroundStyle(AppColor.onAccent)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.sm)
-                    .background(Capsule().fill(AppColor.macroWater))
+                    .background(Capsule().fill(AppColor.macroWaterFill))
                     .minimumHitArea()
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
             .fixedSize()
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.macroWater.opacity(0.12))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .strokeBorder(AppColor.macroWater.opacity(0.35), lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Streak at risk. You missed yesterday. Use your monthly freeze to keep your streak.")
     }

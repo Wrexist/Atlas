@@ -109,11 +109,14 @@ struct MetricRing<Center: View>: View {
         let arc = Circle()
             .trim(from: 0, to: renderedProgress)
             .stroke(
+                // Shifted back by the round cap's width: the start cap
+                // reaches behind 0°, and an unshifted gradient paints it
+                // in the last stop's colour.
                 AngularGradient(
                     gradient: Gradient(colors: arcColors(closed: renderedProgress >= 1)),
                     center: .center,
-                    startAngle: .degrees(0),
-                    endAngle: .degrees(360)
+                    startAngle: .degrees(-capDegrees),
+                    endAngle: .degrees(360 - capDegrees)
                 ),
                 style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round)
             )
@@ -121,6 +124,11 @@ struct MetricRing<Center: View>: View {
             .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: renderedProgress)
 
         arc
+    }
+
+    /// The angle a round cap of `strokeWidth` spans on this ring.
+    private var capDegrees: Double {
+        RingGeometry.capDegrees(strokeWidth: strokeWidth, diameter: diameter)
     }
 
     /// A full ring's end cap lands on its start, so an open gradient shows
@@ -243,4 +251,14 @@ extension MetricRing where Center == EmptyView {
         }
     }
     .preferredColorScheme(.dark)
+}
+
+/// Geometry shared by the gradient rings.
+enum RingGeometry {
+    /// Degrees of arc a round cap covers on a ring of `diameter`: half the
+    /// stroke width, measured along the stroke's centre line.
+    static func capDegrees(strokeWidth: CGFloat, diameter: CGFloat) -> Double {
+        guard diameter > 0 else { return 0 }
+        return Double(strokeWidth / 2 / (.pi * diameter) * 360)
+    }
 }

@@ -40,6 +40,16 @@ final class DataStore {
     /// It's deliberately *not* `@ObservationIgnored` — that's the whole point.
     private(set) var revision: Int = 0
 
+    /// Bumps only when stored workout history may have changed (finish,
+    /// edit, delete, restore, a pull from another device). Views that
+    /// derive from the full history key their `.task(id:)` off this, not
+    /// `revision`, so logging a meal or a dose doesn't re-decode years of
+    /// workouts.
+    private(set) var trainingRevision: Int = 0
+
+    /// `finishedWorkoutHistory()`'s result for one `trainingRevision`.
+    @ObservationIgnored private var finishedHistoryCache: (revision: Int, sessions: [WorkoutSession])?
+
     /// Non-fatal banner message for the UI. Set when persistence falls back to
     /// in-memory storage so the user knows changes won't survive relaunch.
     var lastError: String?
@@ -67,6 +77,9 @@ final class DataStore {
     // streaks) so they invalidate on midnight rollover.
     @ObservationIgnored private var cacheVersion: Int = 0
     @ObservationIgnored private var versionedDay: Date = Calendar.current.startOfDay(for: Date())
+    /// The day `revision` last moved for a rollover. Separate from
+    /// `versionedDay`, which any read of a cached stat advances quietly.
+    @ObservationIgnored private var revisionDay: Date = Calendar.current.startOfDay(for: Date())
 
     /// When activation last pulled from HealthKit. A glance at Control
     /// Center or a Face ID prompt also re-activates the scene, and each
@@ -530,6 +543,7 @@ final class DataStore {
         entries.removeAll { $0.protocolId == id }
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
     }
 
     /// Returns true on success, false when activating would exceed
@@ -554,6 +568,7 @@ final class DataStore {
         }
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
         return true
     }
 
@@ -567,6 +582,7 @@ final class DataStore {
         protocols[index].cycleLengthWeeks = max(1, protocols[index].cycleLengthWeeks + weeks)
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
     }
 
     /// Starts a fresh cycle for an existing protocol — same compounds,
@@ -587,6 +603,7 @@ final class DataStore {
         appendTodayEntries(for: protocols[index])
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
         return true
     }
 
@@ -775,6 +792,36 @@ final class DataStore {
         toProtocolId protocolId: UUID,
         schedule: ProtocolSchedule? = nil
     ) -> Bool {
+        guard insertPeptide(peptide, toProtocolId: protocolId, schedule: schedule) else { return false }
+        commitPeptideAddition()
+        return true
+    }
+
+    /// Appends several peptides in one mutation, so the caller gets one
+    /// save, one reminder reschedule and one success haptic rather than
+    /// one per peptide. Returns how many were actually added.
+    @discardableResult
+    func addPeptides(_ peptides: [Peptide], toProtocolId protocolId: UUID) -> Int {
+        var added = 0
+        for peptide in peptides where insertPeptide(peptide, toProtocolId: protocolId, schedule: nil) {
+            added += 1
+        }
+        if added > 0 { commitPeptideAddition() }
+        return added
+    }
+
+    private func commitPeptideAddition() {
+        save()
+        rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
+        Haptics.success()
+    }
+
+    private func insertPeptide(
+        _ peptide: Peptide,
+        toProtocolId protocolId: UUID,
+        schedule: ProtocolSchedule?
+    ) -> Bool {
         guard let index = protocols.firstIndex(where: { $0.id == protocolId }) else { return false }
         if protocols[index].peptides.contains(where: { $0.id == peptide.id }) { return false }
 
@@ -800,10 +847,6 @@ final class DataStore {
             }
             entries.append(contentsOf: Self.todayEntries(for: peptide, in: updated))
         }
-
-        save()
-        rescheduleNotificationsIfEnabled()
-        Haptics.success()
         return true
     }
 
@@ -851,6 +894,7 @@ final class DataStore {
 
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
     }
 
     /// Regenerates today's entries for `proto` after a schedule change,
@@ -921,7 +965,7 @@ final class DataStore {
 
         save()
         rescheduleNotificationsIfEnabled()
-        Haptics.impact(.light)
+        reconcileDoseLiveActivities()
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {
@@ -1219,7 +1263,7 @@ final class DataStore {
         AdaptiveTDEEEngine.estimate(
             weights: dedupedWeightHistory,
             intake: Array(profile.dailyConsumption.values),
-            formulaTDEE: NutritionMath.formulaTDEE(for: profile.bodyMetrics),
+            formulaTDEE: NutritionMath.formulaTDEE(for: LifestyleDataLogic.currentBodyMetrics(profile, now: now)),
             asOf: now
         )
     }
@@ -1234,7 +1278,7 @@ final class DataStore {
             let estimate = expenditureEstimate(asOf: now),
             estimate.source == .adaptive,
             let next = NutritionMath.recommendedTargets(
-                for: profile.bodyMetrics,
+                for: LifestyleDataLogic.currentBodyMetrics(profile, now: now),
                 goalRaw: profile.primaryGoal,
                 maintenanceKcal: Double(estimate.kcal)
             ),
@@ -1277,6 +1321,11 @@ final class DataStore {
             await previous?.value
             await write()
         }
+    }
+
+    /// Body metrics at the latest weigh-in — what targets are sized from.
+    var currentBodyMetrics: BodyMetrics {
+        LifestyleDataLogic.currentBodyMetrics(profile)
     }
 
     /// Weight history with at-most-one entry per calendar day.
@@ -1350,8 +1399,10 @@ final class DataStore {
     func logMealEntry(_ entry: MealEntry) {
         LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
         save()
+        mirrorMealWater([entry])
         if HealthSyncSettings.isNutritionEnabled {
-            Task { await HealthKitService.shared.writeMealEntry(entry) }
+            // Queued, so a delete right after can't run before this lands.
+            enqueueMealHealthWrite { await HealthKitService.shared.writeMealEntry(entry) }
         }
     }
 
@@ -1385,6 +1436,7 @@ final class DataStore {
             LifestyleDataLogic.logMealEntry(into: &profile, entry: copy)
         }
         save()
+        mirrorMealWater(copies)
         if HealthSyncSettings.isNutritionEnabled {
             enqueueMealHealthWrite {
                 for copy in copies { await HealthKitService.shared.writeMealEntry(copy) }
@@ -1418,6 +1470,7 @@ final class DataStore {
         // Keep the established projection/achievement save path. It may save
         // other pending changes; the meals above already have durable storage.
         save()
+        mirrorMealWater(changed, removing: undo)
         if HealthSyncSettings.isNutritionEnabled && !isEphemeral {
             let previous = mealHealthWriteTask
             mealHealthWriteTask = Task {
@@ -1442,11 +1495,13 @@ final class DataStore {
     /// external UUID, new values written. No-op when the id isn't in
     /// history.
     func updateMealEntry(_ updated: MealEntry) {
-        guard profile.mealHistory.contains(where: { $0.id == updated.id }) else { return }
+        guard let previous = profile.mealHistory.first(where: { $0.id == updated.id }) else { return }
         LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
         save()
+        mirrorMealWater([previous], removing: true)
+        mirrorMealWater(profile.mealHistory.filter { $0.id == updated.id })
         if HealthSyncSettings.isNutritionEnabled {
-            Task {
+            enqueueMealHealthWrite {
                 await HealthKitService.shared.deleteSamples(forEntryID: updated.id)
                 await HealthKitService.shared.writeMealEntry(updated)
             }
@@ -1457,14 +1512,26 @@ final class DataStore {
     /// the day's aggregate. Used by every review screen's Undo button
     /// once it switches to the new logging path.
     func unlogMealEntry(id: UUID) {
+        let removed = profile.mealHistory.filter { $0.id == id }
         LifestyleDataLogic.unlogMealEntry(from: &profile, id: id)
         save()
+        mirrorMealWater(removed, removing: true)
         TableMomentStore.shared.removeDish(id: id)
         WeeklyPrepStore.shared.returnBox(forMeal: id)
         if HealthSyncSettings.isNutritionEnabled {
             // Queued behind pending writes, so an Undo right after a copy
             // can't delete before the copy's samples exist.
             enqueueMealHealthWrite { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+        }
+    }
+
+    /// Mirrors the water a drink entry carries to Health, the same way
+    /// a quick-add does; `removing` takes it back on delete and Undo.
+    private func mirrorMealWater(_ entries: [MealEntry], removing: Bool = false) {
+        for entry in entries {
+            guard let ml = entry.waterMillilitres, ml.isFinite, ml > 0 else { continue }
+            let ounces = LifestyleDataLogic.fluidOunces(millilitres: ml)
+            mirrorWaterToHealth(fluidOunces: removing ? -ounces : ounces, date: entry.date)
         }
     }
 
@@ -1598,9 +1665,24 @@ final class DataStore {
     /// by id. The list keeps a newest-first sort order so list
     /// views read without an extra sort pass.
     func saveLabValue(_ value: LabValue) {
+        let isNew = !profile.labHistory.contains { $0.id == value.id }
         LabDataLogic.saveLabValue(into: &profile, value: value)
+        if isNew { lastCreatedLabID = value.id }
         save()
     }
+
+    /// The lab entry most recently created here, as it now stands in
+    /// the profile. A new entry starts from its draw date and lab; an
+    /// edit to an older result never becomes that starting point, so
+    /// fixing a 2023 typo can't file today's value under 2023. Read
+    /// from `labHistory` so a reset, restore or sync that removes the
+    /// entry also stops it carrying over.
+    var lastCreatedLabValue: LabValue? {
+        guard let id = lastCreatedLabID else { return nil }
+        return profile.labHistory.first { $0.id == id }
+    }
+
+    private var lastCreatedLabID: UUID?
 
     /// Removes a lab entry by id. Idempotent — calling twice on
     /// the same id is a no-op the second time.
@@ -1685,31 +1767,11 @@ final class DataStore {
     /// stays off the common render path.
     var habitStreakAtRisk: Bool {
         guard streakFreezeAvailable else { return false }
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today),
-              let dayBefore = calendar.date(byAdding: .day, value: -2, to: today)
-        else { return false }
-        if StreakFreezeService.isFrozen(yesterday, in: profile) { return false }
-
-        let entries = profile.habitEntries
-        let frozen = profile.streakFreezeDays
-        return activeHabits.contains { habit in
-            guard habit.schedule.isDue(on: yesterday, calendar: calendar) else { return false }
-            let target = habit.targetValue ?? 1
-            let doneYesterday = entries.contains {
-                $0.habitId == habit.id
-                    && calendar.isDate($0.date, inSameDayAs: yesterday)
-                    && $0.value >= target
-            }
-            if doneYesterday { return false }
-            // Only prompt when there was a real streak (≥2) running into the
-            // gap, computed as of the day before yesterday.
-            let priorStreak = HabitsService.summary(
-                for: habit, entries: entries, frozenDayKeys: frozen, on: dayBefore
-            ).currentStreak
-            return priorStreak >= 2
-        }
+        return HabitsService.streakAtRisk(
+            habits: activeHabits,
+            entries: profile.habitEntries,
+            frozenDayKeys: profile.streakFreezeDays
+        )
     }
 
     // MARK: - Recipes
@@ -1949,6 +2011,24 @@ final class DataStore {
         recordWorkoutFinished(detectedPRCount: 0)
     }
 
+    /// Every finished workout, newest first, decoded once per
+    /// `trainingRevision` rather than on every Train-tab appear.
+    func finishedWorkoutHistory() -> [WorkoutSession] {
+        if let finishedHistoryCache, finishedHistoryCache.revision == trainingRevision {
+            return finishedHistoryCache.sessions
+        }
+        let sessions = TrainOverviewView.finishedHistory(repo.loadAllWorkoutSessions())
+        finishedHistoryCache = (trainingRevision, sessions)
+        return sessions
+    }
+
+    /// Call after any write to stored workout sessions that bypasses the
+    /// `protocols` / `entries` / `profile` observers.
+    func workoutHistoryDidChange() {
+        revision &+= 1
+        trainingRevision &+= 1
+    }
+
     /// Deletes a workout by ID from the structured store. Same plumbing
     /// as `WorkoutSessionService.discardWorkout` for the active path —
     /// here it targets the historical row directly.
@@ -1971,7 +2051,7 @@ final class DataStore {
         // Same reason as `recordWorkoutFinished`: a repo-level write is
         // invisible to the property observers, so derived snapshots need
         // telling explicitly or a deleted workout lingers on Today.
-        revision &+= 1
+        workoutHistoryDidChange()
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
@@ -1993,7 +2073,7 @@ final class DataStore {
         // until some unrelated mutation happened to bump it. Bumped before
         // the ephemeral guard: screenshot mode still has to redraw.
         cacheVersion &+= 1
-        revision &+= 1
+        workoutHistoryDidChange()
         guard !isEphemeral, !AchievementService.shared.needsSilentSeed else { return }
         AchievementService.shared.checkTrainingAchievements(
             workoutCount: repo.workoutSessionCount(),
@@ -2062,7 +2142,7 @@ final class DataStore {
         PRDetectionEngine.shared.recompute(exerciseIDs: exerciseIDs)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
-        revision &+= 1
+        workoutHistoryDidChange()
         refreshTrainingGlanceables()
     }
 
@@ -2178,8 +2258,7 @@ final class DataStore {
 
     // MARK: - Habits
 
-    /// All non-archived habits, ordered by their `sortIndex` so the
-    /// user's drag-to-reorder order survives a relaunch.
+    /// All non-archived habits, ordered by their `sortIndex`.
     var activeHabits: [Habit] {
         profile.habits
             .filter { !$0.archived }
@@ -2189,8 +2268,7 @@ final class DataStore {
     func addHabit(_ habit: Habit) {
         var copy = habit
         if copy.sortIndex == 0 {
-            // Append to the bottom by default — drag-reorder writes
-            // a fresh index later.
+            // Append to the bottom by default.
             copy.sortIndex = (profile.habits.map(\.sortIndex).max() ?? 0) + 1
         }
         profile.habits.append(copy)
@@ -2213,15 +2291,6 @@ final class DataStore {
         profile.habitEntries.removeAll { $0.habitId == id }
         save()
         Task { await rescheduleHabitReminders() }
-    }
-
-    func reorderHabits(_ ordered: [Habit]) {
-        for (index, habit) in ordered.enumerated() {
-            if let i = profile.habits.firstIndex(where: { $0.id == habit.id }) {
-                profile.habits[i].sortIndex = index
-            }
-        }
-        save()
     }
 
     /// Toggle today's completion for a boolean habit, or bump the
@@ -2269,6 +2338,17 @@ final class DataStore {
         registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
         // Ticking a habit off drops today's reminder; un-ticking restores it.
         Task { await rescheduleHabitReminders() }
+    }
+
+    /// Takes one off a countable habit's count for the day, so an
+    /// over-tap can be corrected without the tap-past-target reset to zero.
+    func removeOneHabitCount(habitId: UUID, on date: Date = Date()) {
+        let current = profile.habitEntries
+            .filter { $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: date) }
+            .map(\.value)
+            .max() ?? 0
+        guard current > 0 else { return }
+        setHabitEntry(habitId: habitId, date: date, value: current - 1)
     }
 
     /// Set the exact value for a given day. Use for countable habits
@@ -2352,10 +2432,11 @@ final class DataStore {
         return MomentumEngine.snapshot(score: profile.atlasScore, todayEarned: earnedToday)
     }
 
-    /// Best all-time streak across active habits — feeds the habit-streak
+    /// Best all-time day streak across active habits — feeds the habit-streak
     /// achievements (which unlock once, so the all-time best is what counts).
+    /// Weekly habits count weeks, so they stay out of this day count.
     var bestHabitStreak: Int {
-        activeHabits.reduce(0) { best, habit in
+        activeHabits.filter { !$0.schedule.countsStreakInWeeks }.reduce(0) { best, habit in
             max(best, HabitsService.summary(for: habit, entries: profile.habitEntries, frozenDayKeys: profile.streakFreezeDays).bestStreak)
         }
     }
@@ -2883,7 +2964,7 @@ final class DataStore {
             activeWorkout: WorkoutSessionService.shared.activeSession,
             unit: profile.bodyMetrics.unit
         )
-        if let lastWidgetData, data.hasSameContent(as: lastWidgetData) { return }
+        if let lastWidgetData, data.isRedundant(after: lastWidgetData) { return }
         // Remembered only once written: a failed write must not make the
         // next identical payload look like a no-op.
         guard PersistenceService.shared.updateWidgetData(data) else { return }
@@ -3041,11 +3122,10 @@ final class DataStore {
             bestHabitStreak: self.bestHabitStreak,
             totalCompletions: self.totalHabitCompletions,
             perfectDayToday: self.allHabitsDoneToday(),
-            perfectWeek: (HabitsService.completionRate(
+            perfectWeek: HabitsService.isPerfectWeek(
                 habits: self.activeHabits,
-                entries: self.profile.habitEntries,
-                days: 7
-            ) ?? 0) >= 1.0
+                entries: self.profile.habitEntries
+            )
         )
     }
 
@@ -3070,8 +3150,15 @@ final class DataStore {
 
     /// Called when the app becomes active. Detects calendar-day changes since the
     /// last check and regenerates today's entries when needed. Idempotent.
-    func handleAppActivation() {
+    func handleAppActivation(now: Date = Date()) {
         bumpVersionIfDayChanged()
+        // Views keyed on `revision` ("Workout logged today") must redraw
+        // the morning after even when nothing else changed.
+        let today = Calendar.current.startOfDay(for: now)
+        if today != revisionDay {
+            revisionDay = today
+            revision &+= 1
+        }
         // Flip any `.active` protocols past the soft auto-complete
         // threshold to `.completed`. Runs BEFORE regenerateTodayEntries
         // so the just-completed cycles don't produce another day of
@@ -3123,6 +3210,8 @@ final class DataStore {
     /// returns nil for that resource. Replaces unsaved in-memory edits;
     /// user-triggered refreshes go through `refreshFromStore`.
     func reloadFromDisk() {
+        // A pull can bring workouts finished, edited or deleted elsewhere.
+        workoutHistoryDidChange()
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
         // full-table decode would jank the refresh gesture), the tail
@@ -3289,7 +3378,7 @@ final class DataStore {
             // didSet bumps, same as recordWorkoutFinished — bump so
             // Train/Today snapshots recompute against the restored data.
             cacheVersion &+= 1
-            revision &+= 1
+            workoutHistoryDidChange()
         }
 
         // A failed commit leaves the restored state dirty in memory, so
@@ -3312,7 +3401,17 @@ final class DataStore {
 
         regenerateTodayEntries()
         refreshTrainingGlanceables()
-        rescheduleNotificationsIfEnabled()
+        // A restore with reminders off must still clear the weekly dose
+        // requests scheduled before it, including wiped protocols'.
+        if profile.doseRemindersEnabled {
+            NotificationService.shared.scheduleNotifications(for: activeProtocols, loggedSlots: loggedDoseSlots)
+        } else {
+            NotificationService.shared.cancelProtocolReminders()
+        }
+        Task {
+            await DailyReminderScheduler.reconcile(dataStore: self)
+            await rescheduleHabitReminders()
+        }
     }
 
     // MARK: - Entry Generation

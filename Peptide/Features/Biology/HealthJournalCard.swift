@@ -140,12 +140,15 @@ extension HealthJournalEntry.Mood {
         }
     }
 
+    /// Red through amber and grey to green. `good` is a yellow-green between
+    /// `okay` and `great`: it was the sleep gold, which sat 1.1:1 from
+    /// `low`'s amber and made a good day look like a bad one.
     var tint: Color {
         switch self {
         case .awful: AppColor.negative
         case .low:   AppColor.warning
         case .okay:  AppColor.textSecondary
-        case .good:  AppColor.metricSleep
+        case .good:  AppColor.positive.mix(with: AppColor.warning, by: 0.35)
         case .great: AppColor.positive
         }
     }

@@ -93,9 +93,9 @@ struct SleepInsightsSection: View {
 
     private func stages(_ shares: SleepInsightsEngine.StageShares) -> some View {
         let parts: [(LocalizedStringKey, Double, Color)] = [
-            ("Deep sleep", shares.deep, AppColor.metricHRV),
-            ("Core sleep", shares.core, AppColor.accentLight),
-            ("REM sleep", shares.rem, AppColor.metricSleep),
+            ("Deep sleep", shares.deep, AppColor.sleepDeep),
+            ("Core sleep", shares.core, AppColor.sleepCore),
+            ("REM sleep", shares.rem, AppColor.sleepREM),
         ]
         return VStack(alignment: .leading, spacing: Spacing.sm) {
             GeometryReader { proxy in
@@ -181,7 +181,7 @@ struct SleepInsightsSection: View {
             Text("Wrist temperature")
                 .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.textPrimary)
-            Text("Last night vs your baseline")
+            Text(deviation.isLastNight ? "Last night vs your baseline" : "Night before last vs your baseline")
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
         }
@@ -256,8 +256,7 @@ struct SleepInsightsSection: View {
     }
 
     private static func time(_ minutesAfterMidnight: Double) -> String {
-        let start = Calendar.current.startOfDay(for: .now)
-        return start.addingTimeInterval(minutesAfterMidnight.rounded() * 60)
+        SleepInsightsEngine.clockTime(minutesAfterMidnight: minutesAfterMidnight, on: .now, calendar: .current)
             .formatted(date: .omitted, time: .shortened)
     }
 

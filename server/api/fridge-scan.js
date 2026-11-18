@@ -22,7 +22,8 @@ export default async function handler(req, res) {
     requireJson: true,
     // A whole fridge costs one of the free weekly scans, like a table.
     scanSucceeded: isFridgeScanHit,
-    // A packed fridge is a long list; vercel.json's maxDuration covers this.
-    timeoutMs: 55_000,
+    // A packed fridge is a long list; kept a few seconds under
+    // vercel.json's 60 s maxDuration (see MIN_UPSTREAM_MS).
+    timeoutMs: 52_000,
   });
 }

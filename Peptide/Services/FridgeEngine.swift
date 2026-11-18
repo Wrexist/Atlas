@@ -46,6 +46,19 @@ enum FridgeEngine {
         return calendar.date(byAdding: .day, value: shelfDays, to: calendar.startOfDay(for: day))
     }
 
+    /// How a use-by day is stored: its noon, so the same calendar day is
+    /// read back after a time-zone change of up to eleven hours either way.
+    /// Compare stored days with `calendar.startOfDay(for:)`.
+    static func storedDay(_ day: Date, calendar: Calendar) -> Date {
+        calendar.date(bySettingHour: 12, minute: 0, second: 0, of: calendar.startOfDay(for: day)) ?? day
+    }
+
+    /// A use-by day saved before days were stored at noon: the midnight it
+    /// was saved at, possibly read in another zone, moved to its day's noon.
+    static func migratedDay(_ midnight: Date, calendar: Calendar) -> Date {
+        storedDay(midnight.addingTimeInterval(12 * 60 * 60), calendar: calendar)
+    }
+
     /// A cautious guess for a product with no printed date: fresh meat
     /// and fish keep a few days, dairy about a week, the freezer months.
     /// Cupboard goods and anything unrecognised get no date rather than

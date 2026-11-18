@@ -68,6 +68,8 @@ struct HomeView: View {
     @State private var quickLogAction: QuickLogAction?
     @State private var showWeightSheet = false
     @State private var showSupplements = false
+    /// The check-in sheet, for a tap whose Wellness section is hidden.
+    @State private var showCheckIn = false
     /// Bevel-style hero metric trio snapshot. Loaded async on first
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
@@ -238,7 +240,8 @@ struct HomeView: View {
             on: day
         )
         let weekSessions = finishedWorkoutSessionsThisWeek()
-        let daySessions = finishedWorkoutSessions(on: day, thisWeek: weekSessions)
+        let shownDay = finishedSessions(on: day, thisWeek: weekSessions)
+        let daySessions = shownDay.day
         let workoutSummary = (
             count: daySessions.count,
             // Sum seconds, then round once: per-session integer minutes
@@ -263,6 +266,7 @@ struct HomeView: View {
                 profile: dataStore.profile,
                 consumption: dataStore.consumption(for: day),
                 trainedToday: workoutSummary.count > 0,
+                weekSessionCount: shownDay.weekCount,
                 steps: steps(on: day),
                 now: reference
             ),
@@ -306,13 +310,18 @@ struct HomeView: View {
         return StepGoalEngine.steps(on: day, from: stepBuckets)
     }
 
-    /// Fetches the step window for the shown day and folds the count
-    /// into the checklist without rebuilding the rest of Today.
-    private func refreshSteps() async {
-        if dataStore.profile.healthConnected {
-            stepBuckets = await HealthKitService.shared.dailySteps(days: StepGoalEngine.fetchDays(forDayOffset: dayOffset))
-        } else {
+    /// Fetches the step window and folds the shown day's count into the
+    /// checklist without rebuilding the rest of Today. `recentOnly` re-reads
+    /// just the last couple of days — the live tick, where older days
+    /// can't have moved.
+    private func refreshSteps(recentOnly: Bool = false) async {
+        if !dataStore.profile.healthConnected {
             stepBuckets = []
+        } else if recentOnly {
+            let recent = await HealthKitService.shared.dailySteps(days: StepGoalEngine.recentFetchDays)
+            stepBuckets = StepGoalEngine.merging(recent: recent, into: stepBuckets, now: Date())
+        } else {
+            stepBuckets = await HealthKitService.shared.dailySteps(days: StepGoalEngine.fetchDays)
         }
         let count = steps(on: selectedDay)
         guard derived.checklist?.steps != count else { return }
@@ -328,17 +337,26 @@ struct HomeView: View {
             .filter { !$0.isActive }
     }
 
-    /// The shown day's finished sessions. A day in the current week reuses
-    /// the week fetch; an earlier day reads its own midnight-to-midnight
-    /// window.
-    private func finishedWorkoutSessions(on day: Date, thisWeek weekSessions: [WorkoutSession]) -> [WorkoutSession] {
+    /// The shown day's finished sessions, and how many finished sessions
+    /// its week holds up to the end of that day — what the checklist's
+    /// weekly-target rule counts. The current week reuses the week fetch;
+    /// an earlier week reads its week-through-day window once and derives
+    /// both from it.
+    private func finishedSessions(
+        on day: Date,
+        thisWeek weekSessions: [WorkoutSession]
+    ) -> (day: [WorkoutSession], weekCount: Int) {
         let calendar = Calendar.current
-        if let week = calendar.dateInterval(of: .weekOfYear, for: Date()), week.contains(day) {
-            return weekSessions.filter { calendar.isDate($0.dayAnchor, inSameDayAs: day) }
-        }
-        return SwiftDataRepository.shared
-            .loadWorkoutSessions(startedBetween: TodayDayEngine.dayRange(for: day))
-            .filter { !$0.isActive }
+        guard let week = calendar.dateInterval(of: .weekOfYear, for: day) else { return ([], 0) }
+        let end = min(week.end, TodayDayEngine.dayRange(for: day).upperBound)
+        let isCurrentWeek = calendar.dateInterval(of: .weekOfYear, for: Date())?.contains(day) ?? false
+        let throughDay = isCurrentWeek
+            ? weekSessions.filter { $0.dayAnchor < end }
+            : SwiftDataRepository.shared
+                .loadWorkoutSessions(startedBetween: week.start..<end)
+                .filter { !$0.isActive }
+        let daySessions = throughDay.filter { calendar.isDate($0.dayAnchor, inSameDayAs: day) }
+        return (daySessions, throughDay.count)
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
@@ -349,8 +367,8 @@ struct HomeView: View {
         notificationService.lastReport.hasAnyIssue && !notificationBannerDismissed
     }
 
-    /// Gates the doses section, so a coaching action never scrolls to a
-    /// section that isn't rendered.
+    /// Gates the doses section; `rendersAnchor` reads it too, so a
+    /// coaching action never scrolls to a section that isn't rendered.
     private var showsDoseSection: Bool {
         !dataStore.protocols.isEmpty && derived.plan != nil
     }
@@ -449,9 +467,10 @@ struct HomeView: View {
 
                     // The user's arrangement of Today. The default order
                     // reads status → recommendation → action → analysis
-                    // (Product Architecture 07).
-                    ForEach(dataStore.profile.todayLayout.visibleSections) { section in
-                        todaySection(section, proxy: proxy)
+                    // (Product Architecture 07). Entrance stagger follows
+                    // that order, after the header and day switcher.
+                    ForEach(Array(dataStore.profile.todayLayout.visibleSections.enumerated()), id: \.element.id) { offset, section in
+                        todaySection(section, appearIndex: 2 + offset, proxy: proxy)
                     }
 
                     customizeTodayButton
@@ -512,7 +531,7 @@ struct HomeView: View {
             }
             // One save per editing session rather than one per drag.
             .sheet(isPresented: $showEditToday, onDismiss: { dataStore.persistProfile() }) {
-                EditTodaySheet(layout: todayLayoutBinding)
+                EditTodaySheet(layout: todayLayoutBinding, note: editTodayNote)
                     .liquidGlassPresentation()
             }
             // Stack-warning / stack-adjustment / paywall sheets
@@ -523,7 +542,7 @@ struct HomeView: View {
             .sheet(isPresented: $showTargetsEditor) {
                 NutritionTargetsEditor(
                     initial: dataStore.profile.nutritionTargets ?? .zero,
-                    bodyMetrics: dataStore.profile.bodyMetrics,
+                    bodyMetrics: dataStore.currentBodyMetrics,
                     goalRaw: dataStore.profile.primaryGoal,
                     expenditure: dataStore.expenditureEstimate(),
                     onSave: { targets in
@@ -657,7 +676,7 @@ struct HomeView: View {
                 while dayOffset == 0, !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(StepGoalEngine.liveRefreshSeconds))
                     guard !Task.isCancelled, scenePhase == .active else { continue }
-                    await refreshSteps()
+                    await refreshSteps(recentOnly: true)
                 }
             }
             .onChange(of: scenePhase) { _, phase in
@@ -744,12 +763,14 @@ struct HomeView: View {
                         recoveryComponents: heroSnapshot.recoveryComponents,
                         lastSleepHours: heroSnapshot.lastSleepHours
                     ),
-                    onLogDose: { entry in selectedEntry = entry }
+                    onLogDose: { entry in selectedEntry = entry },
+                    onConnectHealth: connectHealth
                 )
                 .environment(dataStore)
                 .environment(appState)
                 .liquidGlassPresentation()
             }
+            .dailyCheckInSheet(isPresented: $showCheckIn)
             .sheet(isPresented: $showWeightSheet) {
                 LogWeightSheet()
                     .environment(dataStore)
@@ -783,20 +804,20 @@ struct HomeView: View {
     /// A section renders when the browsed day has something for it —
     /// live, today-only sections drop out on a past day.
     @ViewBuilder
-    private func todaySection(_ section: TodaySection, proxy: ScrollViewProxy) -> some View {
+    private func todaySection(_ section: TodaySection, appearIndex: Int, proxy: ScrollViewProxy) -> some View {
         if shows(section.dayEngineSection) {
-            todaySectionContent(section, proxy: proxy)
+            todaySectionContent(section, appearIndex: appearIndex, proxy: proxy)
         }
     }
 
     @ViewBuilder
-    private func todaySectionContent(_ section: TodaySection, proxy: ScrollViewProxy) -> some View {
+    private func todaySectionContent(_ section: TodaySection, appearIndex: Int, proxy: ScrollViewProxy) -> some View {
         switch section {
-        case .atAGlance: atAGlanceSection
-        case .coaching: coachingSection(proxy: proxy)
-        case .weeklyRecap: weeklyRecapSection
-        case .habits: habitsSection
-        case .checklist: checklistSection
+        case .atAGlance: atAGlanceSection(appearIndex: appearIndex)
+        case .coaching: coachingSection(appearIndex: appearIndex, proxy: proxy)
+        case .weeklyRecap: weeklyRecapSection(appearIndex: appearIndex)
+        case .habits: habitsSection(appearIndex: appearIndex)
+        case .checklist: checklistSection(appearIndex: appearIndex)
         case .doses: dosesSection
         case .wellness: wellnessSection
         case .movement: movementSection
@@ -814,7 +835,7 @@ struct HomeView: View {
     /// zeros read as failure (roadmap day-0). They lead with the habit
     /// hero; the trio's footer offers Connect Health.
     @ViewBuilder
-    private var atAGlanceSection: some View {
+    private func atAGlanceSection(appearIndex: Int) -> some View {
         if showsAtAGlance {
             VStack(spacing: Spacing.sm) {
                 HomeSectionHeader(title: "At a glance")
@@ -837,7 +858,7 @@ struct HomeView: View {
                     isLoading: isHeroLoading
                 )
             }
-            .sectionAppear(index: 2)
+            .sectionAppear(index: appearIndex)
         }
     }
 
@@ -848,7 +869,7 @@ struct HomeView: View {
     /// sleep, cap intensity") — just reconciled across more signals
     /// than coaching alone used to see.
     @ViewBuilder
-    private func coachingSection(proxy: ScrollViewProxy) -> some View {
+    private func coachingSection(appearIndex: Int, proxy: ScrollViewProxy) -> some View {
         if let reason = derived.primaryReason {
             // Keyed on the title so a new recommendation
             // cross-fades in rather than swapping text in place.
@@ -859,7 +880,7 @@ struct HomeView: View {
             )
                 .id(reason.message.title)
                 .transition(.opacity.combined(with: .scale(0.98)))
-                .sectionAppear(index: 3)
+                .sectionAppear(index: appearIndex)
                 .task(id: derived.coachingFacts) {
                     if let facts = derived.coachingFacts { await summaryService.prepare(facts) }
                 }
@@ -867,7 +888,7 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private var weeklyRecapSection: some View {
+    private func weeklyRecapSection(appearIndex: Int) -> some View {
         if let weeklyState = weeklySummaryState,
            WeeklySummaryService.shared.isAvailable(profile: dataStore.profile),
            shouldShowWeeklyRecapOnToday {
@@ -880,7 +901,7 @@ struct HomeView: View {
                 },
                 onRetry: { Task { await loadWeeklySummary(forceRefresh: true) } }
             )
-            .sectionAppear(index: 3)
+            .sectionAppear(index: appearIndex)
         }
         if let weeklyCheckIn, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
             WeeklyCheckInCard(
@@ -889,7 +910,7 @@ struct HomeView: View {
                 onLogWeight: { showWeightSheet = true }
             )
             .transition(.opacity.combined(with: .scale(0.98)))
-            .sectionAppear(index: 3)
+            .sectionAppear(index: appearIndex)
         }
     }
 
@@ -899,10 +920,10 @@ struct HomeView: View {
     /// A past day drops the empty-state CTA — there's nothing to record
     /// for a day before any habit.
     @ViewBuilder
-    private var habitsSection: some View {
+    private func habitsSection(appearIndex: Int) -> some View {
         if isViewingToday || !dataStore.activeHabits.isEmpty {
             TodayHabitsHero(snapshot: derived.habits, day: isViewingToday ? nil : selectedDay)
-                .sectionAppear(index: 4)
+                .sectionAppear(index: appearIndex)
                 .id(TodaySection.habits)
         }
     }
@@ -911,7 +932,7 @@ struct HomeView: View {
     /// shortcut that closes it. A past day gets the record without the
     /// shortcuts.
     @ViewBuilder
-    private var checklistSection: some View {
+    private func checklistSection(appearIndex: Int) -> some View {
         if let checklist = derived.checklist {
             TodayChecklistCard(
                 state: checklist,
@@ -922,7 +943,7 @@ struct HomeView: View {
                 onToggleSupplement: supplementToggle,
                 onManageSupplements: supplementManager
             )
-            .sectionAppear(index: 5)
+            .sectionAppear(index: appearIndex)
         }
     }
 
@@ -1104,6 +1125,32 @@ struct HomeView: View {
             .scrollReveal()
     }
 
+    /// Edit Today's line under a section that renders nothing for this
+    /// user yet, naming what it waits for.
+    private func editTodayNote(_ section: TodaySection) -> String? {
+        let health = dataStore.profile.healthConnected
+        switch section {
+        case .atAGlance where !showsAtAGlance:
+            return String(localized: "Shows once you connect Apple Health or log a workout")
+        case .doses where !showsDoseSection:
+            return String(localized: "Shows once you add a protocol")
+        case .steps where !health || stepBuckets.isEmpty:
+            return String(localized: "Needs step data from Apple Health")
+        case .weeklyRecap where !StoreService.shared.canAccessAIFeatures:
+            return String(localized: "Needs Atlas Pro")
+        case .weeklyRecap where !WeeklySummaryService.shared.isAvailable(profile: dataStore.profile):
+            return String(localized: "Turn on Weekly recap in Profile")
+        case .timeline where derived.timeline.isEmpty:
+            return String(localized: "Shows once you log a meal, check-in or workout")
+        case .healthMonitor where !health:
+            return String(localized: "Needs Apple Health")
+        case .healthMonitor where healthRange.hrv == nil && healthRange.rhr == nil && healthRange.sleep == nil:
+            return String(localized: "Shows after a week of Apple Health data")
+        default:
+            return nil
+        }
+    }
+
     /// Opens "Edit Today". Sits at the end of the scroll — the place a
     /// user who wants a different Today has just reached. Until it's
     /// first tapped, a line above it says where the sections that now
@@ -1121,7 +1168,7 @@ struct HomeView: View {
                 hasOpenedEditToday = true
                 showEditToday = true
             } label: {
-                Label("Customize Today", systemImage: "slider.horizontal.3")
+                Label("Edit Today", systemImage: "slider.horizontal.3")
                     .font(AppFont.chipText)
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.horizontal, Spacing.lg)
@@ -1157,13 +1204,41 @@ struct HomeView: View {
             connectHealth()
         case .scrollToHabits:
             Haptics.impact(.light)
-            AppAnimation.with(AppAnimation.settle) {
-                proxy.scrollTo(TodaySection.habits, anchor: .top)
-            }
+            show(.habits, proxy: proxy)
         case .scrollToDoses:
             Haptics.impact(.light)
-            scroll(to: .doses, proxy: proxy)
+            show(.doses, proxy: proxy)
         }
+    }
+
+    /// Scrolls to `section` when Today renders it. Edit Today can hide
+    /// any of them, and then there's no anchor to scroll to, so the tap
+    /// opens the same content where it lives instead.
+    private func show(_ section: TodaySection, proxy: ScrollViewProxy) {
+        if rendersAnchor(section) {
+            scroll(to: section, proxy: proxy)
+            return
+        }
+        switch section {
+        case .habits:
+            appState.selectedTab = .habits
+        case .doses:
+            appState.pendingProtocolList = true
+            appState.showLibrary = true
+        case .wellness:
+            showCheckIn = true
+        default:
+            break
+        }
+    }
+
+    /// Whether `section`'s `.id` anchor is in the scroll: on in the
+    /// user's layout, showing for the shown day, and — for doses — with
+    /// a plan to show.
+    private func rendersAnchor(_ section: TodaySection) -> Bool {
+        guard dataStore.profile.todayLayout.visibleSections.contains(section),
+              shows(section.dayEngineSection) else { return false }
+        return section != .doses || showsDoseSection
     }
 
     private func backToToday() {
@@ -1200,7 +1275,7 @@ struct HomeView: View {
         case .mealStreak:
             appState.selectedTab = .meals
         case .checkIn:
-            scroll(to: .wellness, proxy: proxy)
+            show(.wellness, proxy: proxy)
         case .water:
             logWaterGlass()
         }
@@ -1214,7 +1289,7 @@ struct HomeView: View {
         case .workout:
             appState.selectedTab = .train
         case .checkIn:
-            scroll(to: .wellness, proxy: proxy)
+            show(.wellness, proxy: proxy)
         }
     }
 
@@ -1571,7 +1646,7 @@ struct HomeView: View {
 
     /// Honours the `peptidex://weekly/current` deep-link. Sets the
     /// detail-push target to the most recent cached summary, or
-    /// triggers a generation if nothing is cached yet.
+    /// generates one first if nothing is cached yet.
     private func consumeWeeklyDeepLink() {
         guard appState.pendingWeeklyRecap else { return }
         appState.pendingWeeklyRecap = false
@@ -1582,7 +1657,12 @@ struct HomeView: View {
         if let latest {
             detailWeekStart = latest.weekStart
         } else {
-            Task { await loadWeeklySummary(forceRefresh: true) }
+            // Nothing cached yet: generate it, then open what was tapped.
+            Task {
+                guard await loadWeeklySummary(forceRefresh: true) != nil,
+                      case .ready(let summary) = weeklySummaryState else { return }
+                detailWeekStart = summary.weekStart
+            }
         }
     }
 

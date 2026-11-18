@@ -58,8 +58,7 @@ struct BiologyView: View {
                     if case .locked? = resolved?.state {
                         PremiumPromoCard(
                             eyebrow: "ATLAS PRO",
-                            title: "See your Biological Age",
-                            subtitle: "Track how you're aging and discover which habits move your Biological Age.",
+                            title: "See how your habits move the number.",
                             ctaLabel: "Unlock",
                             qualifier: "Available for users 18+",
                             onTap: { presentPaywall() }
@@ -95,6 +94,7 @@ struct BiologyView: View {
                         icon: "cross.vial.fill",
                         title: "Labs",
                         subtitle: labsSubtitle,
+                        surface: .card,
                         action: openLabs
                     )
                     .accessibilityHint("Opens your blood-work results")
@@ -191,6 +191,9 @@ struct BiologyView: View {
         .task(id: SleepKey(reloadID: reloadID, healthConnected: dataStore.profile.healthConnected)) {
             let next = await SleepInsightsSection.load()
             let temperature = await SleepInsightsSection.loadWristTemperature()
+            // HealthKit reads don't stop on cancellation; a superseded run
+            // must not land after the newer one.
+            guard !Task.isCancelled else { return }
             AppAnimation.with(AppAnimation.springSmooth) {
                 sleepInsights = next
                 wristTemperature = temperature

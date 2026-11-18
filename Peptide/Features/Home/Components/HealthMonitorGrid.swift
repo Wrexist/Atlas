@@ -52,7 +52,7 @@ struct HealthMonitorGrid: View {
     var body: some View {
         if hasAnyCard {
             VStack(spacing: Spacing.sm) {
-                HomeSectionHeader(title: "Health Monitor")
+                HomeSectionHeader(title: "Health monitor")
 
                 ForEach(rows, id: \.first?.id) { row in
                     HStack(spacing: Spacing.sm) {

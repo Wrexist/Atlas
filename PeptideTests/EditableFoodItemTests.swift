@@ -143,6 +143,50 @@ final class EditableFoodItemTests: XCTestCase {
         XCTAssertEqual(item.servingLabel, "2 slices")
     }
 
+    func test_portionControlsAfterReplace_useReplacementServing() {
+        var scan = scanned(confidence: 0.9, grams: 250)
+        scan.portionOptions = [FoodPortionOption(label: "1 bowl", grams: 250)]
+        var item = EditableFoodItem(from: scan)
+        item.replace(with: crispbread(servingGrams: 40))
+        XCTAssertEqual(item.oneServingGrams, 40)
+        item.grams = 80
+        XCTAssertEqual(item.servings, 2, accuracy: 0.0001)
+        XCTAssertTrue(item.activePortionOptions.isEmpty)
+    }
+
+    func test_replacementWithoutServing_usesOneHundredGrams() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 250))
+        item.replace(with: crispbread(servingGrams: nil))
+        XCTAssertEqual(item.oneServingGrams, 100)
+    }
+
+    func test_resetNutrition_restoresServingsModeAndScannerOptions() {
+        var scan = scanned(confidence: 0.9, grams: 250)
+        scan.portionOptions = [FoodPortionOption(label: "1 bowl", grams: 250)]
+        var item = EditableFoodItem(from: scan)
+        item.replace(with: crispbread(servingGrams: 40))
+        XCTAssertEqual(item.portionMode, .grams)
+        item.resetNutrition()
+        XCTAssertEqual(item.portionMode, .serving)
+        XCTAssertEqual(item.oneServingGrams, 250)
+        XCTAssertEqual(item.activePortionOptions.map(\.label), ["1 bowl"])
+    }
+
+    func test_oneTickedItem_isNotCombinedUnderTheDishName() {
+        XCTAssertFalse(MealScanFlow.combinesIntoOneEntry(logAsOneMeal: true, includedCount: 1))
+        XCTAssertTrue(MealScanFlow.combinesIntoOneEntry(logAsOneMeal: true, includedCount: 2))
+        XCTAssertFalse(MealScanFlow.combinesIntoOneEntry(logAsOneMeal: false, includedCount: 3))
+    }
+
+    private func crispbread(servingGrams: Double?) -> ScannedProduct {
+        ScannedProduct(
+            barcode: "7310865004703", name: "Crispbread", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: servingGrams, packageGrams: nil,
+            per100g: .init(calories: 340, proteinG: 10, carbsG: 60, fatG: 2, fiberG: 18, sugarsG: 1),
+            nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        )
+    }
+
     func test_correctNutrition_keepsScannedFibreAndSugar() {
         var scan = scanned(confidence: 0.9)
         scan.per100g = .init(calories: 100, proteinG: 2, carbsG: 25, fatG: 0.5, fiberG: 3, sugarsG: 12)

@@ -7,6 +7,15 @@ final class FoodLibraryLogicTests: XCTestCase {
             carbsG: 67, fatG: 7, fiberG: 10, sugarsG: 1))
     }
 
+    func test_spokenQuery_unaccentedSpeech_matchesAccentedName() {
+        XCTAssertTrue(FoodLibraryLogic.spokenQuery("kottbullar", matches: "Köttbullar"))
+        XCTAssertTrue(FoodLibraryLogic.spokenQuery("ben rygg", matches: "Ben & Rygg"))
+    }
+
+    func test_spokenQuery_emptyQuery_matchesNothing() {
+        XCTAssertFalse(FoodLibraryLogic.spokenQuery("  ", matches: "Push A"))
+    }
+
     func testRecipeRequiresEveryIngredientAndValidPortion() {
         let oats = food()
         let valid = Recipe.Component(foodID: oats.foodID, cachedName: "Oats", portion: .grams(80))
