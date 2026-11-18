@@ -32,7 +32,7 @@ struct WeeklySummaryToggleRow: View {
                 )) {
                     label(isPro: true)
                 }
-                .tint(AppColor.recap)
+                .tint(AppColor.accentPrimary)
                 .padding(Spacing.md)
                 .insetRowBackground()
             } else {
