@@ -91,4 +91,11 @@ final class LabEntryEditorTests: XCTestCase {
         store.deleteLabValue(id: created.id)
         XCTAssertNil(store.lastCreatedLabValue)
     }
+
+    func test_lastCreatedLabValue_profileReplaced_isCleared() {
+        let store = DataStore(seedSampleData: false)
+        store.saveLabValue(LabValue(date: date(10, hour: 8), panel: .vitaminD, value: 30, source: "Quest"))
+        store.profile = .fresh
+        XCTAssertNil(store.lastCreatedLabValue)
+    }
 }
