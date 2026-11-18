@@ -192,8 +192,9 @@ struct BioAgeHeroSection: View {
         case nil:
             EmptyView()
         case .locked?:
-            proCaption
-                .transition(Self.stateTransition)
+            // The promo card right below says Pro once; a caption here
+            // made it three times in one screen.
+            EmptyView()
         case .needsAge?:
             needsAgeLabel
                 .transition(Self.stateTransition)
@@ -204,14 +205,6 @@ struct BioAgeHeroSection: View {
             unlockedSummary(estimate: estimate)
                 .transition(Self.stateTransition)
         }
-    }
-
-    /// A quiet note, not a second button: the promo card below the hero
-    /// is the one place to upgrade.
-    private var proCaption: some View {
-        Label("Included with Atlas Pro", systemImage: "lock.fill")
-            .font(AppFont.scaled(13, weight: .semibold))
-            .foregroundStyle(AppColor.textSecondary)
     }
 
     private var needsAgeLabel: some View {
