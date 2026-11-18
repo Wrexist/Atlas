@@ -1,5 +1,6 @@
 import Observation
 import UIKit
+import UserNotifications
 
 /// What is in the fridge, freezer and cupboard, plus every product that
 /// has ever gone in, so buying it again is a search and one tap.
