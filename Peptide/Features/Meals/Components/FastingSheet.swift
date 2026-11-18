@@ -67,13 +67,17 @@ struct FastingSheet: View {
                         .font(AppFont.eyebrow)
                         .textCase(.uppercase)
                         .foregroundStyle(AppColor.textSecondary)
-                    Text(FastingEngine.clock(active.map { FastingEngine.elapsed($0, at: now) } ?? 0))
+                    let elapsed = active.map { FastingEngine.elapsed($0, at: now) } ?? 0
+                    Text(FastingEngine.clock(elapsed))
                         .font(AppFont.statValueSmall)
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
+                        // "16:05" would be read as a time of day.
+                        .accessibilityLabel(FastingIntentEngine.spokenDuration(elapsed))
                     Text(heroCaption(active, now: now))
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
+                        .accessibilityLabel(heroCaption(active, now: now, duration: FastingIntentEngine.spokenDuration))
                 }
             }
             .accessibilityElement(children: .combine)
@@ -91,6 +95,7 @@ struct FastingSheet: View {
                         .font(AppFont.caption2)
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
+                        .accessibilityLabel(Text("\(next.title) in \(FastingIntentEngine.spokenDuration(wait))"))
                 }
             }
         }
@@ -98,13 +103,18 @@ struct FastingSheet: View {
         .padding(.top, Spacing.sm)
     }
 
-    private func heroCaption(_ active: FastSession?, now: Date) -> String {
+    /// `duration` is the clock on screen and the spoken form for VoiceOver.
+    private func heroCaption(
+        _ active: FastSession?,
+        now: Date,
+        duration: (TimeInterval) -> String = FastingEngine.clock
+    ) -> String {
         guard let active else {
             return String(localized: "Goal \(Int(targetHours)) h")
         }
         let remaining = FastingEngine.remaining(active, at: now)
         guard remaining > 0 else { return String(localized: "Goal reached") }
-        return String(localized: "\(FastingEngine.clock(remaining)) to \(Int(active.targetHours)) h")
+        return String(localized: "\(duration(remaining)) to \(Int(active.targetHours)) h")
     }
 
     // MARK: - Controls
@@ -320,10 +330,12 @@ private struct FastHistoryRow: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer(minLength: 0)
-            Text(FastingEngine.clock(FastingEngine.elapsed(fast, at: fast.endedAt ?? fast.startedAt)))
+            let fasted = FastingEngine.elapsed(fast, at: fast.endedAt ?? fast.startedAt)
+            Text(FastingEngine.clock(fasted))
                 .font(AppFont.headline)
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
+                .accessibilityLabel(FastingIntentEngine.spokenDuration(fasted))
         }
         .padding(Spacing.md)
         .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)

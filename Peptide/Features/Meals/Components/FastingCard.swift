@@ -59,13 +59,16 @@ struct FastingCard: View {
             celebrateAtCompletion: true
         ) {
             if let active = store.active {
-                Text(FastingEngine.clock(FastingEngine.elapsed(active, at: now)))
+                let elapsed = FastingEngine.elapsed(active, at: now)
+                Text(FastingEngine.clock(elapsed))
                     .font(AppFont.scaled(13, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .padding(.horizontal, Spacing.xs)
+                    // "16:05" would be read as a time of day.
+                    .accessibilityLabel(FastingIntentEngine.spokenDuration(elapsed))
             } else {
                 Image(systemName: "moon.zzz.fill")
                     .font(AppFont.scaled(20, weight: .semibold))
@@ -89,6 +92,7 @@ struct FastingCard: View {
                 Text(activeSubtitle(active, now: now))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
+                    .accessibilityLabel(activeSubtitle(active, now: now, duration: FastingIntentEngine.spokenDuration))
             } else {
                 Text("Intermittent fasting")
                     .font(AppFont.headline)
@@ -96,6 +100,7 @@ struct FastingCard: View {
                 Text(idleSubtitle(now: now))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
+                    .accessibilityLabel(idleSubtitle(now: now, duration: FastingIntentEngine.spokenDuration))
             }
         }
         .multilineTextAlignment(.leading)
@@ -129,23 +134,28 @@ struct FastingCard: View {
         Haptics.success()
     }
 
-    private func activeSubtitle(_ fast: FastSession, now: Date) -> String {
+    /// `duration` is the clock on screen and the spoken form for VoiceOver.
+    private func activeSubtitle(
+        _ fast: FastSession,
+        now: Date,
+        duration: (TimeInterval) -> String = FastingEngine.clock
+    ) -> String {
         let remaining = FastingEngine.remaining(fast, at: now)
         guard remaining > 0 else {
             return String(localized: "Goal reached · \(fast.plan.title)")
         }
-        return String(localized: "\(FastingEngine.clock(remaining)) left · \(fast.plan.title)")
+        return String(localized: "\(duration(remaining)) left · \(fast.plan.title)")
     }
 
-    private func idleSubtitle(now: Date) -> String {
+    private func idleSubtitle(now: Date, duration: (TimeInterval) -> String = FastingEngine.clock) -> String {
         // A fast finished today stays acknowledged for the rest of the
         // day instead of the card snapping straight back to "Start".
         if let last = store.ended.first, let endedAt = last.endedAt,
            Calendar.current.isDate(endedAt, inSameDayAs: now) {
-            let duration = FastingEngine.clock(FastingEngine.elapsed(last, at: endedAt))
+            let fasted = duration(FastingEngine.elapsed(last, at: endedAt))
             return FastingEngine.metGoal(last)
-                ? String(localized: "Fasted \(duration) today · goal reached")
-                : String(localized: "Fasted \(duration) today")
+                ? String(localized: "Fasted \(fasted) today · goal reached")
+                : String(localized: "Fasted \(fasted) today")
         }
         let streak = FastingEngine.currentStreak(store.sessions, asOf: now, calendar: .current)
         if streak > 0 {
