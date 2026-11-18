@@ -115,6 +115,22 @@ let s = GlassSegmentedControl(
         self.assertEqual(scan(source), set())
 
 
+class UIStringTests(unittest.TestCase):
+    def test_confirmation_dialog_title_is_found(self):
+        code = '.confirmationDialog("Discard these results?", isPresented: $confirm, titleVisibility: .visible) {}'
+        self.assertEqual(loc.ui_strings(code), {"Discard these results?"})
+
+    def test_one_word_picker_label_is_found(self):
+        self.assertEqual(loc.ui_strings('Picker("Marker", selection: $marker) {}'), {"Marker"})
+
+    def test_one_word_text_and_interpolated_label_are_skipped(self):
+        code = 'Text("Done")\nButton("Log \\(name)") {}\nText("Two words", tableName: "T")'
+        self.assertEqual(loc.ui_strings(code), set())
+
+    def test_multi_word_text_is_found(self):
+        self.assertEqual(loc.ui_strings('Text("Keep reviewing")'), {"Keep reviewing"})
+
+
 class UntranslatedArgumentTests(unittest.TestCase):
     STRINGS = {
         "Today": {"localizations": {"sv": {"stringUnit": {"state": "translated", "value": "Idag"}}}},

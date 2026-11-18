@@ -16,9 +16,11 @@ It also fails on a translation whose format specifiers don't match its key
 (`%lld` turned into `%@`, an argument dropped). That isn't a build error
 either — it crashes or prints garbage at runtime, in that language only.
 
-Counts only real user-facing sentences — capitalised, multi-word, no string
+Counts `Text("…")` sentences — capitalised, multi-word, no string
 interpolation — since fragments and format strings are not separately
-translatable keys.
+translatable keys, plus every capitalised literal label handed to a SwiftUI
+control or modifier that takes a `LocalizedStringKey` (`Button`, `Picker`,
+`confirmationDialog`, `navigationTitle`, …), one-word labels included.
 
 `Text("…")` is not the only way a literal becomes a catalog lookup: custom
 views and helpers that take a `LocalizedStringKey` (`title:`, `eyebrow:`,
@@ -83,16 +85,33 @@ def unescape(literal: str) -> str:
     return re.sub(r'\\(["\\nt])', lambda m: {"n": "\n", "t": "\t"}.get(m.group(1), m.group(1)), literal)
 
 
+# SwiftUI initialisers and modifiers whose leading string literal is a
+# `LocalizedStringKey`. A dialog title or picker label renders English to a
+# Swedish user just as an untranslated `Text` does.
+KEYED_API = re.compile(r'\b(Text|Button|Label|Toggle|Section|Picker|TextField|SecureField|Stepper|'
+                       r'ContentUnavailableView|navigationTitle|confirmationDialog|alert)'
+                       r'\(\s*"((?:[^"\\]|\\.){2,})"')
+
+
+def ui_strings(code: str) -> set[str]:
+    """Literal catalog keys in `code`: multi-word `Text` sentences, any capitalised control label."""
+    found: set[str] = set()
+    for m in KEYED_API.finditer(code):
+        api, t = m.groups()
+        if "\\(" in t or "%" in t or not re.match(r"^[A-Z]", t):
+            continue
+        if api == "Text" and (len(t) < 6 or " " not in t.strip()
+                              or not re.match(r"\s*\)", code[m.end():])):
+            continue
+        found.add(unescape(t))
+    return found
+
+
 def ui_sentences() -> set[str]:
     found: set[str] = set()
     for root in ("Peptide/Features", "Peptide/DesignSystem"):
         for p in (REPO / root).rglob("*.swift"):
-            code = re.sub(r"//[^\n]*", "", blank_previews(p.read_text()))
-            for m in re.finditer(r'\bText\(\s*"((?:[^"\\]|\\.){6,})"\s*\)', code):
-                t = m.group(1)
-                if "\\(" in t or "%" in t or not re.match(r"^[A-Z]", t) or " " not in t.strip():
-                    continue
-                found.add(unescape(t))
+            found |= ui_strings(re.sub(r"//[^\n]*", "", blank_previews(p.read_text())))
     return found
 
 
