@@ -122,7 +122,9 @@ enum DoseDayMap {
 
                     // One mark per daily dose, so a twice-daily compound
                     // shows two dots and both times, like today's entries.
-                    let times: [String?] = schedule.preferredTimes.isEmpty ? [nil] : schedule.preferredTimes
+                    let times: [String?] = schedule.preferredTimes.isEmpty
+                        ? [nil]
+                        : schedule.preferredTimes.map(Optional.some)
                     for time in times {
                         let mark = CalendarDoseMark(
                             kind: openKind(day),
