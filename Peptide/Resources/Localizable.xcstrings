@@ -40566,7 +40566,7 @@
         }
       }
     },
-    "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health and your profile. Each one can only move it a few years.": {
+    "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health, your profile and your lab results. Each one can only move it a few years.": {
       "localizations": {
         "sv": {
           "variations": {
@@ -40574,13 +40574,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signal från Apple Hälsa och din profil. Varje signal kan bara flytta den några år."
+                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signal från Apple Hälsa, din profil och dina labbresultat. Varje signal kan bara flytta den några år."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signaler från Apple Hälsa och din profil. Varje signal kan bara flytta den några år."
+                  "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signaler från Apple Hälsa, din profil och dina labbresultat. Varje signal kan bara flytta den några år."
                 }
               }
             }
@@ -40592,13 +40592,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signal from Apple Health and your profile. Each one can only move it a few years."
+                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signal from Apple Health, your profile and your lab results. Each one can only move it a few years."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health and your profile. Each one can only move it a few years."
+                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health, your profile and your lab results. Each one can only move it a few years."
                 }
               }
             }

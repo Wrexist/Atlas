@@ -24,7 +24,7 @@ struct BioAgeExplainerSheet<Personal: View>: View {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     personal
 
-                    Text("Your Biological Age starts at your real age, then moves up or down with up to \(signals.count) signals from Apple Health and your profile. Each one can only move it a few years.")
+                    Text("Your Biological Age starts at your real age, then moves up or down with up to \(signals.count) signals from Apple Health, your profile and your lab results. Each one can only move it a few years.")
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textPrimary)
 
