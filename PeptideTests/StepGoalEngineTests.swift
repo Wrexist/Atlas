@@ -58,12 +58,8 @@ final class StepGoalEngineTests: XCTestCase {
 
     // MARK: - Fetch window
 
-    func test_fetchDays_today_usesLookback() {
-        XCTAssertEqual(StepGoalEngine.fetchDays(forDayOffset: 0), StepGoalEngine.lookbackDays)
-    }
-
-    func test_fetchDays_farPastDay_coversThatDay() {
-        XCTAssertEqual(StepGoalEngine.fetchDays(forDayOffset: -30), 31)
+    func test_fetchDays_oldestBrowsableDay_isInsideTheWindow() {
+        XCTAssertGreaterThanOrEqual(StepGoalEngine.fetchDays, LifestyleDataLogic.maxMealDayLookback + 1)
     }
 
     // MARK: - Day lookup

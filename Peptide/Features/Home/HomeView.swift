@@ -309,11 +309,11 @@ struct HomeView: View {
         return StepGoalEngine.steps(on: day, from: stepBuckets)
     }
 
-    /// Fetches the step window for the shown day and folds the count
-    /// into the checklist without rebuilding the rest of Today.
+    /// Fetches the step window and folds the shown day's count into the
+    /// checklist without rebuilding the rest of Today.
     private func refreshSteps() async {
         if dataStore.profile.healthConnected {
-            stepBuckets = await HealthKitService.shared.dailySteps(days: StepGoalEngine.fetchDays(forDayOffset: dayOffset))
+            stepBuckets = await HealthKitService.shared.dailySteps(days: StepGoalEngine.fetchDays)
         } else {
             stepBuckets = []
         }

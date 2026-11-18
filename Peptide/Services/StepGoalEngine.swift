@@ -12,9 +12,6 @@ enum StepGoalEngine {
     static let goalIncrement = 500
     /// How often Today re-reads its step count while it stays on screen.
     static let liveRefreshSeconds = 300
-    /// Days of Health step history fetched for today, so "Health has no
-    /// step data at all" can be told apart from "no steps yet today".
-    static let lookbackDays = 7
 
     /// The goal Today counts toward: the saved one, kept inside
     /// `goalRange`, or the default when none was ever saved.
@@ -36,11 +33,13 @@ enum StepGoalEngine {
         goal > 0 && steps >= Double(goal)
     }
 
-    /// How many days back to fetch so the window covers the day
-    /// `dayOffset` days from today (0 = today, -1 = yesterday).
-    static func fetchDays(forDayOffset dayOffset: Int) -> Int {
-        max(lookbackDays, 1 - min(dayOffset, 0))
-    }
+    /// Days of Health step history Today fetches: every day its day
+    /// switcher reaches, today included. A window sized to the shown day
+    /// left the next day back outside it, so paging back dropped the
+    /// steps row until a refetch put it back. A window longer than a day
+    /// also tells "Health has no step data at all" apart from "no steps
+    /// yet today".
+    static let fetchDays = LifestyleDataLogic.maxMealDayLookback + 1
 
     /// Steps on `day` from Health's daily buckets, which only hold days
     /// that have samples. Nil when the window has no step data at all
