@@ -52,20 +52,15 @@ struct FridgeItemEditor: View {
     @State private var hydrated = false
     /// The saved product a scanned barcode matched.
     @State private var matchedProduct: FridgeProduct?
-    /// Every recipe ingredient once, by name; built once, not per keystroke.
-    @State private var ingredients: [LibraryRecipe.Ingredient] = []
 
     private var calendar: Calendar { .current }
     private var isEditing: Bool { item != nil }
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-    private static func recipeIngredients(locale: Locale) -> [LibraryRecipe.Ingredient] {
-        var seen: Set<String> = []
-        return RecipeLibraryEngine.bundled.flatMap(\.ingredients)
-            .filter { seen.insert($0.pantryKey).inserted }
-            .map { (ingredient: $0, name: $0.displayName(locale: locale)) }
-            .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
-            .map(\.ingredient)
+    /// Every recipe ingredient once, by name; built once per language, so
+    /// the picker has its options on the first frame.
+    private var ingredients: [LibraryRecipe.Ingredient] {
+        RecipeLibraryEngine.distinctIngredients(locale: locale)
     }
 
     var body: some View {
@@ -348,7 +343,6 @@ struct FridgeItemEditor: View {
     private func hydrate() {
         guard !hydrated else { return }
         hydrated = true
-        ingredients = Self.recipeIngredients(locale: locale)
         if let product { fill(from: product) }
         if let item {
             count = item.count

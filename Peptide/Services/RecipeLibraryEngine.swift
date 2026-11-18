@@ -367,8 +367,46 @@ enum RecipeLibraryEngine {
     /// "Köttbullar". An empty query matches everything.
     static func matches(_ recipe: LibraryRecipe, query: String) -> Bool {
         guard !query.isEmpty else { return true }
+        return searchText(for: recipe).contains(fold(query))
+    }
+
+    /// Bundled recipes' folded search text, built once rather than per
+    /// keystroke.
+    private static let bundledSearchText: [String: (recipe: LibraryRecipe, text: String)] =
+        Dictionary(bundled.map { ($0.id, (recipe: $0, text: foldedFields(of: $0))) }) { first, _ in first }
+
+    private static func searchText(for recipe: LibraryRecipe) -> String {
+        if let cached = bundledSearchText[recipe.id], cached.recipe == recipe { return cached.text }
+        return foldedFields(of: recipe)
+    }
+
+    private static func foldedFields(of recipe: LibraryRecipe) -> String {
         let fields = [recipe.name, recipe.nameSV] + recipe.ingredients.flatMap { [$0.name, $0.nameSV] }
-        return fields.contains { $0.localizedStandardContains(query) }
+        return fold(fields.joined(separator: "\n"))
+    }
+
+    private static func fold(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
+    }
+
+    // MARK: - Ingredients
+
+    /// Every bundled ingredient once, sorted by its name in the locale's
+    /// language. Built once per language.
+    static func distinctIngredients(locale: Locale) -> [LibraryRecipe.Ingredient] {
+        LibraryRecipe.isSwedish(locale) ? distinctIngredientsSV : distinctIngredientsEN
+    }
+
+    private static let distinctIngredientsEN = distinctIngredients(sortedIn: Locale(identifier: "en"))
+    private static let distinctIngredientsSV = distinctIngredients(sortedIn: Locale(identifier: "sv"))
+
+    private static func distinctIngredients(sortedIn locale: Locale) -> [LibraryRecipe.Ingredient] {
+        var seen: Set<String> = []
+        return bundled.flatMap(\.ingredients)
+            .filter { seen.insert($0.pantryKey).inserted }
+            .map { (ingredient: $0, name: $0.displayName(locale: locale)) }
+            .sorted { $0.name.compare($1.name, locale: locale) == .orderedAscending }
+            .map(\.ingredient)
     }
 
     // MARK: - Logging

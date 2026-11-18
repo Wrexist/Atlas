@@ -342,4 +342,23 @@ final class RecipeLibraryEngineTests: XCTestCase {
         XCTAssertFalse(RecipeLibraryEngine.matches(meatballs, query: "zzzz"))
         XCTAssertTrue(RecipeLibraryEngine.matches(meatballs, query: ""))
     }
+
+    func test_matches_queryInOtherCase_findsAnIngredientInEitherLanguage() throws {
+        let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first)
+        let ingredient = try XCTUnwrap(recipe.ingredients.first)
+
+        XCTAssertTrue(RecipeLibraryEngine.matches(recipe, query: ingredient.name.uppercased()))
+        XCTAssertTrue(RecipeLibraryEngine.matches(recipe, query: ingredient.nameSV.lowercased()))
+    }
+
+    func test_distinctIngredients_listsEveryPantryKeyOnceSortedByTheLocalesName() {
+        let swedish = Locale(identifier: "sv_SE")
+        let ingredients = RecipeLibraryEngine.distinctIngredients(locale: swedish)
+        let keys = ingredients.map(\.pantryKey)
+        let names = ingredients.map { $0.displayName(locale: swedish) }
+
+        XCTAssertEqual(Set(keys), Set(RecipeLibraryEngine.bundled.flatMap(\.pantryKeys)))
+        XCTAssertEqual(keys.count, Set(keys).count)
+        XCTAssertEqual(names, names.sorted { $0.compare($1, locale: Locale(identifier: "sv")) == .orderedAscending })
+    }
 }
