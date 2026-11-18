@@ -2883,7 +2883,7 @@ final class DataStore {
             activeWorkout: WorkoutSessionService.shared.activeSession,
             unit: profile.bodyMetrics.unit
         )
-        if let lastWidgetData, data.hasSameContent(as: lastWidgetData) { return }
+        if let lastWidgetData, data.isRedundant(after: lastWidgetData) { return }
         // Remembered only once written: a failed write must not make the
         // next identical payload look like a no-op.
         guard PersistenceService.shared.updateWidgetData(data) else { return }

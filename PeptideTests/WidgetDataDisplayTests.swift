@@ -117,6 +117,24 @@ final class WidgetDataDisplayTests: XCTestCase {
         XCTAssertNil(data.activeWorkoutPausedElapsed)
     }
 
+    // MARK: - Redundant writes
+
+    func test_isRedundant_identicalRestDayOnNextDay_isFalse() {
+        let yesterday = payload(totalToday: 0)
+        let today = payload(writtenAt: written.addingTimeInterval(86_400), totalToday: 0)
+        XCTAssertFalse(today.isRedundant(after: yesterday, calendar: calendar))
+    }
+
+    func test_isRedundant_identicalLaterSameDay_isTrue() {
+        let morning = payload(totalToday: 0)
+        let later = payload(writtenAt: written.addingTimeInterval(3600), totalToday: 0)
+        XCTAssertTrue(later.isRedundant(after: morning, calendar: calendar))
+    }
+
+    func test_isRedundant_changedContentSameDay_isFalse() {
+        XCTAssertFalse(payload(totalToday: 3).isRedundant(after: payload(totalToday: 2), calendar: calendar))
+    }
+
     // MARK: - Reload schedule
 
     func test_nextRefresh_midDay_isFifteenMinutesOut() {

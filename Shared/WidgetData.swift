@@ -234,6 +234,15 @@ struct WidgetData: Codable, Equatable, Sendable {
         return restamped == self
     }
 
+    /// True when writing this payload over `previous` would change
+    /// nothing a widget shows: same content, stamped the same day. A
+    /// new day must still write, or `isProtocolOutdated(at:)` keeps
+    /// asking the user to open Atlas after they have — two rest days
+    /// in a row build identical content.
+    func isRedundant(after previous: WidgetData, calendar: Calendar = .current) -> Bool {
+        hasSameContent(as: previous) && calendar.isDate(lastUpdated, inSameDayAs: previous.lastUpdated)
+    }
+
     /// Weight-unit suffix, mirroring `MeasurementUnit.weightSuffix`.
     /// Deliberately unlocalised: "kg" and "lb" are the symbols in every
     /// locale Atlas ships.
