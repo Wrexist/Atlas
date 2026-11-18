@@ -11,26 +11,6 @@
         }
       }
     },
-    " added": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " extra"
-          }
-        }
-      }
-    },
-    " assistance": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " assistans"
-          }
-        }
-      }
-    },
     " Consider transitioning to %@.": {
       "localizations": {
         "sv": {
@@ -47,36 +27,6 @@
           "stringUnit": {
             "state": "translated",
             "value": " Detaljer"
-          }
-        }
-      }
-    },
-    " each · both counted": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " per hand · båda räknas"
-          }
-        }
-      }
-    },
-    " per side · recorded side": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " per sida · registrerad sida"
-          }
-        }
-      }
-    },
-    " total": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " totalt"
           }
         }
       }
@@ -111,6 +61,96 @@
         }
       }
     },
+    "%@ added each · both counted × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra per hand · båda räknas × %@"
+          }
+        }
+      }
+    },
+    "%@ added per side · recorded side × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra per sida · registrerad sida × %@"
+          }
+        }
+      }
+    },
+    "%@ added total × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra totalt × %@"
+          }
+        }
+      }
+    },
+    "%@ added × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra × %@"
+          }
+        }
+      }
+    },
+    "%@ assistance each · both counted × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans per hand · båda räknas × %@"
+          }
+        }
+      }
+    },
+    "%@ assistance per side · recorded side × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans per sida · registrerad sida × %@"
+          }
+        }
+      }
+    },
+    "%@ assistance total × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans totalt × %@"
+          }
+        }
+      }
+    },
+    "%@ assistance × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans × %@"
+          }
+        }
+      }
+    },
+    "%@ each · both counted × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per hand · båda räknas × %@"
+          }
+        }
+      }
+    },
     "%@ kcal": {
       "localizations": {
         "sv": {
@@ -131,6 +171,16 @@
         }
       }
     },
+    "%@ per side · recorded side × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per sida · registrerad sida × %@"
+          }
+        }
+      }
+    },
     "%@ routines": {
       "localizations": {
         "sv": {
@@ -141,12 +191,32 @@
         }
       }
     },
+    "%@ total × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ totalt × %@"
+          }
+        }
+      }
+    },
     "%@ ± %@": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ ± %2$@"
+          }
+        }
+      }
+    },
+    "%@ × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ × %@"
           }
         }
       }
@@ -6200,6 +6270,16 @@
         }
       }
     },
+    "Bodyweight × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kroppsvikt × %@"
+          }
+        }
+      }
+    },
     "Build workout": {
       "localizations": {
         "sv": {
@@ -6621,6 +6701,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Läs mer · %@"
+          }
+        }
+      }
+    },
+    "Load unavailable · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikt saknas · %@"
           }
         }
       }
@@ -11105,16 +11195,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kroppsviktsövningar ingår alltid."
-          }
-        }
-      }
-    },
-    "Bodyweight × ": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kroppsvikt × "
           }
         }
       }
@@ -21779,16 +21859,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vikt per sida · angivna reps räknas en gång"
-          }
-        }
-      }
-    },
-    "Load unavailable · ": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vikt saknas · "
           }
         }
       }

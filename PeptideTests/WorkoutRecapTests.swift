@@ -422,6 +422,15 @@ final class WorkoutCompletionPersistenceTests: XCTestCase {
         XCTAssertTrue(store.wasEdited)
     }
 
+    func test_recapSetFormat_assistedPerSideLoad_isOneSentenceInOrder() {
+        let set = SetEntry(index: 1, weightKg: 20, reps: 8, completed: true,
+                           measurement: .init(kind: .assisted, load: .perSide))
+        let label = RecapFormat.set(set, unit: .metric)
+
+        XCTAssertTrue(label.contains("kg assistance per side · recorded side × "), label)
+        XCTAssertFalse(label.contains("  "), "No doubled spaces from joined fragments: \(label)")
+    }
+
     func test_recapSetFormat_quarterKiloLoad_keepsBothDecimals() {
         let set = SetEntry(index: 1, weightKg: 61.25, reps: 5, completed: true)
         let expected = 61.25.formatted(.number.precision(.fractionLength(2)).grouping(.never))
