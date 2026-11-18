@@ -236,6 +236,7 @@ struct PrepDayCard: View {
     let finish: () -> Void
 
     @Environment(\.locale) private var locale
+    @State private var confirmsFinish = false
 
     private var doneCount: Int { tasks.filter { done.contains($0.id) }.count }
 
@@ -269,8 +270,22 @@ struct PrepDayCard: View {
                     }
                 }
             }
-            PrimaryCTAButton(title: "Done — boxes in the fridge", icon: "shippingbox.fill", shape: .rounded, action: finish)
-                .padding(.top, Spacing.xs)
+            PrimaryCTAButton(title: "Done — boxes in the fridge", icon: "shippingbox.fill", shape: .rounded) {
+                if doneCount < tasks.count {
+                    confirmsFinish = true
+                } else {
+                    finish()
+                }
+            }
+            .padding(.top, Spacing.xs)
+            .confirmationDialog(
+                "Not every step is ticked. Put the boxes in anyway?",
+                isPresented: $confirmsFinish,
+                titleVisibility: .visible
+            ) {
+                Button("Put the boxes in", action: finish)
+                Button("Cancel", role: .cancel) {}
+            }
         }
         .padding(Spacing.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -348,11 +363,19 @@ struct PrepBoxesCard: View {
     let freeze: (PrepBoxBatch) -> Void
     let discard: (PrepBoxBatch) -> Void
 
-    private var total: Int { boxes.reduce(0) { $0 + $1.count } }
+    /// "3 in the fridge · 2 frozen", leaving out a place with none.
+    private var subtitle: String {
+        let frozen = boxes.filter(\.isFrozen).reduce(0) { $0 + $1.count }
+        let inFridge = boxes.reduce(0) { $0 + $1.count } - frozen
+        var parts: [String] = []
+        if inFridge > 0 { parts.append(String(localized: "\(inFridge) in the fridge", comment: "Meal-prep boxes kept in the fridge")) }
+        if frozen > 0 { parts.append(String(localized: "\(frozen) frozen", comment: "Meal-prep boxes kept in the freezer")) }
+        return parts.joined(separator: " · ")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            CardTitle(title: "Boxes in the fridge", subtitle: Text("\(total) boxes"), isDone: false)
+            CardTitle(title: "Your boxes", subtitle: Text(subtitle), isDone: false)
             ForEach(Array(boxes.enumerated()), id: \.element.id) { index, batch in
                 if index > 0 {
                     Divider().overlay(AppColor.glassBorder)

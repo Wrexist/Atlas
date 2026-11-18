@@ -92,6 +92,22 @@ final class WeeklyPrepEngineTests: XCTestCase {
         XCTAssertEqual(WeeklyPrepEngine.recentRecipeIDs(in: [lastWeek], before: nextMonday, calendar: calendar), ["a"])
     }
 
+    func test_plan_savedInAnotherTimeZone_isStillThisWeeksPlan() {
+        var stockholm = Calendar(identifier: .gregorian)
+        stockholm.timeZone = TimeZone(identifier: "Europe/Stockholm")!
+        var london = Calendar(identifier: .gregorian)
+        london.timeZone = TimeZone(identifier: "Europe/London")!
+        let saved = PrepWeek(
+            weekStart: WeeklyPrepEngine.weekStart(for: date(), calendar: stockholm),
+            dishes: [PrepDish(recipeID: "a", servings: 4)]
+        )
+
+        let plan = WeeklyPrepEngine.plan(for: date(), in: [saved], calendar: london)
+
+        XCTAssertEqual(plan.recipeIDs, ["a"])
+        XCTAssertEqual(plan.weekStart, saved.weekStart, "keeps its stored start, so writing it back replaces it")
+    }
+
     func test_recentRecipeIDs_threeWeeksAgo_isForgotten() {
         let old = PrepWeek(
             weekStart: WeeklyPrepEngine.weekStart(for: date(day: 7), calendar: calendar),
@@ -388,4 +404,19 @@ final class WeeklyPrepStoreTests: XCTestCase {
 
         XCTAssertEqual(store.boxes, before)
     }
+
+    func test_unfinishPrep_takesTheBoxesOutAndOpensThePlan() {
+        let (defaults, suite) = scratchDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let cooked = date(day: 26)
+        let store = preppedStore(defaults: defaults, cookedAt: cooked)
+        XCTAssertFalse(store.boxes.isEmpty)
+
+        store.unfinishPrep(now: date(day: 26, hour: 13), calendar: calendar)
+
+        XCTAssertTrue(store.boxes.isEmpty)
+        XCTAssertNil(store.plan(now: date(day: 26, hour: 13), calendar: calendar).preppedAt)
+        XCTAssertEqual(store.plans.count, 1)
+    }
 }
+

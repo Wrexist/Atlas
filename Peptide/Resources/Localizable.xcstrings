@@ -172,6 +172,58 @@
         }
       }
     },
+    "%lld frozen": {
+      "comment": "Meal-prep boxes kept in the freezer",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld frozen"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld frozen"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fryst"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld frysta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld in the fridge": {
+      "comment": "Meal-prep boxes kept in the fridge",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld i kylen"
+          }
+        }
+      }
+    },
     "%lld mg/dL": {
       "localizations": {
         "sv": {
@@ -6797,6 +6849,16 @@
         }
       }
     },
+    "Not every step is ticked. Put the boxes in anyway?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla steg är inte avbockade. Ställa in lådorna ändå?"
+          }
+        }
+      }
+    },
     "Nothing logged that day.": {
       "localizations": {
         "sv": {
@@ -6857,12 +6919,32 @@
         }
       }
     },
+    "Put the boxes in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ställ in lådorna"
+          }
+        }
+      }
+    },
     "Something went wrong reading the photo. Try again.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Något gick fel när fotot lästes. Försök igen."
+          }
+        }
+      }
+    },
+    "Your boxes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina lådor"
           }
         }
       }

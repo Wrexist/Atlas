@@ -9,10 +9,16 @@ struct WeeklyPrepView: View {
     @State private var prep = WeeklyPrepStore.shared
     @State private var pantry = PantryStore.shared
     @State private var picker: DishPickerTarget?
-    @State private var showLoggedToast = false
-    @State private var loggedMessage: LocalizedStringResource = ""
-    @State private var loggedMealID: UUID?
-    @State private var loggedToastID = 0
+    @State private var isToastShowing = false
+    @State private var toastMessage: LocalizedStringResource = ""
+    @State private var toastUndo: ToastUndo?
+    @State private var toastID = 0
+
+    /// What the toast's Undo takes back.
+    private enum ToastUndo {
+        case meal(UUID)
+        case prep
+    }
 
     private var calendar: Calendar { .current }
 
@@ -70,11 +76,11 @@ struct WeeklyPrepView: View {
         .navigationBarTitleDisplayMode(.large)
         .overlay(alignment: .top) {
             SyncToast(
-                isShowing: $showLoggedToast,
-                message: loggedMessage,
+                isShowing: $isToastShowing,
+                message: toastMessage,
                 autoDismissAfter: AppAnimation.logSuccessAutoCloseDelay,
-                action: .init(label: "Undo", perform: undoEat),
-                presentationID: loggedToastID
+                action: .init(label: "Undo", perform: undo),
+                presentationID: toastID
             )
             .padding(.top, Spacing.sm)
         }
@@ -141,6 +147,8 @@ struct WeeklyPrepView: View {
                 addDishCard
             }
         }
+        // Lets the add card stretch to the dish card's height beside it.
+        .fixedSize(horizontal: false, vertical: true)
         .scrollReveal()
     }
 
@@ -157,7 +165,7 @@ struct WeeklyPrepView: View {
                     .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
             }
-            .frame(maxWidth: .infinity, minHeight: 180)
+            .frame(maxWidth: .infinity, minHeight: 180, maxHeight: .infinity)
             .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
@@ -243,6 +251,7 @@ struct WeeklyPrepView: View {
             prep.finishPrep(calendar: calendar)
         }
         Haptics.success()
+        presentToast("Boxes in the fridge", undo: .prep)
     }
 
     /// Logs one serving to today's diary and takes the box out of the fridge.
@@ -254,16 +263,25 @@ struct WeeklyPrepView: View {
         dataStore.logMealEntry(entry)
         AppAnimation.with(AppAnimation.springSnappy) { prep.eatOne(batch.id, loggedAs: entry.id, calendar: calendar) }
         Haptics.success()
-        loggedMealID = entry.id
-        loggedMessage = LocalizedStringResource("Logged to \(entry.category.displayName)")
-        loggedToastID += 1
-        AppAnimation.with(AppAnimation.toast) { showLoggedToast = true }
+        presentToast(LocalizedStringResource("Logged to \(entry.category.displayName)"), undo: .meal(entry.id))
     }
 
-    private func undoEat() {
-        guard let loggedMealID else { return }
-        self.loggedMealID = nil
-        AppAnimation.with(AppAnimation.springSnappy) { dataStore.unlogMealEntry(id: loggedMealID) }
+    private func presentToast(_ message: LocalizedStringResource, undo: ToastUndo) {
+        toastUndo = undo
+        toastMessage = message
+        toastID += 1
+        AppAnimation.with(AppAnimation.toast) { isToastShowing = true }
+    }
+
+    private func undo() {
+        guard let toastUndo else { return }
+        self.toastUndo = nil
+        AppAnimation.with(AppAnimation.springSnappy) {
+            switch toastUndo {
+            case .meal(let mealID): dataStore.unlogMealEntry(id: mealID)
+            case .prep: prep.unfinishPrep(calendar: calendar)
+            }
+        }
         Haptics.impact(.light)
     }
 
