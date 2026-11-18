@@ -486,6 +486,7 @@ struct BarcodeScanFlow: View {
             Spacer(minLength: 0)
             Button("Reset") {
                 manualOverride = nil
+                savedToMyFoods = false
             }
             .font(AppFont.subheadline)
             .foregroundStyle(AppColor.textSecondary)
@@ -890,14 +891,14 @@ struct BarcodeScanFlow: View {
         }
     }
 
-    /// Says what was read without ever echoing it at length — a scanned
-    /// payload is arbitrary external content, so it gets truncated and
-    /// stays inside quotation marks rather than being presented as the
-    /// app's own copy.
     private var anotherCodeTitle: LocalizedStringKey {
         lastInputWasTyped ? "Type another code" : "Scan another code"
     }
 
+    /// Says what was read without ever echoing it at length — a scanned
+    /// payload is arbitrary external content, so it gets truncated and
+    /// stays inside quotation marks rather than being presented as the
+    /// app's own copy.
     private var unsupportedCodeDetail: String {
         if lastInputWasTyped {
             return String(localized: "That number isn't a product barcode. Product barcodes have 8 to 14 digits.")
