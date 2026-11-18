@@ -75,6 +75,16 @@ struct TrainOverviewView: View {
         !frequencies.isEmpty
     }
 
+    /// Training inside the widest period, so switching periods can change
+    /// the map. Without it the period control filters nothing.
+    private var hasTrainingToFilter: Bool {
+        let calendar = Calendar.current
+        let widest = TrainingMapPeriod.allCases.map(\.rawValue).max() ?? 1
+        guard let cutoff = calendar.date(byAdding: .day, value: -(widest - 1), to: calendar.startOfDay(for: Date()))
+        else { return true }
+        return sessions.contains { $0.startedAt >= cutoff }
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
@@ -413,12 +423,14 @@ struct TrainOverviewView: View {
                     }
                 }
 
-                GlassSegmentedControl(
-                    options: TrainingMapPeriod.allCases,
-                    selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
-                    label: { LocalizedStringKey($0.title) }
-                )
-                .accessibilityIdentifier("training-map-period")
+                if hasTrainingToFilter {
+                    GlassSegmentedControl(
+                        options: TrainingMapPeriod.allCases,
+                        selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
+                        label: { LocalizedStringKey($0.title) }
+                    )
+                    .accessibilityIdentifier("training-map-period")
+                }
 
                 TrainingBodyExplorer(
                     highlights: MuscleMapView.intensityHighlights(from: frequencies),
@@ -474,21 +486,37 @@ struct TrainOverviewView: View {
 
     // MARK: - Recent workouts
 
+    private var latestWorkoutTitle: some View {
+        Text("Latest workout")
+            .font(AppFont.headline)
+            .foregroundStyle(AppColor.textPrimary)
+    }
+
+    /// Always offered: the history also lists Apple Health workouts (Watch
+    /// dives, runs), which exist even before the first Atlas session.
+    private var viewAllWorkoutsLink: some View {
+        NavigationLink(value: TrainNavigation.workoutHistory) {
+            Text("View all").font(AppFont.subheadline).minimumHitArea()
+        }
+        .accessibilityLabel("View workout history")
+    }
+
     private var recentWorkoutsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack {
-                    Text("Latest workout")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer()
-                    // Always offered: the history also lists Apple Health
-                    // workouts (Watch dives, runs), which exist even before
-                    // the first Atlas session.
-                    NavigationLink(value: TrainNavigation.workoutHistory) {
-                        Text("View all").font(AppFont.subheadline).minimumHitArea()
+                // Title and link share a row while both fit whole; at the
+                // largest text sizes the link moves under the title rather
+                // than hyphenating it into three lines.
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        latestWorkoutTitle
+                        Spacer()
+                        viewAllWorkoutsLink
                     }
-                    .accessibilityLabel("View workout history")
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        latestWorkoutTitle
+                        viewAllWorkoutsLink
+                    }
                 }
 
                 if sessions.isEmpty {
