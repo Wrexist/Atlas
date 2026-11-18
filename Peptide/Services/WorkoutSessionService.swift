@@ -155,7 +155,10 @@ final class WorkoutSessionService {
             routineID: linksRoutine ? routine?.id : nil,
             startedAt: now,
             exercises: exercises,
-            focus: WorkoutFocusState(selectedEntryID: exercises.first?.id, adjustment: proposedAdjustment)
+            focus: WorkoutFocusState(
+                selectedEntryID: exercises.first?.id,
+                adjustment: appliedAdjustment(proposedAdjustment, to: exercises, routine: routine)
+            )
         )
         activeSession = session
         seedRoutine = routine.map { SeedRoutine(sessionID: session.id, routine: $0) }
@@ -370,6 +373,7 @@ final class WorkoutSessionService {
             )]
         ), routine: nil, adjustment: activeAdjustment)
         session.exercises.append(entry)
+        session.adjustment = appliedAdjustment(activeAdjustment, to: session.exercises, routine: activeRoutine)
         if session.focus == nil { session.focus = WorkoutFocusState() }
         session.focus?.selectedEntryID = entry.id
         persist(session)
@@ -719,6 +723,20 @@ final class WorkoutSessionService {
         return seeded
     }
 
+    /// The adjustment to record on a session: only one that lowered its
+    /// seeded sets. With auto-progression off, or no exercise with history
+    /// to seed from, the user lifts their own loads, so history mustn't
+    /// skip the workout as deliberately light or start a deload cooldown.
+    private func appliedAdjustment(
+        _ adjustment: ProgressionEngine.Adjustment?, to exercises: [WorkoutExerciseEntry], routine: Routine?
+    ) -> ProgressionEngine.Adjustment? {
+        guard let adjustment, autoProgression else { return nil }
+        let lowersASet = exercises.contains { entry in
+            progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: routine), adjustment: adjustment) != nil
+        }
+        return lowersASet ? adjustment : nil
+    }
+
     // MARK: - Readiness and deload
 
     /// What today's suggestions would be lowered for. A due deload outranks
@@ -801,13 +819,13 @@ final class WorkoutSessionService {
 
     /// Moves sets still at the old suggestion to the new one when the
     /// adjustment changes, the way starting the workout seeded them.
-    /// The new adjustment is recorded on the session either way, so history
-    /// knows which workouts were deliberately light.
+    /// The new adjustment is recorded on the session when it lowered a set,
+    /// so history knows which workouts were deliberately light.
     private func reseedUntouchedSets(from old: ProgressionEngine.Adjustment?) {
         let new = activeAdjustment
         guard old != new, var session = activeSession else { return }
-        session.adjustment = new
         let routine = activeRoutine
+        session.adjustment = appliedAdjustment(new, to: session.exercises, routine: routine)
         let reseeds = autoProgression
         for idx in session.exercises.indices where reseeds {
             let entry = session.exercises[idx]

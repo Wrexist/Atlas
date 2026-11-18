@@ -556,33 +556,89 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(sets.dropFirst().map(\.reps), [8, 8])
     }
 
+    /// A fixed Wednesday noon. The service reads weeks through
+    /// `Calendar.current`, so the history is laid out in that calendar too.
+    private func pinnedNow() throws -> Date {
+        try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 11, hour: 12)))
+    }
+
+    /// Bench, squat and deadlift at the same load for three weeks before
+    /// `now`'s week: three stalled lifts, enough for `DeloadEngine` to call
+    /// a deload. `deloadLastWeek` adds a lighter deload session after them.
+    private func logStalledBlock(before now: Date, deloadLastWeek: Bool) throws {
+        let calendar = Calendar.current
+        let thisWeek = try XCTUnwrap(calendar.dateInterval(of: .weekOfYear, for: now)).start
+        let lifts = [bench().id, "Barbell_Squat", "Barbell_Deadlift"]
+        func logged(weeksAgo: Int, kg: Double, reps: Int, adjustment: ProgressionEngine.Adjustment?) throws {
+            let day = try XCTUnwrap(calendar.date(byAdding: .day, value: 1 - 7 * weeksAgo, to: thisWeek))
+            var session = WorkoutSession(startedAt: day, finishedAt: day.addingTimeInterval(3600), exercises: lifts.enumerated().map { index, id in
+                WorkoutExerciseEntry(exerciseID: id, index: index, sets: [
+                    SetEntry(index: 1, weightKg: kg, reps: reps, completed: true),
+                ])
+            })
+            session.adjustment = adjustment
+            repo.upsertWorkoutSession(session)
+        }
+        for weeksAgo in [4, 3, 2] {
+            try logged(weeksAgo: weeksAgo, kg: 100, reps: 8, adjustment: nil)
+        }
+        if deloadLastWeek {
+            try logged(weeksAgo: 1, kg: 90, reps: 5, adjustment: .deload)
+        }
+    }
+
     func test_sessionAfterADeloadWeek_progressesFromTheLastNormalSession() throws {
         let saved = DataStore.current
         DataStore.current = nil
         defer { DataStore.current = saved }
-        let calendar = Calendar.current
-        let thisWeek = try XCTUnwrap(calendar.dateInterval(of: .weekOfYear, for: Date())).start
-        func logged(weeksAgo: Int, kg: Double, reps: Int, adjustment: ProgressionEngine.Adjustment?) throws {
-            let day = try XCTUnwrap(calendar.date(byAdding: .day, value: 1 - 7 * weeksAgo, to: thisWeek))
-            var session = WorkoutSession(startedAt: day, finishedAt: day.addingTimeInterval(3600), exercises: [
-                WorkoutExerciseEntry(exerciseID: bench().id, index: 0, sets: [
-                    SetEntry(index: 1, weightKg: kg, reps: reps, completed: true),
-                ]),
-            ])
-            session.adjustment = adjustment
-            repo.upsertWorkoutSession(session)
-        }
-        try logged(weeksAgo: 2, kg: 100, reps: 8, adjustment: nil)
-        try logged(weeksAgo: 1, kg: 90, reps: 5, adjustment: .deload)
+        let now = try pinnedNow()
+        try logStalledBlock(before: now, deloadLastWeek: true)
 
         let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
             RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 2, targetReps: 8),
-        ]))
+        ]), now: now)
 
-        XCTAssertNil(service.activeAdjustment, "A deload just taken isn't due again")
+        XCTAssertNil(service.activeAdjustment,
+                     "Three stalled lifts would call a deload, but one was just taken")
         XCTAssertEqual(session.exercises[0].sets.map(\.weightKg), [102.5, 102.5])
         XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [90],
                        "The previous hint still shows what was really lifted")
+    }
+
+    func test_emptyWorkoutInADeloadWeek_recordsTheDeloadOnlyOnceASetIsLowered() throws {
+        let saved = DataStore.current
+        DataStore.current = nil
+        defer { DataStore.current = saved }
+        let now = try pinnedNow()
+        try logStalledBlock(before: now, deloadLastWeek: false)
+
+        let session = service.startWorkout(now: now)
+        XCTAssertEqual(service.activeAdjustment, .deload)
+        XCTAssertNil(session.adjustment, "Nothing has been lightened yet")
+
+        service.addExercise(bench())
+        XCTAssertEqual(service.activeSession?.adjustment, .deload)
+    }
+
+    func test_deloadWeekWithAutoProgressionOff_recordsNoAdjustment() throws {
+        let saved = DataStore.current
+        defer { DataStore.current = saved }
+        let store = DataStore(seedSampleData: false)
+        store.profile.trainingPreferences = TrainingPreferences(autoProgression: false)
+        DataStore.current = store
+        let now = try pinnedNow()
+        try logStalledBlock(before: now, deloadLastWeek: false)
+
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 2, targetReps: 8),
+        ]), now: now)
+
+        XCTAssertEqual(service.activeAdjustment, .deload)
+        XCTAssertNil(session.adjustment, "The sets kept the user's own loads")
+        service.useNormalSuggestions(true)
+        XCTAssertNil(service.activeSession?.adjustment)
+        service.useNormalSuggestions(false)
+        XCTAssertNil(service.activeSession?.adjustment, "Toggling back doesn't tag the session either")
     }
 
     func test_plannedSetTwoRepsShort_dropsTheRemainingSetsOneStep() throws {
