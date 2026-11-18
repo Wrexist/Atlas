@@ -504,7 +504,7 @@ final class HabitsServiceTests: XCTestCase {
         let days = HabitsService.heatmap(
             for: habit, entries: [], endDate: october(21), dayCount: 5, calendar: mondayFirstUTC
         )
-        XCTAssertEqual(days.map(\.status), [.notDue, .notDue, .due, .due, .due])
+        XCTAssertEqual(days.map { $0.status }, [.notDue, .notDue, .due, .due, .due])
     }
 
     // MARK: - Streak at risk
