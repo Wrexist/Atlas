@@ -74,7 +74,8 @@ struct RecapAction: View {
     var body: some View {
         Button(action: action) {
             Text(title).font(AppFont.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                .padding(.vertical, Spacing.xs)
                 .foregroundStyle(AppColor.onAccent)
                 .background(AppColor.accentFill, in: RoundedRectangle(cornerRadius: Spacing.controlCornerRadius))
         }

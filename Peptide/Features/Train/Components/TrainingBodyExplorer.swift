@@ -110,7 +110,7 @@ struct TrainingBodyExplorer: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.accentPrimary)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget, alignment: .leading)
                     .padding(Spacing.md)
                     .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: Spacing.smallCornerRadius))
                 }
@@ -145,7 +145,7 @@ struct TrainingBodyExplorer: View {
                     }
                     .font(AppFont.subheadline)
                     .padding(Spacing.md)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                     .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: Spacing.smallCornerRadius))
                 }
                 .accessibilityIdentifier("explore-trained-muscles")

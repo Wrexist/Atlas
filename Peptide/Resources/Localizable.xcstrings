@@ -6766,6 +6766,16 @@
         }
       }
     },
+    "No completed workouts that week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga slutförda pass den veckan."
+          }
+        }
+      }
+    },
     "None": {
       "localizations": {
         "sv": {
