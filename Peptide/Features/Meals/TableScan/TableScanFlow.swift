@@ -503,7 +503,7 @@ struct TableScanFlow: View {
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(minHeight: Spacing.minimumHitTarget)
-            if !isReading && keepableCount > 0 {
+            if !isReading && (keepableCount > 0 || unreadTickedCount > 0) {
                 Group {
                     if unreadTickedCount > 0 {
                         Text("^[\(unreadTickedCount) dish](inflect: true) couldn't be read and won't be kept.")
@@ -629,6 +629,7 @@ struct TableScanFlow: View {
     // MARK: - Lifting
 
     private func liftDishes(from image: UIImage) async {
+        captureMissed = false
         photo = image
         dishes = []
         landed = []
@@ -708,6 +709,7 @@ struct TableScanFlow: View {
         capturedAt = nil
         dishes = []
         errorText = nil
+        captureMissed = false
         phase = .capture
         camera.start()
     }
