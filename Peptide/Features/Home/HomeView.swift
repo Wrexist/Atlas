@@ -468,9 +468,10 @@ struct HomeView: View {
 
                     // The user's arrangement of Today. The default order
                     // reads status → recommendation → action → analysis
-                    // (Product Architecture 07).
-                    ForEach(dataStore.profile.todayLayout.visibleSections) { section in
-                        todaySection(section, proxy: proxy)
+                    // (Product Architecture 07). Entrance stagger follows
+                    // that order, after the header and day switcher.
+                    ForEach(Array(dataStore.profile.todayLayout.visibleSections.enumerated()), id: \.element.id) { offset, section in
+                        todaySection(section, appearIndex: 2 + offset, proxy: proxy)
                     }
 
                     customizeTodayButton
@@ -804,20 +805,20 @@ struct HomeView: View {
     /// A section renders when the browsed day has something for it —
     /// live, today-only sections drop out on a past day.
     @ViewBuilder
-    private func todaySection(_ section: TodaySection, proxy: ScrollViewProxy) -> some View {
+    private func todaySection(_ section: TodaySection, appearIndex: Int, proxy: ScrollViewProxy) -> some View {
         if shows(section.dayEngineSection) {
-            todaySectionContent(section, proxy: proxy)
+            todaySectionContent(section, appearIndex: appearIndex, proxy: proxy)
         }
     }
 
     @ViewBuilder
-    private func todaySectionContent(_ section: TodaySection, proxy: ScrollViewProxy) -> some View {
+    private func todaySectionContent(_ section: TodaySection, appearIndex: Int, proxy: ScrollViewProxy) -> some View {
         switch section {
-        case .atAGlance: atAGlanceSection
-        case .coaching: coachingSection(proxy: proxy)
-        case .weeklyRecap: weeklyRecapSection
-        case .habits: habitsSection
-        case .checklist: checklistSection
+        case .atAGlance: atAGlanceSection(appearIndex: appearIndex)
+        case .coaching: coachingSection(appearIndex: appearIndex, proxy: proxy)
+        case .weeklyRecap: weeklyRecapSection(appearIndex: appearIndex)
+        case .habits: habitsSection(appearIndex: appearIndex)
+        case .checklist: checklistSection(appearIndex: appearIndex)
         case .doses: dosesSection
         case .wellness: wellnessSection
         case .movement: movementSection
@@ -835,7 +836,7 @@ struct HomeView: View {
     /// zeros read as failure (roadmap day-0). They lead with the habit
     /// hero; the trio's footer offers Connect Health.
     @ViewBuilder
-    private var atAGlanceSection: some View {
+    private func atAGlanceSection(appearIndex: Int) -> some View {
         if showsAtAGlance {
             VStack(spacing: Spacing.sm) {
                 HomeSectionHeader(title: "At a glance")
@@ -858,7 +859,7 @@ struct HomeView: View {
                     isLoading: isHeroLoading
                 )
             }
-            .sectionAppear(index: 2)
+            .sectionAppear(index: appearIndex)
         }
     }
 
@@ -869,7 +870,7 @@ struct HomeView: View {
     /// sleep, cap intensity") — just reconciled across more signals
     /// than coaching alone used to see.
     @ViewBuilder
-    private func coachingSection(proxy: ScrollViewProxy) -> some View {
+    private func coachingSection(appearIndex: Int, proxy: ScrollViewProxy) -> some View {
         if let reason = derived.primaryReason {
             // Keyed on the title so a new recommendation
             // cross-fades in rather than swapping text in place.
@@ -880,7 +881,7 @@ struct HomeView: View {
             )
                 .id(reason.message.title)
                 .transition(.opacity.combined(with: .scale(0.98)))
-                .sectionAppear(index: 3)
+                .sectionAppear(index: appearIndex)
                 .task(id: derived.coachingFacts) {
                     if let facts = derived.coachingFacts { await summaryService.prepare(facts) }
                 }
@@ -888,7 +889,7 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private var weeklyRecapSection: some View {
+    private func weeklyRecapSection(appearIndex: Int) -> some View {
         if let weeklyState = weeklySummaryState,
            WeeklySummaryService.shared.isAvailable(profile: dataStore.profile),
            shouldShowWeeklyRecapOnToday {
@@ -901,7 +902,7 @@ struct HomeView: View {
                 },
                 onRetry: { Task { await loadWeeklySummary(forceRefresh: true) } }
             )
-            .sectionAppear(index: 3)
+            .sectionAppear(index: appearIndex)
         }
         if let weeklyCheckIn, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
             WeeklyCheckInCard(
@@ -910,7 +911,7 @@ struct HomeView: View {
                 onLogWeight: { showWeightSheet = true }
             )
             .transition(.opacity.combined(with: .scale(0.98)))
-            .sectionAppear(index: 3)
+            .sectionAppear(index: appearIndex)
         }
     }
 
@@ -920,10 +921,10 @@ struct HomeView: View {
     /// A past day drops the empty-state CTA — there's nothing to record
     /// for a day before any habit.
     @ViewBuilder
-    private var habitsSection: some View {
+    private func habitsSection(appearIndex: Int) -> some View {
         if isViewingToday || !dataStore.activeHabits.isEmpty {
             TodayHabitsHero(snapshot: derived.habits, day: isViewingToday ? nil : selectedDay)
-                .sectionAppear(index: 4)
+                .sectionAppear(index: appearIndex)
                 .id(TodaySection.habits)
         }
     }
@@ -932,7 +933,7 @@ struct HomeView: View {
     /// shortcut that closes it. A past day gets the record without the
     /// shortcuts.
     @ViewBuilder
-    private var checklistSection: some View {
+    private func checklistSection(appearIndex: Int) -> some View {
         if let checklist = derived.checklist {
             TodayChecklistCard(
                 state: checklist,
@@ -943,7 +944,7 @@ struct HomeView: View {
                 onToggleSupplement: supplementToggle,
                 onManageSupplements: supplementManager
             )
-            .sectionAppear(index: 5)
+            .sectionAppear(index: appearIndex)
         }
     }
 
