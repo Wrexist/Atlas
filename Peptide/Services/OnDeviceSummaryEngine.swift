@@ -29,13 +29,27 @@ enum OnDeviceSummaryEngine {
 
     static let maxLength = 280
 
-    static let instructions = """
+    private static let baseInstructions = """
     You write one or two short, friendly sentences for a fitness app. \
     Use only the facts provided. Never add numbers, names, causes, comparisons, \
     medical claims, or advice that are not in the facts. \
     Write every number with digits, exactly as it appears in the facts. \
     Address the user as "you". No greetings, no emoji, no markdown.
     """
+
+    /// The facts and task lines are English, so the model is told which
+    /// language to answer in: the one the app's own copy is shown in, or a
+    /// Swedish user's coaching card would turn English once it answers.
+    static func instructions(language code: String) -> String {
+        let name = Locale(identifier: "en").localizedString(forLanguageCode: code) ?? "English"
+        return baseInstructions + " Write in \(name)."
+    }
+
+    /// Cache key for `facts` written in `language`, so a reply cached in one
+    /// language never survives a switch to another.
+    static func cacheKey(_ facts: Facts, language code: String) -> String {
+        code + "|" + facts.cacheKey
+    }
 
     // MARK: - Fact building
 
