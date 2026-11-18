@@ -310,6 +310,47 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertTrue(system.hasSuffix("Active malignancy"), "Entries are kept whole or not at all")
     }
 
+    func test_mentions_abbreviationInsideOrdinaryWord_isNotAMention() {
+        let elabela = samplePeptide(name: "Elabela", abbreviation: "ELA")
+        let relaxin = samplePeptide(name: "Relaxin", abbreviation: "RLN")
+
+        XCTAssertFalse(AIResearchService.mentions(elabela, in: "is sleep related to hrv"))
+        XCTAssertFalse(AIResearchService.mentions(relaxin, in: "relaxing before bed"))
+        XCTAssertTrue(AIResearchService.mentions(elabela, in: "what does ela do?"))
+    }
+
+    func test_mentions_commonNameBeforeParenthetical_isAMention() {
+        let ibutamoren = samplePeptide(name: "Ibutamoren (MK-677)", abbreviation: "MK-677")
+        let glutathione = samplePeptide(name: "Glutathione (γ-L-Glutamyl-L-cysteinyl-glycine)", abbreviation: "GSH")
+
+        XCTAssertTrue(AIResearchService.mentions(ibutamoren, in: "what's the half-life of ibutamoren?"))
+        XCTAssertTrue(AIResearchService.mentions(glutathione, in: "is glutathione safe"))
+    }
+
+    func test_mentions_aliasInsideParenthetical_isAMention() {
+        let davunetide = samplePeptide(name: "Davunetide (NAP, NAPVSIPQ)", abbreviation: "NAP")
+
+        XCTAssertTrue(AIResearchService.mentions(davunetide, in: "tell me about napvsipq"))
+        XCTAssertFalse(AIResearchService.mentions(davunetide, in: "oh snap"))
+    }
+
+    func test_reply_largeBrief_keepsCompoundEntriesWholeOrLeavesThemOut() async throws {
+        let captured = SendableBox<URLRequest?>(nil)
+        MockURLProtocol.handler = { request in
+            captured.set(request)
+            return (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
+        }
+        let brief = String(repeating: "x", count: 11_300)
+        _ = try await service.reply(
+            history: [], newUserPrompt: "Is BPC-157 worth it?", in: [samplePeptide()],
+            brief: .init(topic: .nutrition, text: brief)
+        )
+        let system = try Self.decodeBody(captured.value)["system"] as? String ?? ""
+        XCTAssertLessThanOrEqual(system.utf16.count, AIResearchService.systemCharacterBudget)
+        XCTAssertFalse(system.hasSuffix("…"), "The compound entry was cut mid-field")
+        XCTAssertTrue(system.hasSuffix("Active malignancy") || !system.contains("Database context"))
+    }
+
     // MARK: - Error presentation
 
     func test_chatError_dailyLimit_isNotRetryableAndSaysSo() {
