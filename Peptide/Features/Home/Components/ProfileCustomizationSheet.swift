@@ -620,34 +620,14 @@ struct ProfileCustomizationSheet: View {
         let key = goal.rawValue
         let selected = dataStore.profile.goals.contains(key)
         let pinned = dataStore.profile.primaryGoal == key
-        return Button {
+        return GlassChip(
+            LocalizedStringKey(goal.displayName),
+            icon: pinned ? "pin.fill" : nil,
+            isSelected: selected
+        ) {
             toggleGoal(key)
-        } label: {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: pinned ? "pin.fill" : (selected ? "checkmark.circle.fill" : "circle"))
-                    .font(AppFont.scaled(11, weight: .semibold))
-                Text(goal.displayName)
-                    .font(AppFont.subheadline)
-                    .fontWeight(.semibold)
-            }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .foregroundStyle(selected ? AppColor.accentLight : AppColor.textSecondary)
-            .background {
-                Capsule()
-                    .fill(selected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceSecondary.opacity(0.6))
-                    .overlay {
-                        Capsule().strokeBorder(
-                            selected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                            lineWidth: 0.5
-                        )
-                    }
-            }
         }
-        .buttonStyle(ScalePressStyle())
-        .accessibilityLabel(goal.displayName)
         .accessibilityValue(pinned ? Text("Primary goal") : Text(""))
-        .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityActions {
             if selected {
                 if pinned {

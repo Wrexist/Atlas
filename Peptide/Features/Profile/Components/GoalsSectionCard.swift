@@ -31,39 +31,13 @@ struct GoalsSectionCard: View {
                     ForEach(goalCatalog) { entry in
                         let isSelected = selectedKeys.contains(entry.key)
 
-                        Button {
-                            Haptics.selection()
+                        GlassChip(
+                            LocalizedStringKey(entry.displayName),
+                            icon: isSelected ? "checkmark" : nil,
+                            isSelected: isSelected
+                        ) {
                             onToggle(entry.key)
-                        } label: {
-                            HStack(spacing: Spacing.xs) {
-                                if isSelected {
-                                    Image(systemName: "checkmark")
-                                        .font(AppFont.scaled(11, weight: .bold))
-                                        .transition(.scale.combined(with: .opacity))
-                                }
-                                Text(entry.displayName)
-                                    .font(AppFont.chipText)
-                            }
-                            .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
-                            .padding(.horizontal, Spacing.md)
-                            .padding(.vertical, Spacing.sm)
-                            .background {
-                                Capsule()
-                                    .fill(isSelected ? AppColor.accentPrimary.opacity(0.2) : AppColor.surfaceElevated)
-                                    .overlay {
-                                        Capsule()
-                                            .strokeBorder(
-                                                isSelected ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                                lineWidth: 0.5
-                                            )
-                                    }
-                            }
-                            .minimumHitArea()
-                            .appAnimation(AppAnimation.springSnappy, value: isSelected)
                         }
-                        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
-                        .accessibilityLabel(entry.displayName)
-                        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
                     }
                 }
             }
