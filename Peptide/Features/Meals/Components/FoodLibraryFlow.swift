@@ -593,10 +593,13 @@ struct FoodLibraryFlow: View {
                     emptyState(
                         icon: "questionmark.app.dashed",
                         title: "No results",
-                        body: "We couldn't find a match for “\(debouncedQuery)”. Let Atlas AI add it, scan a barcode, or scan a meal photo.",
+                        body: "We couldn't find a match for “\(debouncedQuery)”. Let Atlas AI add it or scan its barcode.",
                         action: .init(title: "Add “\(debouncedQuery)” with AI", icon: "sparkles") {
                             aiFillQuery = debouncedQuery
                             editingCustomFood = .blank
+                        },
+                        secondary: .init(title: "Scan a barcode", icon: "barcode.viewfinder") {
+                            onRequestBarcodeScan()
                         }
                     )
                 }
@@ -1119,9 +1122,10 @@ struct FoodLibraryFlow: View {
         icon: String,
         title: LocalizedStringKey,
         body: LocalizedStringKey,
-        action: EmptyStateView.Action? = nil
+        action: EmptyStateView.Action? = nil,
+        secondary: EmptyStateView.Action? = nil
     ) -> some View {
-        EmptyStateView(icon: icon, title: title, message: body, action: action, style: .compact)
+        EmptyStateView(icon: icon, title: title, message: body, action: action, secondary: secondary, style: .compact)
             .padding(.vertical, Spacing.sm)
     }
 

@@ -6996,6 +6996,16 @@
         }
       }
     },
+    "Scan a barcode": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna en streckkod"
+          }
+        }
+      }
+    },
     "Scanned report attached": {
       "localizations": {
         "sv": {
@@ -38696,12 +38706,12 @@
         }
       }
     },
-    "We couldn't find a match for “%@”. Let Atlas AI add it, scan a barcode, or scan a meal photo.": {
+    "We couldn't find a match for “%@”. Let Atlas AI add it or scan its barcode.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vi hittade ingen träff för ”%@”. Låt Atlas AI lägga till det, skanna en streckkod eller skanna ett måltidsfoto."
+            "value": "Vi hittade ingen träff för ”%@”. Låt Atlas AI lägga till det eller skanna streckkoden."
           }
         }
       }
