@@ -151,6 +151,17 @@
         }
       }
     },
+    "%@ · Step %lld": {
+      "comment": "Cooking timer notification body: the dish and the step whose timer ran out",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · Steg %lld"
+          }
+        }
+      }
+    },
     "%@, %lld of %lld sets this week": {
       "localizations": {
         "sv": {
@@ -45885,10 +45896,40 @@
     },
     "%lld servings": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld serving"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld servings"
+                }
+              }
+            }
+          }
+        },
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld portioner"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld portion"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld portioner"
+                }
+              }
+            }
           }
         }
       }

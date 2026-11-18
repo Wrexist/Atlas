@@ -16,7 +16,7 @@ struct PrepDishCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             NavigationLink {
-                RecipeDetailView(recipe: recipe)
+                RecipeDetailView(recipe: recipe, servings: servings)
             } label: {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     RecipeCutout(recipe: recipe)
@@ -64,7 +64,7 @@ struct PrepDishCard: View {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
-                .frame(width: 32, height: 32)
+                .frame(width: AppFont.scaledValue(32), height: AppFont.scaledValue(32))
                 .glassControl(.circle)
                 .minimumHitArea()
         }
@@ -98,7 +98,7 @@ struct PrepDishCard: View {
             Image(systemName: icon)
                 .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
-                .frame(width: 28, height: 28)
+                .frame(width: AppFont.scaledValue(28), height: AppFont.scaledValue(28))
                 .glassControl(.circle)
                 .minimumHitArea()
         }

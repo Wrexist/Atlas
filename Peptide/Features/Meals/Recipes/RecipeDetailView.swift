@@ -17,23 +17,27 @@ struct RecipeDetailView: View {
     @State private var heartBurst = false
     @State private var steps: [RecipeStepEngine.Step]
     @State private var doneSteps: Set<Int> = []
-    @State private var timers = CookingTimers()
+    /// Outlives the page, so leaving it doesn't drop a running timer.
+    @State private var timers: CookingTimers
     @State private var showsCookingMode = false
 
     /// The diary day "Log 1 serving" lands on: the day the Meals tab was
     /// showing when the recipe was opened, today from anywhere else.
     private let logDay: Date
 
-    init(recipe: LibraryRecipe, logDay: Date = Date()) {
+    /// `servings` opens it scaled for that many, e.g. a prep dish's boxes.
+    init(recipe: LibraryRecipe, servings: Int? = nil, logDay: Date = Date()) {
         self.recipe = recipe
         self.logDay = logDay
-        _servings = State(initialValue: recipe.servings)
+        let start = min(Self.servingRange.upperBound, max(Self.servingRange.lowerBound, servings ?? recipe.servings))
+        let locale = LocalizationManager.shared.effectiveLocale
+        _servings = State(initialValue: start)
         // Built up front so the method card is there on the first frame.
         // The app pins `\.locale` to this same locale.
-        _steps = State(initialValue: RecipeStepEngine.steps(
-            for: recipe,
-            servings: recipe.servings,
-            locale: LocalizationManager.shared.effectiveLocale
+        _steps = State(initialValue: RecipeStepEngine.steps(for: recipe, servings: start, locale: locale))
+        _timers = State(initialValue: CookingTimerStore.shared.timers(
+            for: recipe.id,
+            recipeName: recipe.displayName(locale: locale)
         ))
     }
 
@@ -290,7 +294,7 @@ struct RecipeDetailView: View {
             Image(systemName: icon)
                 .font(AppFont.scaled(16, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
-                .frame(width: 36, height: 36)
+                .frame(width: AppFont.scaledValue(36), height: AppFont.scaledValue(36))
                 .glassControl(.circle)
                 .minimumHitArea()
         }
