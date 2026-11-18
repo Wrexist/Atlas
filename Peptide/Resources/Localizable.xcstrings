@@ -33250,16 +33250,6 @@
         }
       }
     },
-    "Sleep is the single biggest lever for recovery, hormone regulation, and protocol response.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sömn är den enskilt största faktorn för återhämtning, hormonreglering och hur du svarar på ett protokoll."
-          }
-        }
-      }
-    },
     "Sleep tracked nightly": {
       "localizations": {
         "sv": {
@@ -49842,6 +49832,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inga doser skulle tas den dagen."
+          }
+        }
+      }
+    },
+    "Sleep is the single biggest lever for recovery, training progress, and how you feel the next day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömn är den enskilt största faktorn för återhämtning, träningsframsteg och hur du mår dagen efter."
           }
         }
       }

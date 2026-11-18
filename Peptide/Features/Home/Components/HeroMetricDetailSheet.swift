@@ -6,9 +6,9 @@ import SwiftUI
 /// then either what's driving it (Recovery), what it's made of (Sleep),
 /// or what's still outstanding (Adherence).
 ///
-/// Every metric carries one colour the whole way down — ring, eyebrow,
-/// medallion, values — so the three sheets read as three subjects rather
-/// than one template filled in three times.
+/// Every metric carries one colour — ring, medallion, values — so the
+/// three sheets read as three subjects rather than one template filled
+/// in three times.
 struct HeroMetricDetailSheet: View {
     let kind: HeroMetricKind
     let snapshot: HeroMetricSnapshot
@@ -182,9 +182,11 @@ struct HeroMetricDetailSheet: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
                     } else {
+                        // The value's own light weight: a bold dash read as a
+                        // heavy bar, louder than a real number.
                         Text("—")
-                            .font(AppFont.scaled(40, weight: .bold, relativeTo: .largeTitle))
-                            .foregroundStyle(AppColor.textSecondary)
+                            .font(AppFont.scaled(40, weight: .light, relativeTo: .largeTitle))
+                            .foregroundStyle(AppColor.textTertiary)
                     }
                 }
             }
@@ -261,7 +263,7 @@ struct HeroMetricDetailSheet: View {
                 Text("WHY IT MATTERS")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(1.0)
-                    .foregroundStyle(ringTint)
+                    .foregroundStyle(AppColor.textSecondary)
                 Text(explainerBody)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
@@ -270,14 +272,9 @@ struct HeroMetricDetailSheet: View {
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(ringTint.opacity(0.08))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(ringTint.opacity(0.20), lineWidth: 1)
-                }
-        }
+        // The neutral card surface; the metric's colour stays on the
+        // medallion so the sheet keeps one accent.
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .combine)
     }
 
@@ -288,7 +285,7 @@ struct HeroMetricDetailSheet: View {
         case .recovery:
             return String(localized: "Recovery is a 0–100 read on whether your body is ready to push or rest. Higher HRV + adequate sleep + a steady resting heart rate all push the number up; a short night or a stress spike pull it down.")
         case .sleep:
-            return String(localized: "Sleep is the single biggest lever for recovery, hormone regulation, and protocol response.")
+            return String(localized: "Sleep is the single biggest lever for recovery, training progress, and how you feel the next day.")
         }
     }
 
