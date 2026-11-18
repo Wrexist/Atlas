@@ -140,7 +140,8 @@ final class NotificationService {
     /// entry in `occupied` — matching weekday, or any weekday when
     /// `weekday` is `nil` (a "daily" habit can collide with a dose
     /// reminder on any day of the week) — shifts the candidate forward by
-    /// `crossTypeCooldownMinutes` so the two don't land in the same
+    /// `crossTypeCooldownMinutes` (backwards when forward would cross
+    /// midnight) so the two don't land in the same
     /// notification-center pull. Deterministic: the same inputs always
     /// produce the same shifted time, so a reschedule never nudges an
     /// already-resolved reminder a second time.
@@ -161,7 +162,10 @@ final class NotificationService {
                 && abs(slot.hour * 60 + slot.minute - candidateMinuteOfDay) < crossTypeCooldownMinutes
         }
         guard collides else { return (hour, minute) }
-        let shifted = (candidateMinuteOfDay + crossTypeCooldownMinutes) % (24 * 60)
+        // The caller keeps the weekday, so a shift past midnight would fire
+        // at the start of the same day; late reminders yield backwards.
+        let forward = candidateMinuteOfDay + crossTypeCooldownMinutes
+        let shifted = forward < 24 * 60 ? forward : max(0, candidateMinuteOfDay - crossTypeCooldownMinutes)
         return (shifted / 60, shifted % 60)
     }
 
@@ -235,25 +239,7 @@ final class NotificationService {
                 into: &pendingRequests
             )
 
-            // Weekly cadence: group peptides by (day, time) so co-scheduled
-            // peptides combine into one notification.
-            var grouped: [TimeslotKey: [Peptide]] = [:]
-            for peptide in proto.peptides {
-                let schedule = proto.schedule(for: peptide.id)
-                if schedule.isInterval { continue }
-                for timeString in schedule.preferredTimes {
-                    for day in schedule.daysOfWeek {
-                        guard (1...7).contains(day) else {
-                            if invalidWeekdaysSet.insert(day).inserted {
-                                AppLog.notifications.error("Skipping invalid weekday \(day, privacy: .public) for protocol \(proto.id.uuidString, privacy: .public)")
-                            }
-                            continue
-                        }
-                        let key = TimeslotKey(day: day, time: timeString)
-                        grouped[key, default: []].append(peptide)
-                    }
-                }
-            }
+            let grouped = Self.weeklySlotGroups(for: proto, invalidWeekdays: &invalidWeekdaysSet)
 
             if proto.washoutWeeks > 0 {
                 appendCycleBoundedWeeklyRequests(
@@ -518,9 +504,37 @@ final class NotificationService {
         currentIDs.remove(Self.trialReminderID)
     }
 
-    private struct TimeslotKey: Hashable {
+    struct TimeslotKey: Hashable {
         let day: Int
         let time: String
+    }
+
+    /// Weekly cadence: peptides grouped by (day, time) so co-scheduled
+    /// peptides combine into one notification. A time or weekday listed
+    /// twice still names each peptide once.
+    static func weeklySlotGroups(
+        for proto: PeptideProtocol,
+        invalidWeekdays: inout Set<Int>
+    ) -> [TimeslotKey: [Peptide]] {
+        var grouped: [TimeslotKey: [Peptide]] = [:]
+        for peptide in proto.peptides {
+            let schedule = proto.schedule(for: peptide.id)
+            if schedule.isInterval { continue }
+            for timeString in schedule.preferredTimes {
+                for day in schedule.daysOfWeek {
+                    guard (1...7).contains(day) else {
+                        if invalidWeekdays.insert(day).inserted {
+                            AppLog.notifications.error("Skipping invalid weekday \(day, privacy: .public) for protocol \(proto.id.uuidString, privacy: .public)")
+                        }
+                        continue
+                    }
+                    let key = TimeslotKey(day: day, time: timeString)
+                    if grouped[key]?.contains(where: { $0.id == peptide.id }) == true { continue }
+                    grouped[key, default: []].append(peptide)
+                }
+            }
+        }
+        return grouped
     }
 
     private struct PendingRequest {

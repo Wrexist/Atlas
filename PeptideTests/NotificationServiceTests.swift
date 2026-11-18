@@ -251,6 +251,25 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertEqual(resolved.minute, 15, "Should shift forward by the full cooldown window (10 min) from the candidate")
     }
 
+    func test_resolvedHabitFireTime_lateNightCollision_staysSameDay() {
+        let occupied: [(weekday: Int, hour: Int, minute: Int)] = [(weekday: 3, hour: 23, minute: 50)]
+        let resolved = NotificationService.resolvedHabitFireTime(
+            hour: 23, minute: 55, weekday: 3, avoiding: occupied
+        )
+        XCTAssertEqual(resolved.hour, 23)
+        XCTAssertEqual(resolved.minute, 45, "A shift past midnight would fire at 00:05 of the same weekday")
+    }
+
+    func test_weeklySlotGroups_repeatedTimeAndDay_listsPeptideOnce() {
+        let proto = makeProtocol(times: ["8:00 AM", "8:00 AM"], days: [1, 1], peptideCount: 1)
+        var invalidWeekdays: Set<Int> = []
+
+        let groups = NotificationService.weeklySlotGroups(for: proto, invalidWeekdays: &invalidWeekdays)
+
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups.values.first?.map(\.id), [MockPeptides.bpc157.id])
+    }
+
     func test_resolvedHabitFireTime_differentWeekday_noShift() {
         // Dose reminder occupies 8:00 on weekday 2 only; a habit candidate
         // at the same clock time but a different weekday doesn't collide.
