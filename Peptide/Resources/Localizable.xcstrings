@@ -43633,7 +43633,57 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld av %lld doser tagna"
+            "value": "%1$lld av %#@arg2@"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dos tagen"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg doser tagna"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %#@arg2@"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dose taken"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg doses taken"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -49762,6 +49812,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nästa steg"
+          }
+        }
+      }
+    },
+    "Nothing was scheduled": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget var schemalagt"
+          }
+        }
+      }
+    },
+    "All doses taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla doser tagna"
+          }
+        }
+      }
+    },
+    "No doses were due that day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga doser skulle tas den dagen."
           }
         }
       }

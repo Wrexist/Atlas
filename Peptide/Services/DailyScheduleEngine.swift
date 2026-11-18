@@ -222,6 +222,16 @@ enum DailyScheduleEngine {
             }
         }
 
+        /// The headline for a day already past: what was recorded rather
+        /// than an instruction for a dose that can no longer be taken.
+        var recordHeadline: String {
+            let doses = slots.flatMap(\.doses)
+            guard !doses.isEmpty else { return String(localized: "Nothing was scheduled") }
+            let taken = doses.filter(\.entry.completed).count
+            guard taken < doses.count else { return String(localized: "All doses taken") }
+            return String(localized: "\(taken) of \(doses.count) doses taken")
+        }
+
         var summary: String {
             let slotCount = slots.count
             var parts: [String] = []

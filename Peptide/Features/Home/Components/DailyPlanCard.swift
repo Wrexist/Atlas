@@ -24,6 +24,10 @@ struct DailyPlanCard: View {
     /// "Show more" button.
     @State private var isExpanded = false
 
+    /// A browsed past day: no callbacks, so the card is a record of what
+    /// was taken rather than a plan to act on.
+    private var isReadOnly: Bool { onToggleDose == nil && onTapDose == nil }
+
     /// Slots rendered now. When collapsed we keep the first window that
     /// still has a dose to take — or the last one once everything is
     /// logged — so the open doses are never hidden behind the toggle.
@@ -92,7 +96,7 @@ struct DailyPlanCard: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
-                Text(plan.headline)
+                Text(isReadOnly ? plan.recordHeadline : plan.headline)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Spacer(minLength: 0)
@@ -175,7 +179,14 @@ struct DailyPlanCard: View {
 
     @ViewBuilder
     private var emptyState: some View {
-        if hasActiveProtocols {
+        if isReadOnly {
+            EmptyStateView(
+                icon: "calendar",
+                title: "Nothing was scheduled",
+                message: "No doses were due that day.",
+                style: .compact
+            )
+        } else if hasActiveProtocols {
             EmptyStateView(
                 icon: "calendar",
                 title: "Nothing scheduled today",
@@ -279,35 +290,49 @@ private struct DailyPlanDoseRow: View {
         )
     }
 
+    /// A button only when the host can open dose logging; a past day's row
+    /// is a plain record, so it neither sinks on press nor announces an
+    /// action that never runs.
+    @ViewBuilder
     private var detailsButton: some View {
-        Button {
-            onTap?(dose.entry)
-        } label: {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                topRow
-                if !dose.timingNote.isEmpty {
-                    Text(dose.timingNote)
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .multilineTextAlignment(.leading)
-                }
-                ForEach(dose.combinations, id: \.self) { combo in
-                    combinationChip(combo)
-                }
-                ForEach(dose.conflicts, id: \.self) { conflict in
-                    conflictChip(conflict)
-                }
+        if let onTap {
+            Button {
+                onTap(dose.entry)
+            } label: {
+                details
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            // One VoiceOver stop per dose instead of icon, name, flag,
+            // dose and time read separately.
+            .accessibilityElement(children: .combine)
+            .accessibilityValue(dose.entry.completed ? "Taken" : "Pending")
+            .accessibilityHint("Opens dose logging")
+        } else {
+            details
+                .accessibilityElement(children: .combine)
+                .accessibilityValue(dose.entry.completed ? "Taken" : "Pending")
         }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-        // One VoiceOver stop per dose instead of icon, name, flag,
-        // dose and time read separately.
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(dose.entry.completed ? "Taken" : "Pending")
-        .accessibilityHint("Opens dose logging")
+    }
+
+    private var details: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            topRow
+            if !dose.timingNote.isEmpty {
+                Text(dose.timingNote)
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+            }
+            ForEach(dose.combinations, id: \.self) { combo in
+                combinationChip(combo)
+            }
+            ForEach(dose.conflicts, id: \.self) { conflict in
+                conflictChip(conflict)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private var topRow: some View {
