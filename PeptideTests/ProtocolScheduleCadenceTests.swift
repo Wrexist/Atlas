@@ -39,6 +39,29 @@ final class ProtocolScheduleCadenceTests: XCTestCase {
         )
     }
 
+    func test_decode_storedDuplicateTimes_keepsOneSlot() throws {
+        let json = Data(#"{"daysOfWeek":[1,2,3,4,5,6,7],"timesPerDay":2,"preferredTimes":["8:00 AM","8:00 AM"]}"#.utf8)
+        let schedule = try JSONDecoder().decode(ProtocolSchedule.self, from: json)
+        XCTAssertEqual(schedule.preferredTimes, ["8:00 AM"],
+                       "A legacy duplicate would generate two entries sharing one id")
+    }
+
+    func test_scheduledDoses_legacyDuplicateTimes_countOneDosePerDay() throws {
+        let json = Data(#"{"daysOfWeek":[1,2,3,4,5,6,7],"timesPerDay":2,"preferredTimes":["8:00 AM","8:00 AM"]}"#.utf8)
+        let schedule = try JSONDecoder().decode(ProtocolSchedule.self, from: json)
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "Legacy",
+            peptides: [MockPeptides.bpc157],
+            schedule: schedule,
+            cycleLengthWeeks: 8,
+            startDate: makeDate(2026, 1, 1),
+            status: .active,
+            notes: ""
+        )
+        XCTAssertEqual(proto.schedule(for: MockPeptides.bpc157.id).preferredTimes.count, 1)
+    }
+
     func test_repeatsEarlierSlot_flagsOnlyTheLaterDuplicate() {
         let times = ["8:00 AM", "1:00 PM", "8:00 AM"]
         XCTAssertFalse(ScheduleEditor.repeatsEarlierSlot(0, in: times))

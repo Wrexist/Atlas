@@ -155,7 +155,10 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.daysOfWeek = try c.decode([Int].self, forKey: .daysOfWeek)
         self.timesPerDay = try c.decode(Int.self, forKey: .timesPerDay)
-        self.preferredTimes = try c.decode([String].self, forKey: .preferredTimes)
+        // Normalised here, at the model boundary, so a schedule saved
+        // before the editors deduplicated times (or synced from such a
+        // build) can't generate two entries sharing one id.
+        self.preferredTimes = Self.normalizedTimes(try c.decode([String].self, forKey: .preferredTimes))
         self.customDose = try c.decodeIfPresent(String.self, forKey: .customDose)
         self.intervalDays = try c.decodeIfPresent(Int.self, forKey: .intervalDays)
         self.intervalAnchor = try c.decodeIfPresent(Date.self, forKey: .intervalAnchor)
