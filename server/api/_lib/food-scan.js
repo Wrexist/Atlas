@@ -14,6 +14,8 @@
  *                      quality comes from the image, not long thinking.
  */
 
+import { localeTag } from './locale.js';
+
 const DEFAULT_MODEL = 'claude-opus-5-5';
 const EFFORTS = new Set(['low', 'medium', 'high']);
 // Thinking and the JSON share this budget. A ten-item plate is ~3k
@@ -192,10 +194,7 @@ function cleanString(value, max = MAX_FIELD_CHARS) {
 }
 
 function userContext(raw) {
-  // iOS identifiers can carry keywords (`sv_SE@rg=sezzzz`,
-  // `en_US@calendar=japanese`); only the language and region matter here.
-  const base = String(raw.locale ?? '').split('@')[0];
-  const locale = /^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$/.test(base) ? base : 'en_US';
+  const locale = localeTag(raw.locale);
   const currency = /^[A-Z]{3}$/.test(raw.currency ?? '') ? raw.currency : 'USD';
   return `User locale: ${locale}. Currency: ${currency}.`;
 }

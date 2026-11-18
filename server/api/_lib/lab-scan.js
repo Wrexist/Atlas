@@ -15,6 +15,8 @@
  *                     printed table is perception, not reasoning.
  */
 
+import { localeTag } from './locale.js';
+
 const DEFAULT_MODEL = 'claude-opus-5-5';
 const EFFORTS = new Set(['low', 'medium', 'high']);
 // A full panel is ~60 markers at ~60 output tokens each, plus thinking.
@@ -82,10 +84,7 @@ function pageContent(image) {
 }
 
 function localeLine(raw) {
-  // iOS identifiers can carry keywords (`sv_SE@rg=sezzzz`); only the
-  // language and region matter here.
-  const base = String(raw.locale ?? '').split('@')[0];
-  const locale = /^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$/.test(base) ? base : 'en_US';
+  const locale = localeTag(raw.locale);
   // Dates like 03/04/2026 are only resolvable with the user's locale.
   return `User locale: ${locale}. Read ambiguous day/month dates in this locale's order.`;
 }

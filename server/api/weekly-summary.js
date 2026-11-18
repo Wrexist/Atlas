@@ -20,6 +20,7 @@
 import { passesProGate, principalFor, refuse, THINKING_OFF } from './_lib/anthropic-proxy.js';
 import { checkAppAttest } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
+import { localeTag } from './_lib/locale.js';
 import {
   allowRate,
   costForBytes,
@@ -190,15 +191,6 @@ function sanitiseAggregate(agg) {
   return clean;
 }
 
-// The aggregate is numbers only, so the model has no text to mirror:
-// without the locale it always answered in English, while the app's
-// offline fallback is localized. Same validation as the scan routes —
-// anything that isn't a plain language/region tag falls back to en_US.
-function localeOf(raw) {
-  const base = String(raw ?? '').split('@')[0];
-  return /^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$/.test(base) ? base : 'en_US';
-}
-
 function buildUserPrompt(aggregate, locale) {
   // Pretty-printed JSON is what the model reads best. Stays
   // deterministic per aggregate so identical aggregates (rare but
@@ -307,7 +299,9 @@ export default async function handler(req, res) {
     messages: [
       {
         role: 'user',
-        content: buildUserPrompt(aggregate, localeOf(req.body?.locale))
+        // The aggregate is numbers only, so without the locale the model
+        // has no text to mirror and always answered in English.
+        content: buildUserPrompt(aggregate, localeTag(req.body?.locale))
       }
     ]
   };
