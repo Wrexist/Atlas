@@ -194,6 +194,10 @@ final class SwiftDataRepository {
     /// answer CloudKit can't give leaves the store as it is: never held,
     /// never wiped.
     func refreshCloudAccount() async {
+        // Screenshot mode runs on in-memory demo data, and its UI-test
+        // builds are unsigned: CKContainer raises an uncatchable
+        // missing-entitlement exception there and kills the app.
+        guard !ScreenshotMode.shared.isEnabled else { return }
         accountCheckGeneration += 1
         let generation = accountCheckGeneration
         let observed = await observeCloudAccount()
