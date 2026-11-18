@@ -89,7 +89,7 @@ struct BiomarkerTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .contentTransition(.numericText())
-            if let unitText = biomarker.displayUnit(for: unit) {
+            if let unitText = biomarker.displayUnit(for: unit) ?? snapshot.unitLabel {
                 Text(unitText)
                     .font(AppFont.scaled(13, weight: .medium))
                     .foregroundStyle(AppColor.textSecondary)
@@ -165,7 +165,12 @@ struct BiomarkerTile: View {
     }
 
     /// "Avg 58 ms · Steady", or the stale note once the reading is old.
+    /// A lab reading always leads with its panel name, so the number
+    /// never stands alone.
     private var footerText: String {
+        if let context = snapshot.contextLabel {
+            return [context, snapshot.staleNote()].compactMap { $0 }.joined(separator: " · ")
+        }
         let verb = snapshot.changeText.components(separatedBy: " · ").first ?? ""
         var parts: [String] = []
         if snapshot.samples.count >= 2, snapshot.latestSecondary == nil {

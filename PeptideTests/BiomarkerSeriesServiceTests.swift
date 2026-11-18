@@ -309,4 +309,23 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
         XCTAssertNil(snapshot.latest)
         XCTAssertNil(snapshot.latestSecondary)
     }
+
+    // MARK: - labSnapshot
+
+    /// A lab draw is nearly always older than the stale cut-off, so the
+    /// tile can't rely on changeText to say which marker the number is.
+    func test_labSnapshot_carriesPanelNameAndUnit() {
+        let lab = LabValue(date: Date(timeIntervalSince1970: 1_700_000_000), panel: .totalTestosterone, value: 720)
+
+        let snapshot = BiomarkerSeriesService.labSnapshot(latestLab: lab)
+
+        XCTAssertEqual(snapshot.contextLabel, LabPanel.totalTestosterone.displayName)
+        XCTAssertEqual(snapshot.unitLabel, "ng/dL")
+    }
+
+    func test_labSnapshot_noLab_hasNoContext() {
+        let snapshot = BiomarkerSeriesService.labSnapshot(latestLab: nil)
+        XCTAssertNil(snapshot.contextLabel)
+        XCTAssertNil(snapshot.unitLabel)
+    }
 }

@@ -216,6 +216,11 @@ struct BiomarkerSnapshot: Equatable, Sendable, Identifiable {
     /// systolic. Nil and empty for every other biomarker.
     var latestSecondary: Double? = nil
     var secondarySamples: [Sample] = []
+    /// What the reading is when the biomarker alone doesn't say: the
+    /// lab panel's name and unit ("Total testosterone", "ng/dL").
+    /// Nil for every biomarker with a fixed meaning and unit.
+    var contextLabel: String? = nil
+    var unitLabel: String? = nil
 
     /// Past this many days the latest reading is called out as old
     /// rather than shown as if it were current.

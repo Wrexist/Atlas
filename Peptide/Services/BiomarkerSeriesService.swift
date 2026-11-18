@@ -230,7 +230,9 @@ enum BiomarkerSeriesService {
             trend: .insufficient,
             samples: [],
             changeText: "\(lab.panel.displayName) · \(valueStr) \(unit)",
-            latestDate: lab.date
+            latestDate: lab.date,
+            contextLabel: lab.panel.displayName,
+            unitLabel: unit
         )
     }
 
