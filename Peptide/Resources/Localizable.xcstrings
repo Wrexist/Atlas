@@ -6100,6 +6100,16 @@
         }
       }
     },
+    "Add a working set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till ett arbetsset"
+          }
+        }
+      }
+    },
     "Add results in Labs": {
       "localizations": {
         "sv": {

@@ -306,6 +306,17 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertEqual(entry.nextSetToDo?.id, entry.sets[2].id)
     }
 
+    func test_onlyWarmupsLogged_titleAsksForAWorkingSet() {
+        let entry = entryWithWarmup(warmupDone: true, workingDone: [])
+        XCTAssertFalse(entry.workingSetsDone)
+        XCTAssertEqual(WorkoutFocusView.progressTitle(entry), String(localized: "Add a working set"))
+    }
+
+    func test_everyWorkingSetLogged_titleSaysExerciseComplete() {
+        let entry = entryWithWarmup(warmupDone: true, workingDone: [true])
+        XCTAssertEqual(WorkoutFocusView.progressTitle(entry), String(localized: "Exercise complete"))
+    }
+
     func test_warmupBeforeAnyWorkingSet_leadsTheExercise() {
         let entry = entryWithWarmup(warmupDone: false, workingDone: [false, false])
         XCTAssertEqual(entry.nextSetToDo?.id, entry.sets[0].id)

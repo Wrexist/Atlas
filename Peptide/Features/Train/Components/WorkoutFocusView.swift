@@ -352,7 +352,7 @@ struct WorkoutFocusView: View {
                 )
             } else {
               VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text(progressTitle(entry)).font(AppFont.statValueSmall)
+                Text(Self.progressTitle(entry)).font(AppFont.statValueSmall)
                     .foregroundStyle(AppColor.textPrimary)
                 // Taught once: after the first logged set it's known.
                 if session.completedSetCount == 0 {
@@ -374,9 +374,14 @@ struct WorkoutFocusView: View {
     }
 
     /// Numbers working sets only, matching the Live Activity's totals.
-    private func progressTitle(_ entry: WorkoutExerciseEntry) -> String {
+    /// The set panel's heading. An entry holding only warm-ups isn't done:
+    /// the strip and the finish actions wait for a working set, so the
+    /// heading asks for one too.
+    static func progressTitle(_ entry: WorkoutExerciseEntry) -> String {
         guard let next = entry.nextSetToDo else {
-            return entry.sets.isEmpty ? String(localized: "Add your first set") : String(localized: "Exercise complete")
+            if entry.sets.isEmpty { return String(localized: "Add your first set") }
+            guard entry.sets.contains(where: { !$0.isWarmup }) else { return String(localized: "Add a working set") }
+            return String(localized: "Exercise complete")
         }
         guard let position = entry.workingNumber(of: next) else { return String(localized: "Warm-up") }
         let workingCount = entry.sets.filter { !$0.isWarmup }.count
