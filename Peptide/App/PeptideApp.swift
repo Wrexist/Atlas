@@ -308,7 +308,7 @@ struct PeptideApp: App {
             // mirror mount still on Today.
             appState.dismissModalsForRouting()
             appState.selectedTab = .meals
-            appState.pendingFoodLogID = deepLink
+            appState.afterRoutingDismissals { appState.pendingFoodLogID = deepLink }
         }
         .onReceive(NotificationCenter.default.publisher(
             for: UIApplication.significantTimeChangeNotification

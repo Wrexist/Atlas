@@ -14,9 +14,9 @@ enum QuickActionRouter {
 
         switch action {
         case .scanMeal:
-            appState.presentedQuickSheet = .scanMeal
+            appState.afterRoutingDismissals { appState.presentedQuickSheet = .scanMeal }
         case .logWeight:
-            appState.presentedQuickSheet = .logWeight
+            appState.afterRoutingDismissals { appState.presentedQuickSheet = .logWeight }
         case .logWater:
             logGlass(at: Date(), into: dataStore)
             Haptics.success()

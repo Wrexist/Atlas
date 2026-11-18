@@ -40,6 +40,38 @@ final class DeepLinkRouterTests: XCTestCase {
         XCTAssertEqual(state.rootPromptDismissalRequest, 1)
     }
 
+    func test_doseHost_withWorkoutCoverUp_parksEntryOnlyAfterCoverCloses() {
+        let state = AppState()
+        state.isActiveWorkoutVisible = true
+        let id = UUID()
+        DeepLinkRouter.route(XCTUnwrapURL("peptidex://dose/\(id.uuidString)"), appState: state)
+        XCTAssertEqual(state.selectedTab, .today)
+        XCTAssertNil(state.pendingDoseLogEntryId,
+                     "A sheet presented while the cover animates out is refused")
+
+        state.activeWorkoutCoverDidDismiss()
+
+        XCTAssertEqual(state.pendingDoseLogEntryId, id)
+    }
+
+    func test_proHost_withWorkoutCoverUp_presentsPaywallAfterCoverCloses() {
+        let state = AppState()
+        state.isActiveWorkoutVisible = true
+        DeepLinkRouter.route(XCTUnwrapURL("atlas://pro"), appState: state)
+        XCTAssertNil(state.presentedPaywall)
+
+        state.activeWorkoutCoverDidDismiss()
+
+        XCTAssertEqual(state.presentedPaywall, .deepLink)
+    }
+
+    func test_coverDismissedByUser_withNoRoutePending_changesNothing() {
+        let state = AppState()
+        state.activeWorkoutCoverDidDismiss()
+        XCTAssertNil(state.pendingDoseLogEntryId)
+        XCTAssertNil(state.presentedPaywall)
+    }
+
     func test_trainHost_withWorkoutCoverUp_keepsTheWorkout() {
         let state = AppState()
         state.isActiveWorkoutVisible = true

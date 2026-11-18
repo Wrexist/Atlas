@@ -60,7 +60,7 @@ struct TrainContainerView: View {
             }
         }
         .environment(\.resumeActiveWorkout, { showActiveWorkout = true })
-        .fullScreenCover(isPresented: $showActiveWorkout) {
+        .fullScreenCover(isPresented: $showActiveWorkout, onDismiss: { appState.activeWorkoutCoverDidDismiss() }) {
             ActiveWorkoutView()
         }
         .onAppear {

@@ -105,6 +105,12 @@ final class AppState {
     /// `TrainContainerView` minimizes it. The workout keeps running
     /// behind its resume banner.
     private(set) var minimizeActiveWorkoutRequest = 0
+    /// Set while the workout cover `dismissModalsForRouting` minimized is
+    /// still animating out. UIKit refuses a presentation during a
+    /// dismissal, so `afterRoutingDismissals` holds the landing until
+    /// `activeWorkoutCoverDidDismiss` reports the cover gone.
+    @ObservationIgnored private var isMinimizingActiveWorkout = false
+    @ObservationIgnored private var landingAwaitingCover: (@MainActor () -> Void)?
 
     /// Closes the root-presented modals before a deep link, quick action
     /// or Spotlight tap navigates. A tab switch or a pending flag behind
@@ -119,8 +125,29 @@ final class AppState {
         presentedPaywall = nil
         rootPromptDismissalRequest &+= 1
         if isActiveWorkoutVisible, !keepingActiveWorkout {
+            isMinimizingActiveWorkout = true
             minimizeActiveWorkoutRequest &+= 1
         }
+    }
+
+    /// Runs the part of a route that presents something (a sheet, a
+    /// pending flag a view turns into one) once the workout cover is
+    /// gone; at once when no cover is closing. A newer route replaces
+    /// one still waiting.
+    func afterRoutingDismissals(_ land: @escaping @MainActor () -> Void) {
+        if isMinimizingActiveWorkout {
+            landingAwaitingCover = land
+        } else {
+            land()
+        }
+    }
+
+    /// Called by the workout cover's `onDismiss`.
+    func activeWorkoutCoverDidDismiss() {
+        isMinimizingActiveWorkout = false
+        let land = landingAwaitingCover
+        landingAwaitingCover = nil
+        land?()
     }
 }
 
@@ -148,12 +175,12 @@ enum DeepLinkRouter {
             guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return false }
             appState.dismissModalsForRouting()
             appState.selectedTab = .today
-            appState.pendingDoseLogEntryId = entryUUID
+            appState.afterRoutingDismissals { appState.pendingDoseLogEntryId = entryUUID }
         case "weekly":
             // Weekly recap notification → `peptidex://weekly/current`.
             appState.dismissModalsForRouting()
             appState.selectedTab = .today
-            appState.pendingWeeklyRecap = true
+            appState.afterRoutingDismissals { appState.pendingWeeklyRecap = true }
         case "today":
             // Home-screen dose/compliance widgets and dose reminders →
             // land on Today.
@@ -184,7 +211,7 @@ enum DeepLinkRouter {
             // cannot stack on top of a modal that is already up.
             guard !isPro else { return true }
             appState.dismissModalsForRouting()
-            appState.presentedPaywall = .deepLink
+            appState.afterRoutingDismissals { appState.presentedPaywall = .deepLink }
         default:
             return false
         }
