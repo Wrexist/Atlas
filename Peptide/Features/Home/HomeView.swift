@@ -240,7 +240,8 @@ struct HomeView: View {
             on: day
         )
         let weekSessions = finishedWorkoutSessionsThisWeek()
-        let daySessions = finishedWorkoutSessions(on: day, thisWeek: weekSessions)
+        let shownDay = finishedSessions(on: day, thisWeek: weekSessions)
+        let daySessions = shownDay.day
         let workoutSummary = (
             count: daySessions.count,
             // Sum seconds, then round once: per-session integer minutes
@@ -265,7 +266,7 @@ struct HomeView: View {
                 profile: dataStore.profile,
                 consumption: dataStore.consumption(for: day),
                 trainedToday: workoutSummary.count > 0,
-                weekSessionCount: finishedSessionCount(weekThrough: day, thisWeek: weekSessions),
+                weekSessionCount: shownDay.weekCount,
                 steps: steps(on: day),
                 now: reference
             ),
@@ -331,33 +332,26 @@ struct HomeView: View {
             .filter { !$0.isActive }
     }
 
-    /// The shown day's finished sessions. A day in the current week reuses
-    /// the week fetch; an earlier day reads its own midnight-to-midnight
-    /// window.
-    private func finishedWorkoutSessions(on day: Date, thisWeek weekSessions: [WorkoutSession]) -> [WorkoutSession] {
+    /// The shown day's finished sessions, and how many finished sessions
+    /// its week holds up to the end of that day — what the checklist's
+    /// weekly-target rule counts. The current week reuses the week fetch;
+    /// an earlier week reads its week-through-day window once and derives
+    /// both from it.
+    private func finishedSessions(
+        on day: Date,
+        thisWeek weekSessions: [WorkoutSession]
+    ) -> (day: [WorkoutSession], weekCount: Int) {
         let calendar = Calendar.current
-        if let week = calendar.dateInterval(of: .weekOfYear, for: Date()), week.contains(day) {
-            return weekSessions.filter { calendar.isDate($0.dayAnchor, inSameDayAs: day) }
-        }
-        return SwiftDataRepository.shared
-            .loadWorkoutSessions(startedBetween: TodayDayEngine.dayRange(for: day))
-            .filter { !$0.isActive }
-    }
-
-    /// Finished sessions in the shown day's week up to the end of that
-    /// day — what the checklist's weekly-target rule counts. The current
-    /// week reuses the week fetch; an earlier week reads its own window.
-    private func finishedSessionCount(weekThrough day: Date, thisWeek weekSessions: [WorkoutSession]) -> Int {
-        let calendar = Calendar.current
-        guard let week = calendar.dateInterval(of: .weekOfYear, for: day) else { return 0 }
+        guard let week = calendar.dateInterval(of: .weekOfYear, for: day) else { return ([], 0) }
         let end = min(week.end, TodayDayEngine.dayRange(for: day).upperBound)
-        if let current = calendar.dateInterval(of: .weekOfYear, for: Date()), current.contains(day) {
-            return weekSessions.filter { $0.dayAnchor < end }.count
-        }
-        return SwiftDataRepository.shared
-            .loadWorkoutSessions(startedBetween: week.start..<end)
-            .filter { !$0.isActive }
-            .count
+        let isCurrentWeek = calendar.dateInterval(of: .weekOfYear, for: Date())?.contains(day) ?? false
+        let throughDay = isCurrentWeek
+            ? weekSessions.filter { $0.dayAnchor < end }
+            : SwiftDataRepository.shared
+                .loadWorkoutSessions(startedBetween: week.start..<end)
+                .filter { !$0.isActive }
+        let daySessions = throughDay.filter { calendar.isDate($0.dayAnchor, inSameDayAs: day) }
+        return (daySessions, throughDay.count)
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
