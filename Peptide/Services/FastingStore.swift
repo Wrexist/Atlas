@@ -62,11 +62,20 @@ final class FastingStore {
     }
 
     /// Moves the open fast's start — for "I actually stopped eating at
-    /// 19:30". Never into the future.
+    /// 19:30". Never into the future, and never before `earliestStart`.
     func updateStart(_ date: Date, now: Date = Date()) {
         guard var fast = active else { return }
-        fast.startedAt = min(date, now)
+        fast.startedAt = min(max(date, earliestStart(now: now)), now)
         save(fast)
+    }
+
+    /// The earliest the open fast may start: not before the previous fast
+    /// ended, so history never overlaps, and not so far back that the Live
+    /// Activity's count-up clock, which stops at `elapsedCeiling`, falls
+    /// behind the app.
+    func earliestStart(now: Date = Date()) -> Date {
+        let previousEnd = ended.compactMap(\.endedAt).max() ?? .distantPast
+        return max(previousEnd, now.addingTimeInterval(-FastingWindow.elapsedCeiling))
     }
 
     func setReminder(_ enabled: Bool) {

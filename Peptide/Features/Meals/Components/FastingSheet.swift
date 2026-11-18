@@ -148,14 +148,17 @@ struct FastingSheet: View {
     }
 
     private func activeControls(_ active: FastSession) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
+        let now = Date()
+        return VStack(alignment: .leading, spacing: Spacing.md) {
             DatePicker(
                 "Started",
                 selection: Binding(
                     get: { active.startedAt },
                     set: { store.updateStart($0) }
                 ),
-                in: ...Date(),
+                // Same bounds `updateStart` clamps to; `min` keeps the
+                // range valid if the clock moved back past the last fast.
+                in: min(store.earliestStart(now: now), now)...now,
                 displayedComponents: [.date, .hourAndMinute]
             )
             .font(AppFont.body)
