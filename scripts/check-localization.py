@@ -25,8 +25,15 @@ control or modifier that takes a `LocalizedStringKey` (`Button`, `Picker`,
 `Text("…")` is not the only way a literal becomes a catalog lookup: custom
 views and helpers that take a `LocalizedStringKey` (`title:`, `eyebrow:`,
 `subtitle:`, …) and String enums whose `rawValue` is wrapped in one do too,
-and they let English section headings leak into the Swedish UI. Every such
-literal must have a catalog key translated into each shipped language.
+and they let English section headings leak into the Swedish UI. So do
+`String(localized:)`, `LocalizedStringResource`, ternaries inside `Text` and
+`.navigationTitle`, dialog and accessibility modifiers, and computed
+properties that return a key. Every such literal must have a catalog key
+translated into each shipped language.
+
+This scan is the fast pre-check. It skips interpolated keys and call forms it
+does not know; `check-extracted-strings.py` closes that gap from the
+compiler's own `.stringsdata` after the CI build.
 
     python3 scripts/check-localization.py [--min-coverage 80]
 """
@@ -295,12 +302,40 @@ def localized_key_arguments(roots: tuple[str, ...] = ("Peptide",)) -> dict[str, 
                 if label in labels:
                     for literal in argument_literals(value.strip()):
                         found.setdefault(unescape(literal), set()).add(where)
+        for literal in lookup_literals(code):
+            found.setdefault(unescape(literal), set()).add(where)
         for m in re.finditer(r"LocalizedStringKey\(\s*\$0\.rawValue\s*\)", code):
             enum = re.findall(r"options:\s*(\w+)\.allCases", code[max(0, m.start() - 400):m.start()])
             if enum:
                 for raw in enum_raw_values(code, enum[-1]):
                     found.setdefault(unescape(raw), set()).add(where)
     return found
+
+
+# Literals SwiftUI or Foundation look up in the catalog without going through
+# a custom `LocalizedStringKey` parameter: `Text`, `String(localized:)`,
+# `LocalizedStringResource` and the title/accessibility modifiers, each with a
+# plain literal or a `cond ? "A" : "B"` ternary. Interpolated literals are left
+# out, since their key depends on the argument types.
+LOOKUP_CALL = re.compile(
+    r"(?:\bText\(|\bString\(\s*localized:|\bLocalizedStringResource\(|\.navigationTitle\("
+    r"|\.confirmationDialog\(|\.alert\(|\.accessibilityLabel\(|\.accessibilityHint\("
+    r"|\.accessibilityValue\()\s*"
+    rf"(?:[^\"()]*?\?\s*{LITERAL}\s*:\s*{LITERAL}|{LITERAL})\s*[,)]")
+# Computed properties and functions that return a key: every literal they
+# return (`return "…"` or a `case …: "…"` arm) is looked up.
+KEY_RETURNING = re.compile(r"(?:\bvar\s+\w+\s*:|\bfunc\s+\w+\s*\([^)]*\)\s*->)\s*"
+                           r"(?:LocalizedStringKey|LocalizedStringResource)\s*\{")
+
+
+def lookup_literals(code: str) -> list[str]:
+    """Literals in `code` that are catalog lookups outside custom parameters."""
+    found = [g for m in LOOKUP_CALL.finditer(code) for g in m.groups() if g is not None]
+    for m in KEY_RETURNING.finditer(code):
+        body = code[m.end():closing(code, m.end() - 1)]
+        found += re.findall(rf"(?:\breturn\s+|\bcase\s[^:\n]*:\s*(?:return\s+)?|^\s*){LITERAL}\s*$",
+                            body, re.MULTILINE)
+    return [t for t in found if "\\(" not in t and re.search(r"[A-Za-z]{2}", t)]
 
 
 def untranslated_arguments(arguments: dict[str, set[str]], strings: dict,
@@ -386,7 +421,7 @@ def main() -> int:
     print(f"  covered by the catalog:  {len(covered)}  ({pct:.0f}%)")
 
     arguments = localized_key_arguments()
-    print(f"  literals passed as LocalizedStringKey: {len(arguments)}")
+    print(f"  literals looked up in the catalog: {len(arguments)}")
 
     orphans = sorted(k for k in keys if k not in sentences and k not in arguments
                      and " " in k and re.match(r"^[A-Z]", k))
@@ -419,7 +454,7 @@ def main() -> int:
     # single miss is an English heading in the middle of a translated screen.
     gaps = untranslated_arguments(arguments, strings, shipped - {"en", "Base"})
     if gaps:
-        print(f"\n{len(gaps)} literal(s) passed to a LocalizedStringKey parameter render "
+        print(f"\n{len(gaps)} literal(s) looked up in the catalog render "
               "in English (add them to Localizable.xcstrings):")
         print("\n".join(gaps))
         failed = True

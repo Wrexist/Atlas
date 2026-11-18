@@ -126,6 +126,17 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertEqual(summary.muscles.map(\.displayName), ["Full Body"])
     }
 
+    func test_datasetMuscleNames_readAsCatalogNames_unknownCapitalised() {
+        func name(_ raw: String) -> String {
+            WorkoutRecapEngine.Muscle(name: raw, contributions: []).displayName
+        }
+        XCTAssertEqual(name("quadriceps"), "Quads")
+        XCTAssertEqual(name("middle back"), "Mid back")
+        XCTAssertEqual(name("lower back"), "Lower back")
+        XCTAssertEqual(name("chest"), "Chest")
+        XCTAssertEqual(name("obliques"), "Obliques")
+    }
+
     func test_warmupOnlyUnfinishedAndTimedHaveNoInventedVolume() {
         var session = WorkoutRecapFixture.push()
         for e in session.exercises.indices {

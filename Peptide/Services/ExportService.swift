@@ -585,7 +585,9 @@ final class ExportService {
                     let dateVal = entry.date.formatted(date: .abbreviated, time: .omitted)
                     let timeVal = (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
                     let doseVal = entry.actualDose ?? entry.dose
-                    let siteVal = entry.injectionSite ?? "—"
+                    let siteVal = entry.injectionSite.map { raw in
+                        InjectionSite(rawValue: raw).map { String(localized: $0.displayName) } ?? raw
+                    } ?? "—"
                     let doneVal = entry.completed
                         ? String(localized: "Yes", comment: "PDF export — dose taken")
                         : String(localized: "No", comment: "PDF export — dose not taken")

@@ -94,10 +94,10 @@ final class OnDeviceSummaryService {
 
     // MARK: - Foundation Models
 
-    /// The language the app's copy resolves to: the in-app override, else
-    /// the bundle localization iOS picked. The fallback text is in it.
+    /// The language the app's copy resolves to — the iOS per-app language,
+    /// else the system one. The fallback text is in it.
     nonisolated static func appLanguageCode() -> String {
-        LocalizationManager.shared.selectedCode ?? Bundle.main.preferredLocalizations.first ?? "en"
+        Bundle.main.preferredLocalizations.first ?? "en"
     }
 
     /// Also false when the model can't write the app's language, so those

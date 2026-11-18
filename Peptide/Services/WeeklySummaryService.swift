@@ -196,8 +196,16 @@ final class WeeklySummaryService {
     /// passively and would re-fire the API on every new sample) and
     /// `topInsightCategory` (derived, churny) — the finding this guards
     /// against is edits to entries, workouts, meals, check-ins and labs.
-    static func sourceFingerprint(of aggregate: WeeklyAggregate) -> String {
+    /// The locale's language is included because the proxy writes the
+    /// summary in the app's language, so switching language must
+    /// regenerate it. The region is left out: moving from en_US to en_SE
+    /// changes no word of the summary and should not cost a proxy call.
+    static func sourceFingerprint(
+        of aggregate: WeeklyAggregate,
+        locale: String = MealScannerService.localeIdentifier
+    ) -> String {
         struct Sources: Encodable {
+            let language: String
             let weekStart: String
             let compliance: WeeklyAggregate.Compliance
             let streak: WeeklyAggregate.Streak
@@ -207,6 +215,7 @@ final class WeeklySummaryService {
             let labs: WeeklyAggregate.Labs
         }
         let sources = Sources(
+            language: String(locale.split(separator: "_").first ?? ""),
             weekStart: aggregate.weekStart,
             compliance: aggregate.compliance,
             streak: aggregate.streak,
@@ -290,7 +299,10 @@ final class WeeklySummaryService {
         if let entitlementJWS = await StoreService.shared.resolvedProEntitlementJWS() {
             request.setValue(entitlementJWS, forHTTPHeaderField: MealScanQuota.Header.entitlement)
         }
-        request.httpBody = try JSONEncoder().encode(RequestEnvelope(aggregate: aggregate))
+        request.httpBody = try JSONEncoder().encode(RequestEnvelope(
+            aggregate: aggregate,
+            locale: MealScannerService.localeIdentifier
+        ))
 
         var (data, response) = try await session.data(for: attested(request))
         if let http = response as? HTTPURLResponse, http.statusCode == 401,
@@ -394,8 +406,11 @@ final class WeeklySummaryService {
 
     // MARK: - Wire formats
 
+    /// `locale` tells the proxy which language to write in: the aggregate
+    /// is numbers only, so the model has no text to mirror.
     private struct RequestEnvelope: Encodable {
         let aggregate: WeeklyAggregate
+        let locale: String
     }
 
     private struct ResponseEnvelope: Decodable {

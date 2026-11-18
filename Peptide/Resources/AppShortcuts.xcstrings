@@ -4,9 +4,11 @@
     "Add a weigh-in in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Lägg till en vägning i ${applicationName}"
+            "values": [
+              "Lägg till en vägning i ${applicationName}"
+            ]
           }
         }
       }
@@ -14,9 +16,11 @@
     "Add water in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Lägg till vatten i ${applicationName}"
+            "values": [
+              "Lägg till vatten i ${applicationName}"
+            ]
           }
         }
       }
@@ -24,9 +28,11 @@
     "Check my ${applicationName} adherence": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Kolla min följsamhet i ${applicationName}"
+            "values": [
+              "Kolla min följsamhet i ${applicationName}"
+            ]
           }
         }
       }
@@ -34,9 +40,11 @@
     "How many calories in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Hur många kalorier i ${applicationName}"
+            "values": [
+              "Hur många kalorier i ${applicationName}"
+            ]
           }
         }
       }
@@ -44,9 +52,11 @@
     "How's my adherence in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Hur är min följsamhet i ${applicationName}"
+            "values": [
+              "Hur är min följsamhet i ${applicationName}"
+            ]
           }
         }
       }
@@ -54,9 +64,11 @@
     "Log a dose in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga en dos i ${applicationName}"
+            "values": [
+              "Logga en dos i ${applicationName}"
+            ]
           }
         }
       }
@@ -64,9 +76,11 @@
     "Log a glass of water in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga ett glas vatten i ${applicationName}"
+            "values": [
+              "Logga ett glas vatten i ${applicationName}"
+            ]
           }
         }
       }
@@ -74,9 +88,11 @@
     "Log a meal in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga en måltid i ${applicationName}"
+            "values": [
+              "Logga en måltid i ${applicationName}"
+            ]
           }
         }
       }
@@ -84,9 +100,11 @@
     "Log a recipe in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga ett recept i ${applicationName}"
+            "values": [
+              "Logga ett recept i ${applicationName}"
+            ]
           }
         }
       }
@@ -94,9 +112,11 @@
     "Log my dose in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga min dos i ${applicationName}"
+            "values": [
+              "Logga min dos i ${applicationName}"
+            ]
           }
         }
       }
@@ -104,9 +124,11 @@
     "Log my food in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga min mat i ${applicationName}"
+            "values": [
+              "Logga min mat i ${applicationName}"
+            ]
           }
         }
       }
@@ -114,9 +136,11 @@
     "Log my recipe in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga mitt recept i ${applicationName}"
+            "values": [
+              "Logga mitt recept i ${applicationName}"
+            ]
           }
         }
       }
@@ -124,9 +148,11 @@
     "Log my weight in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga min vikt i ${applicationName}"
+            "values": [
+              "Logga min vikt i ${applicationName}"
+            ]
           }
         }
       }
@@ -134,9 +160,11 @@
     "Log water in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga vatten i ${applicationName}"
+            "values": [
+              "Logga vatten i ${applicationName}"
+            ]
           }
         }
       }
@@ -144,9 +172,11 @@
     "Log weight in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Logga vikt i ${applicationName}"
+            "values": [
+              "Logga vikt i ${applicationName}"
+            ]
           }
         }
       }
@@ -154,9 +184,11 @@
     "Mark my peptide complete in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Markera min peptid som klar i ${applicationName}"
+            "values": [
+              "Markera min peptid som klar i ${applicationName}"
+            ]
           }
         }
       }
@@ -164,29 +196,11 @@
     "Next dose in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Nästa dos i ${applicationName}"
-          }
-        }
-      }
-    },
-    "Show my calories in ${applicationName}": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visa mina kalorier i ${applicationName}"
-          }
-        }
-      }
-    },
-    "Show my ${applicationName} streak": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visa min svit i ${applicationName}"
+            "values": [
+              "Nästa dos i ${applicationName}"
+            ]
           }
         }
       }
@@ -194,9 +208,35 @@
     "Show ${applicationName} stats": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Visa statistik i ${applicationName}"
+            "values": [
+              "Visa statistik i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Show my ${applicationName} streak": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Visa min svit i ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Show my calories in ${applicationName}": {
+      "localizations": {
+        "sv": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Visa mina kalorier i ${applicationName}"
+            ]
           }
         }
       }
@@ -204,9 +244,12 @@
     "Start a workout in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Starta ett träningspass i ${applicationName}"
+            "values": [
+              "Starta ett pass i ${applicationName}",
+              "Starta ett träningspass i ${applicationName}"
+            ]
           }
         }
       }
@@ -214,9 +257,12 @@
     "Start my workout in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Starta mitt träningspass i ${applicationName}"
+            "values": [
+              "Starta mitt pass i ${applicationName}",
+              "Starta mitt träningspass i ${applicationName}"
+            ]
           }
         }
       }
@@ -224,9 +270,11 @@
     "Start training in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Börja träna i ${applicationName}"
+            "values": [
+              "Börja träna i ${applicationName}"
+            ]
           }
         }
       }
@@ -234,9 +282,12 @@
     "Today's nutrition in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Dagens näring i ${applicationName}"
+            "values": [
+              "Dagens kost i ${applicationName}",
+              "Dagens näring i ${applicationName}"
+            ]
           }
         }
       }
@@ -244,9 +295,11 @@
     "What's my next ${applicationName} dose": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Vilken är min nästa dos i ${applicationName}"
+            "values": [
+              "Vilken är min nästa dos i ${applicationName}"
+            ]
           }
         }
       }
@@ -254,9 +307,11 @@
     "What's my streak in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "Vad är min svit i ${applicationName}"
+            "values": [
+              "Vad är min svit i ${applicationName}"
+            ]
           }
         }
       }
@@ -264,9 +319,11 @@
     "When is my next peptide in ${applicationName}": {
       "localizations": {
         "sv": {
-          "stringUnit": {
+          "stringSet": {
             "state": "translated",
-            "value": "När är min nästa peptid i ${applicationName}"
+            "values": [
+              "När är min nästa peptid i ${applicationName}"
+            ]
           }
         }
       }

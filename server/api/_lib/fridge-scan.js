@@ -15,6 +15,8 @@
  *                        on a shelf is perception, not reasoning.
  */
 
+import { localeTag } from './locale.js';
+
 const DEFAULT_MODEL = 'claude-opus-5-5';
 const EFFORTS = new Set(['low', 'medium', 'high']);
 // ~30 items at ~120 output tokens each, plus thinking.
@@ -101,13 +103,6 @@ function imageContent(image) {
   return { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } };
 }
 
-function localeOf(raw) {
-  // iOS identifiers can carry keywords (`sv_SE@rg=sezzzz`); only the
-  // language and region matter here.
-  const base = String(raw.locale ?? '').split('@')[0];
-  return /^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$/.test(base) ? base : 'en_US';
-}
-
 function pantryKeysOf(raw) {
   if (raw.pantry_keys === undefined) return [];
   if (!Array.isArray(raw.pantry_keys) || raw.pantry_keys.length > MAX_PANTRY_KEYS) return null;
@@ -124,7 +119,7 @@ export function buildFridgeScanRequest(raw) {
 
   const effort = EFFORTS.has(process.env.FRIDGE_SCAN_EFFORT) ? process.env.FRIDGE_SCAN_EFFORT : 'low';
   const lines = [
-    `User locale: ${localeOf(raw)}. Write names and amounts in this locale's language.`,
+    `User locale: ${localeTag(raw.locale)}. Write names and amounts in this locale's language.`,
     keys.length ? `Ingredient keys: ${keys.join(', ')}` : 'Ingredient keys: none; pantry_key is always null.',
   ];
   return {

@@ -281,6 +281,14 @@ jobs:
           # Add --require-baseline here once ci-baselines.json records it.
           python3 scripts/ratchet.py concurrency_warnings "$COUNT"
 
+      - name: Translations of compiler-extracted strings
+        # The Localization gate in proxy-checks reads Swift with regexes:
+        # fast, but blind to interpolated keys ("%@ lock") and to call
+        # forms it does not know, so it can pass while English ships.
+        # The Debug build above wrote a .stringsdata per Swift file with
+        # every key the compiler will look up; each must be translated.
+        run: python3 scripts/check-extracted-strings.py ~/Library/Developer/Xcode/DerivedData
+
       - name: Build app (Release)
         # Debug alone never sees a symbol referenced outside its
         # `#if DEBUG` guard or an optimizer-only failure. Those would
@@ -518,6 +526,7 @@ jobs:
           python3 scripts/test_ratchet.py
           python3 scripts/test_check_localization.py
           python3 scripts/test_pick_simulator.py
+          python3 scripts/test_check_extracted_strings.py
 
       - name: Copy claims vs source
         # Pins numeric marketing copy (exercise counts, compound counts,

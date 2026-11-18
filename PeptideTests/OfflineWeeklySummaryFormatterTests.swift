@@ -135,4 +135,9 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
         XCTAssertTrue(summary(aggregate(newPanels: 1)).contains("Logged 1 new lab panel this week."))
         XCTAssertTrue(summary(aggregate(newPanels: 2)).contains("Logged 2 new lab panels this week."))
     }
+
+    func test_summary_trainingDays_pluraliseThroughCatalog() {
+        XCTAssertTrue(summary(aggregate(training: .init(sessionDays: 1))).contains("Trained on 1 day this week."))
+        XCTAssertTrue(summary(aggregate(training: .init(sessionDays: 3))).contains("Trained on 3 days this week."))
+    }
 }

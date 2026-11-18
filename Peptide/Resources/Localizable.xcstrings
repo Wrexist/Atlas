@@ -106,7 +106,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ %%"
+            "value": "%@%%"
           }
         }
       }
@@ -303,10 +303,60 @@
     },
     "%@ is %lld weeks past its cycle": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ is %#@weeks@ past its cycle"
+          },
+          "substitutions": {
+            "weeks": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg week"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg weeks"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ är %2$lld veckor efter sin cykel"
+            "value": "%1$@ är %#@weeks@ efter sin cykel"
+          },
+          "substitutions": {
+            "weeks": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg vecka"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg veckor"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1543,7 +1593,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@%2$lld %% jämfört med föregående 30 dagar"
+            "value": "%1$@%2$lld%% jämfört med föregående 30 dagar"
           }
         }
       }
@@ -2092,7 +2142,29 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld aktiva · %lld totalt"
+            "value": "%#@active@ · %2$lld totalt"
+          },
+          "substitutions": {
+            "active": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg aktivt"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg aktiva"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -3298,9 +3370,21 @@
     "%lld logged": {
       "localizations": {
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld loggade"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld loggad"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld loggade"
+                }
+              }
+            }
           }
         }
       }
@@ -3310,7 +3394,49 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld loggade · %lld schemalagda"
+            "value": "%#@logged@ · %#@scheduled@"
+          },
+          "substitutions": {
+            "logged": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg loggad"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg loggade"
+                    }
+                  }
+                }
+              }
+            },
+            "scheduled": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg schemalagd"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg schemalagda"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -3628,7 +3754,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$lld av %#@arg2@ klara i dag"
+            "value": "%1$lld av %#@arg2@ klara idag"
           },
           "substitutions": {
             "arg2": {
@@ -4122,9 +4248,21 @@
     "%lld scheduled": {
       "localizations": {
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld schemalagda"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld schemalagd"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld schemalagda"
+                }
+              }
+            }
           }
         }
       }
@@ -4736,7 +4874,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld%% återhämtad, lite mindre volym i dag"
+            "value": "%lld%% återhämtad, lite mindre volym idag"
           }
         }
       }
@@ -4746,7 +4884,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld%% återhämtad, bäst att vila den i dag. Du kan ändå träna den, lättare."
+            "value": "%lld%% återhämtad, bäst att vila den idag. Du kan ändå träna den, lättare."
           }
         }
       }
@@ -6045,7 +6183,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Skriv en anteckning om i dag"
+            "value": "Skriv en anteckning om idag"
           }
         }
       }
@@ -6345,7 +6483,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bättre än %lld %% av män i din ålder"
+            "value": "Bättre än %lld%% av män i din ålder"
           }
         }
       }
@@ -6355,7 +6493,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bättre än %lld %% av kvinnor i din ålder"
+            "value": "Bättre än %lld%% av kvinnor i din ålder"
           }
         }
       }
@@ -7441,7 +7579,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neutral vid %@ %%"
+            "value": "Neutral vid %@%%"
           }
         }
       }
@@ -8251,7 +8389,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vilar i dag: %@"
+            "value": "Vilar idag: %@"
           }
         }
       }
@@ -18843,7 +18981,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Varje dos får nu en Live Activity 30 minuter innan den ska tas. Tryck på Logga direkt från låsskärmen – ingen upplåsning, ingen app som öppnas."
+            "value": "Varje dos får nu en liveaktivitet 30 minuter innan den ska tas. Tryck på Logga direkt från låsskärmen – ingen upplåsning, ingen app som öppnas."
           }
         }
       }
@@ -22901,7 +23039,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Live Activity"
+            "value": "Liveaktivitet"
           }
         }
       }
@@ -24407,6 +24545,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Meal-logging streak paused. Best streak %lld day."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Meal-logging streak paused. Best streak %lld days."
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -24566,16 +24722,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Medlem sedan %@"
-          }
-        }
-      }
-    },
-    "Mention a compound by name and the assistant will pull half-life, dosage range, mechanism, and citations from your bundled database before answering.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nämn en substans vid namn så hämtar assistenten halveringstid, doseringsintervall, mekanism och källor från den inbyggda databasen innan den svarar."
           }
         }
       }
@@ -29357,7 +29503,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Premium-Live Activity för varje dos"
+            "value": "Premium-liveaktivitet för varje dos"
           }
         }
       }
@@ -31729,7 +31875,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Researchassistent"
+            "value": "Forskningsassistent"
           }
         }
       }
@@ -31739,7 +31885,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Researchassistent. Fråga om en substans eller en studie och få svar med källhänvisningar."
+            "value": "Forskningsassistent. Fråga om en substans eller en studie och få svar med källhänvisningar."
           }
         }
       }
@@ -32400,46 +32546,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Löpning"
-          }
-        }
-      }
-    },
-    "Running %lld protocols. Consider focusing on fewer for better compliance.": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Kör %lld protokoll. Överväg att fokusera på färre för bättre följsamhet."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Kör %lld protokoll. Överväg att fokusera på färre för bättre följsamhet."
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Running %lld protocol. Consider focusing on fewer for better compliance."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Running %lld protocols. Consider focusing on fewer for better compliance."
-                }
-              }
-            }
           }
         }
       }
@@ -36897,7 +37003,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Researchassistenten är tillfälligt offline. Försök igen om några minuter."
+            "value": "Forskningsassistenten är tillfälligt offline. Försök igen om några minuter."
           }
         }
       }
@@ -43014,32 +43120,12 @@
         }
       }
     },
-    "e.g. 30 (minutes), 100 (push-ups)": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "t.ex. 30 (minuter), 100 (armhävningar)"
-          }
-        }
-      }
-    },
     "e.g. 5449000000996": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "t.ex. 7310865004703"
-          }
-        }
-      }
-    },
-    "e.g. 8 (glasses of water), 10000 (steps)": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "t.ex. 8 (glas vatten), 10000 (steg)"
           }
         }
       }
@@ -45656,7 +45742,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lättare i dag för att matcha din återhämtning."
+            "value": "Lättare idag för att matcha din återhämtning."
           }
         }
       }
@@ -45666,7 +45752,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Låg återhämtning i dag: vanliga förslag"
+            "value": "Låg återhämtning idag: vanliga förslag"
           }
         }
       }
@@ -45676,7 +45762,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Låg återhämtning i dag: förslagen sänkta 10 %"
+            "value": "Låg återhämtning idag: förslagen sänkta 10%"
           }
         }
       }
@@ -46476,7 +46562,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Markerar som tagen i dag"
+            "value": "Markerar som tagen idag"
           }
         }
       }
@@ -47498,7 +47584,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ät i dag"
+            "value": "Ät idag"
           }
         }
       }
@@ -48038,7 +48124,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ät i dag"
+            "value": "Ät idag"
           }
         }
       }
@@ -51268,6 +51354,12 @@
             "state": "translated",
             "value": "%1$@  ·  %2$lld loggade · %3$lld missade · %4$lld %% följsamhet"
           }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@  ·  %2$lld logged · %3$lld missed · %4$lld%% adherence"
+          }
         }
       }
     },
@@ -51859,6 +51951,427 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%@ was due at %@ and isn't logged yet.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ skulle tas kl. %2$@ och är inte loggad än."
+          }
+        }
+      }
+    },
+    "Abductors": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abduktorer"
+          }
+        }
+      }
+    },
+    "Above your usual range": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Över ditt vanliga intervall"
+          }
+        }
+      }
+    },
+    "Around midday": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitt på dagen"
+          }
+        }
+      }
+    },
+    "Below your usual range": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Under ditt vanliga intervall"
+          }
+        }
+      }
+    },
+    "e.g. 3 (sets), 5 (stretch breaks)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "t.ex. 3 (set), 5 (stretchpauser)"
+          }
+        }
+      }
+    },
+    "e.g. 8 (glasses of water)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "t.ex. 8 (glas vatten)"
+          }
+        }
+      }
+    },
+    "Featured protocol": {
+      "comment": "VoiceOver: this protocol template is featured.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utvalt protokoll"
+          }
+        }
+      }
+    },
+    "GH": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GH"
+          }
+        }
+      }
+    },
+    "Left Abdomen": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vänster sida av magen"
+          }
+        }
+      }
+    },
+    "Left Deltoid": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vänster axel"
+          }
+        }
+      }
+    },
+    "Left Glute": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vänster skinka"
+          }
+        }
+      }
+    },
+    "Left Thigh": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vänster lår"
+          }
+        }
+      }
+    },
+    "Logged %@ at %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggade %1$@ kl. %2$@."
+          }
+        }
+      }
+    },
+    "Longevity": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livslängd"
+          }
+        }
+      }
+    },
+    "Mention a compound by name and the assistant will pull half-life, dosage range, mechanism, and citations from Atlas's compound library before answering.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nämn en substans vid namn så hämtar assistenten halveringstid, doseringsintervall, mekanism och källor från Atlas substansbibliotek innan den svarar."
+          }
+        }
+      }
+    },
+    "Mid back": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mellersta ryggen"
+          }
+        }
+      }
+    },
+    "Next up: %@ at %@, %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Härnäst: %1$@ kl. %2$@, %3$@."
+          }
+        }
+      }
+    },
+    "Not enough recent Health data — wear your Apple Watch overnight to build a baseline": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "För lite färsk hälsodata – bär din Apple Watch över natten för att bygga en baslinje"
+          }
+        }
+      }
+    },
+    "Performance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prestation"
+          }
+        }
+      }
+    },
+    "Post-Workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Efter träning"
+          }
+        }
+      }
+    },
+    "Pre-Workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Före träning"
+          }
+        }
+      }
+    },
+    "remaining": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kvar"
+          }
+        }
+      }
+    },
+    "Research summary, not a recommendation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forskningssammanfattning, inte en rekommendation"
+          }
+        }
+      }
+    },
+    "Right Abdomen": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Höger sida av magen"
+          }
+        }
+      }
+    },
+    "Right Deltoid": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Höger axel"
+          }
+        }
+      }
+    },
+    "Right Glute": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Höger skinka"
+          }
+        }
+      }
+    },
+    "Right Thigh": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Höger lår"
+          }
+        }
+      }
+    },
+    "Running %lld protocols. Consider focusing on fewer for better adherence.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Kör %lld protokoll. Överväg att fokusera på färre för bättre följsamhet."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Kör %lld protokoll. Överväg att fokusera på färre för bättre följsamhet."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Running %lld protocol. Consider focusing on fewer for better adherence."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Running %lld protocols. Consider focusing on fewer for better adherence."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Skipped": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoppas över"
+          }
+        }
+      }
+    },
+    "Toggles whether this result is saved.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Växlar om resultatet sparas."
+          }
+        }
+      }
+    },
+    "Trained on %lld days this week.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Trained on %lld day this week."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Trained on %lld days this week."
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Tränade %lld dag den här veckan."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Tränade %lld dagar den här veckan."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Traps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trapezius"
+          }
+        }
+      }
+    },
+    "Within your usual range": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inom ditt vanliga intervall"
+          }
+        }
+      }
+    },
+    "Your cycle has ended": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din cykel är slut"
+          }
+        }
+      }
+    },
+    "Your program": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ditt program"
           }
         }
       }

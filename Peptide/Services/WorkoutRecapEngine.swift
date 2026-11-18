@@ -48,9 +48,20 @@ enum WorkoutRecapEngine {
                 return group.displayName
             }
             switch name.lowercased() {
-            case "quadriceps": return "Quads"
-            case "abdominals": return "Abs"
-            case "middle back": return "Mid back"
+            case "quadriceps":  return String(localized: "Quads")
+            case "abdominals":  return String(localized: "Abs")
+            case "middle back": return String(localized: "Mid back")
+            case "lower back":  return String(localized: "Lower back")
+            case "lats":        return String(localized: "Lats")
+            case "traps":       return String(localized: "Traps")
+            case "neck":        return String(localized: "Neck")
+            case "biceps":      return String(localized: "Biceps")
+            case "triceps":     return String(localized: "Triceps")
+            case "forearms":    return String(localized: "Forearms")
+            case "hamstrings":  return String(localized: "Hamstrings")
+            case "calves":      return String(localized: "Calves")
+            case "adductors":   return String(localized: "Adductors")
+            case "abductors":   return String(localized: "Abductors")
             default: return name.prefix(1).uppercased() + name.dropFirst()
             }
         }

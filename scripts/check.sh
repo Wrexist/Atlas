@@ -45,6 +45,7 @@ run "Checker self-tests (store metadata)" python3 scripts/test_store_metadata.py
 run "Checker self-tests (ratchet)" python3 scripts/test_ratchet.py
 run "Checker self-tests (localization)" python3 scripts/test_check_localization.py
 run "Checker self-tests (simulator picker)" python3 scripts/test_pick_simulator.py
+run "Checker self-tests (extracted strings)" python3 scripts/test_check_extracted_strings.py
 run "Design system (20 rules)" python3 scripts/design-lint.py --all --max-warnings 0
 run "Colour contrast (token pairs, WCAG AA)" python3 scripts/contrast-check.py
 

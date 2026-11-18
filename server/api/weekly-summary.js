@@ -28,6 +28,7 @@ import {
 } from './_lib/anthropic-proxy.js';
 import { checkAppAttest } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
+import { localeTag } from './_lib/locale.js';
 import {
   allowRate,
   costForBytes,
@@ -63,6 +64,8 @@ const SYSTEM_PROMPT = [
   "• No compound names, dosages, or Protocol specifics — the aggregate doesn't carry them, and you must not guess.",
   "• Use the numbers provided verbatim. Percentages arrive as whole numbers: if pctPercent is 86, say 86 %, not \"strong\" or \"most\".",
   "• Check-in averages (energyAvg, sleepQualityAvg, recoveryAvg, moodAvg, focusAvg) are 1-5 self-ratings, not hours or percentages. sleepQualityAvg is how well the user rated their sleep; biometrics.sleepHoursAvg is hours slept.",
+  "• Write in the language named after the aggregate.",
+  "• Never use emoji.",
   "",
   "Structure:",
   "1. One sentence opener: how the week went overall.",
@@ -209,16 +212,22 @@ function sanitiseAggregate(agg) {
   return clean;
 }
 
-// The app ships English and Swedish; the aggregate carries no locale,
-// so the request's Accept-Language (set by the app from its UI
-// language) picks the recap language. Anything else falls back to English.
-function recapLanguage(req) {
+// The app ships English and Swedish. The body's `locale` (the app's UI
+// language plus region) picks the recap language; older builds sent only
+// Accept-Language, so that header is the fallback. Either way the tag goes
+// through the shared, capped check before it reaches the prompt, and any
+// language other than Swedish gets English.
+function recapLocale(req) {
+  if (req.body?.locale !== undefined) return localeTag(req.body.locale);
   const header = req.headers?.['accept-language'];
-  const primary = typeof header === 'string' ? header.split(',')[0].trim().split(/[-_;]/)[0].toLowerCase() : '';
-  return primary === 'sv' ? 'Swedish' : 'English';
+  return localeTag(typeof header === 'string' ? header.split(',')[0].split(';')[0].trim() : undefined);
 }
 
-function buildUserPrompt(aggregate, language) {
+function recapLanguage(locale) {
+  return locale.split(/[-_]/)[0].toLowerCase() === 'sv' ? 'Swedish' : 'English';
+}
+
+function buildUserPrompt(aggregate, locale) {
   // Pretty-printed JSON is what the model reads best.
   return [
     "Here is the user's aggregate for the past week. Write the summary.",
@@ -227,7 +236,7 @@ function buildUserPrompt(aggregate, language) {
     JSON.stringify(aggregate, null, 2),
     "```",
     "",
-    `Write the summary in ${language}.`
+    `User locale: ${locale}. Write the summary in ${recapLanguage(locale)}.`
   ].join("\n");
 }
 
@@ -325,7 +334,9 @@ export default async function handler(req, res) {
     messages: [
       {
         role: 'user',
-        content: buildUserPrompt(aggregate, recapLanguage(req))
+        // The aggregate is numbers only, so without the locale the model
+        // has no text to mirror and always answered in English.
+        content: buildUserPrompt(aggregate, recapLocale(req))
       }
     ]
   };

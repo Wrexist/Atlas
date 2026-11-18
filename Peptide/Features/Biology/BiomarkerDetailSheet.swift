@@ -192,7 +192,7 @@ struct BiomarkerDetailSheet: View {
             case .up:           return ("Trending up",   "arrow.up.circle.fill",   AppColor.textSecondary)
             case .down:         return ("Trending down", "arrow.down.circle.fill", AppColor.textSecondary)
             case .flat:         return ("Steady",        "equal.circle.fill",      AppColor.textSecondary)
-            case .insufficient: return ("Not enough data", "minus.circle.fill",    AppColor.textTertiary)
+            case .insufficient: return ("Not enough data yet", "minus.circle.fill", AppColor.textTertiary)
             }
         }()
         return HStack(spacing: Spacing.xs) {

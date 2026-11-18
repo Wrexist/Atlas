@@ -109,3 +109,10 @@ test('test_aiResearch_proGateReportMode_letsUnverifiedQuestionThrough', async (t
   assert.equal(res.statusCode, 200);
   assert.equal(calls.length, 1);
 });
+
+test('test_aiResearch_systemPrefix_forbidsEmoji', async (t) => {
+  setEnv(t, BASE_ENV);
+  const calls = stubUpstream(t);
+  await handler(makeReq('10.3.0.9', PRO), makeRes());
+  assert.match(JSON.stringify(JSON.parse(calls[0][1].body).system), /Never use emoji/);
+});
