@@ -414,7 +414,6 @@ final class WorkoutSessionService {
             index: nextIndex,
             weightKg: prev?.weightKg ?? 0,
             reps: prev?.reps ?? 8,
-            rpe: prev?.rpe,
             measurement: prev?.measurement
         )
         session.exercises[idx].sets.append(next)

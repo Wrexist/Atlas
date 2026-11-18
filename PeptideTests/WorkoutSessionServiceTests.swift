@@ -287,6 +287,20 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(sets.last?.reps, 5)
     }
 
+    func test_addSet_afterARatedSet_leavesRPEUnreported() {
+        _ = service.startWorkout()
+        service.addExercise(bench())
+        guard let entryID = service.activeSession?.exercises.first?.id,
+              var seed = service.activeSession?.exercises.first?.sets.first
+        else { return XCTFail("Missing seed set") }
+        seed.rpe = 9
+        service.updateSet(seed, inExerciseEntryID: entryID)
+
+        service.addSet(toExerciseID: entryID)
+
+        XCTAssertNil(service.activeSession?.exercises.first?.sets.last?.rpe)
+    }
+
     func test_addSet_assignsNextIndex() {
         _ = service.startWorkout()
         service.addExercise(bench())

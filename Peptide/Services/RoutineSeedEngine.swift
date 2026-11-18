@@ -68,9 +68,11 @@ enum RoutineSeedEngine {
         let compatible = previous.flatMap { $0.supportsRepLogging ? $0 : nil }
         let weight = SetEntryLimits.clampWeightKg(compatible?.weightKg ?? 0)
         let reps = SetEntryLimits.clampReps(slot.targetReps)
+        // The slot's target RPE stays a prescription on the routine: a set's
+        // `rpe` is what the lifter reported, and recovery and progression
+        // read it as such.
         return (1...count).map { index in
-            SetEntry(index: index, weightKg: weight, reps: reps, rpe: slot.targetRPE,
-                     measurement: compatible?.measurement)
+            SetEntry(index: index, weightKg: weight, reps: reps, measurement: compatible?.measurement)
         }
     }
 

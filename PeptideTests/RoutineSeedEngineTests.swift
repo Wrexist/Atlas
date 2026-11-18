@@ -69,12 +69,15 @@ final class RoutineSeedEngineTests: XCTestCase {
                       "A seeded set is a target, not a logged set")
     }
 
-    func test_sessionExercises_carriesTargetRPEOntoEverySet() {
-        let routine = Routine(name: "RPE", exercises: [slot("Barbell_Squat", index: 0, sets: 2, rpe: 8)])
+    /// A target RPE is a prescription, not an effort the lifter reported,
+    /// so recovery and progression must not read it off the logged sets.
+    func test_sessionExercises_targetRPE_leavesSetRPEUnreported() {
+        let routine = Routine(name: "RPE", exercises: [slot("Barbell_Squat", index: 0, sets: 2, rpe: 9)])
 
         let sets = RoutineSeedEngine.sessionExercises(for: routine)[0].sets
 
-        XCTAssertEqual(sets.compactMap(\.rpe), [8, 8])
+        XCTAssertEqual(sets.count, 2)
+        XCTAssertTrue(sets.allSatisfy { $0.rpe == nil })
     }
 
     func test_sessionExercises_zeroTargetSets_stillSeedsOneRow() {
