@@ -148,7 +148,7 @@ struct CalendarMonthView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel(for: date, marks: marks))
+        .accessibilityLabel(accessibilityLabel(for: date, marks: marks, isToday: isToday))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -219,8 +219,11 @@ struct CalendarMonthView: View {
         return AppColor.textPrimary
     }
 
-    private func accessibilityLabel(for date: Date, marks: [CalendarDoseMark]) -> Text {
-        let dateString = date.formatted(.dateTime.weekday(.wide).day(.defaultDigits).month(.wide))
+    /// Today is marked only by colour and weight on screen, so VoiceOver
+    /// hears it named.
+    private func accessibilityLabel(for date: Date, marks: [CalendarDoseMark], isToday: Bool) -> Text {
+        let formatted = date.formatted(.dateTime.weekday(.wide).day(.defaultDigits).month(.wide))
+        let dateString = isToday ? String(localized: "Today, \(formatted)") : formatted
         if marks.isEmpty { return Text(dateString) }
         let logged = marks.filter { $0.kind == .logged }.count
         let scheduled = marks.filter { $0.kind == .scheduled }.count

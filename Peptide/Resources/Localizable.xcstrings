@@ -6876,6 +6876,16 @@
         }
       }
     },
+    "Today, %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idag, %@"
+          }
+        }
+      }
+    },
     "per 100 g": {
       "localizations": {
         "sv": {
