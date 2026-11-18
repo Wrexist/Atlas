@@ -6050,6 +6050,16 @@
         }
       }
     },
+    "Add to another protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till i ett annat protokoll"
+          }
+        }
+      }
+    },
     "AI & privacy": {
       "localizations": {
         "sv": {
@@ -7262,6 +7272,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Källa: Apple Hälsa, inklusive värden du loggar här"
+          }
+        }
+      }
+    },
+    "Spun off from %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utbruten från %@."
           }
         }
       }
@@ -8760,16 +8780,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lägg till i %@"
-          }
-        }
-      }
-    },
-    "Add to Another Protocol": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lägg till i ett annat protokoll"
           }
         }
       }
@@ -33816,16 +33826,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spotlight-sökning hittar dina egna livsmedel"
-          }
-        }
-      }
-    },
-    "Spun off from %@ to reduce compounding side effects.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Utbruten från %@ för att minska förstärkta biverkningar."
           }
         }
       }

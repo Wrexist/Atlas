@@ -62,8 +62,8 @@ struct CommunityStackCard: View {
             peptides == 1 ? String(localized: "1 peptide") : String(localized: "\(peptides) peptides"),
             String(localized: "\(stack.cycleLengthWeeks) weeks")
         ]
-        if let goal = stack.goalTags.first { parts.append(goal) }
-        if stack.featured { parts.append("featured") }
+        if let goal = stack.goalTags.first { parts.append(String(localized: String.LocalizationValue(goal))) }
+        if stack.featured { parts.append(String(localized: "Featured")) }
         return parts.joined(separator: ", ")
     }
 

@@ -100,17 +100,12 @@ struct ProtocolDetailView: View {
                         }
 
                         if liveProtocol.status == .active {
-                            if activeWashout == nil {
-                                CycleProgressBar(protocol_: liveProtocol)
-                            }
-
-                            // Surface the cycle-phase card only
-                            // when the protocol uses wash-out
-                            // cycles. Single-cycle protocols are
-                            // already covered by `CycleProgressBar`
-                            // above — duplicating would clutter.
+                            // One progress bar: the phase card covers
+                            // wash-out cycles, the plain bar the rest.
                             if liveProtocol.washoutWeeks > 0 {
                                 CyclePhaseCard(status: CyclePhaseEngine.status(for: liveProtocol))
+                            } else {
+                                CycleProgressBar(protocol_: liveProtocol)
                             }
                         }
 

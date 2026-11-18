@@ -279,7 +279,7 @@ struct ProtocolNoteEditorSheet: View {
                 }
 
                 Section("When") {
-                    DatePicker("Date", selection: $date, displayedComponents: [.date, .hourAndMinute])
+                    DatePicker("Date", selection: $date, in: ...Date(), displayedComponents: [.date, .hourAndMinute])
                 }
 
                 Section {
