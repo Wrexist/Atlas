@@ -12,6 +12,9 @@ struct BiomarkerTile: View {
     let snapshot: BiomarkerSnapshot
     let size: BiomarkerTileSize
     let unit: MeasurementUnit
+    /// Whether this device reads Apple Health, so an empty card asks
+    /// for the step still missing rather than one already taken.
+    let healthConnected: Bool
     var onTap: () -> Void
     var onResize: (BiomarkerTileSize) -> Void
 
@@ -152,8 +155,19 @@ struct BiomarkerTile: View {
     // MARK: - Text
 
     private var emptyHint: LocalizedStringKey {
-        if biomarker == .latestLabPanel { return "Add results in Labs" }
-        return biomarker.supportsManualEntry ? "Tap to log a reading" : "Connect Apple Health to fill this in"
+        switch biomarker {
+        case .latestLabPanel:
+            return "Add results in Labs"
+        case .weight:
+            return "Log a weigh-in to fill this in"
+        case .bodyFat, .waist, .bloodPressure, .bodyTemperature:
+            return "Tap to log a reading"
+        case .hrvBaseline, .rhrBaseline, .sleepBaseline, .stepsBaseline:
+            guard healthConnected else { return "Connect Apple Health to fill this in" }
+            return biomarker == .stepsBaseline
+                ? "Carry your iPhone or wear Apple Watch to record this"
+                : "Wear Apple Watch to record this"
+        }
     }
 
     private var valueText: String {

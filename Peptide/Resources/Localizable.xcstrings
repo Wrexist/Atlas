@@ -49765,6 +49765,36 @@
           }
         }
       }
+    },
+    "Log a weigh-in to fill this in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga en vägning för att fylla i det här"
+          }
+        }
+      }
+    },
+    "Wear Apple Watch to record this": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bär Apple Watch för att registrera det här"
+          }
+        }
+      }
+    },
+    "Carry your iPhone or wear Apple Watch to record this": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ha med iPhone eller bär Apple Watch för att registrera det här"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

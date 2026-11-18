@@ -100,6 +100,7 @@ struct BiomarkerListSection: View {
             snapshot: tileSnapshot,
             size: tileSize(for: biomarker),
             unit: dataStore.profile.bodyMetrics.unit,
+            healthConnected: dataStore.profile.healthConnected,
             onTap: { onSelectBiomarker?(tileSnapshot) },
             onResize: { onResize?(biomarker, $0) }
         )
