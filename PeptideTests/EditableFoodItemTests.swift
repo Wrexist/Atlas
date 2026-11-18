@@ -154,10 +154,10 @@ final class EditableFoodItemTests: XCTestCase {
         XCTAssertTrue(item.activePortionOptions.isEmpty)
     }
 
-    func test_replacementWithoutServing_fallsBackToScannerPortion() {
+    func test_replacementWithoutServing_usesOneHundredGrams() {
         var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 250))
         item.replace(with: crispbread(servingGrams: nil))
-        XCTAssertEqual(item.oneServingGrams, 250)
+        XCTAssertEqual(item.oneServingGrams, 100)
     }
 
     func test_resetNutrition_restoresServingsModeAndScannerOptions() {

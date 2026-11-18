@@ -1305,12 +1305,15 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     var servings: Double { oneServingGrams > 0 ? grams / oneServingGrams : 1 }
 
     /// One serving for the portion controls: the replacement food's own
-    /// serving once swapped (when it states one), else the scanner's
-    /// depicted portion.
+    /// serving once swapped, else the scanner's depicted portion. A
+    /// replacement that states no serving uses 100 g — the scanner's
+    /// portion described a different food.
     var oneServingGrams: Double {
         if let servingGrams, servingGrams > 0 { return servingGrams }
-        return aiGrams
+        return replacementSourceID == nil ? aiGrams : Self.unstatedReplacementServingGrams
     }
+
+    private static let unstatedReplacementServingGrams: Double = 100
 
     /// The scanner's suggested amounts describe the food it saw, so a
     /// replacement food drops them.
