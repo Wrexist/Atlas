@@ -335,6 +335,48 @@ final class BackupImportServiceTests: XCTestCase {
         XCTAssertEqual(dataStore.lastError, DataStore.saveFailureMessage)
     }
 
+    // MARK: - Fasting history (C239)
+
+    func test_exportThenReplace_restoresFastingHistory() throws {
+        let dataStore = makeDataStore()
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let fast = FastSession(
+            startedAt: start,
+            endedAt: start.addingTimeInterval(16 * 3600),
+            targetHours: 16,
+            plan: .sixteen
+        )
+        let data = try XCTUnwrap(ExportService.shared.exportFullBackup(
+            protocols: [],
+            entries: [],
+            profile: makeProfile(named: "Faster"),
+            fasts: [fast]
+        ))
+        let (backup, _) = try BackupImportService.validate(data)
+
+        try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertEqual(SwiftDataRepository.shared.loadFasts().map(\.id), [fast.id])
+        XCTAssertEqual(FastingStore.shared.ended.map(\.id), [fast.id])
+    }
+
+    func test_replace_withBackupPredatingFasts_leavesLiveFastsAlone() throws {
+        let dataStore = makeDataStore()
+        let live = FastSession(startedAt: Date(timeIntervalSince1970: 1_790_000_000), targetHours: 16, plan: .sixteen)
+        SwiftDataRepository.shared.upsertFast(live)
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "2.0",
+            protocols: [],
+            entries: [],
+            profile: makeProfile(named: "Old backup")
+        )
+
+        try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertEqual(SwiftDataRepository.shared.loadFasts().map(\.id), [live.id])
+    }
+
     // MARK: - Helpers
 
     private func makeDataStore() -> DataStore {

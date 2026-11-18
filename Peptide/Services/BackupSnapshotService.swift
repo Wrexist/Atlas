@@ -62,7 +62,8 @@ enum BackupSnapshotService {
             routines: dataStore.routinesForBackup(),
             customExercises: dataStore.customExercisesForBackup(),
             personalRecords: dataStore.personalRecordsForBackup(),
-            customPeptides: dataStore.customPeptides
+            customPeptides: dataStore.customPeptides,
+            fasts: SwiftDataRepository.shared.loadFasts()
         )
 
         do {

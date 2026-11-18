@@ -298,7 +298,8 @@ final class ExportService {
         routines: [Routine] = [],
         customExercises: [CustomExercise] = [],
         personalRecords: [PersonalRecord] = [],
-        customPeptides: [Peptide] = []
+        customPeptides: [Peptide] = [],
+        fasts: [FastSession] = []
     ) -> Data? {
         let backup = AppBackup(
             exportDate: Date(),
@@ -310,7 +311,8 @@ final class ExportService {
             routines: routines,
             customExercises: customExercises,
             personalRecords: personalRecords,
-            customPeptides: customPeptides
+            customPeptides: customPeptides,
+            fasts: fasts
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -703,6 +705,9 @@ struct AppBackup: Codable, Sendable {
     var customExercises: [CustomExercise]?
     var personalRecords: [PersonalRecord]?
     var customPeptides: [Peptide]?
+    /// Fasting history. Optional for the same reason: `nil` (a backup
+    /// from before fasts were carried) leaves the live fasts alone.
+    var fasts: [FastSession]?
 
     init(
         exportDate: Date,
@@ -714,7 +719,8 @@ struct AppBackup: Codable, Sendable {
         routines: [Routine]? = nil,
         customExercises: [CustomExercise]? = nil,
         personalRecords: [PersonalRecord]? = nil,
-        customPeptides: [Peptide]? = nil
+        customPeptides: [Peptide]? = nil,
+        fasts: [FastSession]? = nil
     ) {
         self.exportDate = exportDate
         self.version = version
@@ -726,6 +732,7 @@ struct AppBackup: Codable, Sendable {
         self.customExercises = customExercises
         self.personalRecords = personalRecords
         self.customPeptides = customPeptides
+        self.fasts = fasts
     }
 }
 

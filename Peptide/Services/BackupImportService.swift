@@ -213,6 +213,7 @@ enum BackupImportService {
         try rejectDuplicateIDs(in: backup.routines ?? [], label: "routines", id: \.id)
         try rejectDuplicateIDs(in: backup.customExercises ?? [], label: "custom exercises", id: \.id)
         try rejectDuplicateIDs(in: backup.personalRecords ?? [], label: "personal records", id: \.exerciseID)
+        try rejectDuplicateIDs(in: backup.fasts ?? [], label: "fasts", id: \.id)
     }
 
     private nonisolated static func rejectDuplicateIDs<T, ID: Hashable>(
@@ -326,6 +327,7 @@ enum BackupImportService {
         } catch {
             throw ImportError.applyFailed(error.localizedDescription)
         }
+        restoreFasts(backup.fasts, strategy: strategy)
 
         var realized = preview(
             exportDate: backup.exportDate,
@@ -416,6 +418,20 @@ enum BackupImportService {
                 deletesUncarried = false
             }
         }
+    }
+
+    /// Fasting history lives in its own store, outside `applyImport`.
+    /// `nil` is a backup from before fasts were carried: the live fasts
+    /// stay as they are. Replace writes every carried fast; Merge keeps
+    /// the current one on an id conflict, like every other collection.
+    private static func restoreFasts(_ fasts: [FastSession]?, strategy: Strategy) {
+        guard let fasts else { return }
+        let repository = SwiftDataRepository.shared
+        let currentIDs = Set(repository.loadFasts().map(\.id))
+        for fast in fasts where strategy == .replace || !currentIDs.contains(fast.id) {
+            repository.upsertFast(fast)
+        }
+        FastingStore.shared.load()
     }
 
     /// Field-level merge for `UserProfile`: the same union sync uses, so
