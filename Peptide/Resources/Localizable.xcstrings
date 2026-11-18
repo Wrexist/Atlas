@@ -8454,12 +8454,12 @@
         }
       }
     },
-    "Add height, weight, age, and gender on Profile to compute calorie and macro targets, or tap Edit targets to set them manually.": {
+    "Add your height, weight and age in Profile to get calorie and macro targets, or tap Edit targets to set them yourself.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lägg till längd, vikt, ålder och kön i Profil för att räkna ut kalori- och makromål, eller tryck på Redigera mål för att ställa in dem manuellt."
+            "value": "Lägg till längd, vikt och ålder i Profil för att få kalori- och makromål, eller tryck på Redigera mål för att ställa in dem själv."
           }
         }
       }
