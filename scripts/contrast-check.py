@@ -144,16 +144,23 @@ def blend(fg: int, bg: int, alpha: float) -> int:
 # Ink tokens and the threshold each is held to. Tokens that only ever colour a
 # glyph, chart stroke or border are non-text under WCAG and get the 3:1 bar;
 # anything that sets running text gets 4.5:1.
-TEXT_INKS = ["textPrimary", "textSecondary", "textTertiary", "cycleWashout"]
+TEXT_INKS = [
+    "textPrimary", "textSecondary", "textTertiary", "cycleWashout",
+    # Domain inks that also set small text: confirmations and status lines
+    # (positive), streak counts and the warm-up tag (streak), achievement
+    # lines, the effort label, protein figures and the gold domain inks
+    # that print a check-in rating word or a meal-slot label.
+    "positive", "streak", "achievement", "perceivedEffort", "macroProtein",
+    "mealLunch", "outcomeEnergy", "metricSleep",
+]
 UI_INKS = [
-    "destructive", "warning", "positive", "negative", "belowRange", "recap",
-    "streak", "achievement", "perceivedEffort",
-    "macroProtein", "macroProteinLight", "macroWater", "macroWaterLight",
+    "destructive", "warning", "negative", "belowRange", "recap",
+    "macroProteinLight", "macroWater", "macroWaterLight",
     "macroCarbs", "macroFat", "macroCalories",
-    "metricHeartRate", "metricHRV", "metricSleep", "metricActivity",
+    "metricHeartRate", "metricHRV", "metricActivity",
     "ringRecoveryStart", "ringRecoveryEnd", "ringSleepStart", "ringSleepEnd",
-    "mealBreakfast", "mealLunch", "mealDinner", "mealSnack",
-    "outcomeEnergy", "outcomeSleepQuality", "outcomeRecovery", "outcomeMood", "outcomeFocus",
+    "mealBreakfast", "mealDinner", "mealSnack",
+    "outcomeSleepQuality", "outcomeRecovery", "outcomeMood", "outcomeFocus",
 ]
 # Lab category inks set the 11pt short name on their own 0.2 tile.
 LAB_INKS = [
@@ -161,6 +168,7 @@ LAB_INKS = [
     "labLipids", "labOrganHealth", "labOther",
 ]
 SURFACES = ["background", "surfaceElevated", "surfaceSecondary"]
+ON_ACCENT_FILLS = ["macroWaterFill"]
 
 
 def main() -> int:
@@ -170,7 +178,7 @@ def main() -> int:
 
     tokens = parse_tokens(COLOR_THEME)
     ramps = parse_ramps(APP_THEME)
-    missing = [n for n in TEXT_INKS + UI_INKS + LAB_INKS + SURFACES if n not in tokens]
+    missing = [n for n in TEXT_INKS + UI_INKS + LAB_INKS + SURFACES + ON_ACCENT_FILLS if n not in tokens]
     if missing:
         print(f"could not parse tokens: {', '.join(missing)}", file=sys.stderr)
         return 2
@@ -245,6 +253,12 @@ def main() -> int:
                 ratio = contrast(stops["dark"][scheme_index], tokens[surface][scheme_index])
                 rows.append((scheme, f"{ramp}.accentFill", "on", surface,
                              ratio, AA_LARGE, ratio >= AA_LARGE))
+
+    # Fixed fills that carry `onAccent` text (the streak Freeze button).
+    for index, scheme in enumerate(("light", "dark")):
+        for fill in ON_ACCENT_FILLS:
+            ratio = contrast(tokens["onAccent"][index], tokens[fill][index])
+            rows.append((scheme, "onAccent", "on", fill, ratio, AA_TEXT, ratio >= AA_TEXT))
 
     # The muscle tints are drawn as ink on the shared surfaces (training
     # focus and the workout recap use the app's own ramp now).

@@ -191,7 +191,7 @@ enum AppColor {
     // scattered across Labs, Biology, Meals, Train and the weekly recap.
 
     /// Improving trend, in-range lab value, on-track streak.
-    static let positive = Color(light: 0x2F8F5B, dark: 0x66C78C)
+    static let positive = Color(light: 0x23784A, dark: 0x66C78C)
     /// Regressing trend or an above-range lab value. Softer than
     /// `destructive` — it's an observation, not an error.
     static let negative = Color(light: 0xB4573C, dark: 0xEE8C70)
@@ -219,8 +219,8 @@ enum AppColor {
 
     /// The two stops of the paywall / quick-log call-to-action fill. Constant
     /// across brand themes so the single most important button in the app
-    /// is always the same button. Light mode paints it in ink, the black
-    /// pill of the Xeyo look; dark mode keeps the violet.
+    /// is always the same button: an ink pill in light mode, a near-white
+    /// pill in dark mode.
     static let ctaGradientStart = Color(light: 0x1A1A17, dark: 0xF4F4F2)
     static let ctaGradientEnd = Color(light: 0x34332E, dark: 0xE2E1DC)
     /// Ink printed on a `textPrimary`-coloured fill: the CTA pill and the
@@ -252,13 +252,13 @@ enum AppColor {
     // the same color and a future palette tweak is one edit.
 
     /// Warm orange used for streak flames and "consecutive days" affordances.
-    static let streak = Color(light: 0xC26A2B, dark: 0xE88D4F)
+    static let streak = Color(light: 0xA5561C, dark: 0xE88D4F)
 
     /// Soft gold used for achievement / trophy iconography.
-    static let achievement = Color(light: 0x9C7714, dark: 0xD4A844)
+    static let achievement = Color(light: 0x7F6110, dark: 0xD4A844)
 
     /// Warm amber for the workout "perceived effort" indicator.
-    static let perceivedEffort = Color(light: 0xB2740F, dark: 0xFFB347)
+    static let perceivedEffort = Color(light: 0x935F08, dark: 0xFFB347)
 
     /// Canonical macro colors. Match the rings + legend on the Nutrition card
     /// so the same idea reads consistently across the app. Every ring and
@@ -267,10 +267,14 @@ enum AppColor {
     /// already use (`WatchPalette.calories`).
     static let macroCalories = Color(light: 0x077A55, dark: 0x10B981)
     static let macroCaloriesLight = Color(light: 0x1A9A6E, dark: 0x6EE7B7)
-    static let macroProtein = Color(light: 0xB56F0B, dark: 0xEF9F27)
+    static let macroProtein = Color(light: 0x955B07, dark: 0xEF9F27)
     static let macroProteinLight = Color(light: 0xB8791E, dark: 0xF5C56C)
     static let macroWater = Color(light: 0x1F6FC0, dark: 0x378ADD)
     static let macroWaterLight = Color(light: 0x3F8BD6, dark: 0x7CC5FF)
+    /// Water blue as a *fill* under `onAccent` text. The dark-scheme
+    /// `macroWater` is an ink tuned for a dark surface, and near-white on it
+    /// is 3.5:1, so the fill keeps the deep stop in both schemes.
+    static let macroWaterFill = Color(light: 0x1F6FC0, dark: 0x1F6FC0)
     /// Carbs and fat. Protein already had a token; these two did not, so any
     /// surface breaking a meal into P/C/F had no colours to do it with.
     /// Chosen to stay clear of `macroCalories`' emerald, `macroProtein`'s
@@ -283,13 +287,13 @@ enum AppColor {
     /// midday yellow, dusk indigo, leafy snack green. Darkened in light
     /// mode — the midday yellow is unreadable as an icon on a white card.
     static let mealBreakfast = Color(light: 0xB85A12, dark: 0xFF9E4D)
-    static let mealLunch = Color(light: 0x9C7714, dark: 0xFAC733)
+    static let mealLunch = Color(light: 0x7F6110, dark: 0xFAC733)
     static let mealDinner = Color(light: 0x5A5FCF, dark: 0x7A80EB)
     static let mealSnack = Color(light: 0x2A7A47, dark: 0x5CC78C)
 
     /// Daily check-in dimensions, shared by the sliders, timeline rows and
     /// correlation card. Darkened in light mode like the meal categories.
-    static let outcomeEnergy = Color(light: 0x9C7714, dark: 0xFFC733)
+    static let outcomeEnergy = Color(light: 0x7F6110, dark: 0xFFC733)
     static let outcomeSleepQuality = Color(light: 0x5A5FCF, dark: 0x7A80EB)
     static let outcomeRecovery = Color(light: 0x2A7A47, dark: 0x5CC78C)
     static let outcomeMood = Color(light: 0xB04452, dark: 0xF2808C)
@@ -300,7 +304,7 @@ enum AppColor {
     /// but darken in light mode so they clear contrast on a white card.
     static let metricHeartRate = Color(light: 0xA84343, dark: 0xCF7272)
     static let metricHRV = Color(light: 0x6B44A3, dark: 0x9B72CF)
-    static let metricSleep = Color(light: 0x9C7714, dark: 0xD4A844)
+    static let metricSleep = Color(light: 0x7F6110, dark: 0xD4A844)
     static let metricActivity = Color(light: 0x35603F, dark: 0x4A7C59)
 }
 
