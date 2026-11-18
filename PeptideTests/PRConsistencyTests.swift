@@ -52,6 +52,42 @@ final class PRConsistencyTests: XCTestCase {
         repo.loadPersonalRecords().first { $0.exerciseID == benchID }
     }
 
+    // MARK: - Finished-history cache
+
+    func test_finishedWorkoutHistory_unrelatedEdit_servesCachedHistory() {
+        repo.upsertWorkoutSession(finishedSession(weightKg: 60, reps: 5, daysAgo: 2))
+        XCTAssertEqual(store.finishedWorkoutHistory().count, 1)
+        let trainingRevision = store.trainingRevision
+
+        repo.upsertWorkoutSession(finishedSession(weightKg: 70, reps: 5, daysAgo: 1))
+        store.profile.name = "Changed"
+
+        XCTAssertEqual(store.trainingRevision, trainingRevision)
+        XCTAssertEqual(store.finishedWorkoutHistory().count, 1)
+    }
+
+    func test_finishedWorkoutHistory_afterWorkoutFinished_reloadsNewestFirst() {
+        let older = finishedSession(weightKg: 60, reps: 5, daysAgo: 2)
+        repo.upsertWorkoutSession(older)
+        _ = store.finishedWorkoutHistory()
+
+        let newer = finishedSession(weightKg: 70, reps: 5, daysAgo: 1)
+        repo.upsertWorkoutSession(newer)
+        store.recordWorkoutFinished(detectedPRCount: 0)
+
+        XCTAssertEqual(store.finishedWorkoutHistory().map(\.id), [newer.id, older.id])
+    }
+
+    func test_finishedWorkoutHistory_afterDelete_dropsTheSession() {
+        let session = finishedSession(weightKg: 60, reps: 5, daysAgo: 1)
+        repo.upsertWorkoutSession(session)
+        XCTAssertEqual(store.finishedWorkoutHistory().count, 1)
+
+        store.deleteWorkout(id: session.id)
+
+        XCTAssertTrue(store.finishedWorkoutHistory().isEmpty)
+    }
+
     func test_finishWorkout_sessionDeleted_rollsBackOrFlagsAssociatedPR() {
         let baseline = finishedSession(weightKg: 100, reps: 5, daysAgo: 10)
         let prSession = finishedSession(weightKg: 140, reps: 1, daysAgo: 2)

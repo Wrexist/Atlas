@@ -300,6 +300,7 @@ final class WorkoutSessionService {
         }
         if changed {
             invalidatePreviousSetCache()
+            DataStore.current?.workoutHistoryDidChange()
             DataStore.current?.refreshTrainingGlanceables()
         }
     }

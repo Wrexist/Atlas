@@ -93,20 +93,24 @@ struct TrainOverviewView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .scrollPosition($scrollPosition)
-        .refreshable { refresh() }
+        // Re-reads the store: the bump drops the cached history and
+        // re-runs the `.task(id:)` below.
+        .refreshable { dataStore.workoutHistoryDidChange() }
         // On the scroll view, not the start buttons: starting the workout
         // hides those buttons, and a sheet attached inside them would be
         // torn down mid-dismissal.
         .sheet(isPresented: $showsSessionBuilder, onDismiss: startBuiltWorkout) {
             SessionBuilderSheet { routine, linksRoutine in builtWorkout = (routine, linksRoutine) }
         }
-        // `recordWorkoutFinished` bumps `dataStore.revision` precisely
-        // so mounted views can recompute — before this listener existed
-        // the overview kept serving pre-workout data after the finish
-        // cover dismissed, until a pull-to-refresh or tab switch.
+        // `recordWorkoutFinished` bumps `dataStore.trainingRevision`
+        // precisely so mounted views can recompute — before this listener
+        // existed the overview kept serving pre-workout data after the
+        // finish cover dismissed, until a pull-to-refresh or tab switch.
+        // Keyed on the training revision, not `revision`, so a meal, dose
+        // or profile edit doesn't re-run the all-time engines.
         // This one task also covers first appear: a second plain `.task`
         // ran every engine pass twice. `load()` is a no-op once loaded.
-        .task(id: dataStore.revision) { @MainActor in
+        .task(id: dataStore.trainingRevision) { @MainActor in
             await library.load()
             routineStore.load()
             refresh()
@@ -317,12 +321,13 @@ struct TrainOverviewView: View {
         return Set(days).count
     }
 
-    /// Pulls the latest sessions out of SwiftData. Called on appear,
-    /// on pull-to-refresh, and whenever `dataStore.revision` bumps —
-    /// which `recordWorkoutFinished` does on every workout finish, so
-    /// the heatmap, recents, and calendar update live.
+    /// Pulls the latest sessions out of SwiftData. Called on appear and
+    /// whenever `dataStore.trainingRevision` bumps — which
+    /// `recordWorkoutFinished` does on every workout finish, so the
+    /// heatmap, recents, and calendar update live. The history itself is
+    /// decoded once per revision, not on every appear.
     private func refresh() {
-        allSessions = Self.finishedHistory(SwiftDataRepository.shared.loadAllWorkoutSessions())
+        allSessions = dataStore.finishedWorkoutHistory()
         sessions = Array(allSessions.prefix(SwiftDataRepository.workoutHistoryFetchLimit))
         refreshFrequencies()
         totalFrequencies = MuscleGainsEngine.totalFrequencies(

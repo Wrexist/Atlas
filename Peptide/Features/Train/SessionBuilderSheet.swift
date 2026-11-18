@@ -302,7 +302,7 @@ struct SessionBuilderSheet: View {
     private func load() async {
         await library.load()
         await sessionService.refreshReadiness()
-        history = TrainOverviewView.finishedHistory(SwiftDataRepository.shared.loadAllWorkoutSessions())
+        history = dataStore.finishedWorkoutHistory()
         isDeload = DeloadEngine.reason(history: history, now: Date(), calendar: .current) != nil
         recovery = MuscleRecoveryEngine.recovery(from: history, library: library,
                                                  readiness: sessionService.readiness.level)
