@@ -1352,7 +1352,8 @@ final class DataStore {
         save()
         mirrorMealWater([entry])
         if HealthSyncSettings.isNutritionEnabled {
-            Task { await HealthKitService.shared.writeMealEntry(entry) }
+            // Queued, so a delete right after can't run before this lands.
+            enqueueMealHealthWrite { await HealthKitService.shared.writeMealEntry(entry) }
         }
     }
 
@@ -1451,7 +1452,7 @@ final class DataStore {
         mirrorMealWater([previous], removing: true)
         mirrorMealWater(profile.mealHistory.filter { $0.id == updated.id })
         if HealthSyncSettings.isNutritionEnabled {
-            Task {
+            enqueueMealHealthWrite {
                 await HealthKitService.shared.deleteSamples(forEntryID: updated.id)
                 await HealthKitService.shared.writeMealEntry(updated)
             }
