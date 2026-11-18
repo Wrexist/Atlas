@@ -53,14 +53,38 @@ final class FridgeStore {
         FridgeEngine.pantryKeys(items: items, products: productsByID, now: .now, calendar: .current)
     }
 
+    /// The cut-out, read from disk on a cache miss. For callers that need
+    /// it synchronously (the shelf's physics scene); view bodies use
+    /// `cachedPhoto(for:)` and `loadPhoto(for:)`.
     func photo(for product: FridgeProduct) -> UIImage? {
-        guard product.hasPhoto else { return nil }
-        let filename = Self.photoFilename(product.id)
-        if let cached = photos.object(forKey: filename as NSString) { return cached }
-        guard let url = directory?.appendingPathComponent(filename),
+        if let cached = cachedPhoto(for: product) { return cached }
+        guard product.hasPhoto, let url = photoURL(product.id),
               let image = UIImage(contentsOfFile: url.path) else { return nil }
-        photos.setObject(image, forKey: filename as NSString)
+        photos.setObject(image, forKey: Self.photoFilename(product.id) as NSString)
         return image
+    }
+
+    /// The cut-out if it is already in memory. Never touches the disk, so
+    /// a view body can call it on every render.
+    func cachedPhoto(for product: FridgeProduct) -> UIImage? {
+        guard product.hasPhoto else { return nil }
+        return photos.object(forKey: Self.photoFilename(product.id) as NSString)
+    }
+
+    /// Reads and decodes the cut-out off the main thread, then caches it,
+    /// so a full fridge's first render doesn't decode every PNG on main.
+    func loadPhoto(for product: FridgeProduct) async -> UIImage? {
+        if let cached = cachedPhoto(for: product) { return cached }
+        guard product.hasPhoto, let url = photoURL(product.id) else { return nil }
+        let image = await Task.detached(priority: .userInitiated) {
+            UIImage(contentsOfFile: url.path)?.preparingForDisplay()
+        }.value
+        if let image { photos.setObject(image, forKey: Self.photoFilename(product.id) as NSString) }
+        return image
+    }
+
+    private func photoURL(_ productID: UUID) -> URL? {
+        directory?.appendingPathComponent(Self.photoFilename(productID))
     }
 
     // MARK: - Adding
@@ -215,14 +239,22 @@ final class FridgeStore {
         }
     }
 
+    /// Caches the downscaled cut-out at once and encodes and writes the PNG
+    /// off the main actor, as `TableMomentStore.writeSticker` does. A
+    /// failed write only costs the photo on the next launch, where the row
+    /// falls back to the packshot.
     private func writePhoto(_ image: UIImage, for productID: UUID) -> Bool {
-        guard let directory, ensureDirectory() else { return false }
-        let filename = Self.photoFilename(productID)
+        guard let url = photoURL(productID), ensureDirectory() else { return false }
         let stored = Self.downscaled(image)
-        guard let data = stored.pngData(),
-              (try? data.write(to: directory.appendingPathComponent(filename), options: [.atomic, .completeFileProtection])) != nil
-        else { return false }
-        photos.setObject(stored, forKey: filename as NSString)
+        photos.setObject(stored, forKey: Self.photoFilename(productID) as NSString)
+        Task.detached(priority: .utility) {
+            guard let data = stored.pngData() else { return }
+            do {
+                try data.write(to: url, options: [.atomic, .completeFileProtection])
+            } catch {
+                AppLog.persistence.error("Fridge photo not saved: \(error.localizedDescription, privacy: .public)")
+            }
+        }
         return true
     }
 

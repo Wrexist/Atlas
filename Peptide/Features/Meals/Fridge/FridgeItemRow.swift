@@ -7,17 +7,22 @@ struct FridgeProductImage: View {
     var size: CGFloat = 48
 
     @State private var store = FridgeStore.shared
+    /// Decoded off the main thread by `loadPhoto`; the packshot shows until then.
+    @State private var loaded: UIImage?
 
     var body: some View {
-        if let photo = store.photo(for: product) {
-            Image(uiImage: photo)
-                .resizable()
-                .scaledToFit()
-                .frame(width: size, height: size)
-                .accessibilityHidden(true)
-        } else {
-            FoodThumbnail(name: product.name, imageURL: product.imageURL, barcode: product.barcode, size: size)
+        Group {
+            if let photo = store.cachedPhoto(for: product) ?? loaded {
+                Image(uiImage: photo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size, height: size)
+                    .accessibilityHidden(true)
+            } else {
+                FoodThumbnail(name: product.name, imageURL: product.imageURL, barcode: product.barcode, size: size)
+            }
         }
+        .task(id: product.id) { loaded = await store.loadPhoto(for: product) }
     }
 }
 

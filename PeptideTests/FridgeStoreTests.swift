@@ -77,6 +77,28 @@ final class FridgeStoreTests: XCTestCase {
         XCTAssertTrue(store.products.isEmpty)
     }
 
+    func test_addWithPhoto_isCachedAtOnceAndLoadsFromDiskAfterRelaunch() async throws {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Smör"), photo: UIImage(systemName: "star"), now: date(), calendar: calendar)
+        let product = try XCTUnwrap(store.products.first)
+        XCTAssertNotNil(store.cachedPhoto(for: product), "the row draws the new photo before the PNG is written")
+
+        // The PNG is written off the main actor; give it a moment to land.
+        let file = directory.appendingPathComponent("product-\(product.id.uuidString).png")
+        var waited = 0
+        while !FileManager.default.fileExists(atPath: file.path), waited < 100 {
+            try await Task.sleep(for: .milliseconds(20))
+            waited += 1
+        }
+
+        let relaunched = FridgeStore(directory: directory)
+        let reloaded = try XCTUnwrap(relaunched.products.first)
+        XCTAssertNil(relaunched.cachedPhoto(for: reloaded))
+        let loaded = await relaunched.loadPhoto(for: reloaded)
+        XCTAssertNotNil(loaded)
+        XCTAssertNotNil(relaunched.cachedPhoto(for: reloaded))
+    }
+
     func test_deleteAll_leavesNothingOnDisk() {
         let store = FridgeStore(directory: directory)
         store.add(FridgeProduct(name: "Smör"), photo: UIImage(systemName: "star"), now: date(), calendar: calendar)

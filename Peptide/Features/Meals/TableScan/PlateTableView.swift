@@ -21,6 +21,8 @@ struct PlateTableView: View {
     @State private var note = ""
     @State private var isAdding = false
     @State private var shareImage: Image?
+    /// Cut-outs decoded off the main thread by `loadStickers`.
+    @State private var stickers: [UUID: UIImage] = [:]
     @FocusState private var noteFocused: Bool
 
     private var store: TableMomentStore { TableMomentStore.shared }
@@ -58,7 +60,10 @@ struct PlateTableView: View {
         .onAppear { note = moment.note }
         .onDisappear { saveNote() }
         .onChange(of: noteFocused) { _, focused in if !focused { saveNote() } }
-        .task(id: dishes.map(\.id)) { renderShareImage(moment, dishes: dishes) }
+        .task(id: dishes.map(\.id)) {
+            stickers = await store.loadStickers(for: dishes)
+            renderShareImage(moment, dishes: dishes)
+        }
         .onChange(of: dishes.map(\.id)) { _, _ in if isPlaying { startPhysics(dishes) } }
         .onChange(of: canPlay) { _, allowed in if !allowed { isPlaying = false } }
         .sheet(item: $openDish) { dish in
@@ -137,7 +142,7 @@ struct PlateTableView: View {
 
     @ViewBuilder
     private func plateImage(_ dish: TableDish) -> some View {
-        if let sticker = store.sticker(for: dish) {
+        if let sticker = store.cachedSticker(for: dish) ?? stickers[dish.id] {
             Image(uiImage: sticker)
                 .resizable()
                 .scaledToFit()
