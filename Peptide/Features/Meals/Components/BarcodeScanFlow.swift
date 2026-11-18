@@ -781,8 +781,11 @@ struct BarcodeScanFlow: View {
     /// the `LocalizedStringKey` and `StringProtocol` overloads, and that
     /// ambiguity has already cost this codebase an afternoon of chasing
     /// an inference error reported thirty lines from its cause.
+    /// The general catalogue carries edible things too, so only beauty
+    /// and pet food are called "not a food".
     private var notFoundHeadline: LocalizedStringKey {
-        identity == nil ? "This barcode isn't in the food database yet" : "That's not a food"
+        guard let identity else { return "This barcode isn't in the food database yet" }
+        return identity.catalogue.mayStillBeEdible ? "Found outside the food database" : "That's not a food"
     }
 
     /// Keeps the label-OCR and AI-photo escape hatches, unless we've

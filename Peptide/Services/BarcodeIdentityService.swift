@@ -48,12 +48,13 @@ struct BarcodeIdentity: Equatable, Sendable {
         /// detail that tells a user the app didn't understand them.
         var mayStillBeEdible: Bool { self == .products }
 
-        /// One line explaining why there's nothing to log. Pet food has
+        /// One line explaining why there's nothing to log, or, for the
+        /// general catalogue, how to log it if it is edible. Pet food has
         /// nutrition on the label, but it is a dog's nutrition — logging
         /// it into a human's day would be worse than not logging at all.
         var reasonNotLoggable: String {
             switch self {
-            case .products: String(localized: "That's a general product, not a food, so there's nothing to add to your diary.")
+            case .products: String(localized: "Open Products Facts lists this. If it's something you eat, photograph the package to add it.")
             case .beauty:   String(localized: "That's a cosmetic or personal-care product, so there's nothing to add to your diary.")
             case .petFood:  String(localized: "That's pet food — its nutrition is for an animal, not for your diary.")
             }
