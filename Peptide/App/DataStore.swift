@@ -1959,9 +1959,6 @@ final class DataStore {
         recordWorkoutFinished(detectedPRCount: 0)
     }
 
-    /// Deletes a workout by ID from the structured store. Same plumbing
-    /// as `WorkoutSessionService.discardWorkout` for the active path —
-    /// here it targets the historical row directly.
     /// Every finished workout, newest first, decoded once per
     /// `trainingRevision` rather than on every Train-tab appear.
     func finishedWorkoutHistory() -> [WorkoutSession] {
@@ -1980,6 +1977,9 @@ final class DataStore {
         trainingRevision &+= 1
     }
 
+    /// Deletes a workout by ID from the structured store. Same plumbing
+    /// as `WorkoutSessionService.discardWorkout` for the active path —
+    /// here it targets the historical row directly.
     func deleteWorkout(id: UUID) {
         // Capture which exercises the session touched before the row is
         // gone — its PRs are derived data and must be recomputed from

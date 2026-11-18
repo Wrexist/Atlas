@@ -23,16 +23,6 @@ enum WeeklyMuscleHeatmap {
         }
     }
 
-    /// Frequency map per anatomical region for sessions whose
-    /// `startedAt` falls within the past `days` days from `now`.
-    /// Returns an empty dictionary when no sessions qualify.
-    ///
-    /// - Parameters:
-    ///   - sessions: Source workout history. Order doesn't matter.
-    ///   - library: Resolves `exerciseID` strings to `Exercise`
-    ///     records so the muscle list can be looked up.
-    ///   - days: Window size; defaults to 7 (the visible week).
-    ///   - now: Reference clock; defaults to `Date()`.
     /// Earliest `startedAt` that `frequencies` counts: the start of the
     /// day `days - 1` calendar days before `now`. Calendar days so DST
     /// flips don't push the boundary an hour off, and so a workout at
@@ -43,6 +33,16 @@ enum WeeklyMuscleHeatmap {
         return calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
     }
 
+    /// Frequency map per anatomical region for sessions whose
+    /// `startedAt` falls within the past `days` days from `now`.
+    /// Returns an empty dictionary when no sessions qualify.
+    ///
+    /// - Parameters:
+    ///   - sessions: Source workout history. Order doesn't matter.
+    ///   - library: Resolves `exerciseID` strings to `Exercise`
+    ///     records so the muscle list can be looked up.
+    ///   - days: Window size; defaults to 7 (the visible week).
+    ///   - now: Reference clock; defaults to `Date()`.
     @MainActor
     static func frequencies(
         from sessions: [WorkoutSession],
