@@ -331,7 +331,7 @@ struct HabitsView: View {
                     .foregroundStyle(AppColor.onAccent)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.sm)
-                    .background(Capsule().fill(AppColor.accentPrimary))
+                    .background(Capsule().fill(AppColor.accentFill))
                     .minimumHitArea()
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
