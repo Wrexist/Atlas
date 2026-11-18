@@ -28,11 +28,16 @@ struct RoutineBuilderView: View {
     }
 
     private var routine: Routine? { store.routines.first { $0.id == routineID } }
+    /// Set by Delete, so the pop animation shows nothing rather than the
+    /// "Routine not found" state for a routine the user just removed.
+    @State private var deleting = false
 
     var body: some View {
         Group {
             if let routine {
                 editor(routine)
+            } else if deleting {
+                Color.clear
             } else {
                 // Deleted from the list behind us, or opened from a stale
                 // deep link. An empty state beats a blank editor bound to
@@ -88,6 +93,7 @@ struct RoutineBuilderView: View {
         .alert("Delete routine?", isPresented: $confirmingDelete) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
+                deleting = true
                 store.delete(id: routineID)
                 dismiss()
             }
