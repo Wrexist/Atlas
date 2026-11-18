@@ -8,6 +8,7 @@ import SwiftUI
 struct ProfileToolbarButton: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         Button {
@@ -27,8 +28,10 @@ struct ProfileToolbarButton: View {
                         .scaledToFill()
                         .clipShape(Circle())
                 } else {
+                    // The avatar circle is fixed, so the glyph stops growing
+                    // at xxxLarge; the large content viewer covers the rest.
                     Image(systemName: "person.fill")
-                        .font(AppFont.scaled(13, weight: .semibold))
+                        .font(AppFont.scaled(13, weight: .semibold, in: min(dynamicTypeSize, .xxxLarge)))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -37,5 +40,6 @@ struct ProfileToolbarButton: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.92))
         .accessibilityLabel("Open profile")
+        .accessibilityShowsLargeContentViewer()
     }
 }

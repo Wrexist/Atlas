@@ -11,6 +11,7 @@ struct HabitRowCard: View {
     let onTap: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var completionTrigger = 0
 
     private static let todayButtonSize: CGFloat = 28
@@ -126,8 +127,10 @@ struct HabitRowCard: View {
                         .fill(habit.tint)
                         .frame(width: 22, height: 22)
                         .transition(.scale.combined(with: .opacity))
+                    // The circles are fixed, so the glyph stops growing at
+                    // xxxLarge instead of spilling over the ring.
                     Image(systemName: "checkmark")
-                        .font(AppFont.scaled(11, weight: .bold))
+                        .font(AppFont.scaled(11, weight: .bold, in: min(dynamicTypeSize, .xxxLarge)))
                         .foregroundStyle(AppColor.background)
                         .symbolEffect(.bounce, value: summary.isCompletedToday)
                         .transition(.scale.combined(with: .opacity))

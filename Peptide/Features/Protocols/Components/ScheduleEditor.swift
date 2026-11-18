@@ -459,6 +459,7 @@ private struct TimeSlotRow: View {
 
     @State private var pickerDate: Date = Date()
     @State private var isShowingPicker = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private static let formatter: DateFormatter = {
         let f = DateFormatter()
@@ -481,7 +482,7 @@ private struct TimeSlotRow: View {
                     Text("\(index + 1)")
                         .font(AppFont.caption2)
                         .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.accentInkOnWash)
                         .monospacedDigit()
                 }
 
@@ -526,7 +527,9 @@ private struct TimeSlotRow: View {
                 },
                 onCancel: { isShowingPicker = false }
             )
-            .liquidGlassPresentation(detents: [.height(360)])
+            // At accessibility sizes the toolbar and wheel rows outgrow a
+            // fixed 360pt sheet, so it opens full height instead.
+            .liquidGlassPresentation(detents: dynamicTypeSize.isAccessibilitySize ? [.large] : [.height(360)])
         }
     }
 }
