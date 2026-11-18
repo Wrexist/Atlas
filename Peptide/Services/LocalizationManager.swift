@@ -96,8 +96,12 @@ enum AppLanguage: String, CaseIterable, Identifiable, Hashable {
 
     var isRTL: Bool { self == .arabic }
 
-    /// Languages this build has an `.lproj` for. Only English ships today
-    /// (see `project.yml`), so the picker stays hidden until a translation lands.
+    /// Languages this build has an `.lproj` for and the picker may offer.
+    /// Swedish ships but is deliberately not a case: this override only
+    /// reaches SwiftUI `Text` through `\.locale`, while `String(localized:)`
+    /// keeps following the system or per-app language, so offering it here
+    /// would render a half-Swedish UI. iOS Settings › Atlas › Language
+    /// switches the whole app instead.
     static var shipped: [AppLanguage] {
         allCases.filter { Bundle.main.localizations.contains($0.rawValue) }
     }
