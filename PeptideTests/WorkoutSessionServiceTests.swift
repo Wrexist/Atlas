@@ -414,6 +414,24 @@ final class WorkoutSessionServiceTests: XCTestCase {
                        "The in-flight session never counts as 'previous'")
     }
 
+    func test_reloadActiveSessionAfterAccountSwitch_readsTheNewAccountsHistory() {
+        logBenchWorkout(weightKg: 80, reps: 5)
+        _ = service.startWorkout()
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [80])
+
+        repo.deleteAll()
+        let day = Date().addingTimeInterval(-86_400)
+        repo.upsertWorkoutSession(WorkoutSession(startedAt: day, finishedAt: day.addingTimeInterval(3600), exercises: [
+            WorkoutExerciseEntry(exerciseID: bench().id, index: 0, sets: [
+                SetEntry(index: 1, weightKg: 60, reps: 5, completed: true),
+            ]),
+        ]))
+        repo.upsertWorkoutSession(WorkoutSession(startedAt: Date()))
+        service.reloadActiveSession()
+
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [60])
+    }
+
     func test_previousSessionSets_refreshAfterFinishingAWorkout() {
         logBenchWorkout(weightKg: 80, reps: 5)
         XCTAssertEqual(service.lastCompletedSet(forExerciseID: bench().id)?.weightKg, 80)

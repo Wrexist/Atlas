@@ -332,8 +332,16 @@ final class WorkoutSessionService {
 
     /// Re-reads the in-progress session after an iCloud account switch,
     /// so the previous account's workout doesn't stay on screen.
+    /// The memoised history and this week's deload belonged to the previous
+    /// account too, so both are re-read from the new one.
     func reloadActiveSession() {
         activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
+        invalidatePreviousSetCache()
+        deload = activeSession.flatMap { session in
+            DeloadEngine.reason(
+                history: SwiftDataRepository.shared.loadWorkoutSessions(), now: session.startedAt, calendar: .current
+            )
+        }
         WorkoutLiveActivityService.shared.reconcile(active: activeSession)
     }
 
