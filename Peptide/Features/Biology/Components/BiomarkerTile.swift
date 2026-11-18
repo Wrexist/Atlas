@@ -48,7 +48,7 @@ struct BiomarkerTile: View {
                     footer
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: size == .small ? 148 : nil, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: size == .small ? 148 : nil, maxHeight: .infinity, alignment: .topLeading)
             .padding(Spacing.md)
             .background { wash }
             .glassSurface(cornerRadius: Spacing.cardCornerRadius)
