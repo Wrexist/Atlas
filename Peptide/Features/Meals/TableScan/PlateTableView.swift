@@ -312,10 +312,10 @@ struct PlateTableView: View {
         let calories = dishes.reduce(0) { $0 + $1.calories }
         let protein = dishes.reduce(0) { $0 + $1.proteinG }
         return HStack(spacing: Spacing.sm) {
-            TableStatTile(icon: "clock", value: moment.date.formatted(date: .omitted, time: .shortened), unit: String(localized: "time"))
-            TableStatTile(icon: "fork.knife", value: "\(dishes.count)", unit: dishes.count == 1 ? String(localized: "dish") : String(localized: "dishes"))
-            TableStatTile(icon: "flame.fill", value: "\(calories)", unit: String(localized: "kcal"))
-            TableStatTile(icon: "bolt.fill", value: "\(protein) g", unit: String(localized: "protein"))
+            TableStatTile(icon: .symbol("clock"), value: moment.date.formatted(date: .omitted, time: .shortened), unit: String(localized: "time"))
+            TableStatTile(icon: .symbol("fork.knife"), value: "\(dishes.count)", unit: dishes.count == 1 ? String(localized: "dish") : String(localized: "dishes"))
+            TableStatTile(icon: .symbol("flame.fill"), value: "\(calories)", unit: String(localized: "kcal"))
+            TableStatTile(icon: .macro(.protein), value: "\(protein) g", unit: String(localized: "protein"))
         }
         .appAnimation(AppAnimation.settle, value: [dishes.count, calories, protein])
     }
@@ -391,16 +391,19 @@ struct PlateTableView: View {
 
 /// One figure under the table: a tinted glyph, the value, and its unit.
 private struct TableStatTile: View {
-    let icon: String
+    /// Protein wears the same macro icon as the dish sheet one tap away.
+    enum Icon {
+        case symbol(String)
+        case macro(MacroKind)
+    }
+
+    let icon: Icon
     let value: String
     let unit: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-                .accessibilityHidden(true)
+            iconView
             Text(value)
                 .font(AppFont.scaled(16, weight: .semibold, relativeTo: .headline))
                 .foregroundStyle(AppColor.textPrimary)
@@ -417,6 +420,19 @@ private struct TableStatTile: View {
         .padding(Spacing.md)
         .glassControl(.rect(cornerRadius: Spacing.controlCornerRadius), interactive: false)
         .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var iconView: some View {
+        switch icon {
+        case .symbol(let name):
+            Image(systemName: name)
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .accessibilityHidden(true)
+        case .macro(let kind):
+            MacroIcon(kind, size: 11, relativeTo: .caption2)
+        }
     }
 }
 
