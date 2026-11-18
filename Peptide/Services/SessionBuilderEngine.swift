@@ -193,7 +193,7 @@ enum SessionBuilderEngine {
                 .prefix(max(1, total / ProgramGeneratorEngine.minimumSets))
             let sets = split(total, over: chosen.count)
             for (choice, count) in zip(chosen, sets) {
-                picks.append(Pick(pattern: choice.pattern, exerciseID: choice.id, sets: count))
+                picks.append(Pick(target: target, pattern: choice.pattern, exerciseID: choice.id, sets: count))
                 used.insert(choice.id)
             }
         }
@@ -201,6 +201,7 @@ enum SessionBuilderEngine {
         let ordered = picks.filter(\.pattern.isCompound) + picks.filter { !$0.pattern.isCompound }
 
         var patterns: [UUID: MovementPattern] = [:]
+        var owners: [UUID: Target] = [:]
         var slots: [RoutineExercise] = []
         for (index, pick) in ordered.enumerated() {
             let scheme = scheme(for: pick.pattern, isFirst: index == 0, isDeload: request.isDeload)
@@ -214,19 +215,18 @@ enum SessionBuilderEngine {
                 restSeconds: scheme.rest
             )
             patterns[slot.id] = pick.pattern
+            owners[slot.id] = pick.target
             slots.append(slot)
         }
         if request.minutes <= 45 {
             slots = ProgramGeneratorEngine.pairingAntagonists(slots, patterns: patterns)
         }
-        return fitted(
-            Routine(
-                name: request.focus.displayName,
-                subtitle: request.companions.map(\.displayName).joined(separator: " · "),
-                exercises: slots
-            ),
-            minutes: request.minutes
-        )
+        var routine = fitted(Routine(name: request.focus.displayName, exercises: slots), minutes: request.minutes)
+        // Named after fitting, so a companion trimmed out of a short session
+        // isn't promised in the subtitle.
+        let kept = Set(routine.exercises.compactMap { owners[$0.id] })
+        routine.subtitle = request.companions.filter(kept.contains).map(\.displayName).joined(separator: " · ")
+        return routine
     }
 
     /// Hypertrophy favourites that load the muscle at long length or keep
@@ -242,6 +242,7 @@ enum SessionBuilderEngine {
     // MARK: - Pieces
 
     private struct Pick {
+        let target: Target
         let pattern: MovementPattern
         let exerciseID: String
         let sets: Int
@@ -278,12 +279,13 @@ enum SessionBuilderEngine {
     }
 
     /// The focus gets a full session's volume; companions half. A muscle
-    /// still recovering gets three quarters, a deload half.
+    /// still recovering gets three quarters. A deload keeps the sets: the
+    /// workout's suggestions lighten the load and reps when it starts, so
+    /// cutting sets here too would deload it twice.
     static func plannedSets(for target: Target, in request: Request) -> Int {
         let cap = Double(MuscleVolumeTargets.sessionCap(for: request.experience))
         var sets = target == request.focus ? cap : (cap / 2).rounded(.up)
         if request.states[target]?.recovery.status == .recovering { sets *= 0.75 }
-        if request.isDeload { sets *= 0.5 }
         return max(ProgramGeneratorEngine.minimumSets, Int(sets.rounded()))
     }
 
