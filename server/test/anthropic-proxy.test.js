@@ -524,3 +524,12 @@ test('test_refuseAttest_registryUnavailable_answers503NotReRegister', () => {
   assert.equal(unknown.statusCode, 401);
   assert.equal(unknown.body.error.code, 'attest_required');
 });
+
+test('test_mealScanPrefix_defersNotFoodAnswerToTheAppPrompt', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  assert.equal((await callRoute(mealScan, withContent('10.0.9.20', [image, { type: 'text', text: 'Estimate macros.' }]))).statusCode, 200);
+  const { system } = JSON.parse(upstream[0][1].body);
+  assert.match(system, /follow the user message's instructions for that case/);
+  assert.doesNotMatch(system, /notes field/);
+});
