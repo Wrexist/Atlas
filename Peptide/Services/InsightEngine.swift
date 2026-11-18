@@ -70,7 +70,7 @@ struct InsightEngine {
         // Protocol count
         let activeCount = protocols.filter { $0.status == .active }.count
         if activeCount >= 3 {
-            insights.append(Insight(icon: "exclamationmark.triangle", title: String(localized: "Many active protocols"), description: String(localized: "Running \(activeCount) protocols. Consider focusing on fewer for better compliance."), type: .neutral))
+            insights.append(Insight(icon: "exclamationmark.triangle", title: String(localized: "Many active protocols"), description: String(localized: "Running \(activeCount) protocols. Consider focusing on fewer for better adherence."), type: .neutral))
         }
 
         // Adaptive reminders: detect a consistent drift between

@@ -44,9 +44,8 @@ struct LogWaterIntent: AppIntent {
             store.logWater(fluidOunces: fluidOunces)
             store.flushPendingSave()
             let totalValue = LifestyleDataLogic.displayedWater(store.consumption(), unit: unit)
-            return unit == .metric
-                ? ("\(LifestyleDataLogic.millilitres(fluidOunces: fluidOunces)) mL", "\(totalValue) mL")
-                : ("\(Int(fluidOunces.rounded())) oz", "\(totalValue) oz")
+            let shown = unit == .metric ? LifestyleDataLogic.millilitres(fluidOunces: fluidOunces) : Int(fluidOunces.rounded())
+            return ("\(shown) \(unit.volumeSuffix)", "\(totalValue) \(unit.volumeSuffix)")
         }
 
         return .result(dialog: IntentDialog(

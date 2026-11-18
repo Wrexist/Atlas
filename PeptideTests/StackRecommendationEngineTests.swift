@@ -357,6 +357,20 @@ final class StackRecommendationEngineTests: XCTestCase {
         XCTAssertTrue(hasCycleWarning, "Should warn about BPC-157 being over its recommended cycle")
     }
 
+    func test_cycleLengthWarning_oneWeekOver_readsSingularWeek() {
+        guard let bpc = peptide(abbrev: "BPC-157") else { return XCTFail("Fixture peptides missing from the database") }
+        // BPC-157 runs 6 weeks on; 52 days in is week 7, one week over.
+        let started = Calendar.current.date(byAdding: .day, value: -52, to: Date())!
+        let proto = PeptideProtocol(
+            id: UUID(), name: "Test", peptides: [bpc],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 12, startDate: started, status: .active, notes: ""
+        )
+        let title = StackRecommendationEngine.warnings(for: [bpc], activeProtocols: [proto])
+            .first { $0.kind == .cycleOverrun }?.title
+        XCTAssertEqual(title, "BPC-157 is 1 week past its cycle")
+    }
+
     func test_desensitizationRisk_triggersAtRiskOnset() {
         guard let ipamorelin = peptide(abbrev: "Ipamorelin") else { return XCTFail("Fixture peptides missing from the database") }
         // Ipamorelin desensitization risk at 8 weeks. Create protocol started 10 weeks ago

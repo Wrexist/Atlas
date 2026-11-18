@@ -337,7 +337,7 @@ final class ExportService {
 
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = [
-            kCGPDFContextTitle as String: "Atlas Protocol Report",
+            kCGPDFContextTitle as String: String(localized: "Atlas Protocol Report"),
             kCGPDFContextAuthor as String: "Atlas",
         ]
 
@@ -428,19 +428,19 @@ final class ExportService {
 
             startPage()
 
-            let titleH = drawText("Atlas Protocol Report", font: titleFont, color: accentColor)
+            let titleH = drawText(String(localized: "Atlas Protocol Report"), font: titleFont, color: accentColor)
             y += titleH + 4
 
             let userName = profile.name.trimmingCharacters(in: .whitespaces).isEmpty
-                ? "Atlas User" : profile.name
+                ? String(localized: "Atlas User") : profile.name
             let dateStr = Date().formatted(date: .long, time: .omitted)
-            let subH = drawText("\(userName)  ·  Exported \(dateStr)", font: captionFont, color: mutedColor)
+            let subH = drawText(String(localized: "\(userName)  ·  Exported \(dateStr)"), font: captionFont, color: mutedColor)
             y += subH + 12
 
             drawRule(color: accentColor.withAlphaComponent(0.5))
             y += 14
 
-            let sumTH = drawText("SUMMARY", font: sectionFont)
+            let sumTH = drawText(String(localized: "SUMMARY"), font: sectionFont)
             y += sumTH + 8
 
             let completedDoses = entries.filter(\.completed).count
@@ -448,9 +448,9 @@ final class ExportService {
             let activeCount    = protocols.filter { $0.status == .active }.count
 
             for (label, value) in [
-                ("Active Protocols", "\(activeCount) of \(protocols.count)"),
-                ("Doses Logged", "\(completedDoses) of \(entries.count)"),
-                ("Overall Adherence", "\(compliancePct)%"),
+                (String(localized: "Active Protocols"), String(localized: "\(activeCount) of \(protocols.count)")),
+                (String(localized: "Doses Logged"), String(localized: "\(completedDoses) of \(entries.count)")),
+                (String(localized: "Overall Adherence"), "\(compliancePct)%"),
             ] {
                 let h = drawText(label, font: bodyFont, color: mutedColor)
                 drawText(value, font: labelFont, x: pageWidth - margin - 60, width: 60, align: .right)
@@ -474,14 +474,14 @@ final class ExportService {
 
                 // Protocol header
                 let proH = drawText(proto.name, font: sectionFont)
-                drawText(proto.status.rawValue.capitalized, font: captionFont,
+                drawText(proto.status.displayName, font: captionFont,
                          color: mutedColor, x: pageWidth - margin - 60, width: 60, align: .right)
                 y += proH + 3
 
                 let startStr   = proto.startDate.formatted(date: .abbreviated, time: .omitted)
                 let peptideStr = proto.peptides.map(\.abbreviation).joined(separator: ", ")
                 let metaH = drawText(
-                    "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% adherence",
+                    String(localized: "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% adherence"),
                     font: captionFont, color: mutedColor
                 )
                 y += metaH + 2
@@ -495,7 +495,7 @@ final class ExportService {
                 // suppressed.
                 let monthlyBuckets = Self.monthlyBuckets(for: protoEntries)
                 if !monthlyBuckets.isEmpty {
-                    let summaryHeaderH = drawText("MONTHLY SUMMARY",
+                    let summaryHeaderH = drawText(String(localized: "MONTHLY SUMMARY"),
                         font: labelFont, color: mutedColor)
                     y += summaryHeaderH + 3
                     drawRule()
@@ -503,7 +503,7 @@ final class ExportService {
                     for bucket in monthlyBuckets {
                         checkPageBreak(for: 18)
                         let lineH = drawText(
-                            "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% adherence",
+                            String(localized: "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% adherence"),
                             font: captionFont
                         )
                         y += lineH + 3
@@ -512,7 +512,7 @@ final class ExportService {
                 }
 
                 guard !protoEntries.isEmpty else {
-                    let emptyH = drawText("No entries recorded.", font: captionFont, color: mutedColor)
+                    let emptyH = drawText(String(localized: "No entries recorded."), font: captionFont, color: mutedColor)
                     y += emptyH + 10
                     drawRule()
                     y += 14
@@ -524,12 +524,12 @@ final class ExportService {
                 y += 4
                 var hdrH: CGFloat = 0
                 for (text, x, width) in [
-                    ("DATE", cDate, 68.0),
-                    ("PEPTIDE", cPep, 110.0),
-                    ("DOSE", cDose, 75.0),
-                    ("TIME", cTime, 70.0),
-                    ("SITE", cSite, 95.0),
-                    ("DONE", cDone, 40.0),
+                    (String(localized: "DATE"), cDate, 68.0),
+                    (String(localized: "PEPTIDE"), cPep, 110.0),
+                    (String(localized: "DOSE"), cDose, 75.0),
+                    (String(localized: "TIME"), cTime, 70.0),
+                    (String(localized: "SITE"), cSite, 95.0),
+                    (String(localized: "DONE"), cDone, 40.0),
                 ] {
                     hdrH = max(hdrH, drawText(text, font: labelFont, color: mutedColor, x: x, width: width))
                 }
@@ -554,8 +554,10 @@ final class ExportService {
                     let dateVal = entry.date.formatted(date: .abbreviated, time: .omitted)
                     let timeVal = (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
                     let doseVal = entry.actualDose ?? entry.dose
-                    let siteVal = entry.injectionSite ?? "—"
-                    let doneVal = entry.completed ? "Yes" : "No"
+                    let siteVal = entry.injectionSite.map { raw in
+                        InjectionSite(rawValue: raw).map { String(localized: $0.displayName) } ?? raw
+                    } ?? "—"
+                    let doneVal = entry.completed ? String(localized: "Yes") : String(localized: "No")
 
                     let rowH = [
                         measureText(dateVal, font: bodyFont, width: 68),
@@ -584,7 +586,7 @@ final class ExportService {
                 if protoEntries.count > entriesToRender.count {
                     let hidden = protoEntries.count - entriesToRender.count
                     let moreH = drawText(
-                        "… \(hidden) earlier entries · use the CSV export in Profile → Settings → Data Export for the complete log",
+                        String(localized: "… \(hidden) earlier entries · use the CSV export in Profile → Settings → Data Export for the complete log"),
                         font: captionFont, color: mutedColor
                     )
                     y += moreH + 3
@@ -598,7 +600,7 @@ final class ExportService {
             // Footer
             y = pageHeight - margin + 6
             drawText(
-                "Generated by Atlas  ·  \(Date().formatted(date: .abbreviated, time: .shortened))",
+                String(localized: "Generated by Atlas  ·  \(Date().formatted(date: .abbreviated, time: .shortened))"),
                 font: captionFont, color: mutedColor, align: .center
             )
         }

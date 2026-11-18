@@ -139,8 +139,7 @@ enum OfflineWeeklySummaryFormatter {
         }
 
         if let training = aggregate.training {
-            let dayWord = training.sessionDays == 1 ? "day" : "days"
-            observations.append("Trained on \(training.sessionDays) \(dayWord) this week.")
+            observations.append(String(localized: "Trained on \(training.sessionDays) days this week."))
         }
 
         if aggregate.labs.newPanelsLogged > 0 {

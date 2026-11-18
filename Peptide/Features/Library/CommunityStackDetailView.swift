@@ -131,7 +131,7 @@ struct CommunityStackDetailView: View {
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
-                Text(stack.authorHandle ?? stack.authorTitle ?? String(localized: "Atlas Editorial"))
+                Text(stack.authorHandle ?? stack.authorTitle.map { String(localized: String.LocalizationValue($0)) } ?? String(localized: "Atlas Editorial"))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }

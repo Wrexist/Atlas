@@ -120,17 +120,17 @@ enum OnboardingPlanEngine {
     /// summary never falls through to a blank row.
     static func programName(goal: OnboardingView.PrimaryGoal, daysPerWeek: Int) -> String {
         switch goal {
-        case .getStronger:    return "5/3/1 Strength"
-        case .buildMuscle:    return daysPerWeek >= 5 ? "Push Pull Legs" : "Upper / Lower"
-        case .loseFat:        return "Full Body Hypertrophy"
-        case .athletic:       return "Athletic Conditioning"
-        case .recomp:         return "Hybrid Recomp"
-        case .stayConsistent: return "Consistency Builder"
-        case .betterSleep:    return "Recovery & Sleep Hygiene"
-        case .recovery:       return "Active Recovery Plan"
-        case .antiAging:      return "Healthy Aging Plan"
-        case .skinHair:       return "Look & Feel Plan"
-        case .energy:         return "Energy & Vitality Plan"
+        case .getStronger:    return String(localized: "5/3/1 Strength")
+        case .buildMuscle:    return daysPerWeek >= 5 ? String(localized: "Push Pull Legs") : String(localized: "Upper / Lower")
+        case .loseFat:        return String(localized: "Full Body Hypertrophy")
+        case .athletic:       return String(localized: "Athletic Conditioning")
+        case .recomp:         return String(localized: "Hybrid Recomp")
+        case .stayConsistent: return String(localized: "Consistency Builder")
+        case .betterSleep:    return String(localized: "Recovery & Sleep Hygiene")
+        case .recovery:       return String(localized: "Active Recovery Plan")
+        case .antiAging:      return String(localized: "Healthy Aging Plan")
+        case .skinHair:       return String(localized: "Look & Feel Plan")
+        case .energy:         return String(localized: "Energy & Vitality Plan")
         }
     }
 }

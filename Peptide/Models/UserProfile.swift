@@ -127,7 +127,7 @@ extension MeasurementUnit {
     private static let millilitresPerFluidOunce = 29.5735
 
     var volumeSuffix: String {
-        self == .metric ? "mL" : "oz"
+        self == .metric ? String(localized: "mL") : "oz"
     }
 
     /// Spelled out for VoiceOver, which reads "oz" as two letters.
@@ -145,7 +145,7 @@ extension MeasurementUnit {
     func volumeLabel(_ fluidOunces: Double) -> String {
         let value = volumeValue(fluidOunces)
         guard self == .metric else { return "\(value) oz" }
-        guard value >= 1_000 else { return "\(value) mL" }
+        guard value >= 1_000 else { return "\(value) \(volumeSuffix)" }
         return "\((Double(value) / 1_000).formatted(.number.precision(.fractionLength(1)))) L"
     }
 

@@ -30,8 +30,8 @@ enum DailyScheduleEngine {
             case .morning:          return String(localized: "Morning")
             case .morningWithFood:  return String(localized: "Morning · With Food")
             case .midday:           return String(localized: "Midday")
-            case .preWorkout:       return "Pre-Workout"
-            case .postWorkout:      return "Post-Workout"
+            case .preWorkout:       return String(localized: "Pre-Workout")
+            case .postWorkout:      return String(localized: "Post-Workout")
             case .evening:          return String(localized: "Evening")
             case .preBed:           return String(localized: "Before Bed")
             }
@@ -55,7 +55,7 @@ enum DailyScheduleEngine {
             case .morningFasted:    return String(localized: "On waking, empty stomach")
             case .morning:          return String(localized: "Early in the day")
             case .morningWithFood:  return String(localized: "After breakfast")
-            case .midday:           return "Mid-day"
+            case .midday:           return String(localized: "Around midday")
             case .preWorkout:       return String(localized: "30–45 min before training")
             case .postWorkout:      return String(localized: "Within 30 min of training")
             case .evening:          return String(localized: "Late afternoon / evening")
