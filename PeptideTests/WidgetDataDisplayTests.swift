@@ -146,9 +146,11 @@ final class WidgetDataDisplayTests: XCTestCase {
         XCTAssertTrue(WidgetData.isOverdue(written, at: written.addingTimeInterval(5 * 60)))
     }
 
+    #if canImport(ActivityKit)
     func test_overdueGrace_matchesLiveActivityTakeNowWindow() {
         XCTAssertEqual(WidgetData.overdueGrace, TimeInterval(DoseWindowAttributes.ContentState.dueNowToleranceMinutes * 60))
     }
+    #endif
 
     // MARK: - Last workout
 
