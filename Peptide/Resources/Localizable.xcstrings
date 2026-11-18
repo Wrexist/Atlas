@@ -171,6 +171,16 @@
         }
       }
     },
+    "%lld ml": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ml"
+          }
+        }
+      }
+    },
     "%lld ms avg": {
       "localizations": {
         "sv": {
