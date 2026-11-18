@@ -58,8 +58,11 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
     var pausedElapsedSeconds: Int?
     var exercises: [Exercise]
     var selectedExerciseID: UUID?
-    /// Nil while paused, like the Live Activity: a frozen countdown has no
-    /// end date to count toward.
+    /// Nil while paused in the phone's pushes, like the Live Activity: a
+    /// frozen countdown has no end date to count toward. The Watch's own
+    /// guess keeps it through a pause and shifts it on resume, as the
+    /// phone does with its frozen rest; `isResting(at:)` hides it while
+    /// paused.
     var rest: Rest?
 
     var isPaused: Bool { pausedElapsedSeconds != nil }
@@ -105,6 +108,9 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
     /// anything it can't predict waits for the phone's next push.
     func applying(_ command: WatchWorkoutCommand, at now: Date) -> WatchWorkoutSnapshot {
         var next = self
+        // `reconcileRest` on the phone: a rest that has run out is over,
+        // so a pick made after it takes effect and +30s can't revive it.
+        if let rest = next.rest, !next.isPaused, rest.endsAt <= now { next.skipRest() }
         switch command {
         case let .completeSet(exerciseID, setID, weightKg, reps):
             next.complete(setID: setID, in: exerciseID, weightKg: weightKg, reps: reps, at: now)
@@ -115,7 +121,9 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
             let remaining = max(0, rest.endsAt.timeIntervalSince(now) + Double(seconds))
             guard remaining > 0 else { next.skipRest(); break }
             rest.endsAt = now.addingTimeInterval(remaining)
-            rest.totalSeconds = remaining
+            // The bar draws remaining / total, so the total only grows
+            // past it; resetting it would refill the bar.
+            rest.totalSeconds = max(rest.totalSeconds, remaining)
             next.rest = rest
         case let .selectExercise(exerciseID):
             if exercises.contains(where: { $0.id == exerciseID }) { next.selectedExerciseID = exerciseID }
@@ -137,8 +145,10 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
             guard paused != isPaused else { break }
             if paused {
                 next.pausedElapsedSeconds = max(0, Int(now.timeIntervalSince(timerStartedAt)))
-                next.rest = nil
             } else {
+                // The rest resumes with the time it had left at the pause.
+                let pausedAt = timerStartedAt.addingTimeInterval(Double(pausedElapsedSeconds ?? 0))
+                next.rest?.endsAt += max(0, now.timeIntervalSince(pausedAt))
                 next.timerStartedAt = now.addingTimeInterval(-Double(pausedElapsedSeconds ?? 0))
                 next.pausedElapsedSeconds = nil
             }
