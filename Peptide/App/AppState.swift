@@ -97,15 +97,30 @@ final class AppState {
     /// itself, so the system banner for it is suppressed only then.
     var isActiveWorkoutVisible = false
 
+    /// Bumped by `dismissModalsForRouting`; `PeptideApp` closes the
+    /// What's New tour and travel prompt it owns. Both come back on their
+    /// own: the tour until it is finished, the prompt on the next activation.
+    private(set) var rootPromptDismissalRequest = 0
+    /// Bumped when routing needs the workout cover out of the way;
+    /// `TrainContainerView` minimizes it. The workout keeps running
+    /// behind its resume banner.
+    private(set) var minimizeActiveWorkoutRequest = 0
+
     /// Closes the root-presented modals before a deep link, quick action
     /// or Spotlight tap navigates. A tab switch or a pending flag behind
-    /// an open Profile sheet, Library cover or paywall happens out of sight, and
-    /// the view that consumes the flag can't present over the modal.
-    func dismissModalsForRouting() {
+    /// an open Profile sheet, Library cover, paywall, the workout cover
+    /// or a root prompt happens out of sight, and the view that consumes
+    /// the flag can't present over the modal. A route that lands on the
+    /// workout itself keeps its cover up.
+    func dismissModalsForRouting(keepingActiveWorkout: Bool = false) {
         showProfile = false
         showLibrary = false
         presentedQuickSheet = nil
         presentedPaywall = nil
+        rootPromptDismissalRequest &+= 1
+        if isActiveWorkoutVisible, !keepingActiveWorkout {
+            minimizeActiveWorkoutRequest &+= 1
+        }
     }
 }
 
@@ -148,7 +163,7 @@ enum DeepLinkRouter {
             // Reserved for workout reminders and a future training
             // widget — lands on the Train tab, where the resume banner
             // or Start Workout CTA is the next action.
-            appState.dismissModalsForRouting()
+            appState.dismissModalsForRouting(keepingActiveWorkout: true)
             appState.selectedTab = .train
         case "meals":
             // Nutrition widget → the Meals tab's log-entry pickers.

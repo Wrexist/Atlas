@@ -26,11 +26,20 @@ struct NextDoseIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let snapshot: NextDoseReadout = await MainActor.run {
             let store = IntentDataStore.resolveWithTodaysDoses()
-            guard let next = store.nextDose else { return .allDone }
+            // No entries at all is an off-day of a weekly or interval
+            // schedule, not a day of completed doses.
+            guard let next = store.nextDose else { return store.todayEntries.isEmpty ? .noneScheduled : .allDone }
             return .upcoming(name: next.peptide.name, dose: next.dose, date: next.date)
         }
 
         switch snapshot {
+        case .noneScheduled:
+            return .result(dialog: IntentDialog(
+                LocalizedStringResource(
+                    "No doses are scheduled today.",
+                    comment: "Siri response on a protocol's off-day."
+                )
+            ))
         case .allDone:
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
@@ -86,6 +95,7 @@ struct NextDoseIntent: AppIntent {
     }()
 
     private enum NextDoseReadout {
+        case noneScheduled
         case allDone
         case upcoming(name: String, dose: String, date: Date)
     }

@@ -31,6 +31,22 @@ final class DeepLinkRouterTests: XCTestCase {
         XCTAssertEqual(state.pendingDoseLogEntryId, id)
     }
 
+    func test_doseHost_withWorkoutCoverUp_requestsMinimize() {
+        let state = AppState()
+        state.isActiveWorkoutVisible = true
+        DeepLinkRouter.route(XCTUnwrapURL("peptidex://dose/\(UUID().uuidString)"), appState: state)
+        XCTAssertEqual(state.minimizeActiveWorkoutRequest, 1,
+                       "The dose sheet can't present over the workout cover")
+        XCTAssertEqual(state.rootPromptDismissalRequest, 1)
+    }
+
+    func test_trainHost_withWorkoutCoverUp_keepsTheWorkout() {
+        let state = AppState()
+        state.isActiveWorkoutVisible = true
+        DeepLinkRouter.route(XCTUnwrapURL("peptidex://train"), appState: state)
+        XCTAssertEqual(state.minimizeActiveWorkoutRequest, 0)
+    }
+
     func test_doseHost_rejectsGarbledUUID_withoutMutatingState() {
         let (handled, state) = route("peptidex://dose/not-a-uuid")
         XCTAssertFalse(handled)

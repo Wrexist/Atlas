@@ -428,6 +428,17 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(countAfterFirst, countAfterSecond)
     }
 
+    func test_handleAppActivation_afterDayChange_incrementsRevision() throws {
+        store.handleAppActivation()
+        let before = store.revision
+        let tomorrow = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: 1, to: Date()))
+
+        store.handleAppActivation(now: tomorrow)
+
+        XCTAssertGreaterThan(store.revision, before,
+                             "Strips keyed on revision must redraw after midnight")
+    }
+
     // MARK: - Meal reminder "Same as yesterday"
 
     /// Yesterday's dinner reminder, tapped today, fills yesterday from the

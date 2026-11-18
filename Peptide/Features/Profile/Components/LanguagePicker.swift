@@ -1,13 +1,19 @@
 import SwiftUI
+import UIKit
 
+/// Opens the app's page in iOS Settings, where the per-app language lives.
+/// `String(localized:)` resolves through the bundle's language and ignores
+/// SwiftUI's locale, so an in-app switch left most of the app in the old
+/// language; the system setting relaunches the app in the new one.
 struct LanguagePickerRow: View {
-    @Environment(LocalizationManager.self) private var localization
-    @State private var isPresented = false
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         Button {
             Haptics.impact(.light)
-            isPresented = true
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                openURL(url)
+            }
         } label: {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "character.bubble.fill")
@@ -23,10 +29,10 @@ struct LanguagePickerRow: View {
                 Spacer()
 
                 HStack(spacing: Spacing.xs) {
-                    Text(currentName)
+                    Text(AppLanguage.current?.nativeName ?? String(localized: "System Default"))
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
-                    Image(systemName: "chevron.right")
+                    Image(systemName: "arrow.up.right")
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                         .accessibilityHidden(true)
@@ -35,159 +41,6 @@ struct LanguagePickerRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .sheet(isPresented: $isPresented) {
-            LanguagePickerSheet()
-                .liquidGlassPresentation(detents: [.large])
-        }
+        .accessibilityHint(Text("Opens Settings"))
     }
-
-    private var currentName: String {
-        localization.selectedLanguage?.nativeName ?? String(localized: "System Default")
-    }
-}
-
-struct LanguagePickerSheet: View {
-    @Environment(LocalizationManager.self) private var localization
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                AppColor.background.ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: Spacing.sm) {
-                        LanguageRow(
-                            monogram: nil,
-                            nativeName: String(localized: "System Default"),
-                            englishName: nil,
-                            isSelected: localization.selectedCode == nil,
-                            isSystemDefault: true,
-                            action: { select(nil) }
-                        )
-
-                        Divider()
-                            .overlay(AppColor.glassBorder)
-                            .padding(.vertical, Spacing.xs)
-
-                        ForEach(AppLanguage.shipped) { language in
-                            LanguageRow(
-                                monogram: language.monogram,
-                                nativeName: language.nativeName,
-                                englishName: language.englishName,
-                                isSelected: localization.selectedCode == language.rawValue,
-                                isSystemDefault: false,
-                                action: { select(language.rawValue) }
-                            )
-                        }
-                    }
-                    .padding(Spacing.screenPadding)
-                }
-            }
-            .navigationTitle(Text("Choose Language"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text("Done")
-                            .font(AppFont.subheadline.weight(.semibold))
-                            .foregroundStyle(AppColor.accentPrimary)
-                    }
-                }
-            }
-        }
-        .tint(AppColor.accentPrimary)
-    }
-
-    private func select(_ code: String?) {
-        guard localization.selectedCode != code else { return }
-        Haptics.selection()
-        AppAnimation.with(AppAnimation.quick) {
-            localization.selectedCode = code
-        }
-    }
-}
-
-private struct LanguageRow: View {
-    /// Nil for "System Default", which shows a globe.
-    let monogram: String?
-    let nativeName: String
-    let englishName: String?
-    let isSelected: Bool
-    let isSystemDefault: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            GlassCardCompact(tinted: isSelected) {
-                HStack(spacing: Spacing.md) {
-                    Group {
-                        if let monogram {
-                            Text(monogram)
-                                .font(AppFont.scaled(16, weight: .semibold))
-                        } else {
-                            Image(systemName: "globe")
-                                .font(AppFont.scaled(20, weight: .medium))
-                        }
-                    }
-                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
-                    .frame(width: 44, height: 44)
-                    .background(
-                        Circle().fill(AppColor.cardOverlay)
-                    )
-                    .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text(nativeName)
-                            .font(AppFont.body.weight(.semibold))
-                            .foregroundStyle(AppColor.textPrimary)
-                            .lineLimit(1)
-
-                        if let englishName {
-                            Text(englishName)
-                                .font(AppFont.caption2)
-                                .foregroundStyle(AppColor.textTertiary)
-                                .lineLimit(1)
-                        } else if isSystemDefault {
-                            Text(systemLanguageDescription)
-                                .font(AppFont.caption2)
-                                .foregroundStyle(AppColor.textTertiary)
-                                .lineLimit(1)
-                        }
-                    }
-
-                    Spacer()
-
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(AppFont.scaled(20, weight: .regular))
-                        .foregroundStyle(
-                            isSelected ? AppColor.accentPrimary : AppColor.glassBorder
-                        )
-                        .symbolRenderingMode(.hierarchical)
-                        .contentTransition(.symbolEffect(.replace))
-                        .accessibilityHidden(true)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private var systemLanguageDescription: String {
-        let locale = Locale.autoupdatingCurrent
-        guard let code = locale.language.languageCode?.identifier,
-              let name = locale.localizedString(forLanguageCode: code) else {
-            return ""
-        }
-        return name.capitalized
-    }
-}
-
-#Preview {
-    LanguagePickerSheet()
-        .environment(LocalizationManager.shared)
-        .preferredColorScheme(.dark)
 }

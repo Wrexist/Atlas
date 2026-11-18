@@ -161,6 +161,16 @@
         }
       }
     },
+    "%@: %@. Watermark: Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@. Vattenstämpel: Atlas."
+          }
+        }
+      }
+    },
     "%lld mg/dL": {
       "localizations": {
         "sv": {
@@ -6746,6 +6756,26 @@
         }
       }
     },
+    "No doses are scheduled today.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga doser är schemalagda idag."
+          }
+        }
+      }
+    },
+    "No health data to add yet": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga hälsodata att lägga till ännu"
+          }
+        }
+      }
+    },
     "None": {
       "localizations": {
         "sv": {
@@ -6796,6 +6826,16 @@
         }
       }
     },
+    "Opens Settings": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Inställningar"
+          }
+        }
+      }
+    },
     "Opens the chart": {
       "localizations": {
         "sv": {
@@ -6806,12 +6846,32 @@
         }
       }
     },
+    "Opens the dose log": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar dosloggen"
+          }
+        }
+      }
+    },
     "Original report": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Originalrapport"
+          }
+        }
+      }
+    },
+    "Overall streak": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total svit"
           }
         }
       }
@@ -13952,16 +14012,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sammanvägning av HRV, nattens sömn och vilopuls."
-          }
-        }
-      }
-    },
-    "Compound ": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Substans "
           }
         }
       }
@@ -34222,16 +34272,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Svit, bästa och totalt för varje vana"
-          }
-        }
-      }
-    },
-    "Streak: %@. Watermark: Atlas.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Svit: %@. Vattenstämpel: Atlas."
           }
         }
       }

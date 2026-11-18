@@ -9,7 +9,8 @@ import UIKit
 enum QuickActionRouter {
     static func perform(_ action: QuickAction, appState: AppState, dataStore: DataStore) {
         // Sheets present from the root and can't stack on an open modal.
-        appState.dismissModalsForRouting()
+        // Starting a workout lands on the one already running, if any.
+        appState.dismissModalsForRouting(keepingActiveWorkout: action == .startWorkout)
 
         switch action {
         case .scanMeal:
@@ -136,9 +137,17 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
                 let ends = IntentDataStore.resolve().reconcileDoseLiveActivities()
                 // The app may be suspended once the task completes, so
                 // the end requests have to land first.
-                Task {
+                let work = Task {
                     for end in ends { await end.value }
+                    guard !Task.isCancelled else { return }
                     task.setTaskCompleted(success: true)
+                }
+                // Out of budget: stop and complete once, so iOS suspends
+                // the app instead of terminating it and throttling later
+                // refreshes.
+                task.expirationHandler = {
+                    work.cancel()
+                    task.setTaskCompleted(success: false)
                 }
             }
         }

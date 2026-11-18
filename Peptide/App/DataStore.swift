@@ -67,6 +67,9 @@ final class DataStore {
     // streaks) so they invalidate on midnight rollover.
     @ObservationIgnored private var cacheVersion: Int = 0
     @ObservationIgnored private var versionedDay: Date = Calendar.current.startOfDay(for: Date())
+    /// The day `revision` last moved for a rollover. Separate from
+    /// `versionedDay`, which any read of a cached stat advances quietly.
+    @ObservationIgnored private var revisionDay: Date = Calendar.current.startOfDay(for: Date())
 
     /// When activation last pulled from HealthKit. A glance at Control
     /// Center or a Face ID prompt also re-activates the scene, and each
@@ -3070,8 +3073,15 @@ final class DataStore {
 
     /// Called when the app becomes active. Detects calendar-day changes since the
     /// last check and regenerates today's entries when needed. Idempotent.
-    func handleAppActivation() {
+    func handleAppActivation(now: Date = Date()) {
         bumpVersionIfDayChanged()
+        // Views keyed on `revision` ("Workout logged today") must redraw
+        // the morning after even when nothing else changed.
+        let today = Calendar.current.startOfDay(for: now)
+        if today != revisionDay {
+            revisionDay = today
+            revision &+= 1
+        }
         // Flip any `.active` protocols past the soft auto-complete
         // threshold to `.completed`. Runs BEFORE regenerateTodayEntries
         // so the just-completed cycles don't produce another day of

@@ -24,12 +24,12 @@ final class LocalizationManagerTests: XCTestCase {
     // MARK: - selectedCode round-trip
 
     func test_settingSelectedCode_persistsToDefaults() {
-        LocalizationManager.shared.selectedCode = "es"
-        XCTAssertEqual(defaults.string(forKey: Self.key), "es")
+        LocalizationManager.shared.selectedCode = "sv"
+        XCTAssertEqual(defaults.string(forKey: Self.key), "sv")
     }
 
     func test_clearingSelectedCode_removesDefaultsEntry() {
-        LocalizationManager.shared.selectedCode = "ja"
+        LocalizationManager.shared.selectedCode = "sv"
         XCTAssertNotNil(defaults.string(forKey: Self.key))
         LocalizationManager.shared.selectedCode = nil
         XCTAssertNil(defaults.string(forKey: Self.key))
@@ -38,8 +38,8 @@ final class LocalizationManagerTests: XCTestCase {
     // MARK: - selectedLanguage mapping
 
     func test_selectedLanguage_returnsKnownLanguageForKnownCode() {
-        LocalizationManager.shared.selectedCode = "fr"
-        XCTAssertEqual(LocalizationManager.shared.selectedLanguage, .french)
+        LocalizationManager.shared.selectedCode = "sv"
+        XCTAssertEqual(LocalizationManager.shared.selectedLanguage, .swedish)
     }
 
     func test_selectedLanguage_returnsNilForUnknownCode() {
@@ -54,8 +54,8 @@ final class LocalizationManagerTests: XCTestCase {
     // MARK: - effectiveLocale
 
     func test_effectiveLocale_followsSelectedCode() {
-        LocalizationManager.shared.selectedCode = "de"
-        XCTAssertEqual(LocalizationManager.shared.effectiveLocale.identifier, "de")
+        LocalizationManager.shared.selectedCode = "sv"
+        XCTAssertEqual(LocalizationManager.shared.effectiveLocale.identifier, "sv")
     }
 
     func test_effectiveLocale_fallsBackToAutoupdatingWhenUnset() {
@@ -63,23 +63,6 @@ final class LocalizationManagerTests: XCTestCase {
         // hard-coded specific identifier.
         let locale = LocalizationManager.shared.effectiveLocale
         XCTAssertEqual(locale, .autoupdatingCurrent)
-    }
-
-    // MARK: - layoutDirection
-
-    func test_layoutDirection_arabic_isRightToLeft() {
-        LocalizationManager.shared.selectedCode = "ar"
-        XCTAssertEqual(LocalizationManager.shared.layoutDirection, .rightToLeft)
-    }
-
-    func test_layoutDirection_english_isLeftToRight() {
-        LocalizationManager.shared.selectedCode = "en"
-        XCTAssertEqual(LocalizationManager.shared.layoutDirection, .leftToRight)
-    }
-
-    func test_layoutDirection_unknownCode_isLeftToRight() {
-        LocalizationManager.shared.selectedCode = "xx"
-        XCTAssertEqual(LocalizationManager.shared.layoutDirection, .leftToRight)
     }
 
     // MARK: - AppLanguage round-trip
@@ -96,9 +79,8 @@ final class LocalizationManagerTests: XCTestCase {
         XCTAssertNil(AppLanguage.from(code: "xx-yy"))
     }
 
-    func test_AppLanguage_isRTL_onlyArabic() {
-        for language in AppLanguage.allCases {
-            XCTAssertEqual(language.isRTL, language == .arabic, "Unexpected RTL for \(language)")
-        }
+    func test_AppLanguage_swedish_isOffered() {
+        XCTAssertEqual(AppLanguage.from(code: "sv"), .swedish)
+        XCTAssertEqual(AppLanguage.swedish.nativeName, "Svenska")
     }
 }

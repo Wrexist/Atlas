@@ -26,7 +26,7 @@ final class LocalizationManager: @unchecked Sendable {
 
     private init() {
         // A code saved while the picker offered languages the build does not
-        // ship would leave the app English-but-RTL for Arabic, so drop it.
+        // ship would leave the app half in that language, so drop it.
         let stored = UserDefaults.standard.string(forKey: Self.defaultsKey)
         self.selectedCode = AppLanguage.shipped.contains { $0.rawValue == stored } ? stored : nil
     }
@@ -41,65 +41,38 @@ final class LocalizationManager: @unchecked Sendable {
         }
         return .autoupdatingCurrent
     }
-
-    var layoutDirection: LayoutDirection {
-        selectedLanguage?.isRTL == true ? .rightToLeft : .leftToRight
-    }
 }
 
 enum AppLanguage: String, CaseIterable, Identifiable, Hashable {
     case english = "en"
-    case spanish = "es"
-    case chineseSimplified = "zh-Hans"
-    case japanese = "ja"
-    case german = "de"
-    case french = "fr"
-    case portugueseBrazil = "pt-BR"
-    case korean = "ko"
-    case russian = "ru"
-    case arabic = "ar"
+    case swedish = "sv"
 
     var id: String { rawValue }
 
     var nativeName: String {
         switch self {
         case .english: "English"
-        case .spanish: "Español"
-        case .chineseSimplified: "简体中文"
-        case .japanese: "日本語"
-        case .german: "Deutsch"
-        case .french: "Français"
-        case .portugueseBrazil: "Português"
-        case .korean: "한국어"
-        case .russian: "Русский"
-        case .arabic: "العربية"
+        case .swedish: "Svenska"
         }
     }
 
     var englishName: String {
         switch self {
         case .english: "English"
-        case .spanish: "Spanish"
-        case .chineseSimplified: "Chinese (Simplified)"
-        case .japanese: "Japanese"
-        case .german: "German"
-        case .french: "French"
-        case .portugueseBrazil: "Portuguese (Brazil)"
-        case .korean: "Korean"
-        case .russian: "Russian"
-        case .arabic: "Arabic"
+        case .swedish: "Swedish"
         }
     }
 
-    /// Two-letter badge for the language picker ("EN", "SV").
-    var monogram: String { String(rawValue.prefix(2)).uppercased() }
-
-    var isRTL: Bool { self == .arabic }
-
-    /// Languages this build has an `.lproj` for. Only English ships today
-    /// (see `project.yml`), so the picker stays hidden until a translation lands.
+    /// Languages this build has an `.lproj` for — English and Swedish
+    /// (`CFBundleLocalizations` in `project.yml`).
     static var shipped: [AppLanguage] {
         allCases.filter { Bundle.main.localizations.contains($0.rawValue) }
+    }
+
+    /// The language the app's strings resolve in right now — the iOS
+    /// per-app language, or the system one.
+    static var current: AppLanguage? {
+        Bundle.main.preferredLocalizations.first.flatMap(AppLanguage.init(rawValue:))
     }
 
     static func from(code: String?) -> AppLanguage? {
