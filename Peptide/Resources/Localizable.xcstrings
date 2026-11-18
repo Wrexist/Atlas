@@ -40222,16 +40222,6 @@
         }
       }
     },
-    "You're offline. We'll use cached results when available.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du är offline. Vi använder sparade resultat när det finns."
-          }
-        }
-      }
-    },
     "You're on a %lld-day streak — your best is %lld.": {
       "localizations": {
         "sv": {
@@ -49832,6 +49822,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Öppnar produkten så att du kan logga den igen."
+          }
+        }
+      }
+    },
+    "You're offline, and this isn't saved on your phone yet. Reconnect, or photograph the label.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du är offline och det här finns inte sparat på telefonen än. Anslut igen eller fotografera etiketten."
           }
         }
       }

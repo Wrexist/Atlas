@@ -142,7 +142,7 @@ final class OpenFoodFactsService: Sendable {
                     comment: "Local rate-limiter hit. Seconds is the time until the next slot opens."
                 )
             case .networkUnavailable:
-                String(localized: "You're offline. We'll use cached results when available.")
+                String(localized: "You're offline, and this isn't saved on your phone yet. Reconnect, or photograph the label.")
             case .requestFailed:
                 String(localized: "Couldn't look up that product. Please try again.")
             case .serviceUnavailable:
