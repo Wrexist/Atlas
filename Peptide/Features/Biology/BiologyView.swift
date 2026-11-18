@@ -95,6 +95,7 @@ struct BiologyView: View {
                         icon: "cross.vial.fill",
                         title: "Labs",
                         subtitle: labsSubtitle,
+                        surface: .card,
                         action: openLabs
                     )
                     .accessibilityHint("Opens your blood-work results")
