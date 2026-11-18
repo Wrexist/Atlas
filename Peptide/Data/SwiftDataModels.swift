@@ -25,7 +25,7 @@ private let sdDecoder: JSONDecoder = {
 /// Assigns only a value that differs. Every assignment marks the CloudKit
 /// field dirty and re-exports it on the next sync, so rewriting unchanged
 /// rows on each save would re-upload the whole table.
-private func assignIfChanged<Root: AnyObject, Value: Equatable>(
+func assignIfChanged<Root: AnyObject, Value: Equatable>(
     _ root: Root, _ keyPath: ReferenceWritableKeyPath<Root, Value>, _ value: Value
 ) {
     if root[keyPath: keyPath] != value { root[keyPath: keyPath] = value }
@@ -615,6 +615,17 @@ final class StoredProfile {
             )
             return legacy()
         }
+    }
+
+    /// True when the stored metrics hold an age without its
+    /// `ageRecordedAt`. Every load backfills the stamp with the load
+    /// date, so unless the stamp is written back once the age never
+    /// advances.
+    var bodyMetricsLackAgeStamp: Bool {
+        guard let bodyMetricsData,
+              let metrics = try? sdDecoder.decode(BodyMetrics.self, from: bodyMetricsData)
+        else { return false }
+        return metrics.lacksAgeRecordedAt
     }
 
     func toUserProfile() throws -> UserProfile {

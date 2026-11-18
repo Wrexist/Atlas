@@ -70,6 +70,22 @@ enum FastingEngine {
         return min(customHoursRange.upperBound, max(customHoursRange.lowerBound, hours))
     }
 
+    // MARK: - Open fasts
+
+    /// Every open fast but the newest, each closed at the newest's start.
+    /// Two devices that each start a fast leave two open after sync;
+    /// ending the newest would otherwise bring the older one back as
+    /// running, with its reminder and Live Activity.
+    static func supersededOpenFasts(in fasts: [FastSession]) -> [FastSession] {
+        let open = fasts.filter(\.isActive)
+        guard let newest = open.max(by: { $0.startedAt < $1.startedAt }) else { return [] }
+        return open.filter { $0.id != newest.id }.map { fast in
+            var closed = fast
+            closed.endedAt = max(newest.startedAt, fast.startedAt)
+            return closed
+        }
+    }
+
     // MARK: - One fast
 
     /// Seconds fasted so far — or in total, once the fast has ended.
