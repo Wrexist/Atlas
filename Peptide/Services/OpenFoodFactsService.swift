@@ -723,12 +723,16 @@ private extension OpenFoodFactsService {
                 ?? n?.energy100g.plausible(within: 0...3_800)
                     .map { $0 / 4.184 }
                     .flatMap { (0...900).contains($0) ? $0 : nil }
+            let rawMacros = [n?.proteins100g, n?.carbohydrates100g, n?.fat100g]
             var protein = n?.proteins100g.plausible(within: 0...100)
             var carbs = n?.carbohydrates100g.plausible(within: 0...100)
             var fat = n?.fat100g.plausible(within: 0...100)
-            // 100 g of food can't hold much more than 100 g of macros;
-            // a record that claims so has no nutrition worth logging.
-            if (protein ?? 0) + (carbs ?? 0) + (fat ?? 0) > 105 {
+            // A stated macro outside 0–100 g is a typo, and logging it as
+            // 0 g would be a silent zero. 100 g of food also can't hold
+            // much more than 100 g of macros. Either way the record has
+            // no nutrition worth logging, so the user is sent to Edit.
+            let statedMacroRejected = rawMacros.contains { $0?.value != nil && $0.plausible(within: 0...100) == nil }
+            if statedMacroRejected || (protein ?? 0) + (carbs ?? 0) + (fat ?? 0) > 105 {
                 (calories, protein, carbs, fat) = (nil, nil, nil, nil)
             }
 

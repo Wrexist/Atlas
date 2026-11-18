@@ -276,17 +276,27 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertFalse(product.hasNutrition)
     }
 
-    func test_fetch_nonFiniteOrHugeNutriments_areDroppedAsMissing() async throws {
+    func test_fetch_nonFiniteOrHugeNutriments_marksNutritionMissing() async throws {
         MockURLProtocol.handler = { request in
             (Self.ok(for: request), Data(Fixtures.malformedNutriments.utf8))
         }
         let product = try await service.fetch(barcode: "9999999999999")
         XCTAssertEqual(product.per100g.calories, 0)
         XCTAssertEqual(product.per100g.proteinG, 0)
-        XCTAssertEqual(product.per100g.carbsG, 12)
+        XCTAssertEqual(product.per100g.carbsG, 0)
         XCTAssertEqual(product.per100g.fatG, 0)
         XCTAssertNil(product.per100g.fiberG)
         XCTAssertNil(product.novaGroup)
+        XCTAssertFalse(product.hasNutrition)
+    }
+
+    func test_fetch_unreadableMacroString_keepsTheReadableMacros() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.unreadableFat.utf8))
+        }
+        let product = try await service.fetch(barcode: "4444444444444")
+        XCTAssertEqual(product.per100g.carbsG, 60)
+        XCTAssertEqual(product.per100g.fatG, 0)
         XCTAssertTrue(product.hasNutrition)
     }
 
@@ -308,14 +318,14 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(product.per100g.calories, 0)
     }
 
-    func test_fetch_proteinAbove100gPer100g_isDroppedAsMissing() async throws {
+    func test_fetch_proteinAbove100gPer100g_marksNutritionMissing() async throws {
         MockURLProtocol.handler = { request in
             (Self.ok(for: request), Data(Fixtures.proteinTypo.utf8))
         }
         let product = try await service.fetch(barcode: "4444444444443")
+        XCTAssertFalse(product.hasNutrition)
         XCTAssertEqual(product.per100g.proteinG, 0)
-        XCTAssertEqual(product.per100g.calories, 380, accuracy: 0.001)
-        XCTAssertTrue(product.hasNutrition)
+        XCTAssertEqual(product.per100g.calories, 0)
     }
 
     func test_fetch_onlyMalformedNutriments_hasNoNutrition() async throws {
@@ -1001,6 +1011,22 @@ private enum Fixtures {
           "proteins_100g": 250,
           "carbohydrates_100g": 60,
           "fat_100g": 7
+        }
+      }
+    }
+    """
+
+    static let unreadableFat = """
+    {
+      "status": 1,
+      "code": "4444444444444",
+      "product": {
+        "product_name": "Plain oats",
+        "nutriments": {
+          "energy-kcal_100g": 370,
+          "proteins_100g": 13,
+          "carbohydrates_100g": 60,
+          "fat_100g": "n/a"
         }
       }
     }
