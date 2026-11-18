@@ -20,14 +20,16 @@ struct RecoveryPage: View {
     }
 
     /// Resting heart rate leads when there is one, because it's what the
-    /// heart is beating at. Otherwise the best metric that is present.
-    private var hero: Hero? {
+    /// heart is beating at. Otherwise the best metric that is present. A
+    /// stale recovery score is left out, as the complication leaves it
+    /// out, rather than shown as today's.
+    private func hero(stale: Bool) -> Hero? {
         if let rhr = vitals.restingHeartRate {
             return Hero(kind: .restingHeartRate, label: String(localized: "Resting"), value: rhr,
                         unit: String(localized: "BPM"),
                         spoken: String(localized: "Resting heart rate \(rhr) beats per minute"))
         }
-        if let score = vitals.recoveryScore {
+        if !stale, let score = vitals.recoveryScore {
             return Hero(kind: .recovery, label: String(localized: "Recovery"), value: score, unit: "%",
                         spoken: String(localized: "Recovery \(score) percent"))
         }
@@ -40,9 +42,9 @@ struct RecoveryPage: View {
     }
 
     /// Whatever the hero didn't take, as small capsules under the number.
-    private var chips: [String] {
+    private func chips(for hero: Hero?, stale: Bool) -> [String] {
         var chips: [String] = []
-        if hero?.kind == .restingHeartRate, let score = vitals.recoveryScore {
+        if !stale, hero?.kind == .restingHeartRate, let score = vitals.recoveryScore {
             chips.append(String(localized: "Recovery \(WatchFormat.recovery(score))"))
         }
         if hero?.kind != .hrv, let hrv = vitals.hrv {
@@ -52,7 +54,34 @@ struct RecoveryPage: View {
     }
 
     var body: some View {
-        ScrollView {
+        // Re-rendered each minute so the age, and whether the readings
+        // are too old to pass as today's, keep up with the clock.
+        TimelineView(.everyMinute) { context in
+            content(stale: vitals.isStale(at: context.date))
+        }
+        .navigationTitle("Recovery")
+        .pageBackground(WatchPalette.heart)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showsDetail = true
+                } label: {
+                    Image(systemName: "waveform.path.ecg")
+                }
+                .accessibilityLabel("Recovery details")
+            }
+        }
+        .sheet(isPresented: $showsDetail) {
+            RecoveryDetailView(vitals: vitals)
+        }
+    }
+
+    /// Old readings lead with their age, at full weight, so the numbers
+    /// below read as last measured rather than as this morning's.
+    private func content(stale: Bool) -> some View {
+        let hero = self.hero(stale: stale)
+        let chips = self.chips(for: hero, stale: stale)
+        return ScrollView {
             VStack(alignment: .leading, spacing: 4) {
                 PulsingHeart(bpm: vitals.restingHeartRate, size: 50)
                     .frame(maxWidth: .infinity)
@@ -60,6 +89,12 @@ struct RecoveryPage: View {
                     ECGTrace(bpm: bpm)
                         .frame(height: 26)
                         .padding(.bottom, 2)
+                }
+                if stale {
+                    updatedLine
+                        .font(.footnote)
+                        .foregroundStyle(.primary)
+                        .entrance(0)
                 }
 
                 if let hero {
@@ -87,33 +122,20 @@ struct RecoveryPage: View {
                     }
                     .entrance(1)
                 }
-                // Re-rendered each minute so the age keeps up with the
-                // clock between pushes.
-                TimelineView(.everyMinute) { _ in
-                    Text("Updated \(vitals.measuredAt.formatted(.relative(presentation: .named)))")
+                if !stale {
+                    updatedLine
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .padding(.top, 2)
+                        .entrance(2)
                 }
-                .padding(.top, 2)
-                .entrance(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .navigationTitle("Recovery")
-        .pageBackground(WatchPalette.heart)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showsDetail = true
-                } label: {
-                    Image(systemName: "waveform.path.ecg")
-                }
-                .accessibilityLabel("Recovery details")
-            }
-        }
-        .sheet(isPresented: $showsDetail) {
-            RecoveryDetailView(vitals: vitals)
-        }
+    }
+
+    private var updatedLine: Text {
+        Text("Updated \(vitals.measuredAt.formatted(.relative(presentation: .named)))")
     }
 }
 
