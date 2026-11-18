@@ -134,7 +134,7 @@ struct LiftedDishCell: View {
         .disabled(isNotFood)
         .accessibilityLabel(Text(dish.name.isEmpty ? suggestedName : dish.name))
         .accessibilityAddTraits(dish.include ? .isSelected : [])
-        .accessibilityHint("Keeps or leaves out this dish.")
+        .accessibilityHint(isNotFood ? Text("Not food — left out") : Text("Keeps or leaves out this dish."))
     }
 
     private var isNotFood: Bool { dish.reading == .notFood }
