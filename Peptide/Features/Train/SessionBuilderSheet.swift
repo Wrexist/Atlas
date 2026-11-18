@@ -282,7 +282,9 @@ struct SessionBuilderSheet: View {
                             .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.textSecondary)
                     }
-                    GlassButton(title: "Create workout", icon: "wand.and.stars", isFullWidth: true) { build() }
+                    // The same button as "Start workout", which takes this
+                    // slot once the workout is built.
+                    PrimaryCTAButton(title: "Create workout", icon: "wand.and.stars") { build() }
                         .disabled(focus == nil || !library.isLoaded)
                 }
             }

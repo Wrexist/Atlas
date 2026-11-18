@@ -124,7 +124,7 @@ struct TodayHabitsHero: View {
             chipsRow
             viewAllButton
         }
-        .padding(Spacing.md)
+        .padding(Spacing.cardPadding)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
@@ -284,7 +284,7 @@ struct TodayHabitsHero: View {
 
             StarterHabitSuggestions(onPick: addStarter)
         }
-        .padding(Spacing.md)
+        .padding(Spacing.cardPadding)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
