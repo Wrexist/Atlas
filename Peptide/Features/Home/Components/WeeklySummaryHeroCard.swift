@@ -200,7 +200,9 @@ struct WeeklySummaryHeroCard: View {
     /// the network failed, so the badge says that instead.
     private func eyebrowRow(offlineBadge: Bool = false) -> some View {
         let onDevice = !AIDataConsent.isGranted
-        let badge: LocalizedStringKey? = offlineBadge ? (onDevice ? "On-device" : "Offline") : nil
+        let onDeviceBadge: LocalizedStringKey = "On-device"
+        let networkBadge: LocalizedStringKey = "Offline"
+        let badge: LocalizedStringKey? = offlineBadge ? (onDevice ? onDeviceBadge : networkBadge) : nil
         return HStack(spacing: Spacing.sm) {
             Text("Weekly recap")
                 .font(AppFont.scaled(11, weight: .semibold))
