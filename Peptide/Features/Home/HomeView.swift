@@ -311,12 +311,17 @@ struct HomeView: View {
     }
 
     /// Fetches the step window and folds the shown day's count into the
-    /// checklist without rebuilding the rest of Today.
-    private func refreshSteps() async {
-        if dataStore.profile.healthConnected {
-            stepBuckets = await HealthKitService.shared.dailySteps(days: StepGoalEngine.fetchDays)
-        } else {
+    /// checklist without rebuilding the rest of Today. `recentOnly` re-reads
+    /// just the last couple of days — the live tick, where older days
+    /// can't have moved.
+    private func refreshSteps(recentOnly: Bool = false) async {
+        if !dataStore.profile.healthConnected {
             stepBuckets = []
+        } else if recentOnly {
+            let recent = await HealthKitService.shared.dailySteps(days: StepGoalEngine.recentFetchDays)
+            stepBuckets = StepGoalEngine.merging(recent: recent, into: stepBuckets, now: Date())
+        } else {
+            stepBuckets = await HealthKitService.shared.dailySteps(days: StepGoalEngine.fetchDays)
         }
         let count = steps(on: selectedDay)
         guard derived.checklist?.steps != count else { return }
@@ -671,7 +676,7 @@ struct HomeView: View {
                 while dayOffset == 0, !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(StepGoalEngine.liveRefreshSeconds))
                     guard !Task.isCancelled, scenePhase == .active else { continue }
-                    await refreshSteps()
+                    await refreshSteps(recentOnly: true)
                 }
             }
             .onChange(of: scenePhase) { _, phase in
