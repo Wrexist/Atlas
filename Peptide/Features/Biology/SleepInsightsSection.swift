@@ -256,8 +256,7 @@ struct SleepInsightsSection: View {
     }
 
     private static func time(_ minutesAfterMidnight: Double) -> String {
-        let start = Calendar.current.startOfDay(for: .now)
-        return start.addingTimeInterval(minutesAfterMidnight.rounded() * 60)
+        SleepInsightsEngine.clockTime(minutesAfterMidnight: minutesAfterMidnight, on: .now, calendar: .current)
             .formatted(date: .omitted, time: .shortened)
     }
 

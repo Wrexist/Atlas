@@ -75,6 +75,15 @@ enum SleepInsightsEngine {
         )
     }
 
+    /// The wall-clock time `minutesAfterMidnight` names on `day`. Set by
+    /// hour and minute, not by adding seconds to midnight, so a 23:10
+    /// average still reads 23:10 on the days the clocks change.
+    static func clockTime(minutesAfterMidnight: Double, on day: Date, calendar: Calendar) -> Date {
+        let minutesPerDay = 24 * 60
+        let minutes = (Int(minutesAfterMidnight.rounded()) % minutesPerDay + minutesPerDay) % minutesPerDay
+        return calendar.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: day) ?? day
+    }
+
     // MARK: - Private
 
     private static func stageShares(_ nights: [SleepScoreEngine.Night]) -> StageShares? {
