@@ -386,6 +386,9 @@ struct RecipeDetailView: View {
     private func log() {
         let slot = dataStore.logServing(of: recipe, locale: locale, on: logDay)
         AppAnimation.with(AppAnimation.toast) { loggedSlot = slot }
+        // The focused button is swapped for a static label, so VoiceOver
+        // focus moves on without saying the serving was logged.
+        AccessibilityNotification.Announcement(String(localized: "Logged to \(slot.displayName)")).post()
         Task {
             try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
             AppAnimation.with(AppAnimation.toast) { loggedSlot = nil }

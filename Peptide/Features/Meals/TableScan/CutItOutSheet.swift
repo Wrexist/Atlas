@@ -46,7 +46,7 @@ struct CutItOutSheet: View {
                             )
                             .accessibilityElement()
                             .accessibilityLabel("Cut circle")
-                            .accessibilityValue(Text("\(Int((center.x * 100).rounded())) percent across, \(Int((center.y * 100).rounded())) percent down"))
+                            .accessibilityValue(Text("Size \(Int((radius * 200).rounded())) percent, \(Int((center.x * 100).rounded())) percent across, \(Int((center.y * 100).rounded())) percent down"))
                             .accessibilityHint("Swipe up or down to resize. Use actions to move it.")
                             .accessibilityAdjustableAction { direction in
                                 switch direction {

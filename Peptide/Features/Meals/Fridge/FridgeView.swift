@@ -17,7 +17,7 @@ struct FridgeView: View {
     @State private var editor: EditorTarget?
     @State private var showScan = false
     @State private var shelfFloating = false
-    @State private var toast: LocalizedStringKey?
+    @State private var toast: LocalizedStringResource?
     @State private var toastTask: Task<Void, Never>?
 
     private var calendar: Calendar { .current }
@@ -381,7 +381,7 @@ struct FridgeView: View {
         Haptics.impact(.light)
     }
 
-    private static func putInMessage(_ count: Int) -> LocalizedStringKey {
+    private static func putInMessage(_ count: Int) -> LocalizedStringResource {
         if count == 1 { return "1 item put in" }
         return "\(count) items put in"
     }
@@ -391,8 +391,11 @@ struct FridgeView: View {
         return "\(count) items"
     }
 
-    private func show(_ message: LocalizedStringKey) {
+    /// A resource rather than a key so the same words reach VoiceOver:
+    /// the toast appears at the foot of the screen, away from focus.
+    private func show(_ message: LocalizedStringResource) {
         AppAnimation.with(AppAnimation.toast) { toast = message }
+        AccessibilityNotification.Announcement(String(localized: message)).post()
         toastTask?.cancel()
         toastTask = Task {
             try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
@@ -404,7 +407,11 @@ struct FridgeView: View {
     @ViewBuilder
     private var toastView: some View {
         if let toast {
-            Label(toast, systemImage: "checkmark.circle.fill")
+            Label {
+                Text(toast)
+            } icon: {
+                Image(systemName: "checkmark.circle.fill")
+            }
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.positive)
                 .padding(.horizontal, Spacing.xl)

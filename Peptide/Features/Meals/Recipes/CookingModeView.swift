@@ -265,7 +265,15 @@ private struct StepTimerCard: View {
     private var hasRung: Bool { timers.finished.contains(key) }
     private var tint: Color { hasRung ? AppColor.positive : AppColor.accentInkOnWash }
 
+    /// Ticks every second while the timer runs, so the countdown and its
+    /// VoiceOver value stay live; idle, it barely ticks at all.
     var body: some View {
+        TimelineView(.periodic(from: .now, by: isRunning ? 1 : 3600)) { context in
+            card(now: context.date)
+        }
+    }
+
+    private func card(now: Date) -> some View {
         Button(action: tap) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: hasRung ? "checkmark" : "timer")
@@ -279,7 +287,7 @@ private struct StepTimerCard: View {
                     (hasRung ? Text("Done") : Text("Timer"))
                         .font(AppFont.footnote)
                         .foregroundStyle(AppColor.textSecondary)
-                    time
+                    time(now: now)
                         .font(AppFont.scaled(28, weight: .regular, relativeTo: .title1))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
@@ -301,19 +309,23 @@ private struct StepTimerCard: View {
         .appAnimation(AppAnimation.springSnappy, value: isRunning)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(hasRung ? Text("Timer done") : Text("Timer, \(CookingTimers.label(seconds: seconds))"))
+        .accessibilityValue(remainingValue(now: now))
         .accessibilityHint(isRunning ? Text("Stops the timer") : Text("Starts the timer"))
         .accessibilityAddTraits(.isButton)
     }
 
-    @ViewBuilder
-    private var time: some View {
+    private func time(now: Date) -> Text {
         if let end = timers.endDates[key] {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
-                Text(CookingTimers.clock(end.timeIntervalSince(context.date)))
-            }
-        } else {
-            Text(CookingTimers.label(seconds: seconds))
+            return Text(CookingTimers.clock(end.timeIntervalSince(now)))
         }
+        return Text(CookingTimers.label(seconds: seconds))
+    }
+
+    /// The live countdown, which the fixed label can't carry.
+    private func remainingValue(now: Date) -> Text {
+        guard let end = timers.endDates[key] else { return Text(verbatim: "") }
+        let remaining = max(0, Int(end.timeIntervalSince(now).rounded(.up)))
+        return Text("\(CookingTimers.label(seconds: remaining)) left")
     }
 
     private func tap() {
