@@ -174,7 +174,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ %%"
+            "value": "%@%%"
           }
         }
       }
@@ -7208,7 +7208,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neutral vid %@ %%"
+            "value": "Neutral vid %@%%"
           }
         }
       }
