@@ -1142,7 +1142,7 @@ struct HomeView: View {
                 hasOpenedEditToday = true
                 showEditToday = true
             } label: {
-                Label("Customize Today", systemImage: "slider.horizontal.3")
+                Label("Edit Today", systemImage: "slider.horizontal.3")
                     .font(AppFont.chipText)
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.horizontal, Spacing.lg)

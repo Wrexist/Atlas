@@ -12930,16 +12930,6 @@
         }
       }
     },
-    "Goal & Atlas Score": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mål och Atlas-poäng"
-          }
-        }
-      }
-    },
     "Goal reached": {
       "localizations": {
         "sv": {
@@ -19630,16 +19620,6 @@
         }
       }
     },
-    "Health Monitor": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hälsomonitor"
-          }
-        }
-      }
-    },
     "Health signals": {
       "localizations": {
         "sv": {
@@ -23866,16 +23846,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Flytta upp"
-          }
-        }
-      }
-    },
-    "Movement": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rörelse"
           }
         }
       }
@@ -36112,16 +36082,6 @@
         }
       }
     },
-    "Timeline": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tidslinje"
-          }
-        }
-      }
-    },
     "Times per day": {
       "localizations": {
         "sv": {
@@ -38422,16 +38382,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "VÄLKOMMEN"
-          }
-        }
-      }
-    },
-    "Wellness check-in": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Välmåendeincheckning"
           }
         }
       }
@@ -46689,16 +46639,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Återställ standard"
-          }
-        }
-      }
-    },
-    "Customize Today": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anpassa Idag"
           }
         }
       }
