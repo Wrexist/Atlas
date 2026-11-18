@@ -29,8 +29,10 @@ struct MacroSummaryRow: View {
     @State private var selectedWaterAmount: Double?
     /// Per-view-lifetime, so a tab switch back doesn't replay the fill.
     @State private var hasAppeared = false
-    /// Grows with the eyebrow it marks, so it stays a dot, not a speck.
-    @ScaledMetric(relativeTo: .caption2) private var legendDotSize: CGFloat = 8
+    /// Grows with the eyebrow it marks, so it stays a dot, not a speck,
+    /// but stops at 12pt so accessibility sizes don't swell it into a disc.
+    @ScaledMetric(relativeTo: .caption2) private var scaledLegendDotSize: CGFloat = 8
+    private var legendDotSize: CGFloat { min(scaledLegendDotSize, 12) }
 
     init(
         targets: NutritionTargets,

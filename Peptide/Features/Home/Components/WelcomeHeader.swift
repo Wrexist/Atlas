@@ -55,9 +55,17 @@ struct WelcomeHeader: View {
                     .font(AppFont.largeTitle)
                     .foregroundStyle(AppColor.textPrimary)
             } else {
-                Text("\(greeting),")
-                    .font(AppFont.title)
-                    .foregroundStyle(AppColor.textPrimary)
+                // Beside the controls the comma leads into the name; on a
+                // line of its own at accessibility sizes it just dangles.
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        Text(greeting)
+                    } else {
+                        Text("\(greeting),")
+                    }
+                }
+                .font(AppFont.title)
+                .foregroundStyle(AppColor.textPrimary)
 
                 Text(displayName)
                     .font(AppFont.largeTitle)
@@ -68,6 +76,9 @@ struct WelcomeHeader: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
         }
+        // Past AX2 a large-title name broke mid-word a few letters a line;
+        // the page title stops growing where the rest of the text keeps on.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 
     private var controls: some View {

@@ -31,6 +31,10 @@ struct SessionBuilderSheet: View {
 
     private typealias Target = SessionBuilderEngine.Target
     private static let minuteOptions = [30, 45, 60, 75]
+    /// The map's two fills, shared with its key so the dots match the
+    /// muscles they label in both modes.
+    private static let focusColor = AppColor.trainingPrimaryMuscleTint
+    private static let companionColor = AppColor.trainingSecondaryMuscleTint
 
     private var profileRequest: ProgramRequest {
         ProgramRequest(profile: dataStore.profile, experienceRaw: storedExperience)
@@ -49,7 +53,7 @@ struct SessionBuilderSheet: View {
             .navigationTitle(routine == nil ? "Plan a workout" : "Your workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
-            .pinnedFooter { footer }
+            .pinnedFooter(fadeHeight: Spacing.md) { footer }
             .task { await load() }
         }
     }
@@ -82,8 +86,8 @@ struct SessionBuilderSheet: View {
             VStack(spacing: Spacing.sm) {
                 MuscleMapView(
                     highlights: mapHighlights,
-                    primaryColor: AppColor.trainingPrimaryMuscleTint,
-                    secondaryColor: AppColor.trainingSecondaryMuscleTint,
+                    primaryColor: Self.focusColor,
+                    secondaryColor: Self.companionColor,
                     onIdentify: { select(Target($0)) }
                 )
                 .frame(maxWidth: .infinity)
@@ -103,7 +107,7 @@ struct SessionBuilderSheet: View {
             }
 
             section("MUSCLE") {
-                chips(Target.allCases, tint: AppColor.trainingPrimaryMuscle, isSelected: { $0 == focus }, action: select)
+                chips(Target.allCases, isSelected: { $0 == focus }, action: select)
             }
 
             if let focus {
@@ -111,7 +115,6 @@ struct SessionBuilderSheet: View {
                 section("TRAIN WITH IT") {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         chips(focus.companions.filter { !resting.contains($0) },
-                              tint: AppColor.trainingSecondaryMuscle,
                               isSelected: { companions.contains($0) },
                               action: toggleCompanion)
                         if !resting.isEmpty {
@@ -129,7 +132,11 @@ struct SessionBuilderSheet: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        .padding(.vertical, Spacing.lg)
+        // The pinned footer's inset already lifts the last row clear of
+        // the button, so the bottom only needs the fade's depth: any more
+        // and the end of the scroll is an empty band above the button.
+        .padding(.top, Spacing.lg)
+        .padding(.bottom, Spacing.md)
     }
 
     /// Fatigue heat before a pick; the session's muscles after.
@@ -179,7 +186,7 @@ struct SessionBuilderSheet: View {
                     .fill(AppColor.track)
                     .overlay(alignment: .leading) {
                         Capsule()
-                            .fill(AppColor.trainingPrimaryMuscle)
+                            .fill(AppColor.accentPrimary)
                             .scaleEffect(x: fraction, anchor: .leading)
                     }
                     .frame(height: 6)
@@ -260,12 +267,13 @@ struct SessionBuilderSheet: View {
         }
     }
 
-    /// What the map's two colours mean once a muscle is picked. The chips
-    /// below wear the same colours, so a pick reads the same in both places.
+    /// What the map's two colours mean once a muscle is picked. The only
+    /// place the orange and blue appear off the figure: the chips below
+    /// select in the one accent, like every other chip in the app.
     private var roleKey: some View {
         HStack(spacing: Spacing.lg) {
-            roleKeyItem("Focus", color: AppColor.trainingPrimaryMuscle)
-            roleKeyItem("Train with it", color: AppColor.trainingSecondaryMuscle)
+            roleKeyItem("Focus", color: Self.focusColor)
+            roleKeyItem("Train with it", color: Self.companionColor)
         }
         .font(AppFont.caption2)
         .frame(maxWidth: .infinity)
@@ -280,16 +288,14 @@ struct SessionBuilderSheet: View {
         }
     }
 
-    /// `tint` is the map colour these chips' muscles light up in.
     private func chips(
         _ targets: [Target],
-        tint: Color,
         isSelected: @escaping (Target) -> Bool,
         action: @escaping (Target) -> Void
     ) -> some View {
         FlowLayout(spacing: Spacing.sm) {
             ForEach(targets, id: \.self) { target in
-                GlassChip(LocalizedStringKey(target.displayName), tint: tint, isSelected: isSelected(target)) {
+                GlassChip(LocalizedStringKey(target.displayName), isSelected: isSelected(target)) {
                     action(target)
                 }
             }
@@ -323,9 +329,10 @@ struct SessionBuilderSheet: View {
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
-        // Deeper than the footer's fade, so the fade ends above the
-        // button instead of letting the section headers show through it.
-        .padding(.top, Spacing.xl)
+        // Deeper than the footer's fade (`Spacing.md`), so the fade ends
+        // above the button instead of letting the section headers show
+        // through it.
+        .padding(.top, Spacing.lg)
         .padding(.bottom, Spacing.sm)
     }
 

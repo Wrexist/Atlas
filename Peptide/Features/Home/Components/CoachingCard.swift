@@ -39,10 +39,12 @@ struct CoachingCard: View {
             iconBadge
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(message.eyebrow)
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .tracking(1.0)
-                    .foregroundStyle(AppColor.textSecondary)
+                if showsEyebrow {
+                    Text(message.eyebrow)
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .tracking(1.0)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
 
                 Text(message.title)
                     .font(AppFont.scaled(16, weight: .semibold))
@@ -75,6 +77,13 @@ struct CoachingCard: View {
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .contentShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+
+    /// "ON TRACK" over "You're on track" says it twice; the title wins.
+    /// Checked by kind as well as text: in Swedish the two lines share
+    /// no words ("ENLIGT PLAN" / "Du ligger rätt") yet still repeat.
+    private var showsEyebrow: Bool {
+        message.kind != .onTrack && !message.title.localizedCaseInsensitiveContains(message.eyebrow)
     }
 
     private var iconBadge: some View {

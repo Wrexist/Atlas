@@ -623,11 +623,19 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
             app.dismissOverlaysIfNeeded()
 
-            let checkIn = app.buttons.matching(NSPredicate(
-                format: "label BEGINSWITH 'Daily check-in' OR label BEGINSWITH \"Today's check-in\""
-            )).firstMatch
+            // By identifier, and tapped only once the scroll has come to
+            // rest mid-screen: the card sits right under "Today's doses",
+            // so a tap while a swipe is still coasting lands on a dose row
+            // and opens "Log dose" instead.
+            let checkIn = app.buttons["daily-check-in-card"].firstMatch
             if findByScrolling(checkIn) {
+                let midline = app.windows.firstMatch.frame.midY
+                drag(by: midline - checkIn.frame.midY)
                 checkIn.tap()
+                let sheetTitle = app.navigationBars.matching(NSPredicate(
+                    format: "identifier == 'Edit check-in' OR identifier == 'How are you feeling?'"
+                )).firstMatch
+                XCTAssertTrue(sheetTitle.waitForExistence(timeout: 5))
                 capture(named: "sym-\(appearance)-01-checkin")
                 closeSheet("Cancel")
             }

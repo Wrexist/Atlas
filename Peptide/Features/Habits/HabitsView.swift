@@ -6,6 +6,7 @@ import SwiftUI
 struct HabitsView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The day the rows were built for; rolling it over rebuilds them so
     /// "done today" and the heatmap follow midnight.
     @State private var day = Calendar.current.startOfDay(for: .now)
@@ -150,11 +151,15 @@ struct HabitsView: View {
                     Button {
                         editing = .new
                     } label: {
+                        // Weight and cap match the profile glyph beside it:
+                        // the toolbar doesn't grow past xxxLarge, so neither
+                        // does the plus; the large content viewer covers the rest.
                         Image(systemName: "plus")
-                            .font(AppFont.scaled(20, weight: .regular))
+                            .font(AppFont.scaled(16, weight: .semibold, in: min(dynamicTypeSize, .xxxLarge)))
                             .foregroundStyle(AppColor.textPrimary)
                     }
                     .accessibilityLabel("Add habit")
+                    .accessibilityShowsLargeContentViewer()
                 }
                 ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
             }

@@ -57,9 +57,14 @@ struct WeekDayStrip: View {
         let hasMeals = isSelectable && hasLogged
         return Button { select(dayOffset) } label: {
             VStack(spacing: Spacing.xxs) {
-                Text(day, format: .dateTime.weekday(.abbreviated))
-                    .font(AppFont.scaled(11, weight: .semibold, relativeTo: .caption1))
-                    .foregroundStyle(ink(AppColor.textSecondary, isSelected: isSelected, isSelectable: isSelectable))
+                // "Mon" where it fits, else "M": a cell is a seventh of the
+                // row, and at large sizes the short form truncated to "M…".
+                ViewThatFits(in: .horizontal) {
+                    Text(day, format: .dateTime.weekday(.abbreviated)).fixedSize()
+                    Text(day, format: .dateTime.weekday(.narrow))
+                }
+                .font(AppFont.scaled(11, weight: .semibold, relativeTo: .caption1))
+                .foregroundStyle(ink(AppColor.textSecondary, isSelected: isSelected, isSelectable: isSelectable))
                 Text(day, format: .dateTime.day())
                     .font(AppFont.scaled(16, weight: .medium, relativeTo: .headline))
                     .monospacedDigit()

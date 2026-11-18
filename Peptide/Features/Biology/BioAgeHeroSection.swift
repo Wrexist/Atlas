@@ -134,11 +134,12 @@ struct BioAgeHeroSection: View {
     /// Locked → building → unlocked cross-fade rather than swap.
     private static var stateTransition: AnyTransition { .opacity.combined(with: .scale(scale: 0.96)) }
 
-    /// Where the number will be, held by a muted dash.
+    /// Where the number will be, held by a lock drawn like the other
+    /// states' centre glyphs. A 56pt "--" read as two grey bars.
     private var lockedCentre: some View {
-        Text(verbatim: "--")
-            .font(AppFont.scaled(56, weight: .light, relativeTo: .largeTitle, in: centreTypeSize))
-            .foregroundStyle(AppColor.textTertiary)
+        Image(systemName: "lock")
+            .font(AppFont.scaled(28, weight: .light, relativeTo: .title1, in: centreTypeSize))
+            .foregroundStyle(AppColor.textSecondary)
             .accessibilityHidden(true)
     }
 

@@ -542,8 +542,9 @@ struct TrialOfferView: View {
             Button(action: startTrial) {
                 VStack(spacing: 2) {
                     if isPurchasing {
+                        // Tinted by the CTA chrome: it is disabled while
+                        // purchasing, and inverse ink vanishes on that fill.
                         ProgressView()
-                            .tint(AppColor.inverseInk)
                     } else {
                         HStack(spacing: Spacing.sm) {
                             Image(systemName: "sparkles")

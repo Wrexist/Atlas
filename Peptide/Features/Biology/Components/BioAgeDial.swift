@@ -27,6 +27,7 @@ struct BioAgeDial: View {
     var rangeHalfSpan: Int = Int(PerformanceAgeEngine.maxDriftYears)
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The pulse clock stops while the dial is scrolled out of view.
     @State private var isOnScreen = true
 
@@ -181,7 +182,7 @@ struct BioAgeDial: View {
                 .frame(width: 1.5, height: 12)
                 .offset(y: -(size / 2))
             Text("Your age")
-                .font(AppFont.scaled(11, weight: .semibold))
+                .font(AppFont.scaled(11, weight: .semibold, relativeTo: .caption1, in: captionTypeSize))
                 .foregroundStyle(AppColor.textTertiary)
                 .fixedSize()
                 .offset(y: -(size / 2) + 18)
@@ -189,6 +190,10 @@ struct BioAgeDial: View {
         .rotationEffect(.degrees(angle(for: Double(chronologicalAge))))
         .accessibilityHidden(true)
     }
+
+    /// The caption sits between the tick and the dial's centre, a fixed
+    /// band; past this size it grew up through the tick and the arc.
+    private var captionTypeSize: DynamicTypeSize { min(dynamicTypeSize, .xxLarge) }
 
     // MARK: - Bound labels
 

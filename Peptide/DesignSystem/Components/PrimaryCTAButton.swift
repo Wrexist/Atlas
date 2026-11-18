@@ -60,35 +60,42 @@ private struct PrimaryCTAChrome: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .foregroundStyle(AppColor.inverseInk)
+            // Disabled, it drops to the track with tertiary ink — the same
+            // state as `GlassButton`'s primary pill — rather than fading the
+            // whole pill, label and all, into a low-contrast grey slab.
+            .foregroundStyle(isEnabled ? AppColor.inverseInk : AppColor.textTertiary)
+            // A spinner in the label follows the ink, so it stays visible
+            // on the grey disabled fill.
+            .tint(isEnabled ? AppColor.inverseInk : AppColor.textTertiary)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.md)
             .frame(minHeight: Spacing.minimumHitTarget)
             .background { fill }
             // A tinted drop under a filled shape, not a halo behind a
-            // glyph — the elevation idiom the accent medallions use.
-            .shadow(color: AppColor.ctaGlow, radius: 14, y: 6)
-            .opacity(isEnabled ? 1 : AppOpacity.disabled)
+            // glyph — the elevation idiom the accent medallions use. A
+            // disabled button sits flat.
+            .shadow(color: isEnabled ? AppColor.ctaGlow : .clear, radius: 14, y: 6)
     }
 
     @ViewBuilder
     private var fill: some View {
         switch shape {
         case .capsule:
-            Capsule().fill(gradient)
+            Capsule().fill(fillStyle)
         case .rounded:
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(gradient)
+                .fill(fillStyle)
         }
     }
 
-    private var gradient: LinearGradient {
-        LinearGradient(
+    private var fillStyle: AnyShapeStyle {
+        guard isEnabled else { return AnyShapeStyle(AppColor.track) }
+        return AnyShapeStyle(LinearGradient(
             colors: [AppColor.ctaGradientStart, AppColor.ctaGradientEnd],
             startPoint: .leading,
             endPoint: .trailing
-        )
+        ))
     }
 }
 

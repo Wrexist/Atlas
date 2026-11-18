@@ -30,6 +30,7 @@ struct DailyCheckInCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(todayEntry == nil ? "Opens the daily check-in sheet." : "Opens the check-in to edit today's values.")
+        .accessibilityIdentifier("daily-check-in-card")
         .animation(AppAnimation.motionAware(AppAnimation.fadeIn, reduceMotion: reduceMotion), value: todayEntry == nil)
         .onChange(of: todayEntry == nil) { wasEmpty, isEmpty in
             if wasEmpty && !isEmpty { completionTrigger &+= 1 }
