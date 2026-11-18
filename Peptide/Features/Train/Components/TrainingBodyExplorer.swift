@@ -1,35 +1,63 @@
 import SwiftUI
 
+/// Which side of the body the explorer shows. The card that hosts the
+/// explorer owns it, so the control can sit quietly in the card header.
+enum BodyFacing {
+    case both, front, back
+
+    var title: String {
+        switch self {
+        case .both: String(localized: "Both")
+        case .front: String(localized: "Front")
+        case .back: String(localized: "body.side.back", defaultValue: "Back")
+        }
+    }
+
+    var orientation: MuscleMapView.Orientation {
+        switch self {
+        case .both: .both
+        case .front: .front
+        case .back: .back
+        }
+    }
+
+    var next: BodyFacing {
+        switch self {
+        case .both: .front
+        case .front: .back
+        case .back: .both
+        }
+    }
+}
+
+/// The header control that cycles Both → Front → Back. Hosts show it only
+/// once a muscle is lit; a bare body has nothing to inspect up close.
+struct BodyFacingButton: View {
+    @Binding var facing: BodyFacing
+
+    var body: some View {
+        GlassIconButton(icon: "arrow.left.arrow.right", accessibilityLabel: "Body view") {
+            Haptics.selection()
+            facing = facing.next
+        }
+        .accessibilityValue(Text(facing.title))
+        .accessibilityHint("Switches between both sides, front and back.")
+        .accessibilityIdentifier("training-body-side")
+    }
+}
+
 /// A compact overview with larger, single-side inspection and a non-spatial way
 /// to select every trained muscle. Shared by session and history cards.
 struct TrainingBodyExplorer: View {
     let highlights: [AnatomicalMuscle: MuscleHighlight]
+    @Binding var side: BodyFacing
     var primaryColor: Color = AppColor.trainingPrimaryMuscleTint
     var secondaryColor: Color = AppColor.trainingSecondaryMuscleTint
     var legend: Legend = .roles
     let onIdentify: (AnatomicalMuscle) -> Void
 
-    @State private var side: Side = .both
     @State private var selected: AnatomicalMuscle?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    private enum Side: String, CaseIterable {
-        case both = "Both", front = "Front", back = "Back"
-        var title: String {
-            switch self {
-            case .both: String(localized: "Both")
-            case .front: String(localized: "Front")
-            case .back: String(localized: "body.side.back", defaultValue: "Back")
-            }
-        }
-        var orientation: MuscleMapView.Orientation {
-            switch self {
-            case .both: .both
-            case .front: .front
-            case .back: .back
-            }
-        }
-    }
 
     enum Legend {
         case roles
@@ -38,7 +66,7 @@ struct TrainingBodyExplorer: View {
 
     /// Both figures while nothing is lit and the facing control is hidden,
     /// unless large text needs the room of a single figure.
-    private var shownSide: Side {
+    private var shownSide: BodyFacing {
         highlights.isEmpty && !dynamicTypeSize.isAccessibilitySize ? .both : side
     }
 
@@ -55,21 +83,11 @@ struct TrainingBodyExplorer: View {
     var body: some View {
         content
             .appAnimation(AppAnimation.springSnappy, value: selected)
+            .appAnimation(AppAnimation.springSnappy, value: side)
     }
 
     private var content: some View {
         VStack(spacing: Spacing.md) {
-            // A bare body has nothing to inspect up close, so the facing
-            // control only appears once a muscle is lit.
-            if !highlights.isEmpty {
-                GlassSegmentedControl(
-                    options: Side.allCases,
-                    selected: $side,
-                    label: { LocalizedStringKey($0.title) }
-                )
-                .accessibilityIdentifier("training-body-side")
-            }
-
             MuscleMapView(
                 highlights: highlights,
                 orientation: shownSide.orientation,
@@ -84,7 +102,7 @@ struct TrainingBodyExplorer: View {
 
             HStack {
                 if shownSide != .back { Text("Front").frame(maxWidth: .infinity) }
-                if shownSide != .front { Text(Side.back.title).frame(maxWidth: .infinity) }
+                if shownSide != .front { Text(BodyFacing.back.title).frame(maxWidth: .infinity) }
             }
             .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)

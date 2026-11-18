@@ -140,6 +140,14 @@ struct PeptideApp: App {
             if phase == .active {
                 UpsellScheduler.recordActiveDay()
                 dataStore.handleAppActivation()
+                // A launch that couldn't reach CloudKit (offline) leaves
+                // the store local; coming back is the next chance to
+                // confirm the account and turn sync on.
+                if !SwiftDataRepository.shared.isCloudSyncEnabled {
+                    Task { @MainActor in
+                        await SwiftDataRepository.shared.refreshCloudAccount()
+                    }
+                }
                 // Re-check notification authorization. If the user
                 // revoked permission in iOS Settings while the app
                 // was suspended, the local `doseRemindersEnabled`
@@ -591,24 +599,41 @@ struct PeptideApp: App {
         )
     }
 
+    /// Every tab glyph in its outline form. The bar fills symbols by
+    /// default, and only some have a fill variant (`fork.knife` and
+    /// `checklist` don't), so house, dumbbell and heart went solid beside
+    /// two line glyphs and the bar read as mixed weights.
+    private func tabLabel(_ title: LocalizedStringKey, symbol: String) -> some View {
+        Label(title, systemImage: symbol)
+            .environment(\.symbolVariants, .none)
+    }
+
     private var coreTabView: some View {
         TabView(selection: userTabSelection) {
-            Tab("Today", systemImage: "house.fill", value: .today) {
+            Tab(value: .today) {
                 HomeContainerView().tint(AppColor.accentPrimary)
+            } label: {
+                tabLabel("Today", symbol: "house")
             }
-            Tab("Train", systemImage: "dumbbell.fill", value: .train) {
+            Tab(value: .train) {
                 TrainContainerView().tint(AppColor.accentPrimary)
+            } label: {
+                tabLabel("Train", symbol: "dumbbell")
             }
-            Tab("Meals", systemImage: "fork.knife", value: .meals) {
+            Tab(value: .meals) {
                 MealsContainerView().tint(AppColor.accentPrimary)
+            } label: {
+                tabLabel("Meals", symbol: "fork.knife")
             }
-            Tab("Biology", systemImage: "heart.fill", value: .biology) {
+            Tab(value: .biology) {
                 BiologyView().tint(AppColor.accentPrimary)
+            } label: {
+                tabLabel("Biology", symbol: "heart")
             }
-            // A list glyph, not a solid disc: the filled circle outweighed
-            // every other tab symbol.
-            Tab("Habits", systemImage: "checklist", value: .habits) {
+            Tab(value: .habits) {
                 HabitsView().tint(AppColor.accentPrimary)
+            } label: {
+                tabLabel("Habits", symbol: "checklist")
             }
         }
         // A tab bar on iPhone; on iPad, a top tab bar that expands into a

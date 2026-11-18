@@ -35,6 +35,11 @@ struct SessionBuilderSheet: View {
     /// muscles they label in both modes.
     private static let focusColor = AppColor.trainingPrimaryMuscleTint
     private static let companionColor = AppColor.trainingSecondaryMuscleTint
+    /// The same orange and blue at ink weight, for the selected muscle
+    /// chips: the multiply tints are too pale to fill under
+    /// `AppColor.background` ink in light mode.
+    private static let focusChipColor = AppColor.trainingPrimaryMuscle
+    private static let companionChipColor = AppColor.trainingSecondaryMuscle
 
     private var profileRequest: ProgramRequest {
         ProgramRequest(profile: dataStore.profile, experienceRaw: storedExperience)
@@ -94,12 +99,13 @@ struct SessionBuilderSheet: View {
                 .appAnimation(AppAnimation.quick, value: focus)
                 // One slot, two keys: recovery heat before a pick, the
                 // focus and companion colours after. Both stay in the
-                // layout so the chips below never jump.
+                // layout so the chips below never jump. The heat key only
+                // shows when some muscle is actually tinted.
                 ZStack {
                     MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
                                      highLabel: String(localized: "Needs rest"))
-                        .opacity(focus == nil ? 1 : 0)
-                        .accessibilityHidden(focus != nil)
+                        .opacity(showsHeatKey ? 1 : 0)
+                        .accessibilityHidden(!showsHeatKey)
                     roleKey
                         .opacity(focus == nil ? 0 : 1)
                         .accessibilityHidden(focus == nil)
@@ -107,7 +113,8 @@ struct SessionBuilderSheet: View {
             }
 
             section("MUSCLE") {
-                chips(Target.allCases, isSelected: { $0 == focus }, action: select)
+                chips(Target.allCases, tint: Self.focusChipColor,
+                      isSelected: { $0 == focus }, action: select)
             }
 
             if let focus {
@@ -115,6 +122,7 @@ struct SessionBuilderSheet: View {
                 section("TRAIN WITH IT") {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         chips(focus.companions.filter { !resting.contains($0) },
+                              tint: Self.companionChipColor,
                               isSelected: { companions.contains($0) },
                               action: toggleCompanion)
                         if !resting.isEmpty {
@@ -138,6 +146,8 @@ struct SessionBuilderSheet: View {
         .padding(.top, Spacing.lg)
         .padding(.bottom, Spacing.md)
     }
+
+    private var showsHeatKey: Bool { focus == nil && !mapHighlights.isEmpty }
 
     /// Fatigue heat before a pick; the session's muscles after.
     private var mapHighlights: [AnatomicalMuscle: MuscleHighlight] {
@@ -267,9 +277,9 @@ struct SessionBuilderSheet: View {
         }
     }
 
-    /// What the map's two colours mean once a muscle is picked. The only
-    /// place the orange and blue appear off the figure: the chips below
-    /// select in the one accent, like every other chip in the app.
+    /// What the map's two colours mean once a muscle is picked. The
+    /// selected chips below fill in the same orange and blue, so chip,
+    /// figure and key all say which muscle plays which role.
     private var roleKey: some View {
         HStack(spacing: Spacing.lg) {
             roleKeyItem("Focus", color: Self.focusColor)
@@ -290,12 +300,14 @@ struct SessionBuilderSheet: View {
 
     private func chips(
         _ targets: [Target],
+        tint: Color,
         isSelected: @escaping (Target) -> Bool,
         action: @escaping (Target) -> Void
     ) -> some View {
         FlowLayout(spacing: Spacing.sm) {
             ForEach(targets, id: \.self) { target in
-                GlassChip(LocalizedStringKey(target.displayName), isSelected: isSelected(target)) {
+                GlassChip(LocalizedStringKey(target.displayName), tint: tint, style: .prominent,
+                          isSelected: isSelected(target)) {
                     action(target)
                 }
             }
@@ -315,16 +327,15 @@ struct SessionBuilderSheet: View {
                     PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
                 }
             } else {
-                VStack(spacing: Spacing.sm) {
-                    if focus == nil {
-                        Text("Pick a muscle to start")
-                            .font(AppFont.scaled(13))
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                    // The same button as "Start workout", which takes this
-                    // slot once the workout is built.
+                // The same button as "Start workout", which takes this slot
+                // once the workout is built. Until a muscle is picked it
+                // names what it's waiting for, so no hint line repeats it.
+                if focus == nil {
+                    PrimaryCTAButton(title: "Pick a muscle to start") {}
+                        .disabled(true)
+                } else {
                     PrimaryCTAButton(title: "Create workout", icon: "wand.and.stars") { build() }
-                        .disabled(focus == nil || !library.isLoaded)
+                        .disabled(!library.isLoaded)
                 }
             }
         }

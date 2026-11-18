@@ -14,6 +14,28 @@ enum CloudSyncState: Sendable {
     case unavailable
 }
 
+/// Which iCloud account CloudKit has signed in. CloudKit's answer, not
+/// iCloud Drive's ubiquity token, decides whether the store syncs: the
+/// token is nil whenever Drive is off although CloudKit works.
+protocol CloudAccountProviding: Sendable {
+    func accountStatus() async throws -> CKAccountStatus
+    /// The account's user record name in the app's container — stable
+    /// for one account, different for another, so it fingerprints it.
+    func userRecordName() async throws -> String
+}
+
+struct CloudKitAccountProvider: CloudAccountProviding {
+    let containerID: String
+
+    func accountStatus() async throws -> CKAccountStatus {
+        try await CKContainer(identifier: containerID).accountStatus()
+    }
+
+    func userRecordName() async throws -> String {
+        try await CKContainer(identifier: containerID).userRecordID().recordName
+    }
+}
+
 /// SwiftData-backed persistence for protocols, entries, and profile.
 /// Widget data stays in PersistenceService (requires App Groups / shared container).
 @MainActor
@@ -52,13 +74,20 @@ final class SwiftDataRepository {
         container?.mainContext
     }
 
-    /// Snapshot of the iCloud identity token observed at container
-    /// creation. When the user signs out of iCloud or switches accounts
-    /// at the system level, this token changes and Apple's CloudKit
-    /// docs require us to react — otherwise writes go to a container
-    /// whose identity is stale and the next account's local view
-    /// silently inherits the previous account's local data.
-    private var lastObservedIdentityToken: (any NSCoding & NSCopying & NSObjectProtocol)?
+    /// Answers which CloudKit account is signed in (C233).
+    private var cloudAccount: any CloudAccountProviding
+    /// iCloud Drive's ubiquity token. Only a fast launch path and a
+    /// prompt to re-check the account: nil means Drive is off, not that
+    /// no one is signed in.
+    private var identityToken: @MainActor () -> (any NSCoding & NSCopying & NSObjectProtocol)? = {
+        FileManager.default.ubiquityIdentityToken
+    }
+    /// Bumped by every account check, so an older answer that arrives
+    /// late can't overrule a newer one.
+    private var accountCheckGeneration = 0
+    /// Set by the user's Keep / Remove answer: the next account CloudKit
+    /// reports is the one the store now belongs to.
+    private var adoptsNextObservedAccount = false
 
     /// Device-local home of `UserProfile.weeklySummaries` — kept out of
     /// the CloudKit-mirrored store (Guideline 5.1.3(ii); see
@@ -72,6 +101,7 @@ final class SwiftDataRepository {
     private init() {
         summaryStore = .shared
         healthWeightStore = .shared
+        cloudAccount = CloudKitAccountProvider(containerID: Self.cloudContainerID)
         #if DEBUG
         if WorkoutRecapFixture.isRequested {
             // Explicit UI-test launch only. Never opens or resets user storage.
@@ -93,42 +123,35 @@ final class SwiftDataRepository {
             isInoperable = container == nil
             return
         }
-        let token = FileManager.default.ubiquityIdentityToken
-        lastObservedIdentityToken = token
-        cloudSyncState = token != nil ? .unavailable : .noAccount
-        // A hold left by a previous run (force-quit with the prompt up),
-        // or an account change made while the app was closed, keeps the
-        // store shut before any container — and so any sync — starts.
-        if Self.isHoldPersisted
-            || Self.needsDecision(movingStoreTo: token, storeHasData: Self.sharedStoreHasData()) {
+        // A hold left by a previous run (force-quit with the prompt up)
+        // keeps the store shut before any container — and so any sync —
+        // starts. Otherwise the store opens without CloudKit until
+        // CloudKit names the signed-in account, unless the ubiquity token
+        // is still the one the store was last opened under.
+        if Self.isHoldPersisted {
             beginHold()
         } else {
-            if CloudIdentityChangeEngine.forgetsDeviceLocalRecords(
-                Self.storeIdentityChange(movingStoreTo: token), heldForDecision: false
-            ) {
-                forgetDeviceLocalRecords()
-            }
+            let token = identityToken()
             isInoperable = true
-            reopenContainer(signedIn: token != nil)
+            reopenContainer(signedIn: token != nil && Self.isSameIdentity(Self.recordedStoreIdentity(), token))
             if container == nil {
                 assertionFailure("SwiftDataRepository: both on-disk and in-memory ModelContainer creation failed")
             }
-            recordStoreIdentityIfOpen(token)
         }
 
-        // Observe iCloud identity changes. When the token swaps, pause
-        // writes and surface the change to DataStore so it can clear
-        // in-memory state — otherwise account A's local data
-        // becomes account B's local view on first launch under the
-        // new identity.
-        NotificationCenter.default.addObserver(
-            forName: .NSUbiquityIdentityDidChange,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handleIdentityChange()
+        // Either notification only prompts a fresh look at the CloudKit
+        // account. Toggling iCloud Drive changes the ubiquity token
+        // without changing the account, so the token alone never decides
+        // that someone signed out or switched.
+        for name in [Notification.Name.NSUbiquityIdentityDidChange, .CKAccountChanged] {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshCloudAccount()
+                }
             }
+        }
+        Task { [weak self] in
+            await self?.refreshCloudAccount()
         }
 
         // Surface finished CloudKit *imports* to DataStore. SwiftData's
@@ -161,60 +184,123 @@ final class SwiftDataRepository {
         }
     }
 
-    /// Compares the live identity token against the snapshot taken at
-    /// container creation. If the user signed out / switched accounts,
-    /// tears down the old container and rebuilds for the new identity
-    /// before posting a notification — DataStore listens and reloads
-    /// from the new container. The previous implementation only set
-    /// `isInoperable = true` and never recreated the container, which
-    /// left persistence permanently degraded for the rest of the
-    /// process lifetime.
-    ///
-    /// The CloudKit and local containers share one store file (A116), so
-    /// after a sign-out or account switch that left the previous
+    /// Asks CloudKit which account is signed in and opens the store for
+    /// it. The CloudKit and local containers share one store file (A116),
+    /// so after a sign-out or account switch that left the previous
     /// account's data on the device the store stays closed until the
     /// user decides, via `resolveAccountChange(removingLocalData:)`.
     /// Reopening it silently would show that data to whoever uses the
-    /// device next, and under a new account could export it there.
-    @MainActor
-    private func handleIdentityChange() {
-        let current = FileManager.default.ubiquityIdentityToken
-        let prev = lastObservedIdentityToken
-        guard !Self.isSameIdentity(prev, current) else { return }
-        lastObservedIdentityToken = current
-        AppLog.swiftData.error(
-            "iCloud identity changed; tearing down container and re-initializing"
-        )
-        // Read before the teardown — afterwards there is no context to ask.
-        // A store already held closed stays held whatever the next change.
-        let holdForDecision = isAwaitingAccountDecision
-            || Self.needsDecision(movingStoreTo: current, storeHasData: hasAnyData)
+    /// device next, and under a new account could export it there. An
+    /// answer CloudKit can't give leaves the store as it is: never held,
+    /// never wiped.
+    func refreshCloudAccount() async {
+        // Screenshot mode runs on in-memory demo data, and its UI-test
+        // builds are unsigned: CKContainer raises an uncatchable
+        // missing-entitlement exception there and kills the app.
+        guard !ScreenshotMode.shared.isEnabled else { return }
+        accountCheckGeneration += 1
+        let generation = accountCheckGeneration
+        let observed = await observeCloudAccount()
+        guard generation == accountCheckGeneration else { return }
+        switch observed {
+        case .signedIn(let account): openStore(forAccount: account)
+        case .signedOut: openStore(forAccount: nil)
+        case .unknown(let state):
+            if cloudSyncState != .active { cloudSyncState = state }
+        }
+    }
 
+    private enum ObservedCloudAccount {
+        case signedIn(String)
+        case signedOut
+        case unknown(CloudSyncState)
+    }
+
+    private func observeCloudAccount() async -> ObservedCloudAccount {
+        let provider = cloudAccount
+        do {
+            switch try await provider.accountStatus() {
+            case .available: return .signedIn(try await provider.userRecordName())
+            case .noAccount: return .signedOut
+            case .restricted: return .unknown(.restricted)
+            default: return .unknown(.unavailable)
+            }
+        } catch {
+            AppLog.swiftData.error("Reading the iCloud account failed: \(error.localizedDescription, privacy: .public)")
+            return .unknown(.unavailable)
+        }
+    }
+
+    /// `account` is the signed-in CloudKit user record name, nil when
+    /// CloudKit reports no account.
+    private func openStore(forAccount account: String?) {
+        guard !isAwaitingAccountDecision else { return }
+        let token = identityToken()
+        let change: CloudIdentityChange = adoptsNextObservedAccount
+            ? .unchanged
+            : CloudIdentityChangeEngine.change(from: Self.recordedCloudAccount(signedIn: account, token: token), to: account)
+        adoptsNextObservedAccount = false
+        if change == .unchanged {
+            switchContainer(signedIn: account != nil)
+        } else {
+            reopenForAccountChange(change, signedIn: account != nil)
+        }
+        recordStoreIdentityIfOpen(token: token, account: account)
+    }
+
+    /// Same account: the store's data stays where it is, so DataStore
+    /// keeps its state and pending saves — they land in the same file.
+    private func switchContainer(signedIn: Bool) {
+        guard signedIn != isCloudSyncEnabled || container == nil else {
+            if !signedIn { cloudSyncState = .noAccount }
+            return
+        }
+        if context?.hasChanges == true { commit() }
+        // Same store file, so the ids read or written through the old
+        // container are still the ones on disk.
+        let wasOnDisk = container != nil && !isUsingFallbackStore
+        let protocolIDs = persistedProtocolIDs
+        let entryIDs = persistedEntryIDs
+        container = nil
+        isInoperable = true
+        cloudSyncState = signedIn ? .unavailable : .noAccount
+        reopenContainer(signedIn: signedIn)
+        guard wasOnDisk, container != nil, !isUsingFallbackStore else { return }
+        persistedProtocolIDs = protocolIDs
+        persistedEntryIDs = entryIDs
+    }
+
+    private func reopenForAccountChange(_ change: CloudIdentityChange, signedIn: Bool) {
+        // Read before the teardown — afterwards there is no context to
+        // ask. A store that can't be counted is treated as holding data.
+        let holdForDecision = CloudIdentityChangeEngine.needsUserDecision(
+            change,
+            storeHasData: context.map { Self.hasRows(in: $0) } ?? true,
+            hadEarlierIdentity: UserDefaults.standard.bool(forKey: AccountChangeKey.hadIdentity)
+        )
+        // A first sign-in keeps the device-local records: only a
+        // sign-out or a switch to another account hands them to someone
+        // else. A held store leaves them to the user's answer.
+        let forgetsRecords = CloudIdentityChangeEngine.forgetsDeviceLocalRecords(change, heldForDecision: holdForDecision)
+        // Nothing on screen belongs to anyone else, so DataStore keeps its
+        // state and pending saves.
+        guard holdForDecision || forgetsRecords else {
+            switchContainer(signedIn: signedIn)
+            return
+        }
+        AppLog.swiftData.error("iCloud account changed; tearing down container and re-initializing")
         // Pause writes during the swap so any in-flight save attempt
         // doesn't see a half-initialised container.
         isInoperable = true
         container = nil
-        isUsingFallbackStore = false
-        // A first sign-in (no previous token) keeps the device-local
-        // records: only a sign-out or a switch to another account hands
-        // them to someone else. A held store leaves them to the user's
-        // answer, so Keep keeps them.
-        let change = CloudIdentityChangeEngine.change(
-            previousSignedIn: prev != nil, currentSignedIn: current != nil, sameAccount: false
-        )
-        if CloudIdentityChangeEngine.forgetsDeviceLocalRecords(change, heldForDecision: holdForDecision) {
-            forgetDeviceLocalRecords()
-        }
+        if forgetsRecords { forgetDeviceLocalRecords() }
         mealDraftStore.resetForAccountChange()
-        cloudSyncState = current != nil ? .unavailable : .noAccount
-
+        cloudSyncState = signedIn ? .unavailable : .noAccount
         if holdForDecision {
             beginHold()
         } else {
-            reopenContainer(signedIn: current != nil)
-            recordStoreIdentityIfOpen(current)
+            reopenContainer(signedIn: signedIn)
         }
-
         // Notify DataStore — by the time this fires, the container has
         // already swapped (or closed), so `reloadFromDisk` in the
         // observer reads from the new identity's store.
@@ -240,12 +326,14 @@ final class SwiftDataRepository {
         }
         isAwaitingAccountDecision = false
         UserDefaults.standard.removeObject(forKey: AccountChangeKey.holdPending)
-        let current = FileManager.default.ubiquityIdentityToken
-        lastObservedIdentityToken = current
-        cloudSyncState = current != nil ? .unavailable : .noAccount
-        reopenContainer(signedIn: current != nil)
-        recordStoreIdentityIfOpen(current)
+        // Reopens without CloudKit; the account check that follows moves
+        // the store to the signed-in account, which it now belongs to.
+        adoptsNextObservedAccount = true
+        isInoperable = true
+        cloudSyncState = .unavailable
+        reopenContainer(signedIn: false)
         NotificationCenter.default.post(name: .peptideXiCloudIdentityChanged, object: nil)
+        Task { await refreshCloudAccount() }
         return true
     }
 
@@ -263,8 +351,11 @@ final class SwiftDataRepository {
     /// on this device's disk, which must never sync anywhere.
     private enum AccountChangeKey {
         static let holdPending = "cloudAccountDecisionPending"
-        /// Archived identity token of the account the store's data was
+        /// CloudKit user record name of the account the store's data was
         /// last opened under; absent after keeping data while signed out.
+        static let storeAccount = "cloudStoreAccountRecordName"
+        /// Archived ubiquity token the store was last opened under, kept
+        /// for the launch fast path. Older builds recorded only this.
         static let storeIdentity = "cloudStoreIdentityToken"
         /// Set once any identity has been recorded on this install.
         static let hadIdentity = "cloudStoreHadIdentity"
@@ -282,32 +373,19 @@ final class SwiftDataRepository {
         }
     }
 
-    /// Whether opening the store under `current` needs the user's say,
-    /// measured against the account the store was last opened under.
-    /// A fresh install — or the first launch of a build that records
-    /// identities — has none recorded, so it never holds.
-    private static func needsDecision(
-        movingStoreTo current: (any NSObjectProtocol)?,
-        storeHasData: @autoclosure () -> Bool
-    ) -> Bool {
-        let change = storeIdentityChange(movingStoreTo: current)
-        guard change != .unchanged else { return false }
-        return CloudIdentityChangeEngine.needsUserDecision(
-            change,
-            storeHasData: storeHasData(),
-            hadEarlierIdentity: UserDefaults.standard.bool(forKey: AccountChangeKey.hadIdentity)
-        )
-    }
-
-    /// How the identity moves from the account the store was last opened
-    /// under to `current`.
-    private static func storeIdentityChange(movingStoreTo current: (any NSObjectProtocol)?) -> CloudIdentityChange {
-        let recorded = recordedStoreIdentity()
-        return CloudIdentityChangeEngine.change(
-            previousSignedIn: recorded != nil,
-            currentSignedIn: current != nil,
-            sameAccount: recorded != nil && current != nil && isSameIdentity(recorded, current)
-        )
+    /// An install upgraded from a build that recorded only the ubiquity
+    /// token is matched by that token while it is unchanged; with Drive
+    /// off since, the account can't be told apart from another one.
+    private static func recordedCloudAccount(
+        signedIn account: String?,
+        token: (any NSObjectProtocol)?
+    ) -> RecordedCloudAccount {
+        if let recorded = UserDefaults.standard.string(forKey: AccountChangeKey.storeAccount) {
+            return .account(recorded)
+        }
+        guard let recordedToken = recordedStoreIdentity() else { return .noAccount }
+        if let account, token != nil, isSameIdentity(recordedToken, token) { return .account(account) }
+        return .unidentified
     }
 
     private static func recordedStoreIdentity() -> (any NSObjectProtocol)? {
@@ -323,14 +401,20 @@ final class SwiftDataRepository {
         }
     }
 
-    /// Records the account an on-disk store was just opened under. The
-    /// in-memory fallback records nothing — no data of anyone's is on
-    /// disk through it. A token that fails to archive leaves the record
-    /// as it was rather than marking the install as having had an
-    /// account it can't compare against.
-    private func recordStoreIdentityIfOpen(_ token: (any NSCoding & NSCopying & NSObjectProtocol)?) {
+    /// Records the account an on-disk store was just opened under, as
+    /// CloudKit named it. The in-memory fallback records nothing — no
+    /// data of anyone's is on disk through it. A token that fails to
+    /// archive only costs the launch fast path.
+    private func recordStoreIdentityIfOpen(token: (any NSCoding & NSCopying & NSObjectProtocol)?, account: String?) {
         guard container != nil, !isUsingFallbackStore else { return }
         let defaults = UserDefaults.standard
+        guard let account else {
+            defaults.removeObject(forKey: AccountChangeKey.storeAccount)
+            defaults.removeObject(forKey: AccountChangeKey.storeIdentity)
+            return
+        }
+        defaults.set(account, forKey: AccountChangeKey.storeAccount)
+        defaults.set(true, forKey: AccountChangeKey.hadIdentity)
         guard let token else {
             defaults.removeObject(forKey: AccountChangeKey.storeIdentity)
             return
@@ -338,36 +422,20 @@ final class SwiftDataRepository {
         do {
             let data = try NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: false)
             defaults.set(data, forKey: AccountChangeKey.storeIdentity)
-            defaults.set(true, forKey: AccountChangeKey.hadIdentity)
         } catch {
+            defaults.removeObject(forKey: AccountChangeKey.storeIdentity)
             AppLog.swiftData.error("Recording the iCloud identity failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
-    /// Opens the shared store without CloudKit just long enough to count
-    /// its rows, so the launch check can't start a sync. A store that
-    /// can't be opened counts as holding data — asking is the safe side.
-    private static func sharedStoreHasData() -> Bool {
-        do {
-            let container = try ModelContainer(
-                for: versionedSchema,
-                migrationPlan: PeptideAtlasMigrationPlan.self,
-                configurations: ModelConfiguration(cloudKitDatabase: .none)
-            )
-            return hasRows(in: container.mainContext)
-        } catch {
-            AppLog.swiftData.error("Inspecting the store after an account change failed: \(error.localizedDescription, privacy: .public)")
-            return true
-        }
-    }
-
-    /// Same fallback chain as `init`.
+    /// Cloud (when signed in), then local, then in-memory.
     private func reopenContainer(signedIn: Bool) {
-        if signedIn, let ck = Self.makeCloudContainer() {
+        isUsingFallbackStore = false
+        if signedIn, let ck = storeOverride ?? Self.makeCloudContainer() {
             container = ck
             cloudSyncState = .active
             isInoperable = false
-        } else if let local = Self.makeLocalContainer() {
+        } else if let local = storeOverride ?? Self.makeLocalContainer() {
             container = local
             isInoperable = false
         } else if let inMemory = Self.makeInMemoryContainer() {
@@ -401,6 +469,14 @@ final class SwiftDataRepository {
 
     private(set) var cloudSyncState: CloudSyncState = .unavailable
 
+    private var storeOverride: ModelContainer? {
+        #if DEBUG
+        storeOverrideForTesting
+        #else
+        nil
+        #endif
+    }
+
     /// Kept for existing call sites (DataStore) — derived from
     /// `cloudSyncState` so the two can't disagree.
     var isCloudSyncEnabled: Bool { cloudSyncState == .active }
@@ -416,11 +492,18 @@ final class SwiftDataRepository {
     /// (quota, network, CloudKit outage) — audit 3.1.
     func refinedCloudSyncState() async -> CloudSyncState {
         guard cloudSyncState != .active else { return .active }
-        let status = try? await CKContainer(identifier: Self.cloudContainerID).accountStatus()
+        let status = try? await cloudAccount.accountStatus()
+        return Self.syncState(refining: cloudSyncState, with: status)
+    }
+
+    /// An available account without an active CloudKit store is a store
+    /// that isn't syncing (yet), never "no account" (C233).
+    static func syncState(refining state: CloudSyncState, with status: CKAccountStatus?) -> CloudSyncState {
         switch status {
-        case .noAccount: return .noAccount
-        case .restricted: return .restricted
-        default: return cloudSyncState
+        case .noAccount: .noAccount
+        case .restricted: .restricted
+        case .available: .unavailable
+        default: state
         }
     }
 
@@ -448,11 +531,15 @@ final class SwiftDataRepository {
         }
     }
 
+    /// Explicitly without CloudKit: the default configuration's
+    /// `.automatic` would mirror to the entitlement's container before
+    /// the account is known.
     private static func makeLocalContainer() -> ModelContainer? {
         do {
             return try ModelContainer(
                 for: versionedSchema,
-                migrationPlan: PeptideAtlasMigrationPlan.self
+                migrationPlan: PeptideAtlasMigrationPlan.self,
+                configurations: ModelConfiguration(cloudKitDatabase: .none)
             )
         } catch {
             AppLog.swiftData.error("Failed to create persistent ModelContainer: \(error.localizedDescription, privacy: .public)")
@@ -510,8 +597,33 @@ final class SwiftDataRepository {
         failNextCompletionForTesting = false
     }
 
+    /// Every container `reopenContainer` opens, so account changes in
+    /// tests keep using the test store instead of the user's.
+    private var storeOverrideForTesting: ModelContainer?
+
+    /// Test-only: fakes CloudKit and the ubiquity token. Call after
+    /// `configureForTesting`, whose store every reopen then reuses.
+    func useCloudAccountForTesting(
+        _ provider: any CloudAccountProviding,
+        identityToken: @escaping @MainActor () -> (any NSCoding & NSCopying & NSObjectProtocol)?
+    ) {
+        cloudAccount = provider
+        self.identityToken = identityToken
+        storeOverrideForTesting = container
+    }
+
     /// Replaces the container with an in-memory store. Call in test setUp only.
     func configureForTesting() {
+        storeOverrideForTesting = nil
+        cloudAccount = CloudKitAccountProvider(containerID: Self.cloudContainerID)
+        identityToken = { FileManager.default.ubiquityIdentityToken }
+        isAwaitingAccountDecision = false
+        adoptsNextObservedAccount = false
+        cloudSyncState = .unavailable
+        for key in [AccountChangeKey.holdPending, AccountChangeKey.storeAccount,
+                    AccountChangeKey.storeIdentity, AccountChangeKey.hadIdentity] {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
         mealDraftStore = MealScanDraftStore(url: FileManager.default.temporaryDirectory
             .appending(path: "MealDraftTest-\(UUID().uuidString).json"))
         container = Self.makeInMemoryContainer()
@@ -1774,7 +1886,7 @@ final class SwiftDataRepository {
 
     /// A count that fails means the table may hold rows: the account-change
     /// check must ask rather than open one account's data under another,
-    /// the same safe side `sharedStoreHasData` and `hasProfileRow` take.
+    /// the same safe side `hasProfileRow` takes.
     static func anyCountPositive(_ counts: [() throws -> Int]) -> Bool {
         for count in counts {
             do {
