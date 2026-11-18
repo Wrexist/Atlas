@@ -279,7 +279,7 @@ jobs:
             echo ""
             echo "Unique warnings mentioning Sendable, actor-isolated, data race or nonisolated in the full (uncached) Debug app build: **${COUNT}**"
           } >> "$GITHUB_STEP_SUMMARY" || true
-          python3 scripts/ratchet.py concurrency_warnings "$COUNT"
+          python3 scripts/ratchet.py --require-baseline concurrency_warnings "$COUNT"
 
       - name: Build app (Release)
         # Debug alone never sees a symbol referenced outside its
@@ -389,7 +389,7 @@ jobs:
             jq -r '.targets[]? | "| \(.name) | \((.lineCoverage // 0) * 100 | . * 10 | floor / 10)% |"' coverage.json 2>/dev/null || true
           } >> "$GITHUB_STEP_SUMMARY"
 
-          python3 scripts/ratchet.py line_coverage_pct "$PCT"
+          python3 scripts/ratchet.py --require-baseline line_coverage_pct "$PCT"
 
       - name: Print test failures
         # `always()`, not `failure()`. The Unit Tests step now fails the

@@ -7,9 +7,11 @@ A PR that makes one worse fails; one that improves it is told to lower the
 baseline in the same PR, so the ratchet only ever tightens.
 
 A baseline of null means none has been recorded yet: the value is printed
-for a maintainer to commit and the step passes.
+for a maintainer to commit and the step passes, unless `--require-baseline`
+is given. CI passes it, so a metric cannot slip back to report-only by
+having its baseline nulled.
 
-    python3 scripts/ratchet.py concurrency_warnings 42
+    python3 scripts/ratchet.py [--require-baseline] concurrency_warnings 42
 """
 from __future__ import annotations
 
@@ -20,12 +22,14 @@ import sys
 BASELINES = pathlib.Path(__file__).with_name("ci-baselines.json")
 
 
-def verdict(metric: str, value: float, entry: dict) -> tuple[bool, str]:
+def verdict(metric: str, value: float, entry: dict,
+            require_baseline: bool = False) -> tuple[bool, str]:
     """(passes, message) for one measured value against its baseline entry."""
     baseline, better = entry["baseline"], entry["better"]
     if baseline is None:
-        return True, (f"::warning::{metric} = {value}; no baseline recorded. "
-                      f"Commit it in scripts/ci-baselines.json to start the ratchet.")
+        level = "error" if require_baseline else "warning"
+        return not require_baseline, (f"::{level}::{metric} = {value}; no baseline recorded. "
+                                      f"Commit it in scripts/ci-baselines.json to start the ratchet.")
     worse = value > baseline if better == "lower" else value < baseline
     if worse:
         return False, (f"::error::{metric} got worse: {value} vs baseline {baseline} "
@@ -37,6 +41,8 @@ def verdict(metric: str, value: float, entry: dict) -> tuple[bool, str]:
 
 
 def main(argv: list[str]) -> int:
+    require_baseline = "--require-baseline" in argv
+    argv = [a for a in argv if a != "--require-baseline"]
     if len(argv) != 3:
         print(__doc__)
         return 2
@@ -45,7 +51,7 @@ def main(argv: list[str]) -> int:
     if metric not in entries:
         print(f"unknown metric '{metric}'; known: {', '.join(sorted(entries))}")
         return 2
-    ok, message = verdict(metric, float(raw), entries[metric])
+    ok, message = verdict(metric, float(raw), entries[metric], require_baseline)
     print(message)
     return 0 if ok else 1
 

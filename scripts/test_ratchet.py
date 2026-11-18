@@ -32,6 +32,22 @@ class VerdictTests(unittest.TestCase):
         self.assertTrue(ok)
         self.assertIn("::warning::", message)
 
+    def test_unrecordedBaseline_withRequireBaseline_fails(self):
+        ok, message = ratchet.verdict("coverage", 30, {"baseline": None, "better": "higher"},
+                                      require_baseline=True)
+        self.assertFalse(ok)
+        self.assertIn("::error::", message)
+
+    def test_requireBaselineFlag_withRecordedBaseline_stillGatesOnValue(self):
+        entries = json.loads(ratchet.BASELINES.read_text())
+        baseline = entries["concurrency_warnings"]["baseline"]
+        self.assertEqual(ratchet.main(["ratchet.py", "--require-baseline", "concurrency_warnings", str(baseline)]), 0)
+        self.assertEqual(ratchet.main(["ratchet.py", "--require-baseline", "concurrency_warnings", str(baseline + 1)]), 1)
+
+    def test_committedBaselines_areRecorded(self):
+        for name, entry in json.loads(ratchet.BASELINES.read_text()).items():
+            self.assertIsNotNone(entry["baseline"], name)
+
     def test_unknownMetric_exitsWithUsageError(self):
         self.assertEqual(ratchet.main(["ratchet.py", "no_such_metric", "1"]), 2)
 
