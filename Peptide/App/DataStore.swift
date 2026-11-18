@@ -2158,8 +2158,7 @@ final class DataStore {
 
     // MARK: - Habits
 
-    /// All non-archived habits, ordered by their `sortIndex` so the
-    /// user's drag-to-reorder order survives a relaunch.
+    /// All non-archived habits, ordered by their `sortIndex`.
     var activeHabits: [Habit] {
         profile.habits
             .filter { !$0.archived }
@@ -2169,8 +2168,7 @@ final class DataStore {
     func addHabit(_ habit: Habit) {
         var copy = habit
         if copy.sortIndex == 0 {
-            // Append to the bottom by default — drag-reorder writes
-            // a fresh index later.
+            // Append to the bottom by default.
             copy.sortIndex = (profile.habits.map(\.sortIndex).max() ?? 0) + 1
         }
         profile.habits.append(copy)
@@ -2193,15 +2191,6 @@ final class DataStore {
         profile.habitEntries.removeAll { $0.habitId == id }
         save()
         Task { await rescheduleHabitReminders() }
-    }
-
-    func reorderHabits(_ ordered: [Habit]) {
-        for (index, habit) in ordered.enumerated() {
-            if let i = profile.habits.firstIndex(where: { $0.id == habit.id }) {
-                profile.habits[i].sortIndex = index
-            }
-        }
-        save()
     }
 
     /// Toggle today's completion for a boolean habit, or bump the
@@ -2249,6 +2238,17 @@ final class DataStore {
         registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
         // Ticking a habit off drops today's reminder; un-ticking restores it.
         Task { await rescheduleHabitReminders() }
+    }
+
+    /// Takes one off a countable habit's count for the day, so an
+    /// over-tap can be corrected without the tap-past-target reset to zero.
+    func removeOneHabitCount(habitId: UUID, on date: Date = Date()) {
+        let current = profile.habitEntries
+            .filter { $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: date) }
+            .map(\.value)
+            .max() ?? 0
+        guard current > 0 else { return }
+        setHabitEntry(habitId: habitId, date: date, value: current - 1)
     }
 
     /// Set the exact value for a given day. Use for countable habits

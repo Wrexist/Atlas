@@ -84,11 +84,21 @@ struct HabitsView: View {
                                 onToggleToday: {
                                     dataStore.toggleHabitEntry(habitId: row.habit.id)
                                 },
+                                onRemoveOne: {
+                                    dataStore.removeOneHabitCount(habitId: row.habit.id)
+                                },
                                 onTap: {
                                     editing = .existing(row.habit)
                                 }
                             )
                             .contextMenu {
+                                if row.habit.isCountable && row.summary.todayValue > 0 {
+                                    Button {
+                                        dataStore.removeOneHabitCount(habitId: row.habit.id)
+                                    } label: {
+                                        Label("Remove one", systemImage: "minus.circle")
+                                    }
+                                }
                                 Button {
                                     editing = .existing(row.habit)
                                 } label: {
