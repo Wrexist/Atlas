@@ -3312,7 +3312,17 @@ final class DataStore {
 
         regenerateTodayEntries()
         refreshTrainingGlanceables()
-        rescheduleNotificationsIfEnabled()
+        // A restore with reminders off must still clear the weekly dose
+        // requests scheduled before it, including wiped protocols'.
+        if profile.doseRemindersEnabled {
+            NotificationService.shared.scheduleNotifications(for: activeProtocols, loggedSlots: loggedDoseSlots)
+        } else {
+            NotificationService.shared.cancelProtocolReminders()
+        }
+        Task {
+            await DailyReminderScheduler.reconcile(dataStore: self)
+            await rescheduleHabitReminders()
+        }
     }
 
     // MARK: - Entry Generation

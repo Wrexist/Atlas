@@ -278,6 +278,11 @@ enum BackupImportService {
             var profile = backup.profile
             profile.workoutLegacyMigrationCompleted = true
             profile.workoutHistory = []
+            // Health permission and the biometric lock belong to this
+            // device: another phone's backup can't grant HealthKit here or
+            // switch on a lock nobody proved they can pass on it.
+            profile.healthConnected = dataStore.profile.healthConnected
+            profile.biometricLockEnabled = dataStore.profile.biometricLockEnabled
             resolvedProfile = profile
         case .merge:
             // Merge logic: take the current state as the base, then
