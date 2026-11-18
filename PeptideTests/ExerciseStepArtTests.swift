@@ -169,4 +169,12 @@ final class ExerciseStepArtTests: XCTestCase {
     func test_exerciseWithoutPictures_returnsNone() {
         XCTAssertTrue(ExerciseStepArt.assetNames(for: "Arm_Circles").isEmpty)
     }
+
+    func test_illustratedExercise_thumbnailIsTheMiddleStep() {
+        XCTAssertEqual(ExerciseStepArt.thumbnailName(for: "Barbell_Squat"), "howto-Barbell_Squat-2")
+    }
+
+    func test_exerciseWithoutPictures_hasNoThumbnail() {
+        XCTAssertNil(ExerciseStepArt.thumbnailName(for: "Arm_Circles"))
+    }
 }
