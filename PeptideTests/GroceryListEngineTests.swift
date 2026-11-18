@@ -203,6 +203,31 @@ final class GroceryListEngineTests: XCTestCase {
         XCTAssertEqual(items.first { $0.key == "proteinbar" }?.amounts, [Engine.Amount(measure: .portions, value: 6)])
     }
 
+    func test_plannedLibraryDish_listsItsIngredientsNotTheDish() {
+        let curry = LibraryRecipe(
+            id: "curry", name: "Chicken curry", nameSV: "Kycklingcurry", category: .dinner, mealPrep: false,
+            minutes: 30, servings: 2, fridgeDays: nil, tags: [],
+            ingredients: [
+                LibraryRecipe.Ingredient(name: "Chicken breast", nameSV: "Kycklingbröst", grams: 300, pantryKey: "chicken"),
+                LibraryRecipe.Ingredient(name: "Rice", nameSV: "Ris", grams: 100, pantryKey: "rice"),
+            ],
+            steps: ["Cook."], stepsSV: ["Koka."], calories: 500, proteinG: 40, carbsG: 50, fatG: 10, fiberG: 2,
+            micros: LibraryRecipe.Micros(sodiumMg: 0, potassiumMg: 0, ironMg: 0, calciumMg: 0, vitaminDUg: 0, vitaminB12Ug: 0),
+            image: "recipe-curry"
+        )
+        var dish = component("Chicken curry", grams: 200)
+        dish.id = "recipe:curry"
+        let dinner = MealPlanEngine.PlannedMeal(slot: .dinner, food: food("Chicken curry", components: [dish]), portion: 1)
+
+        let items = Engine.items(from: Engine.ingredients(
+            from: plan([dinner]), days: 1, recipes: [curry], locale: Locale(identifier: "en")
+        ))
+
+        XCTAssertNil(items.first { $0.key == "chicken curry" })
+        XCTAssertEqual(items.first { $0.key == "chicken breast" }?.amounts.first?.value ?? 0, 150, accuracy: 0.001)
+        XCTAssertEqual(items.first { $0.key == "rice" }?.amounts.first?.value ?? 0, 50, accuracy: 0.001)
+    }
+
     func test_parseQuantity_readsPlainAmountsOnly() {
         XCTAssertEqual(Engine.parseQuantity("150 g")?.amount, 150)
         XCTAssertEqual(Engine.parseQuantity("1,5 l")?.unit, .l)
@@ -254,5 +279,22 @@ final class GroceryChecklistStoreTests: XCTestCase {
         GroceryChecklistStore(defaults: defaults).toggle("havregryn")
 
         XCTAssertEqual(GroceryChecklistStore(defaults: defaults).checked, ["havregryn"])
+    }
+
+    func test_deleteAll_leavesNoTicksForTheNextLaunch() {
+        let suite = "GroceryChecklistStoreTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = GroceryChecklistStore(defaults: defaults)
+        store.toggle("banan")
+        store.toggle("lax")
+        store.clearChecked()
+        store.toggle("ris")
+
+        store.deleteAll()
+
+        let relaunched = GroceryChecklistStore(defaults: defaults)
+        XCTAssertTrue(relaunched.checked.isEmpty)
+        XCTAssertTrue(relaunched.cleared.isEmpty)
     }
 }

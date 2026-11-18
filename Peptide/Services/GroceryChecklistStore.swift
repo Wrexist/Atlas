@@ -49,6 +49,14 @@ final class GroceryChecklistStore {
         save()
     }
 
+    /// "Delete all data": the ticks are food names from the meal plan.
+    func deleteAll() {
+        checked = []
+        cleared = []
+        defaults.removeObject(forKey: Self.checkedKey)
+        defaults.removeObject(forKey: Self.clearedKey)
+    }
+
     private func save() {
         defaults.set(checked.sorted(), forKey: Self.checkedKey)
         defaults.set(cleared.sorted(), forKey: Self.clearedKey)
