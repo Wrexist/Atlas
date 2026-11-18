@@ -596,10 +596,11 @@ struct OnboardingView: View {
             // first (audit C2). Flush sync so a force-quit within the
             // 350ms debounce doesn't lose either field.
             let raw = primaryGoal.rawValue
-            var goalSet = Set(dataStore.profile.goals)
-            goalSet.formUnion(selectedGoals.map(\.rawValue))
-            goalSet.insert(raw)
-            dataStore.updateGoals(goalSet)
+            dataStore.updateGoals(OnboardingPlanEngine.savedGoals(
+                existing: dataStore.profile.goals,
+                selected: selectedGoals,
+                primary: primaryGoal
+            ))
             dataStore.setPrimaryGoal(raw)
             dataStore.profile.goalDate = goalDate
             dataStore.flushPendingSave()
@@ -652,11 +653,12 @@ struct OnboardingView: View {
     }
 
     private var currentTrainingPrefs: TrainingPreferences {
-        TrainingPreferences(
+        OnboardingPlanEngine.trainingPreferences(
+            over: dataStore.profile.trainingPreferences,
             daysPerWeek: daysPerWeek,
             preferredDays: preferredDays,
             timeOfDay: timeOfDay,
-            equipmentAccess: equipment
+            equipment: equipment
         )
     }
 
@@ -1221,6 +1223,7 @@ struct OnboardingView: View {
             // and skews the "keep at least one selected" count. Strip
             // them so the step only ever holds card-backed kinds.
             equipment.formIntersection(EquipmentKind.accessChoices)
+            if equipment.isEmpty { equipment = [.bodyweight] }
         }
     }
 
@@ -1465,12 +1468,14 @@ struct OnboardingView: View {
                             tint: AppColor.achievement
                         )
                     }
-                    projectionStatRow(
-                        label: String(localized: "Program"),
-                        value: OnboardingPlanEngine.programName(goal: primaryGoal, daysPerWeek: daysPerWeek),
-                        icon: "list.bullet.clipboard.fill",
-                        tint: AppColor.accentPrimary
-                    )
+                    if let program = OnboardingPlanEngine.programSummary(goal: primaryGoal, daysPerWeek: daysPerWeek) {
+                        projectionStatRow(
+                            label: String(localized: "Program"),
+                            value: program,
+                            icon: "list.bullet.clipboard.fill",
+                            tint: AppColor.accentPrimary
+                        )
+                    }
                     projectionStatRow(
                         label: String(localized: "Schedule"),
                         value: String(localized: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())"),
@@ -1531,11 +1536,11 @@ struct OnboardingView: View {
 
     private var projectionStatLabel: String {
         switch primaryGoal {
-        case .buildMuscle, .recomp:                       return String(localized: "Projected gain")
+        case .buildMuscle:                                 return String(localized: "Projected gain")
         case .loseFat:                                     return String(localized: "Projected loss")
         case .getStronger:                                 return String(localized: "Projected lift increase")
         case .stayConsistent, .athletic:                   return String(localized: "Projected sessions")
-        case .betterSleep, .recovery, .antiAging,
+        case .recomp, .betterSleep, .recovery, .antiAging,
              .skinHair, .energy:                           return String(localized: "Projected trend")
         }
     }
@@ -1544,7 +1549,9 @@ struct OnboardingView: View {
         switch primaryGoal {
         case .buildMuscle: return String(localized: "+\(projectedMuscleGain) lean mass")
         case .loseFat:     return String(localized: "−\(projectedFatLoss) body weight")
-        case .getStronger: return String(localized: "+10–15% on your top lifts")
+        case .getStronger:
+            let gain = OnboardingPlanEngine.projectedStrengthGainPercent(experience: experienceLevel, weeks: goalWeeks)
+            return String(localized: "+\(gain.lowerBound)–\(gain.upperBound)% on your top lifts")
         case .stayConsistent, .athletic: return String(localized: "\(daysPerWeek * goalWeeks) sessions logged")
         case .recomp:      return String(localized: "Body recomp tracked weekly")
         case .betterSleep: return String(localized: "Sleep tracked nightly")
@@ -1694,7 +1701,7 @@ struct OnboardingView: View {
                 permissionRow(
                     icon: "heart.fill",
                     title: String(localized: "Connect Apple Health"),
-                    subtitle: String(localized: "Reads sleep, HRV, heart rate, and weight for Recovery."),
+                    subtitle: String(localized: "Reads sleep, HRV, heart rate, and weight for Biology and your Biological Age."),
                     isLoading: requestingHealth,
                     isOn: dataStore.profile.healthConnected,
                     action: requestHealth

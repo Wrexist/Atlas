@@ -5036,6 +5036,16 @@
         }
       }
     },
+    "+%lld–%lld%% on your top lifts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%1$lld–%2$lld %% på dina tyngsta lyft"
+          }
+        }
+      }
+    },
     "+1 L": {
       "localizations": {
         "sv": {
@@ -7095,6 +7105,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Privat från grunden – ingen reklam, ingen spårning"
+          }
+        }
+      }
+    },
+    "Reads sleep, HRV, heart rate, and weight for Biology and your Biological Age.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läser sömn, HRV, puls och vikt för Biologi och din biologiska ålder."
           }
         }
       }

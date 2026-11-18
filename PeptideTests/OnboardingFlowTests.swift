@@ -200,6 +200,25 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertGreaterThan(beginner.upperBound, advanced.upperBound)
     }
 
+    func test_projectedStrengthGain_longerSpan_promisesMore() {
+        let eightWeeks = OnboardingPlanEngine.projectedStrengthGainPercent(experience: "intermediate", weeks: 8)
+        let sixMonths = OnboardingPlanEngine.projectedStrengthGainPercent(experience: "intermediate", weeks: 26)
+        XCTAssertLessThan(eightWeeks.upperBound, sixMonths.upperBound)
+        XCTAssertLessThan(eightWeeks.lowerBound, sixMonths.lowerBound)
+    }
+
+    func test_projectedStrengthGain_beginnerOutpacesAdvanced() {
+        let beginner = OnboardingPlanEngine.projectedStrengthGainPercent(experience: "beginner", weeks: 12)
+        let advanced = OnboardingPlanEngine.projectedStrengthGainPercent(experience: "advanced", weeks: 12)
+        XCTAssertGreaterThan(beginner.lowerBound, advanced.upperBound)
+    }
+
+    func test_projectedStrengthGain_longSpan_staysWithinForty() {
+        let gain = OnboardingPlanEngine.projectedStrengthGainPercent(experience: "beginner", weeks: 104)
+        XCTAssertLessThanOrEqual(gain.upperBound, 40)
+        XCTAssertLessThanOrEqual(gain.lowerBound, gain.upperBound)
+    }
+
     func test_projectedFatLoss_scalesWithSpanAndClamps() {
         XCTAssertEqual(OnboardingPlanEngine.projectedFatLossKg(weightKg: 80, weeks: 12), 4)
         XCTAssertEqual(OnboardingPlanEngine.projectedFatLossKg(weightKg: 80, weeks: 24), 8)
@@ -214,16 +233,62 @@ final class OnboardingFlowTests: XCTestCase {
         )
     }
 
-    // MARK: - Plan summary
+    // MARK: - Saving answers over an existing profile
 
-    func test_programName_coversEveryGoal() {
-        for goal in OnboardingView.PrimaryGoal.allCases {
-            XCTAssertFalse(OnboardingPlanEngine.programName(goal: goal, daysPerWeek: 3).isEmpty, "\(goal)")
-        }
+    func test_goalStep_deselectAfterBack_removesGoalFromProfile() {
+        let saved = OnboardingPlanEngine.savedGoals(existing: [], selected: [.buildMuscle, .loseFat], primary: .buildMuscle)
+
+        let afterBack = OnboardingPlanEngine.savedGoals(existing: Array(saved), selected: [.buildMuscle], primary: .buildMuscle)
+
+        XCTAssertEqual(afterBack, ["buildMuscle"])
     }
 
-    func test_programName_buildMuscle_switchesSplitAtFiveDays() {
-        XCTAssertEqual(OnboardingPlanEngine.programName(goal: .buildMuscle, daysPerWeek: 4), "Upper / Lower")
-        XCTAssertEqual(OnboardingPlanEngine.programName(goal: .buildMuscle, daysPerWeek: 5), "Push Pull Legs")
+    func test_goalStep_goalOnboardingDoesNotOffer_isKept() {
+        let saved = OnboardingPlanEngine.savedGoals(
+            existing: ["legacyFocus", "loseFat"],
+            selected: [.getStronger],
+            primary: .getStronger
+        )
+
+        XCTAssertEqual(saved, ["legacyFocus", "getStronger"])
+    }
+
+    func test_trainingStep_overSavedPreferences_keepsSettingsTheStepDoesNotAsk() {
+        var saved = TrainingPreferences(restTimerDefault: 150, plateInventoryKg: [20, 10], autoProgression: false,
+                                        equipmentAccess: [.barbell, .plate])
+        saved.plateInventoryLb = [45, 25]
+        saved.barWeightsKg = ["barbell": 15]
+        saved.dailyStepGoal = 12_000
+
+        let prefs = OnboardingPlanEngine.trainingPreferences(
+            over: saved, daysPerWeek: 4, preferredDays: [.monday, .thursday],
+            timeOfDay: .morning, equipment: [.dumbbell]
+        )
+
+        XCTAssertEqual(prefs.daysPerWeek, 4)
+        XCTAssertEqual(prefs.restTimerDefault, 150)
+        XCTAssertEqual(prefs.plateInventoryKg, [20, 10])
+        XCTAssertEqual(prefs.plateInventoryLb, [45, 25])
+        XCTAssertEqual(prefs.barWeightsKg, ["barbell": 15])
+        XCTAssertFalse(prefs.autoProgression)
+        XCTAssertEqual(prefs.dailyStepGoal, 12_000)
+        XCTAssertEqual(prefs.equipmentAccess, [.dumbbell, .plate])
+    }
+
+    // MARK: - Plan summary
+
+    func test_programSummary_namesTheSplitTheGeneratorBuilds() {
+        for days in [3, 4, 5] {
+            let summary = OnboardingPlanEngine.programSummary(goal: .buildMuscle, daysPerWeek: days)
+            XCTAssertEqual(summary?.hasPrefix(TrainingSplit.forDays(days).displayName), true, "\(days) days: \(summary ?? "nil")")
+        }
+        XCTAssertEqual(
+            OnboardingPlanEngine.programSummary(goal: .getStronger, daysPerWeek: 3),
+            "\(TrainingSplit.fullBody.displayName) · \(TrainingGoal.strength.displayName)"
+        )
+    }
+
+    func test_programSummary_nonTrainingGoal_hidesTheRow() {
+        XCTAssertNil(OnboardingPlanEngine.programSummary(goal: .betterSleep, daysPerWeek: 4))
     }
 }

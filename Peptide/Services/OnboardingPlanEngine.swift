@@ -60,7 +60,41 @@ enum OnboardingPlanEngine {
         return (selected, primary)
     }
 
+    /// The goals to save from the goal step. Onboarding's own goals come
+    /// from this run's selection, so one deselected after Back (or on a
+    /// re-run over a synced profile) is removed; saved keys onboarding
+    /// doesn't offer are kept.
+    static func savedGoals(
+        existing: [String],
+        selected: Set<OnboardingView.PrimaryGoal>,
+        primary: OnboardingView.PrimaryGoal
+    ) -> Set<String> {
+        let notOffered = existing.filter { OnboardingView.PrimaryGoal(rawValue: $0) == nil }
+        return Set(notOffered)
+            .union(selected.map(\.rawValue))
+            .union([primary.rawValue])
+    }
+
     // MARK: - Schedule
+
+    /// The training step's answers written over the saved preferences, so
+    /// a re-run (onboarding replays on every reinstall over the synced
+    /// profile) keeps rest timer, plates, bar weights, auto-progression
+    /// and step goal. Kinds the step has no card for stay in equipment.
+    static func trainingPreferences(
+        over saved: TrainingPreferences?,
+        daysPerWeek: Int,
+        preferredDays: Set<Weekday>,
+        timeOfDay: PreferredTimeOfDay,
+        equipment: Set<EquipmentKind>
+    ) -> TrainingPreferences {
+        var prefs = saved ?? TrainingPreferences()
+        prefs.daysPerWeek = daysPerWeek
+        prefs.preferredDays = preferredDays
+        prefs.timeOfDay = timeOfDay
+        prefs.equipmentAccess = equipment.union(prefs.equipmentAccess.subtracting(EquipmentKind.accessChoices))
+        return prefs
+    }
 
     /// Training days per week the schedule step offers.
     static let daysPerWeekRange = 2...6
@@ -108,6 +142,22 @@ enum OnboardingPlanEngine {
         }
     }
 
+    /// Top-lift increase over `weeks`, in whole percent: the twelve-week
+    /// range falls steeply with training age and scales with the span,
+    /// held between 1 and 40 so a long span never promises the moon.
+    static func projectedStrengthGainPercent(experience rawValue: String, weeks: Int) -> ClosedRange<Int> {
+        let perTwelveWeeks: ClosedRange<Double>
+        switch OnboardingView.Experience(rawValue: rawValue) ?? .beginner {
+        case .beginner:     perTwelveWeeks = 15...25
+        case .intermediate: perTwelveWeeks = 8...12
+        case .advanced:     perTwelveWeeks = 3...6
+        }
+        let scale = Double(weeks) / 12
+        let lower = min(40, max(1, Int((perTwelveWeeks.lowerBound * scale).rounded())))
+        let upper = min(40, max(lower, Int((perTwelveWeeks.upperBound * scale).rounded())))
+        return lower...upper
+    }
+
     /// Body weight lost over `weeks`: 5 % of body weight per twelve weeks
     /// (75 kg assumed when unknown), rounded to whole kilograms and held
     /// between 1 and 10.
@@ -116,21 +166,18 @@ enum OnboardingPlanEngine {
         return min(10, max(1, (perTwelveWeeks * Double(weeks) / 12).rounded()))
     }
 
-    /// Program named on the plan summary. Every goal is covered so the
-    /// summary never falls through to a blank row.
-    static func programName(goal: OnboardingView.PrimaryGoal, daysPerWeek: Int) -> String {
+    /// The program the plan summary names: the split and focus the
+    /// program generator actually builds for this goal and week, in the
+    /// app's own localized names. Nil for goals that aren't about a
+    /// training program, so the summary leaves the row out.
+    static func programSummary(goal: OnboardingView.PrimaryGoal, daysPerWeek: Int) -> String? {
         switch goal {
-        case .getStronger:    return "5/3/1 Strength"
-        case .buildMuscle:    return daysPerWeek >= 5 ? "Push Pull Legs" : "Upper / Lower"
-        case .loseFat:        return "Full Body Hypertrophy"
-        case .athletic:       return "Athletic Conditioning"
-        case .recomp:         return "Hybrid Recomp"
-        case .stayConsistent: return "Consistency Builder"
-        case .betterSleep:    return "Recovery & Sleep Hygiene"
-        case .recovery:       return "Active Recovery Plan"
-        case .antiAging:      return "Healthy Aging Plan"
-        case .skinHair:       return "Look & Feel Plan"
-        case .energy:         return "Energy & Vitality Plan"
+        case .buildMuscle, .loseFat, .getStronger, .stayConsistent, .athletic, .recomp:
+            let split = TrainingSplit.forDays(daysPerWeek).displayName
+            let focus = TrainingGoal(goalRaw: goal.rawValue).displayName
+            return "\(split) · \(focus)"
+        case .betterSleep, .recovery, .antiAging, .skinHair, .energy:
+            return nil
         }
     }
 }
