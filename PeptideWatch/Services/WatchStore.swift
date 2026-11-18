@@ -95,6 +95,11 @@ final class WatchStore: NSObject, ObservableObject {
         // buzzes in the app and a later skip or finish withdraws the
         // notification queued before the relaunch.
         scheduleRestEndHaptic(for: displayedWorkout)
+        // A workout restored from disk was never mirrored by this launch,
+        // so the complication would show the weekly glance until a tap.
+        if offlineWorkout != nil {
+            mirrorOfflineWorkoutForComplication()
+        }
         if WCSession.isSupported() {
             WCSession.default.delegate = self
             WCSession.default.activate()
