@@ -230,6 +230,31 @@ final class FastingActivityStatusTests: XCTestCase {
     }
 
     @MainActor
+    func test_endBeat_justEnded_showsSummaryAtRealEnd() {
+        let endedAt = start.addingTimeInterval(14 * 3600)
+        let fast = FastSession(startedAt: start, endedAt: endedAt, targetHours: 16, plan: .sixteen)
+        XCTAssertEqual(
+            FastingLiveActivityService.endBeat(for: fast.id, sessions: [fast], now: endedAt.addingTimeInterval(2)),
+            .summary(endedAt: endedAt)
+        )
+    }
+
+    @MainActor
+    func test_endBeat_endedLongAgoElsewhere_dismisses() {
+        let endedAt = start.addingTimeInterval(14 * 3600)
+        let fast = FastSession(startedAt: start, endedAt: endedAt, targetHours: 16, plan: .sixteen)
+        XCTAssertEqual(
+            FastingLiveActivityService.endBeat(for: fast.id, sessions: [fast], now: endedAt.addingTimeInterval(4 * 3600)),
+            .dismiss
+        )
+    }
+
+    @MainActor
+    func test_endBeat_deletedFast_dismisses() {
+        XCTAssertEqual(FastingLiveActivityService.endBeat(for: UUID(), sessions: [], now: start), .dismiss)
+    }
+
+    @MainActor
     func test_stateForFast_mirrorsStartGoalAndEnd() {
         let fast = FastSession(startedAt: start, endedAt: start.addingTimeInterval(14 * 3600), targetHours: 16, plan: .sixteen)
         XCTAssertEqual(FastingLiveActivityService.state(for: fast), state(endedAt: start.addingTimeInterval(14 * 3600)))

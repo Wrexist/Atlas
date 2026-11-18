@@ -96,7 +96,7 @@ final class FastingStore {
     /// The lock screen, Dynamic Island and widget follow the open fast
     /// through every start, end, cancel and edited start time.
     private func syncGlanceables() {
-        FastingLiveActivityService.shared.reconcile(active: active)
+        FastingLiveActivityService.shared.reconcile(active: active, sessions: sessions)
         FastingWidgetPublisher.shared.publish(active: active)
     }
 
