@@ -12,6 +12,7 @@ struct PlateTableView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+    @Environment(\.colorScheme) private var colorScheme
     @State private var scene = PlateTableScene(size: CGSize(width: 1, height: 1))
     @State private var isPlaying = false
     @State private var showsLabels = true
@@ -220,6 +221,9 @@ struct PlateTableView: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.sm)
         .onChange(of: mode) { _, mode in scene.setMode(mode) }
+        // SpriteKit keeps the colour it was given, so a switch between
+        // light and dark re-inks the labels already in play.
+        .onChange(of: colorScheme) { _, _ in scene.setLabelColor(labelColor) }
     }
 
     private func toggle(_ title: LocalizedStringKey, icon: String, isOn: Bool, action: @escaping () -> Void) -> some View {
@@ -262,9 +266,15 @@ struct PlateTableView: View {
         }
         scene.size = tableSize
         scene.onTap = { id in openDish = dishes.first { $0.id == id } }
-        scene.place(plates, labelColor: UIColor(AppColor.textPrimary))
+        scene.place(plates, labelColor: labelColor)
         scene.setLabelsVisible(showsLabels)
         scene.setMode(mode)
+    }
+
+    private var labelColor: UIColor {
+        UIColor(AppColor.textPrimary).resolvedColor(
+            with: UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
+        )
     }
 
     /// A plain plate for a dish whose cut-out isn't on this device.
