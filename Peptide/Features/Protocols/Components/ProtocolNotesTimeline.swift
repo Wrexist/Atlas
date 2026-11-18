@@ -122,7 +122,7 @@ struct ProtocolNotesTimeline: View {
                 Text("Add note")
                     .font(AppFont.chipText)
             }
-            .foregroundStyle(AppColor.accentLight)
+            .foregroundStyle(AppColor.accentInkOnWash)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.xs + Spacing.xxs)
             .background {

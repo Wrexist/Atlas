@@ -55,7 +55,7 @@ struct BodyMetricsPage: View {
             Text(label)
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
-                .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
+                .foregroundStyle(isSelected ? AppColor.accentInkOnWash : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.xs)
                 .frame(minHeight: Spacing.minimumHitTarget)

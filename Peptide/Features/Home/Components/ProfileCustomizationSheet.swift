@@ -169,7 +169,7 @@ struct ProfileCustomizationSheet: View {
                     )
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentInkOnWash)
                     .padding(.horizontal, Spacing.lg)
                     .padding(.vertical, Spacing.sm)
                     .background {

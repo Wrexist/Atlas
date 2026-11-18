@@ -159,7 +159,7 @@ struct ProgressPhotosCard: View {
                         Text("Compare")
                             .font(AppFont.scaled(11, weight: .semibold))
                     }
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentInkOnWash)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, 6)
                     .background {
@@ -187,7 +187,7 @@ struct ProgressPhotosCard: View {
                     Text("Add photo")
                         .font(AppFont.scaled(11, weight: .semibold))
                 }
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.accentInkOnWash)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 6)
                 .background {

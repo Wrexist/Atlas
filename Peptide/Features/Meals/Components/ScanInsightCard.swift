@@ -13,7 +13,7 @@ struct ScanInsightCard: View {
             HStack(spacing: Spacing.sm) {
                 Label(insight.kind.displayName, systemImage: insight.kind.icon)
                     .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentInkOnWash)
                     .padding(.horizontal, Spacing.sm)
                     .padding(.vertical, Spacing.xs)
                     .background { Capsule().fill(AppColor.accentPrimary.opacity(0.15)) }

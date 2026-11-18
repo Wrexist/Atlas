@@ -542,7 +542,7 @@ struct ProtocolBuilderView: View {
     private func startFromPill(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(AppFont.chipText)
-            .foregroundStyle(AppColor.accentLight)
+            .foregroundStyle(AppColor.accentInkOnWash)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.xs + Spacing.xxs)
             .background {

@@ -97,6 +97,10 @@ CASES = [
      'Image(systemName: icon).font(.caption)\nText("a").font(.title2.weight(.bold))',
      'Image(systemName: icon).font(AppFont.caption2)\nText("a").font(AppFont.title2)'),
 
+    ("rule_accent_ink_on_wash", "Foo.swift",
+     'Text(title)\n    .font(AppFont.chipText)\n    .foregroundStyle(AppColor.accentLight)\n    .padding(.horizontal, Spacing.md)\n    .background { Capsule().fill(AppColor.accentPrimary.opacity(0.18)) }',
+     'Text(title)\n    .foregroundStyle(AppColor.accentInkOnWash)\n    .background { Capsule().fill(AppColor.accentPrimary.opacity(0.18)) }\nImage(systemName: "pill")\n    .foregroundStyle(AppColor.accentLight)\n    .background(Circle().fill(AppColor.accentPrimary.opacity(0.15)))'),
+
     ("rule_glow", "Foo.swift",
      'MetricRing().appShadow(AppShadow.accentGlow)',
      'MetricRing().appShadow(AppShadow.glassElevated)'),

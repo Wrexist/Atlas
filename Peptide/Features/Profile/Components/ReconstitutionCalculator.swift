@@ -119,7 +119,7 @@ struct ReconstitutionCalculator: View {
                     } label: {
                         Text(verbatim: formatted(pick))
                             .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.accentInkOnWash)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, Spacing.xs)
                             .background {
