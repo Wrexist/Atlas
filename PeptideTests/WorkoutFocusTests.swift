@@ -285,6 +285,39 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertEqual(service.activeSession?.focus?.selectedEntryID, next.id)
     }
 
+    private func entryWithWarmup(warmupDone: Bool, workingDone: [Bool]) -> WorkoutExerciseEntry {
+        var sets = [SetEntry(index: 1, weightKg: 40, reps: 10, completed: warmupDone, isWarmup: true)]
+        for (offset, done) in workingDone.enumerated() {
+            sets.append(SetEntry(index: offset + 2, weightKg: 80, reps: 8, completed: done))
+        }
+        return WorkoutExerciseEntry(exerciseID: "Barbell_Squat", index: 0, sets: sets)
+    }
+
+    func test_skippedWarmupWithEveryWorkingSetLogged_exerciseIsDone() {
+        let entry = entryWithWarmup(warmupDone: false, workingDone: [true, true])
+        XCTAssertTrue(entry.workingSetsDone)
+        XCTAssertNil(entry.nextSetToDo)
+        XCTAssertEqual(entry.setToLoad?.id, entry.sets.last?.id)
+    }
+
+    func test_skippedWarmupAfterWorkingSetStarted_nextSetIsTheNextWorkingSet() {
+        let entry = entryWithWarmup(warmupDone: false, workingDone: [true, false])
+        XCTAssertFalse(entry.workingSetsDone)
+        XCTAssertEqual(entry.nextSetToDo?.id, entry.sets[2].id)
+    }
+
+    func test_warmupBeforeAnyWorkingSet_leadsTheExercise() {
+        let entry = entryWithWarmup(warmupDone: false, workingDone: [false, false])
+        XCTAssertEqual(entry.nextSetToDo?.id, entry.sets[0].id)
+    }
+
+    func test_workingNumber_skipsWarmups() {
+        let entry = entryWithWarmup(warmupDone: true, workingDone: [false, false])
+        XCTAssertNil(entry.workingNumber(of: entry.sets[0]))
+        XCTAssertEqual(entry.workingNumber(of: entry.sets[1]), 1)
+        XCTAssertEqual(entry.workingNumber(of: entry.sets[2]), 2)
+    }
+
     func test_completeNextSet_whilePaused_changesNothing() {
         start()
         service.togglePause()

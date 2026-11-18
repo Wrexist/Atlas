@@ -13,36 +13,44 @@ struct WorkoutFocusView: View {
     @State private var service = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var detailExercise: Exercise?
+    /// The screen's height without the keyboard, so raising the decimal
+    /// pad never resizes the artwork under the user's finger.
+    @State private var availableHeight: CGFloat = 0
 
     private var entry: WorkoutExerciseEntry? { session.selectedExercise }
-    private var defaultRestSeconds: Int { dataStore.profile.trainingPreferences?.restTimerDefault ?? 90 }
+    private var defaultRestSeconds: Int { dataStore.profile.trainingPreferences?.restTimerDefault ?? RoutineSeedEngine.fallbackRestSeconds }
     private var exercise: Exercise? { entry.flatMap { library.lookup(id: $0.exerciseID) } }
 
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                VStack(spacing: Spacing.md) {
-                    adjustmentBanner
-                    if let entry {
-                        WorkoutExerciseHero(exercise: exercise)
-                            .id(exercise?.id)
-                            .transition(.opacity)
-                            .frame(height: heroHeight(available: geometry.size.height))
-                            .appAnimation(AppAnimation.quick, value: exercise?.id)
-                            .padding(.top, Spacing.sm)
-                        exerciseStrip
-                        setPanel(entry)
-                    } else {
-                        EmptyStateView(
-                            icon: "dumbbell", title: "Your workout starts here",
-                            message: "Choose your first exercise to start logging sets.",
-                            action: .init(title: "Add exercise", icon: "plus", perform: onAddExercise)
-                        )
-                    }
+        ScrollView {
+            VStack(spacing: Spacing.md) {
+                adjustmentBanner
+                if let entry {
+                    WorkoutExerciseHero(exercise: exercise)
+                        .id(exercise?.id)
+                        .transition(.opacity)
+                        .frame(height: heroHeight(available: availableHeight))
+                        .appAnimation(AppAnimation.quick, value: exercise?.id)
+                        .padding(.top, Spacing.sm)
+                    exerciseStrip
+                    setPanel(entry)
+                } else {
+                    EmptyStateView(
+                        icon: "dumbbell", title: "Your workout starts here",
+                        message: "Choose your first exercise to start logging sets.",
+                        action: .init(title: "Add exercise", icon: "plus", perform: onAddExercise)
+                    )
                 }
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xxl)
             }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.xxl)
+        }
+        // Measured outside the keyboard's safe area; the scroll view itself
+        // still avoids the keyboard, so a focused field scrolls into view.
+        .background {
+            Color.clear
+                .ignoresSafeArea(.keyboard)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { availableHeight = $0 }
         }
         .scrollDismissesKeyboard(.interactively)
         .background(AppColor.background.ignoresSafeArea())
@@ -101,7 +109,7 @@ struct WorkoutFocusView: View {
     private func exerciseButton(_ item: WorkoutExerciseEntry) -> some View {
         let exercise = library.lookup(id: item.exerciseID)
         let selected = entry?.id == item.id
-        let complete = !item.sets.isEmpty && item.sets.allSatisfy(\.completed)
+        let complete = item.workingSetsDone
         let working = item.sets.filter { !$0.isWarmup }
         let workingDone = working.filter(\.completed).count
         // The ring fills set by set, so a half-done lift reads as half done.
@@ -223,9 +231,9 @@ struct WorkoutFocusView: View {
                             get: { service.currentSet(id: set.id, inExerciseEntryID: entry.id) ?? set },
                             set: { service.updateSet($0, inExerciseEntryID: entry.id) }
                         ),
-                        previousSet: hints[set.id], unit: unit,
+                        previousSet: hints[set.id], displayNumber: entry.workingNumber(of: set), unit: unit,
                         onDelete: { service.removeSet(setID: set.id, fromExerciseEntryID: entry.id) },
-                        focusStyle: true, isCurrent: entry.sets.first(where: { !$0.completed })?.id == set.id,
+                        focusStyle: true, isCurrent: entry.nextSetToDo?.id == set.id,
                         isPaused: session.isPaused
                     )
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -356,24 +364,17 @@ struct WorkoutFocusView: View {
     }
 
     private func exerciseDone(_ entry: WorkoutExerciseEntry) -> Bool {
-        !entry.sets.isEmpty && entry.sets.allSatisfy(\.completed)
+        entry.workingSetsDone
     }
 
     /// Numbers working sets only, matching the Live Activity's totals.
     private func progressTitle(_ entry: WorkoutExerciseEntry) -> String {
-        guard let next = entry.sets.first(where: { !$0.completed }) else {
+        guard let next = entry.nextSetToDo else {
             return entry.sets.isEmpty ? String(localized: "Add your first set") : String(localized: "Exercise complete")
         }
-        if next.isWarmup { return String(localized: "Warm-up") }
-        let position = Self.workingPosition(of: next, in: entry)
+        guard let position = entry.workingNumber(of: next) else { return String(localized: "Warm-up") }
         let workingCount = entry.sets.filter { !$0.isWarmup }.count
         return String(localized: "Set \(position) of \(workingCount)")
-    }
-
-    /// 1-based position among the entry's working sets, so warm-ups never
-    /// shift the number the user sees.
-    private static func workingPosition(of set: SetEntry, in entry: WorkoutExerciseEntry) -> Int {
-        (entry.sets.filter { !$0.isWarmup }.firstIndex { $0.id == set.id } ?? 0) + 1
     }
 
     private func restTitle(_ rest: WorkoutRestContext) -> String {
@@ -384,7 +385,7 @@ struct WorkoutFocusView: View {
             if target.id == entry?.id { return String(localized: "Rest before warm-up") }
             return String(localized: "Up next: \(name) · Warm-up")
         }
-        let position = Self.workingPosition(of: set, in: target)
+        let position = target.workingNumber(of: set) ?? 1
         if target.id == entry?.id { return String(localized: "Rest before set \(position)") }
         return String(localized: "Up next: \(name) · Set \(position)")
     }
@@ -478,7 +479,7 @@ private struct WorkoutFocusRestHeader: View {
         adjustButton("+15s", seconds: 15, label: "Add 15 seconds")
     }
 
-    private func adjustButton(_ title: String, seconds: TimeInterval, label: LocalizedStringKey) -> some View {
+    private func adjustButton(_ title: LocalizedStringKey, seconds: TimeInterval, label: LocalizedStringKey) -> some View {
         Button { onAdjust(seconds) } label: {
             Text(title)
                 .monospacedDigit()

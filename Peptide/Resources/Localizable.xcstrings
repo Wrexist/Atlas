@@ -4993,6 +4993,16 @@
         }
       }
     },
+    "+15s": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+15 s"
+          }
+        }
+      }
+    },
     "+16 oz": {
       "localizations": {
         "sv": {
@@ -6656,6 +6666,16 @@
         }
       }
     },
+    "Mark warm-up set complete": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markera uppvärmningsset som klart"
+          }
+        }
+      }
+    },
     "MINUTES": {
       "localizations": {
         "sv": {
@@ -6806,12 +6826,32 @@
         }
       }
     },
+    "Options for warm-up set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alternativ för uppvärmningsset"
+          }
+        }
+      }
+    },
     "Original report": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Originalrapport"
+          }
+        }
+      }
+    },
+    "Paused — resume to check off sets.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausat — återuppta för att bocka av set."
           }
         }
       }
@@ -6926,6 +6966,16 @@
         }
       }
     },
+    "Reps for warm-up set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reps för uppvärmningsset"
+          }
+        }
+      }
+    },
     "Research chat, the diet coach, Ask Atlas, meal photo and text logging, package scans, Fill with AI, barcode price estimates and the weekly recap send what you submit to Claude, by Anthropic, through Atlas's server — only when you use them, and only after you allow it. Turning sharing off also turns off the weekly recap.": {
       "localizations": {
         "sv": {
@@ -6992,6 +7042,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Visa alla"
+          }
+        }
+      }
+    },
+    "set.warmupBadge": {
+      "comment": "Badge on a warm-up set row",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "W"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "U"
           }
         }
       }
@@ -7267,12 +7334,32 @@
         }
       }
     },
+    "Warm-up set complete": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppvärmningsset klart"
+          }
+        }
+      }
+    },
     "Weekly volume": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Veckovolym"
+          }
+        }
+      }
+    },
+    "Weight for warm-up set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikt för uppvärmningsset"
           }
         }
       }
@@ -42798,6 +42885,16 @@
         }
       }
     },
+    "−15s": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "−15 s"
+          }
+        }
+      }
+    },
     "≈ %lld g": {
       "localizations": {
         "sv": {
@@ -43846,16 +43943,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avsluta i förtid"
-          }
-        }
-      }
-    },
-    "Paused — resume to edit sets.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pausat — återuppta för att ändra set."
           }
         }
       }
