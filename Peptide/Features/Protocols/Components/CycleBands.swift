@@ -61,8 +61,8 @@ enum CycleBands {
                 guard week.contains(where: { CyclePhaseEngine.isOnCycle($0, protocol: proto, calendar: calendar) }) else {
                     return nil
                 }
-                let primaryName = proto.peptides.first?.name ?? proto.name
-                let palette = VialPalette.colors(for: primaryName)
+                let primary = proto.peptides.first
+                let palette = VialPalette.colors(for: primary?.name ?? proto.name, category: primary?.category)
                 return CycleBand(id: proto.id, name: proto.name, color: palette.fill)
             }
         }

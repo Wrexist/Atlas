@@ -13,12 +13,12 @@ final class DoseDayMapTests: XCTestCase {
         calendar.date(from: DateComponents(year: 2026, month: 3, day: 11, hour: 9))!
     }
 
-    private func entry(completed: Bool, dose: String = "250mcg") -> ProtocolEntry {
+    private func entry(completed: Bool, dose: String = "250mcg", date: Date? = nil) -> ProtocolEntry {
         ProtocolEntry(
             id: UUID(),
             protocolId: UUID(),
             peptide: MockPeptides.bpc157,
-            date: referenceDay,
+            date: date ?? referenceDay,
             dose: dose,
             notes: "",
             completed: completed
@@ -26,8 +26,64 @@ final class DoseDayMapTests: XCTestCase {
     }
 
     private func marks(for entries: [ProtocolEntry]) -> [CalendarDoseMark] {
-        let map = DoseDayMap.build(for: referenceDay, entries: entries, protocols: [], calendar: calendar)
+        let map = DoseDayMap.build(
+            for: referenceDay, entries: entries, protocols: [], today: referenceDay, calendar: calendar
+        )
         return map[calendar.startOfDay(for: referenceDay)] ?? []
+    }
+
+    private func day(offset: Int) -> Date {
+        calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: referenceDay))!
+    }
+
+    /// Active every day since a week before the reference day.
+    private func dailyProtocol(times: [String]) -> PeptideProtocol {
+        PeptideProtocol(
+            id: UUID(),
+            name: "Daily",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5, 6, 7], timesPerDay: times.count, preferredTimes: times),
+            cycleLengthWeeks: 8,
+            startDate: day(offset: -7),
+            status: .active,
+            notes: ""
+        )
+    }
+
+    private func scheduleMap(times: [String] = ["8:00 AM"]) -> [Date: [CalendarDoseMark]] {
+        DoseDayMap.build(
+            for: referenceDay, entries: [], protocols: [dailyProtocol(times: times)],
+            today: referenceDay, calendar: calendar
+        )
+    }
+
+    func test_build_pendingEntryOnPastDay_isMissed() {
+        let past = entry(completed: false, date: day(offset: -2))
+        let map = DoseDayMap.build(
+            for: referenceDay, entries: [past], protocols: [], today: referenceDay, calendar: calendar
+        )
+        XCTAssertEqual(map[day(offset: -2)]?.map(\.kind), [.missed])
+    }
+
+    func test_build_pastScheduledDayWithoutEntry_isMissed() {
+        XCTAssertEqual(scheduleMap()[day(offset: -1)]?.map(\.kind), [.missed])
+    }
+
+    func test_build_todayAndFutureWithoutEntry_areScheduled() {
+        let map = scheduleMap()
+        XCTAssertEqual(map[day(offset: 0)]?.map(\.kind), [.scheduled])
+        XCTAssertEqual(map[day(offset: 1)]?.map(\.kind), [.scheduled])
+    }
+
+    func test_build_twiceDailySchedule_emitsOneMarkPerTime() {
+        let marks = scheduleMap(times: ["8:00 AM", "8:00 PM"])[day(offset: 1)] ?? []
+        XCTAssertEqual(marks.map(\.time), ["8:00 AM", "8:00 PM"])
+        XCTAssertEqual(Set(marks.map(\.id)).count, 2)
+    }
+
+    func test_build_mark_carriesPeptideCategory() {
+        XCTAssertEqual(marks(for: [entry(completed: true)]).first?.peptideCategory, MockPeptides.bpc157.category)
+        XCTAssertEqual(scheduleMap()[day(offset: 1)]?.first?.peptideCategory, MockPeptides.bpc157.category)
     }
 
     func test_build_completedEntry_isLogged() {

@@ -151,6 +151,16 @@
         }
       }
     },
+    "%@, %lld logged, %lld not logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld loggade, %3$lld inte loggade"
+          }
+        }
+      }
+    },
     "%@, %lld of %lld sets this week": {
       "localizations": {
         "sv": {
@@ -3345,16 +3355,6 @@
         }
       }
     },
-    "%lld logged · %lld scheduled": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld loggade · %lld schemalagda"
-          }
-        }
-      }
-    },
     "%lld min": {
       "localizations": {
         "sv": {
@@ -3491,6 +3491,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld ms"
+          }
+        }
+      }
+    },
+    "%lld not logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld inte loggade"
           }
         }
       }
