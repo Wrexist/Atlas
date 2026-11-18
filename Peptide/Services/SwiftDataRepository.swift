@@ -420,10 +420,6 @@ final class SwiftDataRepository {
         switch status {
         case .noAccount: return .noAccount
         case .restricted: return .restricted
-        // The store opened without CloudKit because the ubiquity token was
-        // missing (iCloud Drive off), yet the account is there: sync is
-        // unavailable, not "no iCloud account".
-        case .available where cloudSyncState == .noAccount: return .unavailable
         default: return cloudSyncState
         }
     }
