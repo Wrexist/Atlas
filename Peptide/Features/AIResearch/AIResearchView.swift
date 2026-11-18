@@ -167,7 +167,11 @@ struct AIResearchView: View {
                 .frame(maxWidth: 720, alignment: .leading)
                 .frame(maxWidth: .infinity)
             }
-            .defaultScrollAnchor(.bottom)
+            // Short threads and the empty state sit at the top; a long
+            // thread opens on, and follows, its newest turn.
+            .defaultScrollAnchor(.top, for: .alignment)
+            .defaultScrollAnchor(.bottom, for: .initialOffset)
+            .defaultScrollAnchor(.bottom, for: .sizeChanges)
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.containerSize.height
                     >= geometry.contentSize.height - Spacing.xxxxl
@@ -514,9 +518,11 @@ private struct TurnBubble: View {
     }
 
     private var accessibilityLabel: String {
+        if isStreaming && turn.content.isEmpty {
+            return String(localized: "Assistant is typing")
+        }
         let speaker = turn.role == .user ? String(localized: "You") : String(localized: "Assistant")
-        let body = isStreaming && turn.content.isEmpty ? "typing" : turn.content
-        return "\(speaker): \(body)"
+        return "\(speaker): \(turn.content)"
     }
 
     /// Claude answers in Markdown; render inline emphasis, code and links
