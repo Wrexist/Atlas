@@ -10,7 +10,8 @@ import WidgetKit
 /// States:
 ///   • fasting      — elapsed clock, time left, ring filling to the goal
 ///   • goalReached  — green, the clock keeps counting
-///   • ended        — "Fast ended" summary beat, dismissed by the system
+///   • ended        — "Fast ended" summary beat, dismissed by the system;
+///                    green only when the goal was reached
 ///
 /// Every clock and ring is drawn from absolute dates with the system's
 /// timer views, so nothing here needs a push to keep moving. Started,
@@ -68,9 +69,7 @@ struct FastingLiveActivity: Widget {
             DynamicIslandExpandedRegion(.bottom) {
                 VStack(spacing: 8) {
                     GoalProgress(state: state, accent: accent)
-                    if state.endedAt == nil {
-                        EndFastButton(fastId: context.attributes.fastId, accent: accent)
-                    }
+                    FastActionButton(state: state, fastId: context.attributes.fastId, accent: accent)
                 }
             }
         } compactLeading: {
@@ -96,11 +95,13 @@ struct FastingLiveActivity: Widget {
 /// Status → colour, glyph and copy, in one place.
 private enum FastingActivityStyle {
     /// Brand emerald while fasting, matching the Meals tab's fasting
-    /// ring; green once the goal is reached and on the ended beat.
+    /// ring; green once the goal is reached and on the ended beat of a
+    /// fast that reached it. A fast ended early keeps the fasting colour.
     static func accent(for state: FastingActivityAttributes.ContentState) -> Color {
         switch state.status() {
         case .fasting: WidgetPalette.brand
-        case .goalReached, .ended: WidgetPalette.done
+        case .goalReached: WidgetPalette.done
+        case .ended: state.reachedGoal ? WidgetPalette.done : WidgetPalette.brand
         }
     }
 
@@ -108,7 +109,7 @@ private enum FastingActivityStyle {
         switch state.status() {
         case .fasting: "moon.zzz.fill"
         case .goalReached: "checkmark.seal.fill"
-        case .ended: "checkmark.circle.fill"
+        case .ended: state.reachedGoal ? "checkmark.circle.fill" : "stop.circle.fill"
         }
     }
 
@@ -149,9 +150,7 @@ private struct FastingLockView: View {
             VStack(spacing: 12) {
                 topRow
                 GoalProgress(state: state, accent: accent)
-                if state.endedAt == nil {
-                    EndFastButton(fastId: attributes.fastId, accent: accent)
-                }
+                FastActionButton(state: state, fastId: attributes.fastId, accent: accent)
             }
             .padding(14)
         }
@@ -265,9 +264,15 @@ private struct GoalProgress: View {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
                 case .goalReached, .ended:
-                    Label("Goal reached", systemImage: "checkmark")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(accent)
+                    if state.status() == .ended && !state.reachedGoal {
+                        Label("Ended early", systemImage: "stop.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Label("Goal reached", systemImage: "checkmark")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(accent)
+                    }
                 }
                 Spacer(minLength: 0)
                 Text("Goal \(FastingActivityStyle.clock(state.window.targetDuration))")
@@ -283,10 +288,56 @@ private struct GoalProgress: View {
                 }
                 .tint(accent)
             } else {
-                ProgressView(value: 1)
+                ProgressView(value: state.endedAt.map { state.window.progress(at: $0) } ?? 1)
                     .tint(accent)
             }
         }
+    }
+}
+
+/// The lock screen's action. One tap ends a fast that reached its goal;
+/// an unfinished fast opens the app instead, where ending early asks
+/// first, so a stray tap can't cost the streak day. Nothing once ended.
+private struct FastActionButton: View {
+    let state: FastingActivityAttributes.ContentState
+    let fastId: UUID
+    let accent: Color
+
+    var body: some View {
+        switch state.status() {
+        case .goalReached:
+            EndFastButton(fastId: fastId, accent: accent)
+        case .fasting:
+            if let meals = WidgetDeepLink.meals {
+                Link(destination: meals) {
+                    ActionCapsule(title: "Open fast", systemImage: "arrow.up.forward.app.fill", accent: accent)
+                }
+            }
+        case .ended:
+            EmptyView()
+        }
+    }
+}
+
+/// The full-width capsule both lock-screen actions share.
+private struct ActionCapsule: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    let accent: Color
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .heavy))
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.system(size: 14, weight: .heavy, design: .rounded))
+        }
+        .foregroundStyle(labelColor(on: accent, in: colorScheme))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(accent))
     }
 }
 
@@ -295,21 +346,10 @@ private struct GoalProgress: View {
 private struct EndFastButton: View {
     let fastId: UUID
     let accent: Color
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(intent: EndFastLiveActivityIntent(fastId: fastId)) {
-            HStack(spacing: 6) {
-                Image(systemName: "stop.fill")
-                    .font(.system(size: 12, weight: .heavy))
-                    .accessibilityHidden(true)
-                Text("End fast")
-                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-            }
-            .foregroundStyle(labelColor(on: accent, in: colorScheme))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(Capsule().fill(accent))
+            ActionCapsule(title: "End fast", systemImage: "stop.fill", accent: accent)
         }
         .buttonStyle(.plain)
     }

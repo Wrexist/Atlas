@@ -353,6 +353,16 @@
         }
       }
     },
+    "Ended early": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avslutad i förtid"
+          }
+        }
+      }
+    },
     "Entry ID": {
       "localizations": {
         "sv": {
@@ -749,6 +759,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Öppna Atlas för att uppdatera"
+          }
+        }
+      }
+    },
+    "Open fast": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna fastan"
           }
         }
       }

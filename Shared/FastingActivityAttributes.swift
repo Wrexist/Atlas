@@ -131,6 +131,12 @@ extension FastingActivityAttributes.ContentState {
         return window.isGoalReached(at: now) ? .goalReached : .fasting
     }
 
+    /// True once the fast ended at or past its goal. An early end is
+    /// still `.ended`, but mustn't read as a goal met.
+    var reachedGoal: Bool {
+        endedAt.map { window.isGoalReached(at: $0) } ?? false
+    }
+
     /// The goal while it's still ahead: a Live Activity only redraws on
     /// a push or at its stale date, so this is what moves a suspended
     /// app's activity into "Goal reached". Nil after that, since nothing
