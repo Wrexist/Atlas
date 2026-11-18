@@ -49815,6 +49815,16 @@
           }
         }
       }
+    },
+    "Not enough estimates in the last 30 days. Switch to 90 days to see your trend.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte tillräckligt med uppskattningar de senaste 30 dagarna. Byt till 90 dagar för att se din trend."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
