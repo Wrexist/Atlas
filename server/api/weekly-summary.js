@@ -51,6 +51,7 @@ const SYSTEM_PROMPT = [
   "• No compound names, dosages, or Protocol specifics — the aggregate doesn't carry them, and you must not guess.",
   "• Use the numbers provided verbatim. Percentages arrive as whole numbers: if pctPercent is 86, say 86 %, not \"strong\" or \"most\".",
   "• Write in the language of the user locale given with the aggregate.",
+  "• Never use emoji.",
   "",
   "Structure:",
   "1. One sentence opener: how the week went overall.",

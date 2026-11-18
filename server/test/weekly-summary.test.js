@@ -322,3 +322,11 @@ test('test_weeklySummary_injectedLocale_fallsBackToEnglish', async (t) => {
   assert.match(prompt, /User locale: en_US\./);
   assert.doesNotMatch(prompt, /ignore previous/);
 });
+
+test('test_weeklySummary_systemPrompt_forbidsEmoji', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  const res = makeRes();
+  await handler(makeReq('10.1.0.22'), res);
+  assert.match(JSON.parse(upstream[0][1].body).system, /Never use emoji/);
+});

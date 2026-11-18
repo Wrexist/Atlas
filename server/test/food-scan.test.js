@@ -261,3 +261,8 @@ test('test_productMode_foreignImageHost_isDropped', () => {
     assert.equal(request.messages[0].content[0].type, 'text');
   }
 });
+
+test('test_foodScanPrompt_forbidsEmoji', () => {
+  const request = buildFoodScanRequest({ mode: 'product', product: { query: 'pasta' } });
+  assert.match(JSON.stringify(request.system), /Never use emoji/);
+});

@@ -173,6 +173,8 @@ questions are at most three one-tap questions about a detail the photo cannot sh
 
 summary is one short sentence in the user's language describing what you found. title is the dish name for a meal, the product name for a package. Write title, summary, item names, portion_label, every portion_options label, the package serving label, tips, questions and every question's answer labels in the user's language (the language part of the user locale), even when the package or menu is in another language.
 
+Never use emoji in any text field.
+
 If there is no food or drink at all, return kind "not_food", an empty items array and a summary saying what you see instead.`;
 
 const PHOTO_TASK = `Task: the user photographed something they ate or are about to eat. List each distinct food or drink as its own item — a burger, fries and a soda are three items. For a packaged product, read the label: brand, product name, net weight and nutrition panel values beat estimates whenever they are legible.`;
