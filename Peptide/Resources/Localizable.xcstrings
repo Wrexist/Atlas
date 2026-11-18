@@ -14230,16 +14230,6 @@
         }
       }
     },
-    "Goal & Atlas Score": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mål och Atlas-poäng"
-          }
-        }
-      }
-    },
     "Goal reached": {
       "localizations": {
         "sv": {
@@ -20920,16 +20910,6 @@
         }
       }
     },
-    "Health Monitor": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hälsomonitor"
-          }
-        }
-      }
-    },
     "Health signals": {
       "localizations": {
         "sv": {
@@ -25156,16 +25136,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Flytta upp"
-          }
-        }
-      }
-    },
-    "Movement": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rörelse"
           }
         }
       }
@@ -32564,26 +32534,6 @@
         }
       }
     },
-    "Scrolls to today's doses": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rullar till dagens doser"
-          }
-        }
-      }
-    },
-    "Scrolls to today's habits": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rullar till dagens vanor"
-          }
-        }
-      }
-    },
     "Sections": {
       "localizations": {
         "sv": {
@@ -34526,16 +34476,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sömnen är signalen som håller tillbaka din poäng. Att gå och lägga dig tidigare påverkar det här värdet snabbare än något annat du kan göra idag."
-          }
-        }
-      }
-    },
-    "Sleep is the single biggest lever for recovery, hormone regulation, and protocol response.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sömn är den enskilt största faktorn för återhämtning, hormonreglering och hur du svarar på ett protokoll."
           }
         }
       }
@@ -37402,16 +37342,6 @@
         }
       }
     },
-    "Timeline": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tidslinje"
-          }
-        }
-      }
-    },
     "Times per day": {
       "localizations": {
         "sv": {
@@ -39702,16 +39632,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "VÄLKOMMEN"
-          }
-        }
-      }
-    },
-    "Wellness check-in": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Välmåendeincheckning"
           }
         }
       }
@@ -44863,7 +44783,57 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld av %lld doser tagna"
+            "value": "%1$lld av %#@arg2@"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dos tagen"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg doser tagna"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %#@arg2@"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dose taken"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg doses taken"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -47879,16 +47849,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Återställ standard"
-          }
-        }
-      }
-    },
-    "Customize Today": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anpassa Idag"
           }
         }
       }
@@ -51658,6 +51618,247 @@
           "stringUnit": {
             "state": "translated",
             "value": "Biomarkör"
+          }
+        }
+      }
+    },
+    "Needs Atlas Pro": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver Atlas Pro"
+          }
+        }
+      }
+    },
+    "Shows once you log a meal, check-in or workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visas när du loggar en måltid, incheckning eller ett träningspass"
+          }
+        }
+      }
+    },
+    "Turn on Weekly recap in Profile": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slå på Veckosammanfattning i Profil"
+          }
+        }
+      }
+    },
+    "Nothing was scheduled": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget var schemalagt"
+          }
+        }
+      }
+    },
+    "All doses taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla doser tagna"
+          }
+        }
+      }
+    },
+    "No doses were due that day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga doser skulle tas den dagen."
+          }
+        }
+      }
+    },
+    "Sleep is the single biggest lever for recovery, training progress, and how you feel the next day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömn är den enskilt största faktorn för återhämtning, träningsframsteg och hur du mår dagen efter."
+          }
+        }
+      }
+    },
+    "Shows today's habits": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar dagens vanor"
+          }
+        }
+      }
+    },
+    "Shows today's doses": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar dagens doser"
+          }
+        }
+      }
+    },
+    "Added %@": {
+      "comment": "Toast after a one-tap water log on Today. The value is the amount with its unit.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lade till %@"
+          }
+        }
+      }
+    },
+    "No calories logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga kalorier loggade"
+          }
+        }
+      }
+    },
+    "No streak": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen svit"
+          }
+        }
+      }
+    },
+    "No check-in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen incheckning"
+          }
+        }
+      }
+    },
+    "Shows once you connect Apple Health or log a workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visas när du ansluter Apple Hälsa eller loggar ett träningspass"
+          }
+        }
+      }
+    },
+    "Shows once you add a protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visas när du lägger till ett protokoll"
+          }
+        }
+      }
+    },
+    "Needs step data from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver stegdata från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Needs Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Shows after a week of Apple Health data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visas efter en vecka med data från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "%lld achievements unlocked": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@arg1@"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg prestation upplåst"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg prestationer upplåsta"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@arg1@"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg achievement unlocked"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg achievements unlocked"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

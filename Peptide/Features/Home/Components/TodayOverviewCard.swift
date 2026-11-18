@@ -101,7 +101,7 @@ struct TodayOverviewCard: View {
         if snapshot.caloriesToday > 0 {
             return String(localized: "kcal logged")
         }
-        return String(localized: "Set a target")
+        return isToday ? String(localized: "Set a target") : String(localized: "No calories logged")
     }
 
     private var mealStreakTile: some View {
@@ -114,7 +114,7 @@ struct TodayOverviewCard: View {
                 ? String(localized: "day")
                 : (snapshot.mealStreak > 1
                     ? String(localized: "days in a row")
-                    : String(localized: "Log to start"))
+                    : (isToday ? String(localized: "Log to start") : String(localized: "No streak")))
         )
     }
 
@@ -126,7 +126,7 @@ struct TodayOverviewCard: View {
             tint: AppColor.metricHRV,
             footnote: snapshot.checkInScore != nil
                 ? String(localized: "of 5.0")
-                : String(localized: "30-sec check-in"),
+                : (isToday ? String(localized: "30-sec check-in") : String(localized: "No check-in")),
             progress: snapshot.checkInScore.map { $0 / 5.0 }
         )
     }

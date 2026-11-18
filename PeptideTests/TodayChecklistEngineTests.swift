@@ -22,6 +22,7 @@ final class TodayChecklistEngineTests: XCTestCase {
         profile: UserProfile = .fresh,
         waterOz: Int = 0,
         trainedToday: Bool = false,
+        weekSessionCount: Int = 0,
         steps: Double? = nil,
         hour: Int = 12
     ) -> TodayChecklistEngine.State {
@@ -33,6 +34,7 @@ final class TodayChecklistEngineTests: XCTestCase {
                 return day
             }(),
             trainedToday: trainedToday,
+            weekSessionCount: weekSessionCount,
             steps: steps,
             now: monday(hour),
             calendar: calendar
@@ -43,7 +45,7 @@ final class TodayChecklistEngineTests: XCTestCase {
         let s = state(hour: 8)
         XCTAssertEqual(s.completedCount, 0)
         XCTAssertEqual(s.nextMeal, .breakfast)
-        XCTAssertTrue(s.isTrainingDay, "No preferred days means every day is a training day")
+        XCTAssertTrue(s.isTrainingDay, "No preferred days and the weekly target not met is a training day")
     }
 
     func test_meals_doneOnlyWhenAllThreeMainMealsLoggedToday() {
@@ -92,6 +94,36 @@ final class TodayChecklistEngineTests: XCTestCase {
         profile.trainingPreferences = TrainingPreferences(preferredDays: [.monday])
         XCTAssertFalse(state(profile: profile).isDone(.training))
         XCTAssertTrue(state(profile: profile, trainedToday: true).isDone(.training))
+    }
+
+    func test_emptyPreferredDays_weeklyTargetMet_isNotTrainingDay() {
+        var profile = UserProfile.fresh
+        profile.trainingPreferences = TrainingPreferences(daysPerWeek: 3, preferredDays: [])
+        let s = state(profile: profile, weekSessionCount: 3)
+        XCTAssertFalse(s.isTrainingDay)
+        XCTAssertTrue(s.isDone(.training))
+    }
+
+    func test_emptyPreferredDays_weeklyTargetNotMet_isTrainingDay() {
+        var profile = UserProfile.fresh
+        profile.trainingPreferences = TrainingPreferences(daysPerWeek: 3, preferredDays: [])
+        let s = state(profile: profile, weekSessionCount: 2)
+        XCTAssertTrue(s.isTrainingDay)
+        XCTAssertFalse(s.isDone(.training))
+    }
+
+    func test_emptyPreferredDays_targetMetByTodaysSession_staysTrainingDay() {
+        var profile = UserProfile.fresh
+        profile.trainingPreferences = TrainingPreferences(daysPerWeek: 3, preferredDays: [])
+        let s = state(profile: profile, trainedToday: true, weekSessionCount: 3)
+        XCTAssertTrue(s.isTrainingDay)
+        XCTAssertTrue(s.isDone(.training))
+    }
+
+    func test_pickedWeekday_ignoresWeeklyCount() {
+        var profile = UserProfile.fresh
+        profile.trainingPreferences = TrainingPreferences(daysPerWeek: 1, preferredDays: [.monday])
+        XCTAssertTrue(state(profile: profile, weekSessionCount: 5).isTrainingDay)
     }
 
     func test_water_doneAtTarget() {

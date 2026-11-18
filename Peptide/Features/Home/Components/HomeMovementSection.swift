@@ -5,7 +5,8 @@ import SwiftUI
 /// can grow later (HRV trend, training plan card, weekly volume)
 /// without re-flowing HomeView.
 ///
-/// Tapping the card switches to the Train tab. It used to push the
+/// On today, tapping the card switches to the Train tab; a browsed past
+/// day is a read-only record. It used to push the
 /// legacy `WorkoutDetailView` "Workout Tracker" — a parallel workout
 /// surface, and the only presenter that screen had left — so Today
 /// and Train told two different training stories (Product
@@ -18,6 +19,15 @@ struct HomeMovementSection: View {
     let summary: (count: Int, minutes: Int)
     var isPastDay = false
 
+    /// Nil on a past day, which leaves the card a plain record.
+    private var openTrain: (() -> Void)? {
+        guard !isPastDay else { return nil }
+        return {
+            Haptics.selection()
+            appState.selectedTab = .train
+        }
+    }
+
     var body: some View {
         VStack(spacing: Spacing.sm) {
             HomeSectionHeader(title: "Training")
@@ -25,10 +35,7 @@ struct HomeMovementSection: View {
             WorkoutCard(
                 sessionCountToday: summary.count,
                 durationMinutesToday: summary.minutes,
-                onTap: {
-                    Haptics.selection()
-                    appState.selectedTab = .train
-                },
+                onTap: openTrain,
                 isPastDay: isPastDay
             )
         }

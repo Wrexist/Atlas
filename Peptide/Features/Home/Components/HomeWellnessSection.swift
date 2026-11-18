@@ -5,14 +5,33 @@ import SwiftUI
 /// stays on Today even though the correlation cards it feeds moved
 /// to Insights in Phase 32.
 ///
-/// Owns its own check-in sheet because no other surface presents
-/// it, and pre-fills with yesterday's values so the user's first
-/// interaction is a one-tap nudge instead of resetting five
+/// The check-in sheet pre-fills with yesterday's values so the user's
+/// first interaction is a one-tap nudge instead of resetting five
 /// sliders from neutral.
 struct HomeWellnessSection: View {
     @Environment(DataStore.self) private var dataStore
 
     @State private var showOutcomeCheckIn = false
+
+    var body: some View {
+        VStack(spacing: Spacing.sm) {
+            HomeSectionHeader(title: "How you're feeling")
+
+            DailyCheckInCard(
+                todayEntry: dataStore.outcome(),
+                onTap: { showOutcomeCheckIn = true }
+            )
+        }
+        .dailyCheckInSheet(isPresented: $showOutcomeCheckIn)
+    }
+}
+
+/// Today's check-in sheet, pre-filled with today's entry or else the
+/// most recent earlier one. Shared so Today can open it even when the
+/// user has hidden this section.
+private struct DailyCheckInSheetModifier: ViewModifier {
+    @Environment(DataStore.self) private var dataStore
+    @Binding var isPresented: Bool
 
     /// Most recent outcome entry from before today. Used to pre-fill
     /// the check-in sheet so the user nudges yesterday's values
@@ -25,16 +44,8 @@ struct HomeWellnessSection: View {
             .max { $0.date < $1.date }
     }
 
-    var body: some View {
-        VStack(spacing: Spacing.sm) {
-            HomeSectionHeader(title: "How you're feeling")
-
-            DailyCheckInCard(
-                todayEntry: dataStore.outcome(),
-                onTap: { showOutcomeCheckIn = true }
-            )
-        }
-        .sheet(isPresented: $showOutcomeCheckIn) {
+    func body(content: Content) -> some View {
+        content.sheet(isPresented: $isPresented) {
             OutcomeCheckInSheet(
                 date: Date(),
                 initial: dataStore.outcome(),
@@ -42,11 +53,17 @@ struct HomeWellnessSection: View {
                 onSave: { entry in
                     dataStore.logOutcome(entry)
                     Haptics.success()
-                    showOutcomeCheckIn = false
+                    isPresented = false
                 },
-                onCancel: { showOutcomeCheckIn = false }
+                onCancel: { isPresented = false }
             )
             .liquidGlassPresentation()
         }
+    }
+}
+
+extension View {
+    func dailyCheckInSheet(isPresented: Binding<Bool>) -> some View {
+        modifier(DailyCheckInSheetModifier(isPresented: isPresented))
     }
 }

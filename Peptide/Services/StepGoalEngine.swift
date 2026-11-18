@@ -12,9 +12,6 @@ enum StepGoalEngine {
     static let goalIncrement = 500
     /// How often Today re-reads its step count while it stays on screen.
     static let liveRefreshSeconds = 300
-    /// Days of Health step history fetched for today, so "Health has no
-    /// step data at all" can be told apart from "no steps yet today".
-    static let lookbackDays = 7
 
     /// The goal Today counts toward: the saved one, kept inside
     /// `goalRange`, or the default when none was ever saved.
@@ -36,10 +33,33 @@ enum StepGoalEngine {
         goal > 0 && steps >= Double(goal)
     }
 
-    /// How many days back to fetch so the window covers the day
-    /// `dayOffset` days from today (0 = today, -1 = yesterday).
-    static func fetchDays(forDayOffset dayOffset: Int) -> Int {
-        max(lookbackDays, 1 - min(dayOffset, 0))
+    /// Days of Health step history Today fetches: every day its day
+    /// switcher reaches, today included. A window sized to the shown day
+    /// left the next day back outside it, so paging back dropped the
+    /// steps row until a refetch put it back. A window longer than a day
+    /// also tells "Health has no step data at all" apart from "no steps
+    /// yet today".
+    static let fetchDays = LifestyleDataLogic.maxMealDayLookback + 1
+    /// Days the live tick re-reads while Today stays open: today, plus
+    /// yesterday for a late Watch sync. Older days are final, so the
+    /// tick doesn't re-run the year-long query.
+    static let recentFetchDays = 2
+
+    /// `full` with its last `recentFetchDays` days replaced by `recent`,
+    /// a fresh read of just those days. A day `recent` has no bucket for
+    /// walked 0, so it drops out rather than keeping a stale count.
+    static func merging(
+        recent: [(date: Date, value: Double)],
+        into full: [(date: Date, value: Double)],
+        now: Date,
+        calendar: Calendar = .current
+    ) -> [(date: Date, value: Double)] {
+        guard let cutoff = calendar.date(
+            byAdding: .day,
+            value: -(recentFetchDays - 1),
+            to: calendar.startOfDay(for: now)
+        ) else { return full }
+        return full.filter { $0.date < cutoff } + recent
     }
 
     /// Steps on `day` from Health's daily buckets, which only hold days

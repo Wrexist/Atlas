@@ -12,7 +12,8 @@ import UIKit
 ///     level-up moments. Drained one at a time.
 ///   • `AchievementService.latestUnlock` — achievement unlocks. The host
 ///     shows the confetti and the explanatory toast together, so an unlock
-///     earned on Train or Meals is explained where it happened.
+///     earned on Train or Meals is explained where it happened. Unlocks
+///     queued together share one summary toast.
 ///
 /// Reduce Motion suppresses confetti (the level-up card still shows, and
 /// fades rather than pops). Confetti is decorative and never blocks
@@ -26,7 +27,8 @@ struct CelebrationHostView: View {
 
     @State private var burst: ConfettiBurst?
     @State private var levelUp: LevelUpPresentation?
-    @State private var toastAchievement: Achievement?
+    /// The unlocks the current toast stands for, head first.
+    @State private var toastUnlocks: [Achievement] = []
     @State private var showAchievementToast = false
 
     /// Milestones big enough to be a good moment for the review prompt —
@@ -84,8 +86,8 @@ struct CelebrationHostView: View {
         .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: levelUp?.id)
         // Outside the hit-testing gate so the toast's Dismiss stays tappable.
         .overlay {
-            if center.current == nil, let toastAchievement {
-                AchievementToastView(achievement: toastAchievement, isShowing: $showAchievementToast)
+            if center.current == nil, let first = toastUnlocks.first {
+                AchievementToastView(achievement: first, count: toastUnlocks.count, isShowing: $showAchievementToast)
             }
         }
         .task(id: center.current?.id) { await present(center.current) }
@@ -95,12 +97,16 @@ struct CelebrationHostView: View {
         }
         .onChange(of: showAchievementToast) { _, isShowing in
             guard !isShowing else { return }
-            if let shown = toastAchievement, Self.reviewWorthyAchievements.contains(shown.id) {
+            if toastUnlocks.contains(where: { Self.reviewWorthyAchievements.contains($0.id) }) {
                 ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
             }
-            // Drain one queued unlock when its toast finishes, surfacing
-            // the next one if a single save crossed several milestones.
-            achievements.acknowledgeLatestUnlock()
+            // Drain what this toast showed once it has slid away, so the
+            // next one never overlaps the outgoing card.
+            let shownCount = toastUnlocks.count
+            Task { @MainActor in
+                try? await Task.sleep(for: AppAnimation.toastHandoffDelay)
+                achievements.acknowledgeUnlocks(shownCount)
+            }
         }
     }
 
@@ -174,8 +180,14 @@ struct CelebrationHostView: View {
     }
 
     private func presentAchievement() {
-        guard let unlock = achievements.latestUnlock else { return }
-        toastAchievement = unlock
+        let unlocks = achievements.pendingUnlocks
+        guard !unlocks.isEmpty else { return }
+        // Screenshot captures stay clear of celebration chrome.
+        guard !ScreenshotMode.shared.isEnabled else {
+            achievements.acknowledgeUnlocks(unlocks.count)
+            return
+        }
+        toastUnlocks = unlocks
         AppAnimation.with(AppAnimation.springBouncy) { showAchievementToast = true }
         // The toast carries its own artwork. Avoid replacing an in-flight
         // habit/level-up burst with a second celebration for one tap.

@@ -29,8 +29,8 @@ struct CoachingCard: View {
     private func hint(for action: CoachingMessageEngine.CoachingMessage.Action) -> Text {
         switch action {
         case .connectHealth: Text("Asks to connect Apple Health")
-        case .scrollToHabits: Text("Scrolls to today's habits")
-        case .scrollToDoses: Text("Scrolls to today's doses")
+        case .scrollToHabits: Text("Shows today's habits")
+        case .scrollToDoses: Text("Shows today's doses")
         }
     }
 
@@ -42,7 +42,7 @@ struct CoachingCard: View {
                 Text(message.eyebrow)
                     .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(1.0)
-                    .foregroundStyle(toneColor.opacity(0.85))
+                    .foregroundStyle(AppColor.textSecondary)
 
                 Text(message.title)
                     .font(AppFont.scaled(16, weight: .semibold))
@@ -68,30 +68,17 @@ struct CoachingCard: View {
                     .accessibilityHidden(true)
             }
         }
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(toneColor.opacity(0.25), lineWidth: 0.8)
-                }
-        }
+        .padding(Spacing.lg)
+        // The same raised surface as every other Today card, and no tone
+        // colour: the screen keeps one accent, and the title already
+        // carries whether the news is good or cautionary.
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .contentShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 
     private var iconBadge: some View {
         IconTile(message.icon, size: 38, silhouette: .circle)
-    }
-
-    private var toneColor: Color {
-        switch message.tone {
-        case .positive:   AppColor.success
-        case .cautionary: AppColor.warning
-        case .neutral:    AppColor.accentLight
-        case .welcome:    AppColor.accentPrimary
-        }
     }
 }
 
