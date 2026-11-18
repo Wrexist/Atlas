@@ -161,6 +161,28 @@
         }
       }
     },
+    "%lld day meal-logging streak.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dags loggningssvit för måltider."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dagars loggningssvit för måltider."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld kcal over": {
       "localizations": {
         "sv": {

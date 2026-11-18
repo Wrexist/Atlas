@@ -16,4 +16,15 @@ final class MealStreakBadgeTests: XCTestCase {
     func test_streakPastLastMilestone_hasNoNextMilestone() {
         XCTAssertNil(MealStreakBadge.nextMilestone(after: 365))
     }
+
+    func test_firstStreakDay_voiceOverOmitsBestClause() {
+        let label = MealStreakBadge(currentStreak: 1, bestStreak: 1).voiceOverLabel
+        XCTAssertFalse(label.contains("Best"))
+        XCTAssertFalse(label.contains("days"))
+    }
+
+    func test_streakBelowBest_voiceOverNamesTheBest() {
+        let label = MealStreakBadge(currentStreak: 2, bestStreak: 5).voiceOverLabel
+        XCTAssertTrue(label.contains("Best 5 days"))
+    }
 }

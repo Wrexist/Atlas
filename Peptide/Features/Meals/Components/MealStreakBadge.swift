@@ -129,7 +129,7 @@ struct MealStreakBadge: View {
         milestones.sorted().first { $0 > streak }
     }
 
-    private var voiceOverLabel: String {
+    var voiceOverLabel: String {
         if currentStreak == 0 && bestStreak == 1 {
             return String(
                 localized: "Meal-logging streak paused. Best streak 1 day.",
@@ -149,6 +149,13 @@ struct MealStreakBadge: View {
             return String(
                 localized: "\(currentStreak) day meal-logging streak. New personal best.",
                 comment: "VoiceOver readout when the current streak ties or beats the previous best."
+            )
+        }
+        // The first day is its own best; "Best 1 days" adds nothing.
+        if bestStreak <= currentStreak {
+            return String(
+                localized: "\(currentStreak) day meal-logging streak.",
+                comment: "VoiceOver readout for an active streak that is also the personal best."
             )
         }
         return String(
