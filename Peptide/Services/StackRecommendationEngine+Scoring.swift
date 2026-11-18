@@ -27,7 +27,7 @@ extension StackRecommendationEngine {
             window != .anyTime && (windowCounts[window] ?? 0) <= 1
         }) {
             return (1, .timingComplement(
-                description: String(localized: "Fills a \(underservedWindow.rawValue) dosing gap in your schedule")
+                description: String(localized: "Fills a \(PeptideCompatibilityData.displayText(underservedWindow.rawValue)) dosing gap in your schedule")
             ))
         }
         return (0, nil)

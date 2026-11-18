@@ -6010,6 +6010,36 @@
         }
       }
     },
+    "AOD-9604 activates beta-3 adrenergic fat metabolism. Tesamorelin specifically reduces visceral adipose tissue via pulsatile GH release. Different pathways: AOD targets adipocyte lipolysis directly; Tesamorelin works through the GHRH receptor.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AOD-9604 aktiverar beta-3-adrenerg fettmetabolism. Tesamorelin minskar specifikt visceralt fett via pulsatil GH-frisättning. Olika vägar: AOD verkar direkt på fettcellernas lipolys; Tesamorelin verkar via GHRH-receptorn."
+          }
+        }
+      }
+    },
+    "AOD-9604 directly enhances fat metabolism via beta-3 adrenergic receptors without raising IGF-1 or insulin. CJC-1295/Ipamorelin elevate GH for lean mass preservation. Different pathways — AOD targets adipocytes directly while GH peptides work systemically.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AOD-9604 förstärker fettmetabolismen direkt via beta-3-adrenerga receptorer utan att höja IGF-1 eller insulin. CJC-1295/Ipamorelin höjer GH för att bevara mager massa. Olika vägar — AOD verkar direkt på fettceller medan GH-peptiderna verkar systemiskt."
+          }
+        }
+      }
+    },
+    "Acetylated form — longer lasting. Morning for all-day cognition": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acetylerad form — längre verkan. På morgonen för kognition hela dagen"
+          }
+        }
+      }
+    },
     "Add a note about today": {
       "localizations": {
         "sv": {
@@ -6040,6 +6070,16 @@
         }
       }
     },
+    "Adds GHK-Cu's collagen synthesis (up to 70% increase in Type I/III collagen) to the Wolverine combination. GHK-Cu provides the copper cofactor for lysyl oxidase cross-linking that neither BPC-157 nor TB-500 directly addresses.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägger till GHK-Cu:s kollagensyntes (upp till 70 % ökning av typ I/III-kollagen) i Wolverine-kombinationen. GHK-Cu ger kopparkofaktorn för lysyloxidasens tvärbindning, som varken BPC-157 eller TB-500 påverkar direkt."
+          }
+        }
+      }
+    },
     "Age-group comparisons: FRIEND registry (VO2 max) and CDC NHANES (resting heart rate).": {
       "localizations": {
         "sv": {
@@ -6056,6 +6096,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Alla måltider"
+          }
+        }
+      }
+    },
+    "Allow assessment of healing progress; no known receptor desensitization": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ger tid att bedöma läkningen; ingen känd receptordesensibilisering"
+          }
+        }
+      }
+    },
+    "Allow assessment of visceral fat reduction progress": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ger tid att bedöma minskningen av visceralt fett"
+          }
+        }
+      }
+    },
+    "Allow collagen remodeling to stabilize between courses": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låter kollagenombyggnaden stabiliseras mellan kurerna"
+          }
+        }
+      }
+    },
+    "Any time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "När som helst"
           }
         }
       }
@@ -6096,6 +6176,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fråga vad som påverkar din biologiska ålder."
+          }
+        }
+      }
+    },
+    "Assess metabolic response and prevent GI tolerance issues": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedöm den metabola responsen och förebygg mag-tarmproblem"
           }
         }
       }
@@ -6160,12 +6250,92 @@
         }
       }
     },
+    "BDNF upregulation persists during off-period; prevents receptor adaptation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BDNF-uppregleringen kvarstår under uppehållet; förhindrar receptoranpassning"
+          }
+        }
+      }
+    },
+    "BPC-157 and TB-500 accelerate tissue repair through complementary mechanisms (VEGF/NO and actin regulation). CJC-1295/Ipamorelin elevate GH for systemic anabolism and protein synthesis. Four non-overlapping pathways supporting training recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPC-157 och TB-500 påskyndar vävnadsreparation genom kompletterande mekanismer (VEGF/NO och aktinreglering). CJC-1295/Ipamorelin höjer GH för systemisk anabolism och proteinsyntes. Fyra icke-överlappande vägar som stöder återhämtning från träning."
+          }
+        }
+      }
+    },
+    "BPC-157 drives tendon/ligament healing via growth factor upregulation. GHK-Cu promotes collagen III synthesis for cartilage. AOD-9604 provides anti-inflammatory action at the joint without IGF-1 elevation.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPC-157 driver läkning av senor och ligament genom uppreglering av tillväxtfaktorer. GHK-Cu främjar syntes av typ III-kollagen för brosk. AOD-9604 ger antiinflammatorisk verkan i leden utan att höja IGF-1."
+          }
+        }
+      }
+    },
+    "BPC-157 heals GI mucosal lining and modulates the gut-brain vagal pathway. KPV reduces intestinal inflammation via NF-κB inhibition. Semax provides BDNF-mediated neuroprotection. Together they address the gut-brain axis from both ends.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPC-157 läker mag-tarmkanalens slemhinna och modulerar tarm–hjärnans vagusbana. KPV minskar tarminflammation via NF-κB-hämning. Semax ger BDNF-medierat nervskydd. Tillsammans täcker de tarm–hjärnaxeln från båda håll."
+          }
+        }
+      }
+    },
+    "BPC-157 protects and repairs GI mucosal lining. KPV reduces intestinal inflammation. TA1 supports systemic immune function. Addresses gut-immune axis from mucosal barrier, inflammation, and systemic immunity simultaneously.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPC-157 skyddar och reparerar mag-tarmkanalens slemhinna. KPV minskar tarminflammation. TA1 stöder systemisk immunfunktion. Täcker tarm–immunaxeln från slemhinnebarriär, inflammation och systemisk immunitet samtidigt."
+          }
+        }
+      }
+    },
+    "BPC-157 upregulates VEGF and nitric oxide for blood vessel formation while TB-500 regulates actin for cell migration. Together they address complementary stages of the healing cascade.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BPC-157 uppreglerar VEGF och kväveoxid för bildning av blodkärl medan TB-500 reglerar aktin för cellmigration. Tillsammans täcker de kompletterande steg i läkningskaskaden."
+          }
+        }
+      }
+    },
     "Bedtime": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Läggdags"
+          }
+        }
+      }
+    },
+    "Before bed": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Före sänggåendet"
+          }
+        }
+      }
+    },
+    "Best before bed on empty stomach for synergy with natural GH pulse": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bäst före sänggåendet på fastande mage för synergi med den naturliga GH-pulsen"
           }
         }
       }
@@ -6200,12 +6370,122 @@
         }
       }
     },
+    "Both activate GLP-1 and GIP receptors. Retatrutide adds glucagon agonism. Combining creates excessive incretin pathway stimulation.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båda aktiverar GLP-1- och GIP-receptorer. Retatrutide lägger till glukagonagonism. Kombinationen ger överdriven stimulering av inkretinvägen."
+          }
+        }
+      }
+    },
+    "Both activate GLP-1 receptors. Tirzepatide also activates GIP. Combining amplifies GI side effects (nausea, vomiting, diarrhea) and increases hypoglycemia risk. No clinical evidence supports additive weight loss.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båda aktiverar GLP-1-receptorer. Tirzepatide aktiverar även GIP. Kombinationen förstärker mag-tarmbiverkningar (illamående, kräkningar, diarré) och ökar risken för hypoglykemi. Inga kliniska belägg stöder additiv viktminskning."
+          }
+        }
+      }
+    },
+    "Both activate the same GHS-R1a receptor. Combining saturates the receptor without additive GH benefit and amplifies side effects (GHRP-6 elevates cortisol and stimulates appetite).": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båda aktiverar samma GHS-R1a-receptor. Kombinationen mättar receptorn utan extra GH-nytta och förstärker biverkningarna (GHRP-6 höjer kortisol och stimulerar aptiten)."
+          }
+        }
+      }
+    },
+    "Both are GHS-R1a agonists with overlapping side effect profiles (appetite stimulation, cortisol elevation). Combining them amplifies these without proportional GH increase.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båda är GHS-R1a-agonister med överlappande biverkningsprofiler (aptitstimulering, förhöjt kortisol). Kombinationen förstärker dessa utan proportionell GH-ökning."
+          }
+        }
+      }
+    },
+    "Both are GLP-1 receptor agonists with overlapping mechanisms. Semaglutide is longer-acting and generally more effective. No benefit to combining.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båda är GLP-1-receptoragonister med överlappande mekanismer. Semaglutide är längre verkande och generellt mer effektivt. Ingen nytta med att kombinera."
+          }
+        }
+      }
+    },
+    "Both directly activate IGF-1 receptors. Combining them can lead to excessive IGF-1 signaling: joint pain, water retention, hypoglycemia, and theoretical organ growth risk.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båda aktiverar IGF-1-receptorer direkt. Kombinationen kan ge överdriven IGF-1-signalering: ledsmärta, vätskeansamling, hypoglykemi och teoretisk risk för organtillväxt."
+          }
+        }
+      }
+    },
+    "Both target GHS-R1a. GHRP-2 elevates ACTH to 350% of baseline and increases cortisol. Adding Ipamorelin provides no additional receptor-level benefit.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båda verkar på GHS-R1a. GHRP-2 höjer ACTH till 350 % av utgångsvärdet och ökar kortisol. Att lägga till Ipamorelin ger ingen ytterligare nytta på receptornivå."
+          }
+        }
+      }
+    },
     "Build workout": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Bygg pass"
+          }
+        }
+      }
+    },
+    "CJC-1295 (GHRH analog) activates cAMP/PKA via the GHRH receptor while Ipamorelin (GHS-R agonist) activates phospholipase C via the ghrelin receptor. Different receptors produce synergistic GH release 2-3x greater than either alone.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CJC-1295 (GHRH-analog) aktiverar cAMP/PKA via GHRH-receptorn medan Ipamorelin (GHS-R-agonist) aktiverar fosfolipas C via ghrelinreceptorn. Olika receptorer ger en synergistisk GH-frisättning som är 2–3 gånger större än var för sig."
+          }
+        }
+      }
+    },
+    "CJC-1295/Ipamorelin elevate systemic GH for protein synthesis and recovery. IGF-1 LR3 provides direct downstream anabolic signaling with extended half-life (20-30 hours). GH peptides drive hepatic IGF-1; exogenous IGF-1 LR3 adds localized muscle-specific growth.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CJC-1295/Ipamorelin höjer systemiskt GH för proteinsyntes och återhämtning. IGF-1 LR3 ger direkt nedströms anabol signalering med förlängd halveringstid (20–30 timmar). GH-peptider driver IGF-1 från levern; exogent IGF-1 LR3 lägger till lokal muskelspecifik tillväxt."
+          }
+        }
+      }
+    },
+    "CJC-1295/Ipamorelin pre-bed dosing amplifies natural nocturnal GH pulse for deep sleep-phase recovery. Epitalon supports melatonin synthesis via pineal gland activation, improving circadian rhythm regulation.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CJC-1295/Ipamorelin före sänggåendet förstärker den naturliga nattliga GH-pulsen för återhämtning under djupsömn. Epitalon stöder melatoninsyntes genom att aktivera tallkottkörteln, vilket förbättrar regleringen av dygnsrytmen."
+          }
+        }
+      }
+    },
+    "CJC-1295/Ipamorelin stimulate the GH axis for systemic anabolism. Kisspeptin activates GnRH neurons to support the HPG axis (LH/FSH/testosterone). Two independent endocrine axes stimulated without receptor overlap.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CJC-1295/Ipamorelin stimulerar GH-axeln för systemisk anabolism. Kisspeptin aktiverar GnRH-neuroner för att stödja HPG-axeln (LH/FSH/testosteron). Två oberoende endokrina axlar stimuleras utan receptoröverlappning."
           }
         }
       }
@@ -6220,12 +6500,52 @@
         }
       }
     },
+    "Choose one GHRP and pair it with a GHRH analog for true synergy.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en GHRP och kombinera den med en GHRH-analog för verklig synergi."
+          }
+        }
+      }
+    },
+    "Cognitive/Nootropic": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kognitiv/nootropisk"
+          }
+        }
+      }
+    },
+    "Combine with Ipamorelin at same injection time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kombinera med Ipamorelin vid samma injektionstillfälle"
+          }
+        }
+      }
+    },
     "Connect Apple Health to fill this in": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Anslut Apple Hälsa för att fylla i det här"
+          }
+        }
+      }
+    },
+    "Continuous oral GHS-R activation leads to progressive downregulation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontinuerlig oral GHS-R-aktivering leder till gradvis nedreglering"
           }
         }
       }
@@ -6331,6 +6651,16 @@
         }
       }
     },
+    "Daily injection. Morning dosing may help with daytime appetite control": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daglig injektion. Morgondosering kan hjälpa aptitkontrollen under dagen"
+          }
+        }
+      }
+    },
     "Deep sleep": {
       "localizations": {
         "sv": {
@@ -6411,6 +6741,16 @@
         }
       }
     },
+    "Empty stomach required. 30 min before bed or upon waking": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastande mage krävs. 30 min före sänggåendet eller vid uppvaknandet"
+          }
+        }
+      }
+    },
     "Empty workout": {
       "localizations": {
         "sv": {
@@ -6461,6 +6801,46 @@
         }
       }
     },
+    "Epitalon activates telomerase for telomere maintenance. GHK-Cu stimulates collagen/elastin synthesis and has broad gene-resetting activity. BPC-157 provides systemic cytoprotection. Addresses aging at genetic (telomeres), structural (collagen), and protective levels.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Epitalon aktiverar telomeras för att underhålla telomererna. GHK-Cu stimulerar kollagen- och elastinsyntes och har bred genåterställande aktivitet. BPC-157 ger systemiskt cellskydd. Täcker åldrande på genetisk (telomerer), strukturell (kollagen) och skyddande nivå."
+          }
+        }
+      }
+    },
+    "Epitalon for telomere maintenance, GHK-Cu for tissue regeneration, BPC-157 for organ cytoprotection, TA1 for immune system rejuvenation (thymic function declines with age). Addresses four pillars of aging: genetic, structural, protective, and immunological.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Epitalon för telomerunderhåll, GHK-Cu för vävnadsregeneration, BPC-157 för organskydd, TA1 för föryngring av immunsystemet (tymusfunktionen avtar med åldern). Täcker åldrandets fyra pelare: genetisk, strukturell, skyddande och immunologisk."
+          }
+        }
+      }
+    },
+    "Evaluate fat loss progress and prevent metabolic adaptation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utvärdera fettminskningen och förebygg metabol anpassning"
+          }
+        }
+      }
+    },
+    "Evening/pre-bed to support melatonin regulation and circadian rhythm": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kväll/före sänggåendet för att stödja melatoninreglering och dygnsrytm"
+          }
+        }
+      }
+    },
     "Fast ended after %@.": {
       "comment": "Siri confirmation after ending a fast before its goal. The value is its length, e.g. “14 hours, 5 minutes”.",
       "localizations": {
@@ -6479,6 +6859,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fastan avslutades efter %@. Du nådde ditt mål på %lld timmar."
+          }
+        }
+      }
+    },
+    "Fasted state prevents blunting of GH release by insulin": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastande tillstånd förhindrar att insulin dämpar GH-frisättningen"
+          }
+        }
+      }
+    },
+    "Fasted — carbs/fats blunt GH release. Stimulates appetite": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastande — kolhydrater/fett dämpar GH-frisättningen. Stimulerar aptiten"
           }
         }
       }
@@ -6503,12 +6903,152 @@
         }
       }
     },
+    "Flexible timing. Topical application for skin; subcutaneous for systemic": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flexibel tidpunkt. Topikalt på huden; subkutant för systemisk verkan"
+          }
+        }
+      }
+    },
+    "GABA receptor modulation benefits from periodic reset": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GABA-receptormodulering gynnas av regelbunden återställning"
+          }
+        }
+      }
+    },
+    "GH elevation from CJC/Ipamorelin enhances protein synthesis while BPC-157 directs repair signaling to injured tissue. GH supports systemic anabolism; BPC-157 provides targeted tissue protection.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GH-höjningen från CJC/Ipamorelin förstärker proteinsyntesen medan BPC-157 riktar reparationssignalering till skadad vävnad. GH stöder systemisk anabolism; BPC-157 ger riktat vävnadsskydd."
+          }
+        }
+      }
+    },
+    "GHK-Cu increases Type I/III collagen by up to 70% and stimulates elastin for skin structure. Epitalon activates telomerase in fibroblasts for cellular longevity. TA1 supports immune-mediated skin defense and wound surveillance. Three distinct pathways: structural, genetic, and immunological.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GHK-Cu ökar typ I/III-kollagen med upp till 70 % och stimulerar elastin för hudens struktur. Epitalon aktiverar telomeras i fibroblaster för cellulär livslängd. TA1 stöder hudens immunförsvar och sårövervakning. Tre separata vägar: strukturell, genetisk och immunologisk."
+          }
+        }
+      }
+    },
+    "GHK-Cu stimulates hair follicle growth by enlarging follicle size and promoting the anagen (growth) phase via Wnt/β-catenin signaling. TB-500 enhances blood flow to the scalp through angiogenesis and reduces follicular inflammation.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GHK-Cu stimulerar hårsäckstillväxt genom att förstora hårsäckarna och främja anagenfasen (tillväxtfasen) via Wnt/β-katenin-signalering. TB-500 ökar blodflödet till hårbotten genom angiogenes och minskar inflammation i hårsäckarna."
+          }
+        }
+      }
+    },
+    "GHRH Receptor": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GHRH-receptorn"
+          }
+        }
+      }
+    },
+    "GHRH receptor recovery period": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återhämtningsperiod för GHRH-receptorn"
+          }
+        }
+      }
+    },
+    "GHS-R desensitization and cortisol/prolactin elevation with prolonged use": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GHS-R-desensibilisering och förhöjt kortisol/prolaktin vid långvarig användning"
+          }
+        }
+      }
+    },
+    "GHS-R receptor sensitivity maintenance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibehåller GHS-R-receptorns känslighet"
+          }
+        }
+      }
+    },
+    "GHS-R1a (Ghrelin Receptor)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GHS-R1a (ghrelinreceptorn)"
+          }
+        }
+      }
+    },
+    "GLP-1 Receptor": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GLP-1-receptorn"
+          }
+        }
+      }
+    },
     "GOAL": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "MÅL"
+          }
+        }
+      }
+    },
+    "Ghrelin receptor downregulation reduces GH response": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nedreglering av ghrelinreceptorn minskar GH-responsen"
+          }
+        }
+      }
+    },
+    "Ghrelin receptor downregulation with appetite tolerance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nedreglering av ghrelinreceptorn med tillvänjning vid aptitstimulering"
+          }
+        }
+      }
+    },
+    "Ghrelin receptor downregulation with increasing cortisol/prolactin": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nedreglering av ghrelinreceptorn med ökande kortisol/prolaktin"
           }
         }
       }
@@ -6543,12 +7083,72 @@
         }
       }
     },
+    "IGF-1 Receptor": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IGF-1-receptorn"
+          }
+        }
+      }
+    },
+    "Immediately post-workout for mechano-growth factor response": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Direkt efter träning för mekano-tillväxtfaktorsvar"
+          }
+        }
+      }
+    },
+    "Immune Modulation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Immunmodulering"
+          }
+        }
+      }
+    },
     "Inflammation (hs-CRP)": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Inflammation (hs-CRP)"
+          }
+        }
+      }
+    },
+    "Inject near injury site if applicable. Stable peptide": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Injicera nära skadan om tillämpligt. Stabil peptid"
+          }
+        }
+      }
+    },
+    "Intranasal. Evening use provides anxiolytic benefit for sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intranasalt. Kvällsanvändning ger ångestdämpande effekt inför sömnen"
+          }
+        }
+      }
+    },
+    "Intranasal. Separate from Selank by 15+ min if using both": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intranasalt. Håll 15+ min mellan doserna om du även använder Selank"
           }
         }
       }
@@ -6621,6 +7221,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Läs mer · %@"
+          }
+        }
+      }
+    },
+    "Loading phase typically sufficient; maintain with lower frequency": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En laddningsfas räcker oftast; underhåll med lägre frekvens"
           }
         }
       }
@@ -6712,6 +7322,106 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mellan"
+          }
+        }
+      }
+    },
+    "Milder GHRH analog but still benefits from cycling": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mildare GHRH-analog men gynnas ändå av cykling"
+          }
+        }
+      }
+    },
+    "Morning (fasted)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgon (fastande)"
+          }
+        }
+      }
+    },
+    "Morning (with food)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgon (med mat)"
+          }
+        }
+      }
+    },
+    "Morning dosing for daytime neurotrophic effects": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgondosering för neurotrofa effekter under dagen"
+          }
+        }
+      }
+    },
+    "Morning dosing for myostatin inhibition throughout the day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgondosering för myostatinhämning under dagen"
+          }
+        }
+      }
+    },
+    "Morning dosing. Direct antimicrobial peptide": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgondosering. Direkt antimikrobiell peptid"
+          }
+        }
+      }
+    },
+    "Morning for BDNF-driven neuroplasticity support": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "På morgonen för BDNF-driven neuroplasticitet"
+          }
+        }
+      }
+    },
+    "Morning for cellular energy support throughout the day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "På morgonen för cellulär energi under dagen"
+          }
+        }
+      }
+    },
+    "Morning for immune system priming": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "På morgonen för att aktivera immunförsvaret"
+          }
+        }
+      }
+    },
+    "Must be fasted. Do not eat for 30 min after injection": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Måste tas fastande. Ät inte på 30 min efter injektionen"
           }
         }
       }
@@ -6816,6 +7526,46 @@
         }
       }
     },
+    "Once weekly injection": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Injektion en gång i veckan"
+          }
+        }
+      }
+    },
+    "Once weekly, any time. Consistency matters more than timing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En gång i veckan, när som helst. Regelbundenhet är viktigare än tidpunkt"
+          }
+        }
+      }
+    },
+    "Once weekly. Pick a consistent day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En gång i veckan. Välj en fast veckodag"
+          }
+        }
+      }
+    },
+    "One GHRH analog is sufficient. Pair with a GHS-R agonist (e.g. Ipamorelin) for synergistic GH release.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En GHRH-analog räcker. Kombinera med en GHS-R-agonist (t.ex. Ipamorelin) för synergistisk GH-frisättning."
+          }
+        }
+      }
+    },
     "Opens Atlas and starts a workout from a routine, or an empty workout when none is picked.": {
       "localizations": {
         "sv": {
@@ -6856,6 +7606,36 @@
         }
       }
     },
+    "Oral or intranasal. Morning for cognitive enhancement throughout the day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oralt eller intranasalt. På morgonen för kognitiv förstärkning under dagen"
+          }
+        }
+      }
+    },
+    "Oral or subcutaneous. For gut: take before meals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oralt eller subkutant. För tarmen: ta före måltid"
+          }
+        }
+      }
+    },
+    "Oral. Evening dosing reduces daytime hunger and insulin spike impact": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oralt. Kvällsdosering minskar hunger under dagen och effekten av insulintoppar"
+          }
+        }
+      }
+    },
     "Original report": {
       "localizations": {
         "sv": {
@@ -6872,6 +7652,476 @@
           "stringUnit": {
             "state": "translated",
             "value": "Total svit"
+          }
+        }
+      }
+    },
+    "PEGylated for extended half-life. Post-workout on non-IGF days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PEGylerad för förlängd halveringstid. Efter träning på dagar utan IGF"
+          }
+        }
+      }
+    },
+    "Pick one GHRP based on your tolerance for appetite stimulation (GHRP-6 stronger) and pair with CJC-1295.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en GHRP utifrån hur väl du tål aptitstimulering (GHRP-6 starkare) och kombinera med CJC-1295."
+          }
+        }
+      }
+    },
+    "Post-workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Efter träning"
+          }
+        }
+      }
+    },
+    "Post-workout for localized muscle growth. Monitor blood sugar": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Efter träning för lokal muskeltillväxt. Övervaka blodsockret"
+          }
+        }
+      }
+    },
+    "Potent HGF mimetic — conservative cycling recommended": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Potent HGF-mimetikum — försiktig cykling rekommenderas"
+          }
+        }
+      }
+    },
+    "Pre-bed dosing mimics natural nocturnal GH secretion": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dosering före sänggåendet efterliknar den naturliga nattliga GH-insöndringen"
+          }
+        }
+      }
+    },
+    "Pre-workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Före träning"
+          }
+        }
+      }
+    },
+    "Prevents pituitary desensitization to GHRH signaling": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förhindrar att hypofysen desensibiliseras för GHRH-signalering"
+          }
+        }
+      }
+    },
+    "Prolonged IGF-1 elevation risks insulin resistance and organ growth": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Långvarigt förhöjt IGF-1 ger risk för insulinresistens och organtillväxt"
+          }
+        }
+      }
+    },
+    "Prolonged oral GHS-R activation leads to receptor downregulation and insulin resistance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Långvarig oral GHS-R-aktivering leder till nedreglering av receptorn och insulinresistens"
+          }
+        }
+      }
+    },
+    "Pulsatile dosing preferred. Morning or pre-bed for hormonal axis": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulsatil dosering föredras. Morgon eller före sänggåendet för hormonaxeln"
+          }
+        }
+      }
+    },
+    "Redundant GHS-R1a activation. Both have unfavorable side effect profiles (cortisol, prolactin). Combining them worsens these without proportional efficacy gain.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redundant GHS-R1a-aktivering. Båda har ogynnsamma biverkningsprofiler (kortisol, prolaktin). Kombinationen förvärrar dessa utan proportionell effektvinst."
+          }
+        }
+      }
+    },
+    "Retatrutide as monotherapy produces up to 24% body weight reduction — adding semaglutide is unlikely to improve this.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retatrutide som monoterapi ger upp till 24 % minskning av kroppsvikten — att lägga till semaglutide förbättrar sannolikt inte detta."
+          }
+        }
+      }
+    },
+    "Retatrutide is a triple agonist (GLP-1/GIP/glucagon). Adding semaglutide doubles GLP-1 activation, amplifying GI side effects without demonstrated additive benefit.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retatrutide är en trippelagonist (GLP-1/GIP/glukagon). Att lägga till semaglutide dubblerar GLP-1-aktiveringen och förstärker mag-tarmbiverkningar utan påvisad additiv nytta."
+          }
+        }
+      }
+    },
+    "Same GHRH+GHRP synergy mechanism as CJC-1295/Ipamorelin but with shorter-acting Mod GRF for more natural pulsatile GH release patterns.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samma GHRH+GHRP-synergi som CJC-1295/Ipamorelin men med kortverkande Mod GRF för ett mer naturligt pulsatilt GH-frisättningsmönster."
+          }
+        }
+      }
+    },
+    "Same GHS-R desensitization concern, plus appetite stimulation tolerance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samma risk för GHS-R-desensibilisering, plus tillvänjning vid aptitstimulering"
+          }
+        }
+      }
+    },
+    "Same GHS-R1a pathway. Hexarelin is the most potent GHRP but also raises cortisol and prolactin most aggressively. Combining with Ipamorelin creates receptor competition.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samma GHS-R1a-väg. Hexarelin är den mest potenta GHRP:n men höjer också kortisol och prolaktin mest. Kombination med Ipamorelin skapar konkurrens om receptorn."
+          }
+        }
+      }
+    },
+    "Same GHS-R1a receptor pathway. Both elevate cortisol and prolactin at effective GH-releasing doses.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samma GHS-R1a-receptorväg. Båda höjer kortisol och prolaktin vid effektiva GH-frisättande doser."
+          }
+        }
+      }
+    },
+    "Select the single best GHRP for your needs and combine with a GHRH analog.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj den GHRP som passar dig bäst och kombinera med en GHRH-analog."
+          }
+        }
+      }
+    },
+    "Semax + Selank is a validated synergy. Adding a third nootropic peptide may have diminishing returns.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semax + Selank är en validerad synergi. En tredje nootropisk peptid kan ge avtagande effekt."
+          }
+        }
+      }
+    },
+    "Semax upregulates BDNF and enhances dopaminergic/serotonergic signaling for focus and memory. Selank modulates GABA receptors for anxiolysis without drowsiness. Together they address the stress-cognition axis — Selank buffers stress while Semax drives neural performance.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semax uppreglerar BDNF och förstärker dopaminerg/serotonerg signalering för fokus och minne. Selank modulerar GABA-receptorer för ångestdämpning utan dåsighet. Tillsammans täcker de stress–kognitionsaxeln — Selank dämpar stress medan Semax driver neural prestation."
+          }
+        }
+      }
+    },
+    "Semax upregulates BDNF for neuroplasticity. Selank modulates GABA for stress resilience. TA1 bridges neuro-immune crosstalk by enhancing T-cell function that supports CNS immune surveillance. Addresses the brain-immune axis.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semax uppreglerar BDNF för neuroplasticitet. Selank modulerar GABA för stresstålighet. TA1 överbryggar neuro-immun samverkan genom att förstärka T-cellsfunktion som stöder immunövervakningen i CNS. Täcker hjärna–immunaxeln."
+          }
+        }
+      }
+    },
+    "Short-term use. Fasted for maximal GH pulse": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kortvarig användning. Fastande för maximal GH-puls"
+          }
+        }
+      }
+    },
+    "Similar timing to BPC-157 for tissue repair applications": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liknande tidpunkt som BPC-157 vid vävnadsreparation"
+          }
+        }
+      }
+    },
+    "Strong appetite stimulation — time around meals if desired": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kraftig aptitstimulering — anpassa tiden efter måltider om så önskas"
+          }
+        }
+      }
+    },
+    "Strongest GHS-R agonist — fastest desensitization onset": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starkaste GHS-R-agonisten — snabbast debut av desensibilisering"
+          }
+        }
+      }
+    },
+    "Strongest GHS-R agonist — fastest receptor desensitization": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starkaste GHS-R-agonisten — snabbast receptordesensibilisering"
+          }
+        }
+      }
+    },
+    "Subcutaneous. Flexible timing for immune modulation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subkutant. Flexibel tidpunkt för immunmodulering"
+          }
+        }
+      }
+    },
+    "Systemic action — injection site less important than BPC-157": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systemisk verkan — injektionsstället spelar mindre roll än för BPC-157"
+          }
+        }
+      }
+    },
+    "T-cell maturation continues after cessation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "T-cellsmognaden fortsätter efter avslut"
+          }
+        }
+      }
+    },
+    "TA1 boosts adaptive immunity (T-cell maturation). LL-37 provides direct innate antimicrobial action (disrupts bacterial/viral membranes). KPV suppresses excessive inflammation via NF-κB inhibition. Three layers of defense with minimal overlap.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TA1 stärker det adaptiva immunförsvaret (T-cellsmognad). LL-37 ger direkt medfödd antimikrobiell verkan (bryter ned bakterie- och virusmembran). KPV dämpar överdriven inflammation via NF-κB-hämning. Tre försvarslager med minimal överlappning."
+          }
+        }
+      }
+    },
+    "Telomerase activation persists well after cessation; short courses are standard": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telomerasaktiveringen kvarstår länge efter avslut; korta kurer är standard"
+          }
+        }
+      }
+    },
+    "The Wolverine combination (BPC-157 + TB-500) for tissue repair, GHK-Cu for collagen remodeling, Ipamorelin for GH-mediated protein synthesis. Covers inflammation, cell migration, extracellular matrix rebuilding, and systemic recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wolverine-kombinationen (BPC-157 + TB-500) för vävnadsreparation, GHK-Cu för kollagenombyggnad, Ipamorelin för GH-medierad proteinsyntes. Täcker inflammation, cellmigration, återuppbyggnad av extracellulär matrix och systemisk återhämtning."
+          }
+        }
+      }
+    },
+    "These target different immune arms (adaptive, innate, anti-inflammatory) and generally complement each other.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dessa verkar på olika delar av immunförsvaret (adaptivt, medfött, antiinflammatoriskt) och kompletterar generellt varandra."
+          }
+        }
+      }
+    },
+    "These use different pathways and are generally combined without pathway overlap. However, all promote angiogenesis — use caution with history of malignancy.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dessa använder olika vägar och kombineras generellt utan överlappning. Alla främjar dock angiogenes — var försiktig vid tidigare cancersjukdom."
+          }
+        }
+      }
+    },
+    "Tissue Repair (multi-pathway)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vävnadsreparation (flera vägar)"
+          }
+        }
+      }
+    },
+    "Use Hexarelin short-term if maximum GH pulse is needed, or Ipamorelin for cleaner long-term use.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd Hexarelin kortsiktigt om maximal GH-puls behövs, eller Ipamorelin för renare långsiktig användning."
+          }
+        }
+      }
+    },
+    "Use Ipamorelin alone (selective, no cortisol/prolactin elevation) paired with a GHRH analog like CJC-1295 instead.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd Ipamorelin ensamt (selektivt, ingen höjning av kortisol/prolaktin) tillsammans med en GHRH-analog som CJC-1295 i stället."
+          }
+        }
+      }
+    },
+    "Use one GHRP at optimal dose rather than two at sub-optimal doses.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd en GHRP i optimal dos i stället för två i suboptimala doser."
+          }
+        }
+      }
+    },
+    "Use one GLP-1 agonist at a time. Tirzepatide typically produces greater weight loss than semaglutide alone.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd en GLP-1-agonist i taget. Tirzepatide ger vanligtvis större viktminskning än semaglutide ensamt."
+          }
+        }
+      }
+    },
+    "Use one IGF-1 variant at a time. Excessive IGF-1 signaling risks hypoglycemia, joint pain, and theoretical organ growth.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd en IGF-1-variant i taget. Överdriven IGF-1-signalering ger risk för hypoglykemi, ledsmärta och teoretisk organtillväxt."
+          }
+        }
+      }
+    },
+    "Use one IGF-1 variant. IGF-1 LR3 for sustained effect or IGF-1 DES for acute peri-workout pulses.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd en IGF-1-variant. IGF-1 LR3 för ihållande effekt eller IGF-1 DES för akuta pulser kring träningen."
+          }
+        }
+      }
+    },
+    "Use one multi-agonist at a time. Retatrutide's triple action generally subsumes tirzepatide's dual action.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd en multiagonist i taget. Retatrutides trippelverkan omfattar generellt tirzepatides dubbla verkan."
+          }
+        }
+      }
+    },
+    "Use only one GHS-R agonist. Pair with a GHRH analog for synergy instead of combining multiple GHRPs.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd bara en GHS-R-agonist. Kombinera med en GHRH-analog för synergi i stället för att kombinera flera GHRP:er."
+          }
+        }
+      }
+    },
+    "Use only one GLP-1 agonist at a time. Combining them amplifies GI side effects without demonstrated additive efficacy.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd bara en GLP-1-agonist i taget. Kombinationen förstärker mag-tarmbiverkningar utan påvisad additiv effekt."
+          }
+        }
+      }
+    },
+    "Use semaglutide (once weekly, superior efficacy) rather than combining with liraglutide (daily).": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd semaglutide (en gång i veckan, bättre effekt) i stället för att kombinera med liraglutide (dagligen)."
+          }
+        }
+      }
+    },
+    "Very short-acting — use peri-workout for acute pulses": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mycket kortverkande — använd kring träningen för akuta pulser"
           }
         }
       }

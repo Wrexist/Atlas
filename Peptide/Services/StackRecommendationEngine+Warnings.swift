@@ -196,8 +196,8 @@ extension StackRecommendationEngine {
                     warnings.append(Warning(
                         severity: warnSeverity,
                         title: String(localized: "Known interaction"),
-                        detail: interaction.reason,
-                        suggestion: interaction.recommendation,
+                        detail: PeptideCompatibilityData.displayText(interaction.reason),
+                        suggestion: PeptideCompatibilityData.displayText(interaction.recommendation),
                         peptides: [interaction.peptideA, interaction.peptideB],
                         icon: warnIcon
                     ))
@@ -216,11 +216,12 @@ extension StackRecommendationEngine {
             }
             guard !alreadyCovered else { continue }
 
+            let pathway = PeptideCompatibilityData.displayText(group.pathway)
             warnings.append(Warning(
                 severity: .caution,
-                title: String(localized: "\(group.pathway) overload"),
-                detail: String(localized: "\(matching.count) peptides in your protocol target the \(group.pathway) pathway. Some sources describe using no more than \(group.maxSafe) together."),
-                suggestion: group.warningText,
+                title: String(localized: "\(pathway) overload"),
+                detail: String(localized: "\(matching.count) peptides in your protocol target the \(pathway) pathway. Some sources describe using no more than \(group.maxSafe) together."),
+                suggestion: PeptideCompatibilityData.displayText(group.warningText),
                 peptides: matching.map(\.abbreviation),
                 icon: "arrow.triangle.2.circlepath"
             ))
@@ -270,7 +271,7 @@ extension StackRecommendationEngine {
                 warnings.append(Warning(
                     severity: .caution,
                     title: String(localized: "\(peptide.abbreviation) is \(overBy) weeks past its cycle"),
-                    detail: String(localized: "Sources commonly describe \(cycle.onWeeks) weeks on and \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason)."),
+                    detail: String(localized: "Sources commonly describe \(cycle.onWeeks) weeks on and \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(PeptideCompatibilityData.displayText(cycle.reason))."),
                     suggestion: String(localized: "Review your cycle plan with your clinician."),
                     peptides: [peptide.abbreviation],
                     icon: "clock.arrow.circlepath",
@@ -293,7 +294,7 @@ extension StackRecommendationEngine {
             warnings.append(Warning(
                 severity: .caution,
                 title: String(localized: "\(info.receptor) desensitization risk"),
-                detail: String(localized: "\(peptide.abbreviation) active for \(weeks) weeks. \(info.description) typically begins around week \(info.riskOnsetWeeks)."),
+                detail: String(localized: "\(peptide.abbreviation) active for \(weeks) weeks. \(PeptideCompatibilityData.displayText(info.description)) typically begins around week \(info.riskOnsetWeeks)."),
                 suggestion: String(localized: "Some sources describe a \(offWeeks)-week break at this point. Discuss timing with your clinician."),
                 peptides: [peptide.abbreviation],
                 icon: "arrow.down.right.circle",
@@ -327,7 +328,7 @@ extension StackRecommendationEngine {
                         severity: .info,
                         title: String(localized: "Timing separation recommended"),
                         detail: String(localized: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered."),
-                        suggestion: timingA.notes,
+                        suggestion: PeptideCompatibilityData.displayText(timingA.notes),
                         peptides: [a.abbreviation, b.abbreviation],
                         icon: "clock.badge.exclamationmark",
                         kind: .timingConflict
@@ -338,7 +339,7 @@ extension StackRecommendationEngine {
                         severity: .info,
                         title: String(localized: "Timing separation recommended"),
                         detail: String(localized: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered."),
-                        suggestion: timingB.notes,
+                        suggestion: PeptideCompatibilityData.displayText(timingB.notes),
                         peptides: [a.abbreviation, b.abbreviation],
                         icon: "clock.badge.exclamationmark",
                         kind: .timingConflict

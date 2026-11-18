@@ -495,6 +495,22 @@ final class StackRecommendationEngineTests: XCTestCase {
         }
     }
 
+    func test_completeness_wolverineForRecoveryGoal_coversBothDimensions() {
+        // C238: the validated-stack match keys on the category's stable raw
+        // value and English goal text, never the localized display name.
+        let stack = peptides(abbrevs: ["BPC-157", "TB-500"])
+        guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
+        let result = StackRecommendationEngine.stackCompleteness(
+            for: stack, goals: ["recovery"], from: database
+        )
+        XCTAssertEqual(result?.score, 1.0)
+    }
+
+    func test_displayText_sentenceWithoutCatalogEntry_returnsTheEnglishSource() {
+        let english = "An uncatalogued compatibility sentence."
+        XCTAssertEqual(PeptideCompatibilityData.displayText(english), english)
+    }
+
     func test_completeness_suggestsMissingCategories() {
         let stack = peptides(abbrevs: ["BPC-157"]) // growth/recovery, no cognitive
         guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
