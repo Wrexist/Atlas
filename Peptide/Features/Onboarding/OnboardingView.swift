@@ -186,21 +186,6 @@ struct OnboardingView: View {
             case .energy:         return "bolt.heart.fill"
             }
         }
-        var tint: Color {
-            switch self {
-            case .buildMuscle:    return AppColor.metricHeartRate
-            case .loseFat:        return AppColor.streak
-            case .getStronger:    return AppColor.achievement
-            case .stayConsistent: return AppColor.accentPrimary
-            case .athletic:       return Color(light: 0x3D6E93, dark: 0x5B8FB9)
-            case .recomp:         return AppColor.metricHRV
-            case .betterSleep:    return Color(light: 0x4460D8, dark: 0x6B8AFF)
-            case .recovery:       return Color(light: 0x2A8792, dark: 0x4CB8C4)
-            case .antiAging:      return Color(light: 0x7B54C4, dark: 0xC59FFF)
-            case .skinHair:       return Color(light: 0xB05585, dark: 0xE89BC4)
-            case .energy:         return AppColor.perceivedEffort
-            }
-        }
     }
 
     enum Experience: String, CaseIterable, Identifiable {
@@ -1086,7 +1071,7 @@ struct OnboardingView: View {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: goal.icon)
                     .font(AppFont.scaled(28, weight: .semibold, relativeTo: .title1))
-                    .foregroundStyle(goal.tint)
+                    .foregroundStyle(AppColor.textPrimary)
                     .symbolEffect(.bounce, value: selected)
                 Text(goal.displayName)
                     .font(AppFont.headline)
@@ -1095,12 +1080,12 @@ struct OnboardingView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.lg)
-            .onboardingChoice(isSelected: selected, tint: goal.tint, cornerRadius: Spacing.cardCornerRadius)
+            .onboardingChoice(isSelected: selected, tint: AppColor.accentPrimary, cornerRadius: Spacing.cardCornerRadius)
             .overlay(alignment: .topTrailing) {
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(AppFont.scaled(16, weight: .bold))
-                        .foregroundStyle(goal.tint)
+                        .foregroundStyle(AppColor.accentPrimary)
                         .background(Circle().fill(AppColor.background).padding(2))
                         .padding(Spacing.sm)
                         .transition(.scale.combined(with: .opacity))
@@ -1452,7 +1437,7 @@ struct OnboardingView: View {
                         label: projectionStatLabel,
                         value: projectionStatValue,
                         icon: primaryGoal.icon,
-                        tint: primaryGoal.tint
+                        tint: AppColor.accentPrimary
                     )
                     if let targets = NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: primaryGoal.rawValue) {
                         // Hidden only for a profile hydrated from an
@@ -1896,8 +1881,8 @@ private struct ProjectionChart: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    goal.tint.opacity(0.22),
-                                    goal.tint.opacity(0.0),
+                                    AppColor.accentPrimary.opacity(0.22),
+                                    AppColor.accentPrimary.opacity(0.0),
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
@@ -1908,13 +1893,13 @@ private struct ProjectionChart: View {
                     curve(in: size)
                         .trim(from: 0, to: drawAmount)
                         .stroke(
-                            goal.tint,
+                            AppColor.accentPrimary,
                             style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
                         )
 
                     if dotVisible {
                         Circle()
-                            .strokeBorder(goal.tint, lineWidth: 3)
+                            .strokeBorder(AppColor.accentPrimary, lineWidth: 3)
                             .background(Circle().fill(AppColor.background))
                             .frame(width: 14, height: 14)
                             .position(endPoint(in: size))
