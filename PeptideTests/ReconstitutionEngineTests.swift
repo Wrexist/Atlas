@@ -205,6 +205,20 @@ final class ReconstitutionEngineTests: XCTestCase {
         XCTAssertNil(ReconstitutionEngine.parseAmount("1,000,000"))
     }
 
+    func test_hasAmbiguousSeparator_groupedOrThreeDecimalValue_isTrue() {
+        XCTAssertTrue(ReconstitutionEngine.hasAmbiguousSeparator(" 1,000 "))
+        XCTAssertTrue(ReconstitutionEngine.hasAmbiguousSeparator("2.125"))
+        XCTAssertTrue(ReconstitutionEngine.hasAmbiguousSeparator("1.000,5"))
+    }
+
+    func test_hasAmbiguousSeparator_plainOrClearDecimal_isFalse() {
+        XCTAssertFalse(ReconstitutionEngine.hasAmbiguousSeparator(""))
+        XCTAssertFalse(ReconstitutionEngine.hasAmbiguousSeparator("250"))
+        XCTAssertFalse(ReconstitutionEngine.hasAmbiguousSeparator("12,5"))
+        XCTAssertFalse(ReconstitutionEngine.hasAmbiguousSeparator("0,250"))
+        XCTAssertFalse(ReconstitutionEngine.hasAmbiguousSeparator("0"))
+    }
+
     func test_parseAmount_zeroOrNegative_returnsNil() {
         XCTAssertNil(ReconstitutionEngine.parseAmount("0"))
         XCTAssertNil(ReconstitutionEngine.parseAmount("-5"))

@@ -12199,6 +12199,16 @@
         }
       }
     },
+    "Check the number. Write it without thousands separators, for example 1000 or 12.5.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontrollera talet. Skriv det utan tusentalsavgränsare, till exempel 1000 eller 12,5."
+          }
+        }
+      }
+    },
     "Check your connection and try again.": {
       "localizations": {
         "sv": {

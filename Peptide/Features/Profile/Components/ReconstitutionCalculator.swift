@@ -163,6 +163,12 @@ struct ReconstitutionCalculator: View {
                     .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
             }
+            if ReconstitutionEngine.hasAmbiguousSeparator(amountText) {
+                Text("Check the number. Write it without thousands separators, for example 1000 or 12.5.")
+                    .font(AppFont.scaled(11, weight: .medium))
+                    .foregroundStyle(AppColor.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Text("A unit-conversion calculator for educational use. It doesn't recommend an amount. Follow your clinician's instructions.")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)

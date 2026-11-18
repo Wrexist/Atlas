@@ -78,18 +78,18 @@ enum ReconstitutionEngine {
     /// A value that could be digit grouping ("1,000", "1.000,5") is
     /// rejected too: reading it as a decimal would be a 1000x error.
     static func parseAmount(_ text: String) -> Double? {
-        let trimmed = text.trimmingCharacters(in: .whitespaces)
-        guard !hasAmbiguousSeparator(trimmed) else { return nil }
-        let cleaned = trimmed.replacingOccurrences(of: ",", with: ".")
+        guard !hasAmbiguousSeparator(text) else { return nil }
+        let cleaned = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
         guard let value = Double(cleaned), isPositive(value) else { return nil }
         return value
     }
 
     /// More than one separator, or a single one followed by exactly
     /// three digits after a non-zero whole part, reads as grouping in
-    /// some locales and as a decimal in others.
-    private static func hasAmbiguousSeparator(_ text: String) -> Bool {
-        let parts = text.split(separator: ",", omittingEmptySubsequences: false)
+    /// some locales and as a decimal in others. The calculator uses it
+    /// to explain why such input gives no result.
+    static func hasAmbiguousSeparator(_ text: String) -> Bool {
+        let parts = text.trimmingCharacters(in: .whitespaces).split(separator: ",", omittingEmptySubsequences: false)
             .flatMap { $0.split(separator: ".", omittingEmptySubsequences: false) }
         guard parts.count > 1 else { return false }
         guard parts.count == 2 else { return true }
