@@ -850,15 +850,16 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["Workout overview"].tap()
             XCTAssertTrue(app.staticTexts["Muscles trained"].waitForExistence(timeout: 10))
             capture(named: "body-\(appearance)-03-session")
-            let bodySide = app.otherElements["training-body-side"].firstMatch
+            // The header button cycles Both -> Front -> Back -> Both.
+            let bodySide = app.buttons["training-body-side"].firstMatch
             reveal(bodySide)
-            bodySide.buttons["Front"].tap()
-            XCTAssertTrue(bodySide.buttons["Front"].isSelected)
+            bodySide.tap()
+            XCTAssertEqual(bodySide.value as? String, "Front")
             capture(named: "body-\(appearance)-03a-front")
-            bodySide.buttons["Back"].tap()
-            XCTAssertTrue(bodySide.buttons["Back"].isSelected)
+            bodySide.tap()
+            XCTAssertEqual(bodySide.value as? String, "Back")
             capture(named: "body-\(appearance)-03b-back")
-            bodySide.buttons["Both"].tap()
+            bodySide.tap()
             // The menu passes its identifier down to its icon and label too.
             let explore = app.buttons["explore-trained-muscles"].firstMatch
             scrollOnScreen(explore)

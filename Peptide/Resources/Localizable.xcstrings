@@ -53707,6 +53707,26 @@
           }
         }
       }
+    },
+    "Switches between both sides, front and back.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Växlar mellan båda sidor, framsida och baksida."
+          }
+        }
+      }
+    },
+    "Tap the arrows to see the front or back up close. Tap a muscle for its exercises.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på pilarna för att se framsidan eller baksidan närmare. Tryck på en muskel för att se dess övningar."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
