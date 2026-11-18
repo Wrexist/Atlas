@@ -355,6 +355,16 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
         XCTAssertEqual(text, "0.4 kg below your recent average.")
     }
 
+    func test_averageComparison_halfStepHRVTie_neverReadsZeroAbove() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 58.5, average: 58, for: .hrvBaseline, unit: .metric)
+        XCTAssertFalse(text.hasPrefix("0 "), text)
+    }
+
+    func test_averageComparison_halfStepStepsTie_neverReadsZeroAbove() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 8000, average: 7999.5, for: .stepsBaseline, unit: .metric)
+        XCTAssertFalse(text.hasPrefix("0 "), text)
+    }
+
     // MARK: - sleepSeries
 
     func test_sleepSeries_bucketsEachNightByWakeDayInHours() {
@@ -372,10 +382,29 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
             awake: 0
         )
 
-        let series = BiomarkerSeriesService.sleepSeries(from: [night, earlier], calendar: utc)
+        let series = BiomarkerSeriesService.sleepSeries(from: [night, earlier], days: 2, now: wake, calendar: utc)
 
         XCTAssertEqual(series.map(\.value), [7, 6])
         XCTAssertEqual(series.map(\.date), [utc.startOfDay(for: earlier.end), utc.startOfDay(for: wake)])
     }
-}
 
+    func test_sleepSeries_nightBeforeWindow_isDropped() {
+        let wake = Date(timeIntervalSince1970: 1_700_000_000)
+        let recent = SleepScoreEngine.Night(
+            start: wake.addingTimeInterval(-8 * 3600),
+            end: wake,
+            deep: 0, core: 0, rem: 0, unspecified: 7 * 3600,
+            awake: 0
+        )
+        let truncated = SleepScoreEngine.Night(
+            start: wake.addingTimeInterval(-50 * 3600),
+            end: wake.addingTimeInterval(-48 * 3600),
+            deep: 0, core: 0, rem: 0, unspecified: 2 * 3600,
+            awake: 0
+        )
+
+        let series = BiomarkerSeriesService.sleepSeries(from: [recent, truncated], days: 2, now: wake, calendar: utc)
+
+        XCTAssertEqual(series.map(\.value), [7])
+    }
+}

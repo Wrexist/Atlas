@@ -93,7 +93,7 @@ enum BiomarkerSeriesService {
         case .sleepBaseline:
             let segments = await HealthKitService.shared.sleepSegments(nights: days)
             let nights = SleepScoreEngine.nights(from: segments, calendar: .current)
-            return seriesSnapshot(.sleepBaseline, series: sleepSeries(from: nights, calendar: .current), unit: unit)
+            return seriesSnapshot(.sleepBaseline, series: sleepSeries(from: nights, days: days, calendar: .current), unit: unit)
         case .stepsBaseline:
             let series = await HealthKitService.shared.dailySteps(days: days)
             return seriesSnapshot(.stepsBaseline, series: completedDays(series), unit: unit)
@@ -218,13 +218,21 @@ enum BiomarkerSeriesService {
 
     /// Hours asleep per wake-up day, from the same nights the Sleep card
     /// reads (the main session only, naps left out), so the tile, its
-    /// detail and the card agree on the average.
+    /// detail and the card agree on the average. Trimmed to the last
+    /// `days` wake-up days like the other series: the HealthKit query
+    /// reaches back further, and its oldest night can be cut short by
+    /// the query start, which would drag the average down.
     static func sleepSeries(
         from nights: [SleepScoreEngine.Night],
+        days: Int = windowDays,
+        now: Date = Date(),
         calendar: Calendar = .current
     ) -> [(date: Date, value: Double)] {
-        nights
+        let today = calendar.startOfDay(for: now)
+        let windowStart = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+        return nights
             .map { (date: calendar.startOfDay(for: $0.end), value: $0.asleep / 3600) }
+            .filter { $0.date >= windowStart }
             .sorted { $0.date < $1.date }
     }
 
@@ -357,8 +365,9 @@ enum BiomarkerSeriesService {
     }
 
     /// "4 ms above your recent average.", from display-unit values. A
-    /// difference that rounds to zero at the biomarker's precision reads
-    /// as at the average, never as "0 ms above".
+    /// difference that formats as zero at the biomarker's precision
+    /// (including a half-even tie such as 0.5 steps) reads as at the
+    /// average, never as "0 ms above".
     static func averageComparisonText(
         latest: Double,
         average: Double,
@@ -366,11 +375,10 @@ enum BiomarkerSeriesService {
         unit: MeasurementUnit
     ) -> String {
         let delta = latest - average
-        let threshold = fractionDigits(for: biomarker).map { 0.5 * pow(10, -Double($0)) } ?? 0.01
-        if abs(delta) < threshold {
+        let formatted = formatValue(abs(delta), for: biomarker)
+        if formatted == formatValue(0, for: biomarker) || abs(delta) < 0.01 {
             return String(localized: "Right at your recent average.")
         }
-        let formatted = formatValue(abs(delta), for: biomarker)
         let amount = biomarker.displayUnit(for: unit).map { "\(formatted) \($0)" } ?? formatted
         return delta > 0
             ? String(localized: "\(amount) above your recent average.")
