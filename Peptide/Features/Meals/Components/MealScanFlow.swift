@@ -171,11 +171,11 @@ struct MealScanFlow: View {
             if value != .active && phase == .review { _ = persistDraft() }
         }
         .confirmationDialog(
-            discardIsRetake ? "Retake photo?" : "Discard this scan?",
+            discardDialogTitle,
             isPresented: $discardConfirmation,
             titleVisibility: .visible
         ) {
-            Button(discardIsRetake ? "Retake photo" : "Discard scan", role: .destructive) { discardDraft() }
+            Button(discardDialogAction, role: .destructive) { discardDraft() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(discardIsRetake
@@ -433,6 +433,18 @@ struct MealScanFlow: View {
             }
     }
 
+    /// A typed meal has no photo to retake, so its reset is worded as
+    /// discarding the meal.
+    private var discardDialogTitle: LocalizedStringKey {
+        guard discardIsRetake else { return "Discard this scan?" }
+        return image == nil ? "Discard this meal?" : "Retake photo?"
+    }
+
+    private var discardDialogAction: LocalizedStringKey {
+        guard discardIsRetake else { return "Discard scan" }
+        return image == nil ? "Discard meal" : "Retake photo"
+    }
+
     private var previewBox: some View {
         photoCard(height: 220) { EmptyView() }
     }
@@ -448,18 +460,13 @@ struct MealScanFlow: View {
     /// shape of what is coming rather than a spinner.
     private var analyzing: some View {
         VStack(spacing: Spacing.lg) {
-            photoCard(height: 200) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "sparkles")
-                        .font(AppFont.scaled(13, weight: .bold))
-                    Text("Analyzing your meal")
-                        .font(AppFont.scaled(13, weight: .semibold))
+            // A typed meal has no photo; its caption stands on its own.
+            if image != nil {
+                photoCard(height: 200) {
+                    analyzingCaption.padding(.bottom, Spacing.md)
                 }
-                .foregroundStyle(AppColor.textPrimary)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                .glassSurfaceCapsule()
-                .padding(.bottom, Spacing.md)
+            } else {
+                analyzingCaption
             }
 
             ScanProgressBar()
@@ -470,6 +477,19 @@ struct MealScanFlow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Analyzing your meal")
+    }
+
+    private var analyzingCaption: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "sparkles")
+                .font(AppFont.scaled(13, weight: .bold))
+            Text("Analyzing your meal")
+                .font(AppFont.scaled(13, weight: .semibold))
+        }
+        .foregroundStyle(AppColor.textPrimary)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+        .glassSurfaceCapsule()
     }
 
     private var skeletonRow: some View {
@@ -536,13 +556,12 @@ struct MealScanFlow: View {
     private var reviewCard: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                photoCard(height: 200) {
-                    HStack(alignment: .bottom) {
-                        detectedBadge
-                        Spacer(minLength: Spacing.sm)
-                        retakeButton
+                if image != nil {
+                    photoCard(height: 200) {
+                        reviewHeaderRow.padding(Spacing.md)
                     }
-                    .padding(Spacing.md)
+                } else {
+                    reviewHeaderRow
                 }
 
                 if let insight {
@@ -584,7 +603,7 @@ struct MealScanFlow: View {
                     fatG: totalFat
                 )
 
-                if suggestedMealName != nil {
+                if suggestedMealName != nil && includedItems.count > 1 {
                     combineControl
                 }
 
@@ -661,6 +680,14 @@ struct MealScanFlow: View {
         .appAnimation(AppAnimation.springSnappy, value: logAsOneMeal)
     }
 
+    private var reviewHeaderRow: some View {
+        HStack(alignment: .bottom) {
+            detectedBadge
+            Spacer(minLength: Spacing.sm)
+            retakeButton
+        }
+    }
+
     /// Sits on the photo, where the count belongs — it describes the picture.
     private var detectedBadge: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -692,7 +719,7 @@ struct MealScanFlow: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "arrow.counterclockwise")
-                Text("Retake")
+                Text(image == nil ? "Start over" : "Retake")
             }
             .font(AppFont.scaled(13, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary)
@@ -702,7 +729,17 @@ struct MealScanFlow: View {
         }
         .buttonStyle(.plain)
         .minimumHitArea()
-        .accessibilityLabel("Retake photo")
+        .accessibilityLabel(image == nil ? "Start over" : "Retake photo")
+    }
+
+    private var combinesItems: Bool {
+        Self.combinesIntoOneEntry(logAsOneMeal: logAsOneMeal, includedCount: includedItems.count)
+    }
+
+    /// One ticked item is logged under its own name: combining it would
+    /// file a lone side salad as "Spaghetti Bolognese".
+    nonisolated static func combinesIntoOneEntry(logAsOneMeal: Bool, includedCount: Int) -> Bool {
+        logAsOneMeal && includedCount > 1
     }
 
     /// `LocalizedStringKey`, not `String`: GlassButton takes a key, and
@@ -710,7 +747,7 @@ struct MealScanFlow: View {
     /// manual `String(format:)` was looking up — so this is the identical
     /// lookup expressed in the type the button actually wants.
     private var addButtonTitle: LocalizedStringKey {
-        if logAsOneMeal { return "Log meal · \(totalCalories) kcal" }
+        if combinesItems { return "Log meal · \(totalCalories) kcal" }
         return includedItems.count <= 1
             ? "Log meal · \(totalCalories) kcal"
             : "Log \(includedItems.count) items · \(totalCalories) kcal"
@@ -993,7 +1030,7 @@ struct MealScanFlow: View {
     private func confirm() {
         let toLog = includedItems
         guard !toLog.isEmpty, !hasLogged else { return }
-        if logAsOneMeal {
+        if combinesItems {
             let name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
             pendingEntries = [MealEntry(date: logDate, category: category,
                 name: name.isEmpty ? (suggestedMealName ?? String(localized: "Meal")) : name,
@@ -1260,9 +1297,25 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         grams = delta > 0 ? max(grams, target) : min(grams, target)
     }
 
-    /// Current portion expressed in servings, where one serving is the
-    /// model's depicted-portion estimate (`aiGrams`).
-    var servings: Double { aiGrams > 0 ? grams / aiGrams : 1 }
+    /// Current portion expressed in servings of `oneServingGrams`.
+    var servings: Double { oneServingGrams > 0 ? grams / oneServingGrams : 1 }
+
+    /// One serving for the portion controls: the replacement food's own
+    /// serving once swapped, else the scanner's depicted portion. A
+    /// replacement that states no serving uses 100 g — the scanner's
+    /// portion described a different food.
+    var oneServingGrams: Double {
+        if let servingGrams, servingGrams > 0 { return servingGrams }
+        return replacementSourceID == nil ? aiGrams : Self.unstatedReplacementServingGrams
+    }
+
+    private static let unstatedReplacementServingGrams: Double = 100
+
+    /// The scanner's suggested amounts describe the food it saw, so a
+    /// replacement food drops them.
+    var activePortionOptions: [FoodPortionOption] {
+        replacementSourceID == nil ? portionOptions ?? [] : []
+    }
 
     /// The name to log: the edited one, or the scanner's when the field
     /// was cleared, so the diary never gets a blank row.
@@ -1373,6 +1426,7 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         replacedBrand = nil
         nutritionEdited = false
         savedToLibrary = false
+        portionMode = .serving
     }
 
     mutating func replace(with product: ScannedProduct) {
@@ -1651,8 +1705,8 @@ private struct FoodItemEditCard: View {
             }
 
             // Name what one serving actually is, when the scan gave a label.
-            if !item.quantityLabel.isEmpty {
-                Text("1 serving = \(item.quantityLabel)")
+            if let servingLabel = item.servingLabel {
+                Text("1 serving = \(servingLabel)")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .lineLimit(2)
@@ -1698,7 +1752,7 @@ private struct FoodItemEditCard: View {
     /// keeping `grams` the single source of truth for macro scaling.
     private func setServings(_ value: Double) {
         let snapped = max(0.5, (value * 2).rounded() / 2)
-        item.grams = EditableFoodItem.clampedGrams((snapped * item.aiGrams).rounded())
+        item.grams = EditableFoodItem.clampedGrams((snapped * item.oneServingGrams).rounded())
     }
 
     private var servingsLabel: String { "\(formatCount(item.servings))×" }
@@ -1715,16 +1769,16 @@ private struct FoodItemEditCard: View {
     private var presetChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
-                ForEach(item.portionOptions ?? []) { option in
+                ForEach(item.activePortionOptions) { option in
                     chip(label: option.label, grams: option.grams)
                 }
                 switch item.portionMode {
                 case .serving:
                     ForEach(Self.servingPresets, id: \.self) { count in
-                        chip(label: "\(formatCount(count))×", spoken: spokenServings(count), grams: count * item.aiGrams)
+                        chip(label: "\(formatCount(count))×", spoken: spokenServings(count), grams: count * item.oneServingGrams)
                     }
                 case .grams:
-                    chip(label: String(localized: "1 serving"), grams: item.aiGrams)
+                    chip(label: String(localized: "1 serving"), grams: item.oneServingGrams)
                     ForEach(Self.gramPresets, id: \.self) { grams in
                         chip(label: "\(Int(grams)) g", grams: grams)
                     }
@@ -1814,7 +1868,10 @@ enum PhotoCaptureDate {
     /// EXIF `DateTimeOriginal`, interpreted in `OffsetTimeOriginal`
     /// when the camera wrote one, otherwise in `fallbackTimeZone`
     /// (EXIF's own convention: a bare timestamp is local time).
-    static func captureDate(fromImageData data: Data, fallbackTimeZone: TimeZone = .current) -> Date? {
+    /// Never later than `now`: a camera with a wrong clock, or a bare
+    /// timestamp read in the wrong zone, would otherwise log the meal
+    /// in the future.
+    static func captureDate(fromImageData data: Data, fallbackTimeZone: TimeZone = .current, now: Date = Date()) -> Date? {
         guard
             let source = CGImageSourceCreateWithData(data as CFData, nil),
             let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
@@ -1825,7 +1882,7 @@ enum PhotoCaptureDate {
             fromExifDateTime: dateTime,
             offset: exif[kCGImagePropertyExifOffsetTimeOriginal] as? String,
             fallbackTimeZone: fallbackTimeZone
-        )
+        ).map { min($0, now) }
     }
 
     /// Parses EXIF's `yyyy:MM:dd HH:mm:ss`. Rejects the all-zero

@@ -19,9 +19,11 @@ import UIKit
 ///   the parser could extract.
 ///
 /// Scope limits intentionally taken in this v1:
-/// - English-language labels only. Spanish/Swedish/etc. labels are
-///   detected as text but the parser's keyword list doesn't match,
-///   so a non-English label will return `.couldNotParse`.
+/// - English and Swedish labels only. Other languages are detected as
+///   text, but the keyword lists don't match; a label with no
+///   recognised energy or macro row returns `.couldNotParse`, and one
+///   missing a row is marked `nutritionMissing` so the review asks
+///   the user to fill it in before logging.
 /// - A per-serving panel is scaled to per-100g using the printed
 ///   serving grams, so one serving logs the printed numbers. When the
 ///   grams are unknown the values stay as printed and the review card
@@ -69,7 +71,8 @@ enum NutritionLabelOCR {
             per100g: parsed.per100g,
             nutriScore: nil,
             novaGroup: nil,
-            fetchedAt: Date()
+            fetchedAt: Date(),
+            nutritionMissing: !parsed.hasEveryMacro
         )
     }
 
@@ -100,7 +103,7 @@ enum NutritionLabelOCR {
             }
             request.recognitionLevel = .accurate
             request.usesLanguageCorrection = false  // numbers + units, not prose
-            request.recognitionLanguages = ["en-US"]
+            request.recognitionLanguages = ["sv-SE", "en-US"]
 
             let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
             do {
@@ -144,6 +147,9 @@ enum NutritionLabelParser {
         var nutriments: ScannedProduct.Nutriments
         /// True when the panel states its values per 100 g / 100 ml.
         var isPer100gPanel: Bool
+        /// False when energy or a macro row wasn't read, so its 0 in
+        /// `nutriments` is unknown rather than printed.
+        var hasEveryMacro: Bool
 
         /// `nutriments` normalised to per-100g. A US-style panel prints
         /// per-serving values, which are scaled by the serving's grams.
@@ -188,6 +194,7 @@ enum NutritionLabelParser {
         let protein  = parseMacro(keyword: "protein",       in: normalized)
         let carbs    = parseMacro(keyword: "carbohydrate",  in: normalized)
                    ?? parseMacro(keyword: "carbs",          in: normalized)
+                   ?? parseMacro(keyword: "kolhydrat",      in: normalized)
         let fat      = parseFat(in: normalized)
 
         // Require at least calories OR one macro. A label with none
@@ -210,10 +217,12 @@ enum NutritionLabelParser {
                 fatG:     fat     ?? 0,
                 fiberG:   parseMacro(keyword: "fiber", in: normalized)
                        ?? parseMacro(keyword: "fibre", in: normalized),
-                sugarsG:  parseMacro(keyword: "sugar", in: normalized),
+                sugarsG:  parseMacro(keyword: "sugar", in: normalized)
+                       ?? parseMacro(keyword: "socker", in: normalized),
                 micros:   parseMicros(in: normalized)
             ),
-            isPer100gPanel: normalized.contains(where: isPer100gHeader)
+            isPer100gPanel: normalized.contains(where: isPer100gHeader),
+            hasEveryMacro: [calories, protein, carbs, fat].allSatisfy { $0 != nil }
         )
     }
 
@@ -248,26 +257,18 @@ enum NutritionLabelParser {
     }
 
     /// Special-cased: "fat" is a substring of "saturated fat" /
-    /// "trans fat" / "polyunsaturated fat". To get the row for
-    /// total fat, prefer lines starting with "fat" / "total fat" /
-    /// "fat content" and fall through to a generic "fat" only as a
-    /// last resort.
+    /// "trans fat" / "polyunsaturated fat" (and "fett" of "varav
+    /// mättat fett"). To get the row for total fat, only lines that
+    /// start with the keyword count, so sub-rows are skipped; fatty
+    /// acid rows ("fatty acids", "fettsyror") are skipped too.
     private static func parseFat(in lines: [String]) -> Double? {
-        let preferredPrefixes = ["total fat", "fat content", "fat"]
+        let preferredPrefixes = ["total fat", "fat content", "fat", "fett"]
+        let fattyAcidPrefixes = ["fatty", "fettsyr"]
         for prefix in preferredPrefixes {
             for line in lines {
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
-                guard trimmed.hasPrefix(prefix) else { continue }
-                // Skip "saturated fat" / "trans fat" sub-rows.
-                if prefix == "fat" {
-                    if trimmed.hasPrefix("fat") && !trimmed.hasPrefix("fatty") {
-                        let after = trimmed.dropFirst(prefix.count)
-                        if let value = firstNumber(in: String(after)) {
-                            return value
-                        }
-                    }
-                    continue
-                }
+                guard trimmed.hasPrefix(prefix),
+                      !fattyAcidPrefixes.contains(where: { trimmed.hasPrefix($0) }) else { continue }
                 let after = trimmed.dropFirst(prefix.count)
                 if let value = firstNumber(in: String(after)) {
                     return value

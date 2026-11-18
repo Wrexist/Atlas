@@ -51,6 +51,9 @@ struct BarcodeScanFlow: View {
     /// all — a QR code, a shipping label — so the screen can say what it
     /// was instead of blaming the scan.
     @State private var unsupportedPayload: BarcodePayload?
+    /// The last code came from the keypad, not the camera, so the
+    /// unsupported-code card talks about the typed number.
+    @State private var lastInputWasTyped = false
     @State private var isIdentifying = false
     /// Held so "Try another barcode" can cancel an in-flight
     /// identification instead of letting it land on the next scan's card.
@@ -199,6 +202,8 @@ struct BarcodeScanFlow: View {
                     initial: currentMacros(for: product),
                     onSave: { override in
                         manualOverride = override
+                        // An earlier save holds the old values; offer it again.
+                        savedToMyFoods = false
                         showEditSheet = false
                     },
                     onCancel: { showEditSheet = false }
@@ -305,7 +310,8 @@ struct BarcodeScanFlow: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Re-log \(product.name)")
+        .accessibilityLabel(Text(product.name))
+        .accessibilityHint("Opens this product so you can log it again.")
     }
 
     private var manualEntry: some View {
@@ -352,7 +358,7 @@ struct BarcodeScanFlow: View {
                 }
 
             GlassButton(title: "Look up", style: .primary) {
-                handleDetected(barcode: manualBarcode)
+                handleDetected(barcode: manualBarcode, typed: true)
             }
             .disabled(manualBarcode.trimmingCharacters(in: .whitespaces).count < 8)
 
@@ -460,7 +466,14 @@ struct BarcodeScanFlow: View {
         if productFromMyFoods { return "Your saved values from My Foods" }
         if productReadByAI { return "Read from the package by Atlas AI" }
         if nutritionEstimatedByAI { return "Nutrition estimated by Atlas AI" }
+        guard Self.showsDataAge(fetchedAt: product.fetchedAt) else { return "Open Food Facts" }
         return "Open Food Facts · \(Self.relativeAge(product.fetchedAt))"
+    }
+
+    /// A lookup from the last day is simply current; only older cached
+    /// data earns its age ("0 sec. ago" said nothing).
+    nonisolated static func showsDataAge(fetchedAt: Date, now: Date = Date()) -> Bool {
+        fetchedAt < now.addingTimeInterval(-86_400)
     }
 
     private var overrideNotice: some View {
@@ -484,6 +497,7 @@ struct BarcodeScanFlow: View {
             Spacer(minLength: 0)
             Button("Reset") {
                 manualOverride = nil
+                savedToMyFoods = false
             }
             .font(AppFont.subheadline)
             .foregroundStyle(AppColor.textSecondary)
@@ -565,12 +579,22 @@ struct BarcodeScanFlow: View {
             .disabled(!canEdit)
             .accessibilityLabel("Edit nutrition manually")
             if manualOverride == nil && !product.hasNutrition {
-                Text("No nutrition data for this product. Edit nutrition with the values from its label.")
+                Text(missingNutritionNote(for: product))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    /// A label read that caught some values says so, rather than
+    /// claiming the product has no nutrition data at all.
+    private func missingNutritionNote(for product: ScannedProduct) -> String {
+        let n = product.per100g
+        let readSome = [n.calories, n.proteinG, n.carbsG, n.fatG].contains { $0 > 0 }
+        return readSome
+            ? String(localized: "Part of the label couldn't be read. Edit nutrition to check every value before adding.")
+            : String(localized: "No nutrition data for this product. Edit nutrition with the values from its label.")
     }
 
     /// An all-zero Open Food Facts record stays unloggable until the user
@@ -772,8 +796,11 @@ struct BarcodeScanFlow: View {
     /// the `LocalizedStringKey` and `StringProtocol` overloads, and that
     /// ambiguity has already cost this codebase an afternoon of chasing
     /// an inference error reported thirty lines from its cause.
+    /// The general catalogue carries edible things too, so only beauty
+    /// and pet food are called "not a food".
     private var notFoundHeadline: LocalizedStringKey {
-        identity == nil ? "This barcode isn't in the food database yet" : "That's not a food"
+        guard let identity else { return "This barcode isn't in the food database yet" }
+        return identity.catalogue.mayStillBeEdible ? "Found outside the food database" : "That's not a food"
     }
 
     /// Keeps the label-OCR and AI-photo escape hatches, unless we've
@@ -852,17 +879,19 @@ struct BarcodeScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
-            Text("Product barcodes are the striped ones with the digits printed underneath.")
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textTertiary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
+            if !lastInputWasTyped {
+                Text("Product barcodes are the striped ones with the digits printed underneath.")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            }
 
             VStack(spacing: Spacing.sm) {
-                GlassButton(title: "Scan another code", style: .primary) {
+                GlassButton(title: anotherCodeTitle, style: .primary) {
                     errorText = nil
                     resetScanResults()
-                    phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+                    phase = lastInputWasTyped || !BarcodeScannerView.canScan ? .manualEntry : .scanning
                 }
                 GlassButton(title: "Scan meal photo", icon: "camera.fill", style: .secondary) {
                     onRequestPhotoFallback()
@@ -872,11 +901,18 @@ struct BarcodeScanFlow: View {
         }
     }
 
+    private var anotherCodeTitle: LocalizedStringKey {
+        lastInputWasTyped ? "Type another code" : "Scan another code"
+    }
+
     /// Says what was read without ever echoing it at length — a scanned
     /// payload is arbitrary external content, so it gets truncated and
     /// stays inside quotation marks rather than being presented as the
     /// app's own copy.
     private var unsupportedCodeDetail: String {
+        if lastInputWasTyped {
+            return String(localized: "That number isn't a product barcode. Product barcodes have 8 to 14 digits.")
+        }
         let unreadable = String(localized: "The camera read it cleanly, but there's no product code in it.")
         guard let unsupportedPayload else { return unreadable }
         switch unsupportedPayload {
@@ -917,14 +953,10 @@ struct BarcodeScanFlow: View {
     /// Keeps a product the user logs often one search away in My Foods,
     /// with Atlas AI's price attached when it has one.
     private func saveToMyFoodsButton(_ product: ScannedProduct) -> some View {
-        Button {
-            let item = insight?.items.first
-            let pricePer100g = item.flatMap { $0.price?.scaled(by: 100 / $0.grams) }
-            // Saving a barcode twice updates the one entry instead of a duplicate.
-            let existing = SmartFoodLogic.myFood(forBarcode: product.barcode, in: dataStore.profile.customFoods)
-            dataStore.saveCustomFood(SmartFoodLogic.customFood(
-                from: product, pricePer100g: pricePer100g ?? existing?.pricePer100g, id: existing?.id ?? UUID()
-            ))
+        let entry = myFoodsEntry(for: product)
+        return Button {
+            guard let entry else { return }
+            dataStore.saveCustomFood(entry)
             savedToMyFoods = true
             Haptics.success()
         } label: {
@@ -934,7 +966,23 @@ struct BarcodeScanFlow: View {
         }
         .buttonStyle(.plain)
         .minimumHitArea()
-        .disabled(savedToMyFoods)
+        .disabled(savedToMyFoods || entry == nil)
+    }
+
+    /// The My Foods entry the save button writes: the values the user
+    /// typed when they edited the nutrition, else the database's.
+    /// Saving a barcode twice updates the one entry instead of a duplicate.
+    private func myFoodsEntry(for product: ScannedProduct) -> CustomFood? {
+        let existing = SmartFoodLogic.myFood(forBarcode: product.barcode, in: dataStore.profile.customFoods)
+        if let typed = manualOverride {
+            guard let grams = product.grams(for: portion) else { return nil }
+            return SmartFoodLogic.correctedFood(product, portionGrams: grams, typed: typed, existing: existing)
+        }
+        let item = insight?.items.first
+        let pricePer100g = item.flatMap { $0.price?.scaled(by: 100 / $0.grams) }
+        return SmartFoodLogic.customFood(
+            from: product, pricePer100g: pricePer100g ?? existing?.pricePer100g, id: existing?.id ?? UUID()
+        )
     }
 
     private var saveToMyFoodsTitle: LocalizedStringKey {
@@ -1047,18 +1095,22 @@ struct BarcodeScanFlow: View {
             phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
         case .denied, .restricted:
             cameraDenied = outcome == .denied
-            errorText = String(localized: "Camera access is off. Enable it in Settings to scan barcodes, or type a code below.")
+            // Settings can't lift a Screen Time or profile restriction.
+            errorText = cameraDenied
+                ? String(localized: "Camera access is off. Enable it in Settings to scan barcodes, or type a code below.")
+                : String(localized: "The camera is restricted on this device. Type the code below instead.")
             phase = .manualEntry
         }
     }
 
-    private func handleDetected(barcode: String) {
+    private func handleDetected(barcode: String, typed: Bool = false) {
         // Guard against rapid double-fires: the live scanner stops
         // after one detection, but the recently-scanned tiles can
         // trigger this from any phase. Only start a new lookup when
         // we're actually waiting for one.
         guard phase == .scanning || phase == .manualEntry else { return }
         resetScanResults()
+        lastInputWasTyped = typed
 
         // Classification is pure string work, so deciding here rather
         // than inside the network task keeps a QR code from flashing the
@@ -1551,6 +1603,7 @@ struct BarcodeScanFlow: View {
     nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
+        f.dateTimeStyle = .named
         return f
     }()
 

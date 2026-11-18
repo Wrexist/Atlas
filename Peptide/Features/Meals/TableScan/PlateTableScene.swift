@@ -162,6 +162,10 @@ final class PlateTableScene: SKScene, SKPhysicsContactDelegate {
         return body
     }
 
+    func setLabelColor(_ color: UIColor) {
+        labels.values.forEach { $0.fontColor = color }
+    }
+
     func setLabelsVisible(_ visible: Bool) {
         showsLabels = visible
         labels.values.forEach { $0.isHidden = !visible }

@@ -48,8 +48,9 @@ struct ScannedProduct: Codable, Hashable, Sendable {
 
     /// True when the Open Food Facts record carried no energy and no
     /// macros at all, so `per100g` is zeros by default rather than a
-    /// real zero-calorie label (water, plain tea). Set at mapping time
-    /// because the values alone cannot tell the two apart.
+    /// real zero-calorie label (water, plain tea), or when a label read
+    /// missed energy or a macro row. Set at mapping time because the
+    /// values alone cannot tell the two apart.
     var nutritionMissing = false
 
     /// True when Atlas AI read this product off its package because the

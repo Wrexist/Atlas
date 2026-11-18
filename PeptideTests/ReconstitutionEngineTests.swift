@@ -250,7 +250,7 @@ final class PhotoCaptureDateTests: XCTestCase {
             kCGImagePropertyExifOffsetTimeOriginal: "+02:00",
         ])
         XCTAssertEqual(
-            PhotoCaptureDate.captureDate(fromImageData: data, fallbackTimeZone: utc),
+            PhotoCaptureDate.captureDate(fromImageData: data, fallbackTimeZone: utc, now: utcDate(2030, 1, 1, 0, 0, 0)),
             utcDate(2026, 3, 14, 17, 30, 0)
         )
     }
@@ -260,8 +260,20 @@ final class PhotoCaptureDateTests: XCTestCase {
         let newYork = try XCTUnwrap(TimeZone(identifier: "America/New_York"))
         // 14 March 2026 is after the US DST switch: EDT, UTC-4.
         XCTAssertEqual(
-            PhotoCaptureDate.captureDate(fromImageData: data, fallbackTimeZone: newYork),
+            PhotoCaptureDate.captureDate(fromImageData: data, fallbackTimeZone: newYork, now: utcDate(2030, 1, 1, 0, 0, 0)),
             utcDate(2026, 3, 14, 23, 30, 0)
+        )
+    }
+
+    func test_captureDate_futureExifTime_isClampedToNow() throws {
+        let data = try jpeg(exif: [
+            kCGImagePropertyExifDateTimeOriginal: "2026:03:15 09:00:00",
+            kCGImagePropertyExifOffsetTimeOriginal: "+00:00",
+        ])
+        let now = utcDate(2026, 3, 14, 20, 0, 0)
+        XCTAssertEqual(
+            PhotoCaptureDate.captureDate(fromImageData: data, fallbackTimeZone: utc, now: now),
+            now
         )
     }
 

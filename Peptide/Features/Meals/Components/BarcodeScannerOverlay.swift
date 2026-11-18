@@ -46,7 +46,7 @@ struct BarcodeScannerOverlay: View {
         } label: {
             Image(systemName: torchOn ? "flashlight.on.fill" : "flashlight.off.fill")
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(torchOn ? AppColor.accentLight : .white)
+                .foregroundStyle(torchOn ? AppColor.accentLight : AppColor.onAccent)
                 .frame(width: 44, height: 44)
                 .glassControl(
                     .circle,

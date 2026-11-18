@@ -30514,16 +30514,6 @@
         }
       }
     },
-    "Re-log %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Logga %@ igen"
-          }
-        }
-      }
-    },
     "Reach the app without opening it": {
       "localizations": {
         "sv": {
@@ -36700,16 +36690,6 @@
         }
       }
     },
-    "That's a general product, not a food, so there's nothing to add to your diary.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Det är en allmän produkt, inte mat, så det finns inget att lägga till i dagboken."
-          }
-        }
-      }
-    },
     "That's not a food": {
       "localizations": {
         "sv": {
@@ -41498,16 +41478,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Du är offline – researchassistenten kräver internetanslutning. Anslut igen och försök på nytt."
-          }
-        }
-      }
-    },
-    "You're offline. We'll use cached results when available.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du är offline. Vi använder sparade resultat när det finns."
           }
         }
       }
@@ -51184,6 +51154,148 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vi hittade ingen träff för ”%@”. Låt Atlas AI lägga till det eller skanna streckkoden."
+          }
+        }
+      }
+    },
+    "Part of the label couldn't be read. Edit nutrition to check every value before adding.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En del av etiketten gick inte att läsa. Redigera näringsvärdet och kontrollera alla värden innan du lägger till."
+          }
+        }
+      }
+    },
+    "Discard this meal?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slänga den här måltiden?"
+          }
+        }
+      }
+    },
+    "Discard meal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Släng måltid"
+          }
+        }
+      }
+    },
+    "Found outside the food database": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hittades utanför livsmedelsdatabasen"
+          }
+        }
+      }
+    },
+    "Open Products Facts lists this. If it's something you eat, photograph the package to add it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Products Facts listar den här. Om det är något du äter kan du fotografera förpackningen för att lägga till den."
+          }
+        }
+      }
+    },
+    "Type another code": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skriv en annan kod"
+          }
+        }
+      }
+    },
+    "That number isn't a product barcode. Product barcodes have 8 to 14 digits.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det numret är inte en produktstreckkod. Produktstreckkoder har 8 till 14 siffror."
+          }
+        }
+      }
+    },
+    "The camera is restricted on this device. Type the code below instead.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kameran är begränsad på den här enheten. Skriv koden nedan i stället."
+          }
+        }
+      }
+    },
+    "Opens this product so you can log it again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar produkten så att du kan logga den igen."
+          }
+        }
+      }
+    },
+    "You're offline, and this isn't saved on your phone yet. Reconnect, or photograph the label.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du är offline och det här finns inte sparat på telefonen än. Anslut igen eller fotografera etiketten."
+          }
+        }
+      }
+    },
+    "^[%lld dish](inflect: true) couldn't be read and won't be kept.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld rätt gick inte att läsa och sparas inte."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld rätter gick inte att läsa och sparas inte."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Couldn't lift the dishes from that photo. Try another one, or cut them out yourself.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det gick inte att lyfta ut rätterna från bilden. Prova en annan, eller klipp ut dem själv."
+          }
+        }
+      }
+    },
+    "Couldn't take the photo. Try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det gick inte att ta bilden. Försök igen."
           }
         }
       }
