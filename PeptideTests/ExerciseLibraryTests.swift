@@ -112,6 +112,19 @@ final class ExerciseLibraryTests: XCTestCase {
         XCTAssertEqual(library.displayName(for: "custom_deleted_123"), "Unknown exercise")
     }
 
+    func test_load_concurrentCallers_allSeeOneCompleteCatalog() async {
+        library.reset()
+
+        let shared = library
+        let callers = (0..<3).map { _ in Task { await shared.load() } }
+        for caller in callers { await caller.value }
+
+        XCTAssertTrue(library.isLoaded)
+        XCTAssertGreaterThan(library.bundled.count, 500)
+        let ids = library.filter(query: "").map(\.id)
+        XCTAssertEqual(ids.count, Set(ids).count, "catalog must not hold duplicate rows")
+    }
+
     // MARK: - Custom exercises from SwiftData
 
     /// A relaunch starts with an empty overlay; `load()` must read the

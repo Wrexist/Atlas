@@ -37,6 +37,10 @@ final class ExerciseLibrary {
     /// "loaded, genuinely no match" instead of flashing a false
     /// not-found state before `load()` completes.
     private(set) var isLoaded = false
+    /// The decode in flight. Several Train-tab `.task`s call `load()` at
+    /// once; without this each one passed the `isLoaded` guard and
+    /// decoded the whole catalog again.
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
 
     private init() {}
 
@@ -76,6 +80,16 @@ final class ExerciseLibrary {
     /// the user out of training permanently.
     func load() async {
         guard !isLoaded else { return }
+        if let loadTask { return await loadTask.value }
+        let task = Task { await decodeBundled() }
+        loadTask = task
+        await task.value
+        // Cleared so a failed decode can be retried; a `reset()` and a
+        // newer load may already have replaced it.
+        if loadTask == task { loadTask = nil }
+    }
+
+    private func decodeBundled() async {
         let started = Date()
         guard let url = Bundle.main.url(forResource: "exercises", withExtension: "json") else {
             AppLog.training.error("ExerciseLibrary: exercises.json missing from bundle")
@@ -121,6 +135,7 @@ final class ExerciseLibrary {
     /// the empty-state retry button to recover from a transient
     /// bundled-resource failure.
     func reset() {
+        loadTask = nil
         isLoaded = false
         bundled = []
         byID = [:]
