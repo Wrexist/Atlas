@@ -354,5 +354,28 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
         let text = BiomarkerSeriesService.averageComparisonText(latest: 71.6, average: 72, for: .weight, unit: .metric)
         XCTAssertEqual(text, "0.4 kg below your recent average.")
     }
+
+    // MARK: - sleepSeries
+
+    func test_sleepSeries_bucketsEachNightByWakeDayInHours() {
+        let wake = Date(timeIntervalSince1970: 1_700_000_000)
+        let night = SleepScoreEngine.Night(
+            start: wake.addingTimeInterval(-8 * 3600),
+            end: wake,
+            deep: 3600, core: 4 * 3600, rem: 3600, unspecified: 0,
+            awake: 1800
+        )
+        let earlier = SleepScoreEngine.Night(
+            start: wake.addingTimeInterval(-32 * 3600),
+            end: wake.addingTimeInterval(-24 * 3600),
+            deep: 0, core: 0, rem: 0, unspecified: 7 * 3600,
+            awake: 0
+        )
+
+        let series = BiomarkerSeriesService.sleepSeries(from: [night, earlier], calendar: utc)
+
+        XCTAssertEqual(series.map(\.value), [7, 6])
+        XCTAssertEqual(series.map(\.date), [utc.startOfDay(for: earlier.end), utc.startOfDay(for: wake)])
+    }
 }
 

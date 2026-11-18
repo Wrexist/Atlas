@@ -91,8 +91,9 @@ enum BiomarkerSeriesService {
             let series = await HealthKitService.shared.dailyRestingHeartRate(days: days)
             return seriesSnapshot(.rhrBaseline, series: series, unit: unit)
         case .sleepBaseline:
-            let series = await HealthKitService.shared.dailySleepHours(days: days)
-            return seriesSnapshot(.sleepBaseline, series: series, unit: unit)
+            let segments = await HealthKitService.shared.sleepSegments(nights: days)
+            let nights = SleepScoreEngine.nights(from: segments, calendar: .current)
+            return seriesSnapshot(.sleepBaseline, series: sleepSeries(from: nights, calendar: .current), unit: unit)
         case .stepsBaseline:
             let series = await HealthKitService.shared.dailySteps(days: days)
             return seriesSnapshot(.stepsBaseline, series: completedDays(series), unit: unit)
@@ -213,6 +214,18 @@ enum BiomarkerSeriesService {
     ) -> [(date: Date, value: Double)] {
         let startOfToday = calendar.startOfDay(for: now)
         return series.filter { $0.date < startOfToday }
+    }
+
+    /// Hours asleep per wake-up day, from the same nights the Sleep card
+    /// reads (the main session only, naps left out), so the tile, its
+    /// detail and the card agree on the average.
+    static func sleepSeries(
+        from nights: [SleepScoreEngine.Night],
+        calendar: Calendar = .current
+    ) -> [(date: Date, value: Double)] {
+        nights
+            .map { (date: calendar.startOfDay(for: $0.end), value: $0.asleep / 3600) }
+            .sorted { $0.date < $1.date }
     }
 
     static func labSnapshot(latestLab: LabValue?) -> BiomarkerSnapshot {
