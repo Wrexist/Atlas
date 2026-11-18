@@ -31284,26 +31284,6 @@
         }
       }
     },
-    "Scrolls to today's doses": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rullar till dagens doser"
-          }
-        }
-      }
-    },
-    "Scrolls to today's habits": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rullar till dagens vanor"
-          }
-        }
-      }
-    },
     "Sections": {
       "localizations": {
         "sv": {
@@ -49842,6 +49822,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sömn är den enskilt största faktorn för återhämtning, träningsframsteg och hur du mår dagen efter."
+          }
+        }
+      }
+    },
+    "Shows today's habits": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar dagens vanor"
+          }
+        }
+      }
+    },
+    "Shows today's doses": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar dagens doser"
           }
         }
       }

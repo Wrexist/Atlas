@@ -29,8 +29,8 @@ struct CoachingCard: View {
     private func hint(for action: CoachingMessageEngine.CoachingMessage.Action) -> Text {
         switch action {
         case .connectHealth: Text("Asks to connect Apple Health")
-        case .scrollToHabits: Text("Scrolls to today's habits")
-        case .scrollToDoses: Text("Scrolls to today's doses")
+        case .scrollToHabits: Text("Shows today's habits")
+        case .scrollToDoses: Text("Shows today's doses")
         }
     }
 

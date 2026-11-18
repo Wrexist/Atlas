@@ -68,6 +68,8 @@ struct HomeView: View {
     @State private var quickLogAction: QuickLogAction?
     @State private var showWeightSheet = false
     @State private var showSupplements = false
+    /// The check-in sheet, for a tap whose Wellness section is hidden.
+    @State private var showCheckIn = false
     /// Bevel-style hero metric trio snapshot. Loaded async on first
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
@@ -366,8 +368,8 @@ struct HomeView: View {
         notificationService.lastReport.hasAnyIssue && !notificationBannerDismissed
     }
 
-    /// Gates the doses section, so a coaching action never scrolls to a
-    /// section that isn't rendered.
+    /// Gates the doses section; `rendersAnchor` reads it too, so a
+    /// coaching action never scrolls to a section that isn't rendered.
     private var showsDoseSection: Bool {
         !dataStore.protocols.isEmpty && derived.plan != nil
     }
@@ -768,6 +770,7 @@ struct HomeView: View {
                 .environment(appState)
                 .liquidGlassPresentation()
             }
+            .dailyCheckInSheet(isPresented: $showCheckIn)
             .sheet(isPresented: $showWeightSheet) {
                 LogWeightSheet()
                     .environment(dataStore)
@@ -1175,13 +1178,41 @@ struct HomeView: View {
             connectHealth()
         case .scrollToHabits:
             Haptics.impact(.light)
-            AppAnimation.with(AppAnimation.settle) {
-                proxy.scrollTo(TodaySection.habits, anchor: .top)
-            }
+            show(.habits, proxy: proxy)
         case .scrollToDoses:
             Haptics.impact(.light)
-            scroll(to: .doses, proxy: proxy)
+            show(.doses, proxy: proxy)
         }
+    }
+
+    /// Scrolls to `section` when Today renders it. Edit Today can hide
+    /// any of them, and then there's no anchor to scroll to, so the tap
+    /// opens the same content where it lives instead.
+    private func show(_ section: TodaySection, proxy: ScrollViewProxy) {
+        if rendersAnchor(section) {
+            scroll(to: section, proxy: proxy)
+            return
+        }
+        switch section {
+        case .habits:
+            appState.selectedTab = .habits
+        case .doses:
+            appState.pendingProtocolList = true
+            appState.showLibrary = true
+        case .wellness:
+            showCheckIn = true
+        default:
+            break
+        }
+    }
+
+    /// Whether `section`'s `.id` anchor is in the scroll: on in the
+    /// user's layout, showing for the shown day, and — for doses — with
+    /// a plan to show.
+    private func rendersAnchor(_ section: TodaySection) -> Bool {
+        guard dataStore.profile.todayLayout.visibleSections.contains(section),
+              shows(section.dayEngineSection) else { return false }
+        return section != .doses || showsDoseSection
     }
 
     private func backToToday() {
@@ -1218,7 +1249,7 @@ struct HomeView: View {
         case .mealStreak:
             appState.selectedTab = .meals
         case .checkIn:
-            scroll(to: .wellness, proxy: proxy)
+            show(.wellness, proxy: proxy)
         case .water:
             logWaterGlass()
         }
@@ -1232,7 +1263,7 @@ struct HomeView: View {
         case .workout:
             appState.selectedTab = .train
         case .checkIn:
-            scroll(to: .wellness, proxy: proxy)
+            show(.wellness, proxy: proxy)
         }
     }
 
