@@ -21,9 +21,10 @@ struct WeekDayStrip: View {
     var body: some View {
         let week = Self.weekOffsets(containing: offset)
         let fromLater = week.lowerBound > (shownWeekStart ?? week.lowerBound)
+        let logged = Self.loggedOffsets(in: week, profile: dataStore.profile)
         HStack(spacing: Spacing.xxs) {
             ForEach(week, id: \.self) { dayOffset in
-                cell(dayOffset)
+                cell(dayOffset, hasLogged: logged.contains(dayOffset))
                     .opacity(hasAppeared ? 1 : 0)
                     .animation(
                         AppAnimation.motionAware(
@@ -48,13 +49,12 @@ struct WeekDayStrip: View {
         .onChange(of: week.lowerBound) { _, start in shownWeekStart = start }
     }
 
-    private func cell(_ dayOffset: Int) -> some View {
+    private func cell(_ dayOffset: Int, hasLogged: Bool) -> some View {
         let day = Self.date(for: dayOffset)
         let isSelected = dayOffset == offset
         let isSelectable = Self.selectableOffsets.contains(dayOffset)
         let isToday = dayOffset == 0
-        let hasMeals = isSelectable
-            && (!dataStore.mealEntries(for: day).isEmpty || dataStore.consumption(for: day).caloriesKcal > 0)
+        let hasMeals = isSelectable && hasLogged
         return Button { select(dayOffset) } label: {
             VStack(spacing: Spacing.xxs) {
                 Text(day, format: .dateTime.weekday(.abbreviated))
@@ -117,6 +117,32 @@ struct WeekDayStrip: View {
         let weekday = calendar.component(.weekday, from: date(for: offset, calendar: calendar))
         let start = offset - (weekday - calendar.firstWeekday + 7) % 7
         return start..<(start + 7)
+    }
+
+    /// The offsets in `week` with meals logged: one pass over the meal
+    /// history for the whole week, plus a keyed bucket lookup per day for
+    /// legacy totals, instead of two full-history scans per cell.
+    nonisolated static func loggedOffsets(
+        in week: Range<Int>,
+        profile: UserProfile,
+        today: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Set<Int> {
+        let todayStart = calendar.startOfDay(for: today)
+        guard let start = calendar.date(byAdding: .day, value: week.lowerBound, to: todayStart),
+              let end = calendar.date(byAdding: .day, value: week.count, to: start) else { return [] }
+        var offsets = Set<Int>()
+        for entry in profile.mealHistory where entry.date >= start && entry.date < end {
+            if let offset = calendar.dateComponents([.day], from: todayStart, to: calendar.startOfDay(for: entry.date)).day {
+                offsets.insert(offset)
+            }
+        }
+        for offset in week where !offsets.contains(offset) {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: todayStart) else { continue }
+            let bucket = profile.dailyConsumption[LifestyleDataLogic.consumptionKey(for: day, calendar: calendar)]
+            if (bucket?.caloriesKcal ?? 0) > 0 { offsets.insert(offset) }
+        }
+        return offsets
     }
 
     /// Unlike `LifestyleDataLogic.mealDay`, doesn't clamp — future cells
