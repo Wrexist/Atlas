@@ -93,9 +93,9 @@ enum DailyReminderScheduler {
     /// not re-plan reminders until the next background or activation, so
     /// the foreground banner checks again at delivery.
     static func isAlreadyDone(requestID: String, on day: Date, dataStore: DataStore, calendar: Calendar = .current) -> Bool {
-        guard let kind = kind(forRequestID: requestID) else { return false }
+        guard let reminderKind = Self.kind(forRequestID: requestID) else { return false }
         let trainedDays = dataStore.workoutSummary(for: day).count > 0 ? [day] : []
-        return isAlreadyDone(kind, day: day, profile: dataStore.profile, trainedDays: trainedDays, calendar: calendar)
+        return isAlreadyDone(reminderKind, day: day, profile: dataStore.profile, trainedDays: trainedDays, calendar: calendar)
     }
 
     /// Whether `kind` is already logged on the day containing `day`, so
