@@ -11,6 +11,46 @@
         }
       }
     },
+    "%@ added": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra"
+          }
+        }
+      }
+    },
+    "%@ assist": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans"
+          }
+        }
+      }
+    },
+    "%@ per hand": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per hand"
+          }
+        }
+      }
+    },
+    "%@ per side": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per sida"
+          }
+        }
+      }
+    },
     "%@, %lld of %lld done": {
       "localizations": {
         "sv": {
@@ -281,6 +321,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lägg till övning"
+          }
+        }
+      }
+    },
+    "Add exercises on your iPhone": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till övningar på din iPhone"
           }
         }
       }
@@ -651,6 +701,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Logga 8 ounces vatten"
+          }
+        }
+      }
+    },
+    "Log a workout on your iPhone to bring lifts here.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett pass på din iPhone för att få hit dina övningar."
           }
         }
       }

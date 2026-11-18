@@ -292,6 +292,23 @@ struct WatchSetMeasurement: Codable, Hashable, Sendable {
     let kind: String
     /// `SetEntry.Measurement.Load` raw value, e.g. "perSide".
     let load: String
+
+    /// What the logged number is, when it isn't simply the load on the bar.
+    enum LoadMeaning: Equatable, Sendable {
+        case load, added, assistance, perSide, perHand
+    }
+
+    /// Bodyweight and assisted sets say so first, since their number is
+    /// added load or assistance; otherwise a per-side or per-hand load.
+    var meaning: LoadMeaning {
+        switch (kind, load) {
+        case ("bodyweight", _): .added
+        case ("assisted", _): .assistance
+        case (_, "perSide"): .perSide
+        case (_, "eachPair"): .perHand
+        default: .load
+        }
+    }
 }
 
 /// A routine as the Watch starts it while the phone is out of reach.

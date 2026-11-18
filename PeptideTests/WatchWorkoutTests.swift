@@ -122,6 +122,14 @@ final class WatchWorkoutSnapshotTests: XCTestCase {
         XCTAssertTrue(resumed.isResting(at: now.addingTimeInterval(330)))
     }
 
+    func test_measurementMeaning_bodyweightAssistedAndSplitLoads() {
+        XCTAssertEqual(WatchSetMeasurement(kind: "bodyweight", load: "recorded").meaning, .added)
+        XCTAssertEqual(WatchSetMeasurement(kind: "assisted", load: "perSide").meaning, .assistance)
+        XCTAssertEqual(WatchSetMeasurement(kind: "repetitions", load: "perSide").meaning, .perSide)
+        XCTAssertEqual(WatchSetMeasurement(kind: "repetitions", load: "eachPair").meaning, .perHand)
+        XCTAssertEqual(WatchSetMeasurement(kind: "repetitions", load: "total").meaning, .load)
+    }
+
     func test_addSet_copiesTheLastSetUnderTheWatchChosenID() {
         let press = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Press", restSeconds: 90, sets: [row(1, completed: true)])
         let id = UUID()
