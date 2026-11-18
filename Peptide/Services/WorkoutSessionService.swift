@@ -155,7 +155,10 @@ final class WorkoutSessionService {
             routineID: linksRoutine ? routine?.id : nil,
             startedAt: now,
             exercises: exercises,
-            focus: WorkoutFocusState(selectedEntryID: exercises.first?.id)
+            focus: WorkoutFocusState(
+                selectedEntryID: exercises.first?.id,
+                adjustment: appliedAdjustment(proposedAdjustment, to: exercises, routine: routine)
+            )
         )
         activeSession = session
         seedRoutine = routine.map { SeedRoutine(sessionID: session.id, routine: $0) }
@@ -333,8 +336,16 @@ final class WorkoutSessionService {
 
     /// Re-reads the in-progress session after an iCloud account switch,
     /// so the previous account's workout doesn't stay on screen.
+    /// The memoised history and this week's deload belonged to the previous
+    /// account too, so both are re-read from the new one.
     func reloadActiveSession() {
         activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
+        invalidatePreviousSetCache()
+        deload = activeSession.flatMap { session in
+            DeloadEngine.reason(
+                history: SwiftDataRepository.shared.loadWorkoutSessions(), now: session.startedAt, calendar: .current
+            )
+        }
         WorkoutLiveActivityService.shared.reconcile(active: activeSession)
     }
 
@@ -363,6 +374,7 @@ final class WorkoutSessionService {
             )]
         ), routine: nil, adjustment: activeAdjustment)
         session.exercises.append(entry)
+        session.adjustment = appliedAdjustment(activeAdjustment, to: session.exercises, routine: activeRoutine)
         if session.focus == nil { session.focus = WorkoutFocusState() }
         session.focus?.selectedEntryID = entry.id
         persist(session)
@@ -407,7 +419,6 @@ final class WorkoutSessionService {
             index: nextIndex,
             weightKg: prev?.weightKg ?? 0,
             reps: prev?.reps ?? 8,
-            rpe: prev?.rpe,
             measurement: prev?.measurement
         )
         session.exercises[idx].sets.append(next)
@@ -578,17 +589,40 @@ final class WorkoutSessionService {
         return older
     }
 
+    /// The completed sets progression builds on: those of the newest prior
+    /// session that ran at normal suggestions, so a deload week's or a
+    /// low-recovery day's lighter loads don't become the next target. Falls
+    /// back to the newest session when every one that logged the lift was
+    /// adjusted. Memoised alongside `previousSessionSets`.
+    func progressionBaselineSets(forExerciseID id: String) -> [SetEntry] {
+        _ = previousSetsByExercise()
+        if let sets = baselineSetCache?[id] { return sets }
+        let older = SwiftDataRepository.shared.loadFinishedWorkoutSessions(touching: [id])
+            .reversed()
+            .lazy
+            .filter { $0.adjustment == nil }
+            .map { Self.completedSets(of: id, in: $0) }
+            .first { !$0.isEmpty }
+        let sets = older ?? previousSessionSets(forExerciseID: id)
+        baselineSetCache?[id] = sets
+        return sets
+    }
+
     private func previousSetsByExercise() -> [String: [SetEntry]] {
         if let cached = previousSetCache { return cached }
         var byExercise: [String: [SetEntry]] = [:]
+        var baseline: [String: [SetEntry]] = [:]
         // Newest first, so each exercise keeps its most recent session.
         for session in SwiftDataRepository.shared.loadWorkoutSessions() where session.finishedAt != nil {
-            for exerciseID in Set(session.exercises.map(\.exerciseID)) where byExercise[exerciseID] == nil {
+            for exerciseID in Set(session.exercises.map(\.exerciseID)) {
                 let completed = Self.completedSets(of: exerciseID, in: session)
-                if !completed.isEmpty { byExercise[exerciseID] = completed }
+                guard !completed.isEmpty else { continue }
+                if byExercise[exerciseID] == nil { byExercise[exerciseID] = completed }
+                if session.adjustment == nil, baseline[exerciseID] == nil { baseline[exerciseID] = completed }
             }
         }
         previousSetCache = byExercise
+        baselineSetCache = baseline
         return byExercise
     }
 
@@ -643,7 +677,7 @@ final class WorkoutSessionService {
         let exercise = ExerciseLibrary.shared.lookup(id: id)
         let increment = incrementKg(forExerciseID: id)
         guard let suggestion = ProgressionEngine.suggestion(
-            previous: previousSessionSets(forExerciseID: id),
+            previous: progressionBaselineSets(forExerciseID: id),
             repRange: ProgressionEngine.repRange(targetReps: target, mechanic: exercise?.mechanic),
             incrementKg: increment
         ) else { return nil }
@@ -688,6 +722,20 @@ final class WorkoutSessionService {
         var seeded = entry
         seeded.sets = ProgressionEngine.apply(suggestion, to: entry.sets)
         return seeded
+    }
+
+    /// The adjustment to record on a session: only one that lowered its
+    /// seeded sets. With auto-progression off, or no exercise with history
+    /// to seed from, the user lifts their own loads, so history mustn't
+    /// skip the workout as deliberately light or start a deload cooldown.
+    private func appliedAdjustment(
+        _ adjustment: ProgressionEngine.Adjustment?, to exercises: [WorkoutExerciseEntry], routine: Routine?
+    ) -> ProgressionEngine.Adjustment? {
+        guard let adjustment, autoProgression else { return nil }
+        let lowersASet = exercises.contains { entry in
+            progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: routine), adjustment: adjustment) != nil
+        }
+        return lowersASet ? adjustment : nil
     }
 
     // MARK: - Readiness and deload
@@ -772,23 +820,23 @@ final class WorkoutSessionService {
 
     /// Moves sets still at the old suggestion to the new one when the
     /// adjustment changes, the way starting the workout seeded them.
+    /// The new adjustment is recorded on the session when it lowered a set,
+    /// so history knows which workouts were deliberately light.
     private func reseedUntouchedSets(from old: ProgressionEngine.Adjustment?) {
         let new = activeAdjustment
-        guard old != new, autoProgression, var session = activeSession else { return }
+        guard old != new, var session = activeSession else { return }
         let routine = activeRoutine
-        var changed = false
-        for idx in session.exercises.indices {
+        session.adjustment = appliedAdjustment(new, to: session.exercises, routine: routine)
+        let reseeds = autoProgression
+        for idx in session.exercises.indices where reseeds {
             let entry = session.exercises[idx]
             let target = targetReps(for: entry, in: routine)
             guard let before = progression(for: entry.exerciseID, targetReps: target, adjustment: old),
                   let after = progression(for: entry.exerciseID, targetReps: target, adjustment: new)
             else { continue }
-            let reseeded = ProgressionEngine.reseed(from: before, to: after, in: entry.sets)
-            guard reseeded != entry.sets else { continue }
-            session.exercises[idx].sets = reseeded
-            changed = true
+            session.exercises[idx].sets = ProgressionEngine.reseed(from: before, to: after, in: entry.sets)
         }
-        if changed { persist(session) }
+        persist(session)
     }
 
     // MARK: - Focus and session clocks
@@ -832,6 +880,9 @@ final class WorkoutSessionService {
                 .sets.first(where: { $0.id == target.set }),
               !set.completed
         else { return }
+        // Focus follows the set, as on the Watch, so the rest it starts
+        // ends on the exercise being worked rather than the finished one.
+        selectExercise(target.entry)
         set.completed = true
         updateSet(set, inExerciseEntryID: target.entry, now: now)
     }
@@ -922,10 +973,14 @@ final class WorkoutSessionService {
     /// and a tracked write there would re-render the reader for no visible
     /// change.
     @ObservationIgnored private var previousSetCache: [String: [SetEntry]]?
+    /// `[exerciseID: sets progression builds on]`, filled with
+    /// `previousSetCache`; see `progressionBaselineSets`.
+    @ObservationIgnored private var baselineSetCache: [String: [SetEntry]]?
 
     /// Called whenever stored history changes under an active workout.
     func invalidatePreviousSetCache() {
         previousSetCache = nil
+        baselineSetCache = nil
     }
 
     private func persist(_ value: WorkoutSession) {

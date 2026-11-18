@@ -59,3 +59,12 @@ extension WorkoutSession {
         dissolveLoneSupersets()
     }
 }
+
+extension SetEntry {
+    /// Re-stamps `completedAt` after the saved-workout editor toggled
+    /// `completed`. A newly ticked set counts as done when the workout
+    /// finished, like a set added there, never at the moment of editing.
+    mutating func restampCompletion(finishedAt: Date?) {
+        completedAt = completed ? (completedAt ?? finishedAt ?? Date()) : nil
+    }
+}

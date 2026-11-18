@@ -11,26 +11,6 @@
         }
       }
     },
-    " added": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " extra"
-          }
-        }
-      }
-    },
-    " assistance": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " assistans"
-          }
-        }
-      }
-    },
     " Consider transitioning to %@.": {
       "localizations": {
         "sv": {
@@ -47,36 +27,6 @@
           "stringUnit": {
             "state": "translated",
             "value": " Detaljer"
-          }
-        }
-      }
-    },
-    " each · both counted": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " per hand · båda räknas"
-          }
-        }
-      }
-    },
-    " per side · recorded side": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " per sida · registrerad sida"
-          }
-        }
-      }
-    },
-    " total": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " totalt"
           }
         }
       }
@@ -6874,7 +6824,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deloadvecka: lättare med flit så att du kommer tillbaka starkare."
+            "value": "Avlastningsvecka: lättare med flit så att du kommer tillbaka starkare."
           }
         }
       }
@@ -12476,16 +12426,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kroppsviktsövningar ingår alltid."
-          }
-        }
-      }
-    },
-    "Bodyweight × ": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kroppsvikt × "
           }
         }
       }
@@ -23100,16 +23040,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vikt per sida · angivna reps räknas en gång"
-          }
-        }
-      }
-    },
-    "Load unavailable · ": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vikt saknas · "
           }
         }
       }
@@ -45136,16 +45066,6 @@
         }
       }
     },
-    "Paused — resume to edit sets.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pausat — återuppta för att ändra set."
-          }
-        }
-      }
-    },
     "Save your lifts once — start every session in one tap.": {
       "localizations": {
         "sv": {
@@ -52807,6 +52727,273 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kontrollera talet. Skriv det utan tusentalsavgränsare, till exempel 1000 eller 12,5."
+          }
+        }
+      }
+    },
+    "%@ added each · both counted × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra per hand · båda räknas × %@"
+          }
+        }
+      }
+    },
+    "%@ added per side · recorded side × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra per sida · registrerad sida × %@"
+          }
+        }
+      }
+    },
+    "%@ added total × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra totalt × %@"
+          }
+        }
+      }
+    },
+    "%@ added × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ extra × %@"
+          }
+        }
+      }
+    },
+    "%@ assistance each · both counted × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans per hand · båda räknas × %@"
+          }
+        }
+      }
+    },
+    "%@ assistance per side · recorded side × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans per sida · registrerad sida × %@"
+          }
+        }
+      }
+    },
+    "%@ assistance total × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans totalt × %@"
+          }
+        }
+      }
+    },
+    "%@ assistance × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ assistans × %@"
+          }
+        }
+      }
+    },
+    "%@ each · both counted × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per hand · båda räknas × %@"
+          }
+        }
+      }
+    },
+    "%@ per side · recorded side × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per sida · registrerad sida × %@"
+          }
+        }
+      }
+    },
+    "%@ total × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ totalt × %@"
+          }
+        }
+      }
+    },
+    "%@ × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ × %@"
+          }
+        }
+      }
+    },
+    "+15s": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+15 s"
+          }
+        }
+      }
+    },
+    "Add a working set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till ett arbetsset"
+          }
+        }
+      }
+    },
+    "Bodyweight × %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kroppsvikt × %@"
+          }
+        }
+      }
+    },
+    "Load unavailable · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikt saknas · %@"
+          }
+        }
+      }
+    },
+    "Mark warm-up set complete": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markera uppvärmningsset som klart"
+          }
+        }
+      }
+    },
+    "No completed workouts that week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga slutförda pass den veckan."
+          }
+        }
+      }
+    },
+    "Options for warm-up set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alternativ för uppvärmningsset"
+          }
+        }
+      }
+    },
+    "Paused — resume to check off sets.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausat — återuppta för att bocka av set."
+          }
+        }
+      }
+    },
+    "Reps for warm-up set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reps för uppvärmningsset"
+          }
+        }
+      }
+    },
+    "set.warmupBadge": {
+      "comment": "Badge on a warm-up set row",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "W"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "U"
+          }
+        }
+      }
+    },
+    "Train with it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träna med den"
+          }
+        }
+      }
+    },
+    "Warm-up set complete": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppvärmningsset klart"
+          }
+        }
+      }
+    },
+    "Weight for warm-up set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikt för uppvärmningsset"
+          }
+        }
+      }
+    },
+    "−15s": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "−15 s"
           }
         }
       }

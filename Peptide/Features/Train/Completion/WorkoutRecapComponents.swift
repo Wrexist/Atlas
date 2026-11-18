@@ -74,7 +74,8 @@ struct RecapAction: View {
     var body: some View {
         Button(action: action) {
             Text(title).font(AppFont.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                .padding(.vertical, Spacing.xs)
                 .foregroundStyle(AppColor.onAccent)
                 .background(AppColor.accentFill, in: RoundedRectangle(cornerRadius: Spacing.controlCornerRadius))
         }
@@ -103,19 +104,28 @@ enum RecapFormat {
         default:
             let reps = String(localized: "\(set.reps) reps")
             guard set.reps >= 0 else { return String(localized: "Repetitions unavailable") }
-            guard set.weightKg.isFinite, set.weightKg >= 0 else { return String(localized: "Load unavailable · ") + reps }
-            guard set.weightKg > 0 else { return m?.kind == .bodyweight ? String(localized: "Bodyweight × ") + reps : reps }
-            let load = unit.weightValue(set.weightKg, fractionDigits: 0...2)
-            let convention: String
-            switch m?.load {
-            case .eachPair: convention = String(localized: " each · both counted")
-            case .total: convention = String(localized: " total")
-            case .perSide: convention = String(localized: " per side · recorded side")
-            default: convention = ""
-            }
-            let role = m?.kind == .assisted ? String(localized: " assistance")
-                : (m?.kind == .bodyweight ? String(localized: " added") : "")
-            return "\(load) \(unit.weightSuffix)\(role)\(convention) × \(reps)"
+            guard set.weightKg.isFinite, set.weightKg >= 0 else { return String(localized: "Load unavailable · \(reps)") }
+            guard set.weightKg > 0 else { return m?.kind == .bodyweight ? String(localized: "Bodyweight × \(reps)") : reps }
+            return loadedSet("\(unit.weightValue(set.weightKg, fractionDigits: 0...2)) \(unit.weightSuffix)", reps: reps, measurement: m)
+        }
+    }
+
+    /// One whole sentence per role and load convention, so a translation
+    /// can put the words in its own order.
+    private static func loadedSet(_ weight: String, reps: String, measurement m: SetEntry.Measurement?) -> String {
+        switch (m?.kind, m?.load) {
+        case (.assisted, .eachPair): String(localized: "\(weight) assistance each · both counted × \(reps)")
+        case (.assisted, .total): String(localized: "\(weight) assistance total × \(reps)")
+        case (.assisted, .perSide): String(localized: "\(weight) assistance per side · recorded side × \(reps)")
+        case (.assisted, _): String(localized: "\(weight) assistance × \(reps)")
+        case (.bodyweight, .eachPair): String(localized: "\(weight) added each · both counted × \(reps)")
+        case (.bodyweight, .total): String(localized: "\(weight) added total × \(reps)")
+        case (.bodyweight, .perSide): String(localized: "\(weight) added per side · recorded side × \(reps)")
+        case (.bodyweight, _): String(localized: "\(weight) added × \(reps)")
+        case (_, .eachPair): String(localized: "\(weight) each · both counted × \(reps)")
+        case (_, .total): String(localized: "\(weight) total × \(reps)")
+        case (_, .perSide): String(localized: "\(weight) per side · recorded side × \(reps)")
+        default: String(localized: "\(weight) × \(reps)")
         }
     }
 }

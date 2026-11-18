@@ -193,6 +193,19 @@ final class PRDetectionEngineTests: XCTestCase {
         XCTAssertFalse(kinds.contains(.bodyweightReps))
     }
 
+    func test_completedZeroRepSet_doesNotSetHeaviestPR() {
+        _ = PRDetectionEngine.shared.ingest(session: session(
+            exerciseID: "Barbell_Squat",
+            sets: [completedSet(weightKg: 90, reps: 5)]
+        ))
+        let detections = PRDetectionEngine.shared.ingest(session: session(
+            exerciseID: "Barbell_Squat",
+            sets: [completedSet(weightKg: 120, reps: 0), completedSet(weightKg: 90, reps: 5)]
+        ))
+        XCTAssertFalse(detections.map(\.kind).contains(.absoluteWeight),
+                       "A set with no reps lifted nothing, so it can't be the heaviest")
+    }
+
     // MARK: - Ignored sets
 
     func test_warmupSets_doNotProducePRs() {

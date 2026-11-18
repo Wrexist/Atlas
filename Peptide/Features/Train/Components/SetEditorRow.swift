@@ -12,6 +12,9 @@ import SwiftUI
 struct SetEditorRow: View {
     @Binding var set: SetEntry
     let previousSet: SetEntry?
+    /// The set's position among the working sets, as the focus header
+    /// counts them; nil for a warm-up, which is badged "W".
+    let displayNumber: Int?
     /// The user's weight unit. `SetEntry.weightKg` is canonical
     /// kilograms, so this row converts on both read and write —
     /// without it an imperial user typing "225" stores 225 kg.
@@ -96,14 +99,20 @@ struct SetEditorRow: View {
             } label: {
                 indexLabel.minimumHitArea()
             }
-            .accessibilityLabel(Text("Options for set \(set.index)"))
+            .accessibilityLabel(displayNumber.map { Text("Options for set \($0)") } ?? Text("Options for warm-up set"))
         } else {
             indexLabel
         }
     }
 
     private var indexLabel: some View {
-        Text("\(set.index)")
+        Group {
+            if let displayNumber {
+                Text("\(displayNumber)")
+            } else {
+                Text(String(localized: "set.warmupBadge", defaultValue: "W", comment: "Badge on a warm-up set row"))
+            }
+        }
             .font(AppFont.caption2.weight(.semibold))
             .monospacedDigit()
             .foregroundStyle(isCurrent ? AppColor.trainingSelection : AppColor.textPrimary)
@@ -171,7 +180,7 @@ struct SetEditorRow: View {
                 .monospacedDigit()
                 .focused($weightFocused)
                 .accessibilityIdentifier("workout-weight-\(set.index)")
-                .accessibilityLabel(Text("Weight for set \(set.index)"))
+                .accessibilityLabel(displayNumber.map { Text("Weight for set \($0)") } ?? Text("Weight for warm-up set"))
                 .accessibilityValue(Text("\(unit.weightValue(set.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit)"))
             if focusStyle {
                 Text(unit.weightSuffix).font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
@@ -217,7 +226,7 @@ struct SetEditorRow: View {
                     .stroke(repsFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: repsFocused ? 1 : 0.5)
             )
-            .accessibilityLabel(Text("Reps for set \(set.index)"))
+            .accessibilityLabel(displayNumber.map { Text("Reps for set \($0)") } ?? Text("Reps for warm-up set"))
             .accessibilityValue(Text("^[\(set.reps) rep](inflect: true)"))
     }
 
@@ -244,8 +253,17 @@ struct SetEditorRow: View {
         .buttonStyle(.plain)
         .disabled(isPaused)
         .accessibilityIdentifier("workout-complete-\(set.index)")
-        .accessibilityLabel(set.completed ? "Set \(set.index) complete" : "Mark set \(set.index) complete")
+        .accessibilityLabel(completionLabel)
         .accessibilityValue(isCurrent ? "Current set" : "")
+    }
+
+    private var completionLabel: Text {
+        switch (displayNumber, set.completed) {
+        case let (number?, true): Text("Set \(number) complete")
+        case let (number?, false): Text("Mark set \(number) complete")
+        case (nil, true): Text("Warm-up set complete")
+        case (nil, false): Text("Mark warm-up set complete")
+        }
     }
 
     /// One write, not two: the parent's binding re-reads a snapshot that

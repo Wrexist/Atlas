@@ -254,13 +254,13 @@ struct ActiveWorkoutView: View {
                             heroHeader(for: liveSession)
                             SessionMuscleCard(session: liveSession)
                             if liveSession.isPaused {
-                                // Says why the sets below don't respond.
-                                Label("Paused — resume to edit sets.", systemImage: "pause.circle")
+                                // Says why the sets' checks don't respond.
+                                Label("Paused — resume to check off sets.", systemImage: "pause.circle")
                                     .font(AppFont.callout)
                                     .foregroundStyle(AppColor.textSecondary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            exerciseStack(for: liveSession).disabled(liveSession.isPaused)
+                            exerciseStack(for: liveSession)
                         }
                     }
                     .padding(Spacing.screenPadding)
@@ -380,6 +380,7 @@ struct ActiveWorkoutView: View {
                         canSupersetWithNext: session.entryBelow(entry.id).map {
                             $0.supersetGroup == nil || $0.supersetGroup != entry.supersetGroup
                         } ?? false,
+                        isPaused: session.isPaused,
                         currentSet: { setID in
                             sessionService.currentSet(id: setID, inExerciseEntryID: entry.id)
                         },

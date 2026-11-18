@@ -45,7 +45,7 @@ struct WorkoutSavedEditor: View {
                     Section {
                         ForEach($entry.sets) { $set in
                             DisclosureGroup(isExpanded: expansion(of: set.id)) {
-                                RecapSetEditor(set: $set, unit: unit, invalidFields: $invalidFields, focusedField: $focusedField)
+                                RecapSetEditor(set: $set, unit: unit, finishedAt: draft.finishedAt, invalidFields: $invalidFields, focusedField: $focusedField)
                             } label: {
                                 Text("Set \(set.index) · \(RecapFormat.set(set, unit: unit))")
                             }
@@ -180,6 +180,7 @@ struct WorkoutSavedEditor: View {
 private struct RecapSetEditor: View {
     @Binding var set: SetEntry
     let unit: MeasurementUnit
+    let finishedAt: Date?
     @Binding var invalidFields: Set<String>
     let focusedField: FocusState<String?>.Binding
     private var measurement: Binding<SetEntry.Measurement> {
@@ -187,7 +188,7 @@ private struct RecapSetEditor: View {
     }
     var body: some View {
         Toggle("Completed", isOn: $set.completed)
-            .onChange(of: set.completed) { _, completed in set.completedAt = completed ? (set.completedAt ?? Date()) : nil }
+            .onChange(of: set.completed) { set.restampCompletion(finishedAt: finishedAt) }
         Toggle("Warm-up", isOn: $set.isWarmup)
         Picker("Measurement", selection: measurement.kind) {
             Text("Repetitions").tag(SetEntry.Measurement.Kind.repetitions)

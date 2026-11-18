@@ -83,13 +83,21 @@ struct ExerciseHistorySection: View {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text(visit.name)
                             .font(AppFont.subheadline.weight(.semibold))
+                            .foregroundStyle(AppColor.textPrimary)
                         Text(visit.date.formatted(date: .abbreviated, time: .shortened))
                             .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
                     }
                     Spacer(minLength: Spacing.sm)
-                    Image(systemName: "chevron.right").accessibilityHidden(true)
-                }.frame(minHeight: 44)
+                    Image(systemName: "chevron.right")
+                        .font(AppFont.scaled(13, weight: .semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: Spacing.minimumHitTarget)
+                .contentShape(Rectangle())
             }
+            // A row, not an action: the accent stays on actions.
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
             .accessibilityHint("Opens the saved workout and editing options")
             Text("^[\(visit.sets.count) working set](inflect: true)").font(AppFont.caption2)
             ForEach(visit.sets) { set in

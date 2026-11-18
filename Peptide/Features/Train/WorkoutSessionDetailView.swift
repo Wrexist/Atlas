@@ -103,6 +103,7 @@ struct WorkoutSessionDetailView: View {
             TextField("Routine name", text: $routineNameDraft)
             Button("Cancel", role: .cancel) {}
             Button("Save", action: saveAsRoutine)
+                .disabled(routineNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .alert("Workout in progress", isPresented: $showingActiveWorkoutConflict) {
             Button("OK", role: .cancel) {}
@@ -123,7 +124,7 @@ struct WorkoutSessionDetailView: View {
             }
             .disabled(session.exercises.isEmpty)
             Button {
-                routineNameDraft = session.name ?? ""
+                routineNameDraft = session.displayName
                 namingRoutine = true
             } label: {
                 Label("Save as routine", systemImage: "square.and.arrow.down")
@@ -208,7 +209,7 @@ struct WorkoutSessionDetailView: View {
 
     private var stats: [Stat] {
         var result = [
-            Stat(value: "\(session.exercises.count)", label: String(localized: "Exercises")),
+            Stat(value: "\(session.loggedExerciseCount)", label: String(localized: "Exercises")),
             Stat(value: "\(session.completedSetCount)", label: String(localized: "Sets")),
         ]
         if session.totalVolumeKg > 0 {

@@ -68,7 +68,8 @@ struct SessionBuilderSheet: View {
                 Button(isSaved ? LocalizedStringKey("routine.saved") : "Save as routine") { save(routine) }
                     .disabled(isSaved || routine.exercises.isEmpty)
             } else {
-                Button("Pick for me", systemImage: "wand.and.stars") { pickForMe() }
+                // Dice, not the wand: the wand is Create workout's, below.
+                Button("Pick for me", systemImage: "dice") { pickForMe() }
                     .disabled(states.isEmpty)
             }
         }
@@ -87,16 +88,22 @@ struct SessionBuilderSheet: View {
                 )
                 .frame(maxWidth: .infinity)
                 .appAnimation(AppAnimation.quick, value: focus)
-                // Kept in the layout once a muscle is picked, so the
-                // chips below don't jump up when the legend stops applying.
-                MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
-                                 highLabel: String(localized: "Needs rest"))
-                    .opacity(focus == nil ? 1 : 0)
-                    .accessibilityHidden(focus != nil)
+                // One slot, two keys: recovery heat before a pick, the
+                // focus and companion colours after. Both stay in the
+                // layout so the chips below never jump.
+                ZStack {
+                    MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
+                                     highLabel: String(localized: "Needs rest"))
+                        .opacity(focus == nil ? 1 : 0)
+                        .accessibilityHidden(focus != nil)
+                    roleKey
+                        .opacity(focus == nil ? 0 : 1)
+                        .accessibilityHidden(focus == nil)
+                }
             }
 
             section("MUSCLE") {
-                chips(Target.allCases, isSelected: { $0 == focus }, action: select)
+                chips(Target.allCases, tint: AppColor.trainingPrimaryMuscle, isSelected: { $0 == focus }, action: select)
             }
 
             if let focus {
@@ -104,6 +111,7 @@ struct SessionBuilderSheet: View {
                 section("TRAIN WITH IT") {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         chips(focus.companions.filter { !resting.contains($0) },
+                              tint: AppColor.trainingSecondaryMuscle,
                               isSelected: { companions.contains($0) },
                               action: toggleCompanion)
                         if !resting.isEmpty {
@@ -252,14 +260,36 @@ struct SessionBuilderSheet: View {
         }
     }
 
+    /// What the map's two colours mean once a muscle is picked. The chips
+    /// below wear the same colours, so a pick reads the same in both places.
+    private var roleKey: some View {
+        HStack(spacing: Spacing.lg) {
+            roleKeyItem("Focus", color: AppColor.trainingPrimaryMuscle)
+            roleKeyItem("Train with it", color: AppColor.trainingSecondaryMuscle)
+        }
+        .font(AppFont.caption2)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func roleKeyItem(_ title: LocalizedStringKey, color: Color) -> some View {
+        Label {
+            Text(title).foregroundStyle(AppColor.textSecondary)
+        } icon: {
+            Image(systemName: "circle.fill").foregroundStyle(color)
+        }
+    }
+
+    /// `tint` is the map colour these chips' muscles light up in.
     private func chips(
         _ targets: [Target],
+        tint: Color,
         isSelected: @escaping (Target) -> Bool,
         action: @escaping (Target) -> Void
     ) -> some View {
         FlowLayout(spacing: Spacing.sm) {
             ForEach(targets, id: \.self) { target in
-                GlassChip(LocalizedStringKey(target.displayName), isSelected: isSelected(target)) {
+                GlassChip(LocalizedStringKey(target.displayName), tint: tint, isSelected: isSelected(target)) {
                     action(target)
                 }
             }

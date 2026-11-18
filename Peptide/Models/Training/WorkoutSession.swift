@@ -62,10 +62,32 @@ struct WorkoutExerciseEntry: Codable, Hashable, Identifiable, Sendable {
         sets.compactMap(\.estimatedOneRepMaxKg).max()
     }
 
-    /// The set the lifter loads the bar for next: the first unchecked
-    /// one, or the last set once all are done.
+    /// The set the lifter loads the bar for next: the next set to do, or
+    /// the last set once all are done.
     var setToLoad: SetEntry? {
-        sets.first { !$0.completed } ?? sets.last
+        nextSetToDo ?? sets.last
+    }
+
+    /// The set to do next. Warm-ups lead only until the first working set
+    /// is logged; after that a skipped warm-up no longer holds the
+    /// exercise open, so this is the first unchecked working set.
+    var nextSetToDo: SetEntry? {
+        let workingStarted = sets.contains { !$0.isWarmup && $0.completed }
+        return sets.first { !$0.completed && !(workingStarted && $0.isWarmup) }
+    }
+
+    /// Every working set is logged. Warm-ups don't count either way.
+    var workingSetsDone: Bool {
+        let working = sets.filter { !$0.isWarmup }
+        return !working.isEmpty && working.allSatisfy(\.completed)
+    }
+
+    /// The number a set is shown and spoken with: its 1-based position
+    /// among the working sets, so warm-ups never shift it. Nil for a
+    /// warm-up.
+    func workingNumber(of set: SetEntry) -> Int? {
+        guard !set.isWarmup else { return nil }
+        return sets.filter { !$0.isWarmup }.firstIndex { $0.id == set.id }.map { $0 + 1 }
     }
 }
 
@@ -154,6 +176,12 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     /// the finish-screen hero stat and the weekly Insights chart.
     var totalVolumeKg: Double {
         exercises.reduce(0) { $0 + $1.workingVolumeKg }
+    }
+
+    /// Exercises with at least one completed working set — the count the
+    /// recap shows, so detail, history and summary agree.
+    var loggedExerciseCount: Int {
+        exercises.filter { !$0.completedWorkingSets.isEmpty }.count
     }
 
     /// Total completed working sets — warm-ups and unchecked sets

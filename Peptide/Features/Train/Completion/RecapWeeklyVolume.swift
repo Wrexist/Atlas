@@ -39,7 +39,9 @@ struct RecapWeeklyVolume: View {
                 }
             }
         }
-        .task(id: session.id) { await load() }
+        // The whole session, not its id: an edit from the summary keeps the
+        // id but changes what was trained.
+        .task(id: session) { await load() }
     }
 
     private func load() async {

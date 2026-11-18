@@ -24,6 +24,7 @@ final class WorkoutTypeOverrideStoreTests: XCTestCase {
             id: UUID(),
             activity: activity,
             start: Date(timeIntervalSince1970: 1_800_000_000),
+            end: Date(timeIntervalSince1970: 1_800_003_600),
             duration: 3_600,
             distanceMeters: nil,
             activeKilocalories: 320,

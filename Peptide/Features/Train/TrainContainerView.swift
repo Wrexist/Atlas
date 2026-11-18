@@ -309,7 +309,9 @@ struct TrainContainerView: View {
             }
         }
         .padding(.top, Spacing.xs)
-        .padding(.bottom, Spacing.sm)
+        // The tab's one vertical rhythm, so the first card doesn't sit
+        // tighter under the pills than any other gap on the screen.
+        .padding(.bottom, Spacing.lg)
     }
 
     private var sectionControl: some View {

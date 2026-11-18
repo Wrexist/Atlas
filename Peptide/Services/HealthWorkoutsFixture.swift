@@ -18,10 +18,12 @@ enum HealthWorkoutsFixture {
             (UUID(uuidString: "6F1C1D2A-0004-4A61-9C1B-2D5E0A7B1004")!, .running, 5, 31, 5_420, 380),
         ]
         return rows.map { id, activity, daysAgo, minutes, meters, kcal in
-            ImportedCardioWorkout(
+            let start = now.addingTimeInterval(-daysAgo * 86_400)
+            return ImportedCardioWorkout(
                 id: id,
                 activity: activity,
-                start: now.addingTimeInterval(-daysAgo * 86_400),
+                start: start,
+                end: start.addingTimeInterval(minutes * 60),
                 duration: minutes * 60,
                 distanceMeters: meters,
                 activeKilocalories: kcal,

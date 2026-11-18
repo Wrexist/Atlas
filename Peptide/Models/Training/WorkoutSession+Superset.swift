@@ -61,10 +61,21 @@ extension WorkoutSession {
         }
     }
 
-    /// Takes `entryID` out of its superset. A superset left with one
-    /// member is no superset, so that member is released too.
+    /// Takes `entryID` out of its superset. Supersets are contiguous, so
+    /// taking out a middle member splits the rest into the run above and
+    /// the run below; a superset left with one member is no superset, so
+    /// that member is released too.
     mutating func unlinkSuperset(_ entryID: UUID) {
         guard let i = exercises.firstIndex(where: { $0.id == entryID }) else { return }
+        if let group = exercises[i].supersetGroup {
+            let position = exercises[i].index
+            let members = exercises.indices.filter { exercises[$0].supersetGroup == group && $0 != i }
+            let above = members.filter { exercises[$0].index < position }
+            if !above.isEmpty, above.count < members.count {
+                let split = UUID()
+                for member in above { exercises[member].supersetGroup = split }
+            }
+        }
         exercises[i].supersetGroup = nil
         dissolveLoneSupersets()
     }

@@ -816,12 +816,9 @@ final class ScreenshotTests: XCTestCase {
             if !train.isSelected { train.tap() }
             XCTAssertTrue(train.isSelected)
             discardLeftoverWorkout()
-            let period = app.otherElements["training-map-period"]
-            XCTAssertTrue(period.waitForExistence(timeout: 10))
-            period.buttons["Today"].tap()
-            capture(named: "body-\(appearance)-01-today")
-            period.buttons["30 days"].tap()
-            capture(named: "body-\(appearance)-02-month")
+            // Demo data seeds no finished Atlas session, so the period
+            // control is hidden until this run finishes one below.
+            capture(named: "body-\(appearance)-00-before-workout")
             let start = app.buttons["Empty workout"]
             reveal(start)
             start.tap()
@@ -883,6 +880,12 @@ final class ScreenshotTests: XCTestCase {
             capture(named: "body-\(appearance)-05-completed")
             summaryDone.tap()
             app.dismissOverlaysIfNeeded()
+            let period = app.otherElements["training-map-period"]
+            reveal(period)
+            period.buttons["Today"].tap()
+            capture(named: "body-\(appearance)-01-today")
+            period.buttons["30 days"].tap()
+            capture(named: "body-\(appearance)-02-month")
             scrollToTop()
             capture(named: "body-\(appearance)-06-training-history")
             app.terminate()
