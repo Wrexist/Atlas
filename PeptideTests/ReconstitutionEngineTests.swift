@@ -192,6 +192,19 @@ final class ReconstitutionEngineTests: XCTestCase {
         XCTAssertEqual(ReconstitutionEngine.parseAmount("12,5"), 12.5)
     }
 
+    func test_parseAmount_commaDecimalBelowOne_parses() {
+        XCTAssertEqual(ReconstitutionEngine.parseAmount("0,25"), 0.25)
+        XCTAssertEqual(ReconstitutionEngine.parseAmount("0,250"), 0.25)
+    }
+
+    func test_parseAmount_possibleDigitGrouping_returnsNil() {
+        XCTAssertNil(ReconstitutionEngine.parseAmount("1,000"))
+        XCTAssertNil(ReconstitutionEngine.parseAmount("1.000"))
+        XCTAssertNil(ReconstitutionEngine.parseAmount("1.000,5"))
+        XCTAssertNil(ReconstitutionEngine.parseAmount("1,000.5"))
+        XCTAssertNil(ReconstitutionEngine.parseAmount("1,000,000"))
+    }
+
     func test_parseAmount_zeroOrNegative_returnsNil() {
         XCTAssertNil(ReconstitutionEngine.parseAmount("0"))
         XCTAssertNil(ReconstitutionEngine.parseAmount("-5"))
