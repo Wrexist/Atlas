@@ -49765,6 +49765,38 @@
           }
         }
       }
+    },
+    "Discard these results?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard these results?"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kasta de här resultaten?"
+          }
+        }
+      }
+    },
+    "Marker": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marker"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biomarkör"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
