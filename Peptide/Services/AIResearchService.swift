@@ -318,7 +318,9 @@ final class AIResearchService: Sendable {
     /// name, the name before a parenthetical ("Ibutamoren" for
     /// "Ibutamoren (MK-677)"), or an alias inside one, each as whole
     /// words, so "ela" in "related" or "relaxin" in "relaxing" is not a
-    /// mention. Names and aliases under 3 characters are skipped.
+    /// mention. Names and aliases under 3 characters are skipped, as are
+    /// letterless aliases: "1-3" in "Des(1-3) IGF-1" is a residue range,
+    /// and would match "take it 1-3 times a week".
     static func mentions(_ peptide: Peptide, in text: String) -> Bool {
         let abbreviation = peptide.abbreviation.lowercased()
         if !abbreviation.isEmpty && containsWord(abbreviation, in: text) { return true }
@@ -326,14 +328,19 @@ final class AIResearchService: Sendable {
         let name = peptide.name.lowercased()
         var names = [name]
         if let open = name.firstIndex(of: "(") {
-            names.append(name[..<open].trimmingCharacters(in: .whitespaces))
+            names.append(name[..<open].trimmingCharacters(in: baseNameTrim))
             let inside = name[name.index(after: open)...].prefix(while: { $0 != ")" })
             names += inside
                 .split(whereSeparator: { $0 == "," || $0 == "/" })
                 .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { $0.contains(where: \.isLetter) }
         }
         return names.contains { $0.count >= 3 && containsWord($0, in: text) }
     }
+
+    /// Trimmed off the name before a parenthetical, so "Angiotensin-(1-7)"
+    /// yields "angiotensin".
+    private static let baseNameTrim = CharacterSet.whitespaces.union(CharacterSet(charactersIn: "-–"))
 
     /// `needle` in `text` with no letter or digit directly before or after.
     private static func containsWord(_ needle: String, in text: String) -> Bool {

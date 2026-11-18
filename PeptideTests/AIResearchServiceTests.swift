@@ -334,21 +334,48 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertFalse(AIResearchService.mentions(davunetide, in: "oh snap"))
     }
 
-    func test_reply_largeBrief_keepsCompoundEntriesWholeOrLeavesThemOut() async throws {
+    func test_reply_largeBrief_leavesCompoundEntryOut() async throws {
+        let system = try await systemPrompt(briefLength: 11_300)
+        XCTAssertLessThanOrEqual(system.utf16.count, AIResearchService.systemCharacterBudget)
+        XCTAssertFalse(system.contains("Database context"), "An entry that doesn't fit is left out, not cut")
+    }
+
+    /// About 400 characters are left after this brief, which fits the
+    /// sample entry (about 300) whole.
+    func test_reply_midSizeBrief_keepsCompoundEntryWhole() async throws {
+        let system = try await systemPrompt(briefLength: 11_000)
+        XCTAssertLessThanOrEqual(system.utf16.count, AIResearchService.systemCharacterBudget)
+        XCTAssertTrue(system.contains("Database context"))
+        XCTAssertTrue(system.hasSuffix("Active malignancy"), "The compound entry was cut mid-field")
+    }
+
+    /// The `system` sent for a BPC-157 question with a nutrition brief
+    /// of `briefLength` characters.
+    private func systemPrompt(briefLength: Int) async throws -> String {
         let captured = SendableBox<URLRequest?>(nil)
         MockURLProtocol.handler = { request in
             captured.set(request)
             return (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
         }
-        let brief = String(repeating: "x", count: 11_300)
         _ = try await service.reply(
             history: [], newUserPrompt: "Is BPC-157 worth it?", in: [samplePeptide()],
-            brief: .init(topic: .nutrition, text: brief)
+            brief: .init(topic: .nutrition, text: String(repeating: "x", count: briefLength))
         )
-        let system = try Self.decodeBody(captured.value)["system"] as? String ?? ""
-        XCTAssertLessThanOrEqual(system.utf16.count, AIResearchService.systemCharacterBudget)
-        XCTAssertFalse(system.hasSuffix("…"), "The compound entry was cut mid-field")
-        XCTAssertTrue(system.hasSuffix("Active malignancy") || !system.contains("Database context"))
+        return try Self.decodeBody(captured.value)["system"] as? String ?? ""
+    }
+
+    func test_mentions_letterlessResidueRangeAlias_isNotAMention() {
+        let desIGF = samplePeptide(name: "Des(1-3) Insulin-like Growth Factor 1", abbreviation: "IGF-1 DES")
+        let angiotensin = samplePeptide(name: "Angiotensin-(1-7)", abbreviation: "Ang-(1-7)")
+
+        XCTAssertFalse(AIResearchService.mentions(desIGF, in: "take it 1-3 times a week"))
+        XCTAssertFalse(AIResearchService.mentions(angiotensin, in: "for 1-7 days"))
+    }
+
+    func test_mentions_baseNameEndingInHyphen_isAMention() {
+        let angiotensin = samplePeptide(name: "Angiotensin-(1-7)", abbreviation: "Ang-(1-7)")
+
+        XCTAssertTrue(AIResearchService.mentions(angiotensin, in: "what does angiotensin do?"))
     }
 
     // MARK: - Error presentation
