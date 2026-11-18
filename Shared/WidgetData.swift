@@ -246,6 +246,22 @@ struct WidgetData: Codable, Equatable, Sendable {
 
     static func isOverdue(_ due: Date, at now: Date) -> Bool { now >= overdueAt(due) }
 
+    /// "today", "yesterday", "3 days ago": whole calendar days from
+    /// `day` to `now`. Measured against the timeline entry's date, not
+    /// the render clock, so a pre-built midnight entry rolls "12 hours
+    /// ago" over to "yesterday".
+    static func relativeDay(
+        _ day: Date, from now: Date, calendar: Calendar = .current, locale: Locale = .current
+    ) -> String {
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: day), to: calendar.startOfDay(for: now)).day ?? 0
+        let formatter = RelativeDateTimeFormatter()
+        formatter.calendar = calendar
+        formatter.locale = locale
+        formatter.dateTimeStyle = .named
+        formatter.unitsStyle = .full
+        return formatter.localizedString(from: DateComponents(day: -max(0, days)))
+    }
+
     /// Weight-unit suffix, mirroring `MeasurementUnit.weightSuffix`.
     /// Deliberately unlocalised: "kg" and "lb" are the symbols in every
     /// locale Atlas ships.
