@@ -145,7 +145,7 @@ private struct NotFastingPrompt: View {
                 .widgetAccentable()
             Text("Not fasting")
                 .font(.headline)
-            Text("Tap to start a fast.")
+            Text("Tap to open fasting.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -231,7 +231,7 @@ private struct RectangularFastingView: View {
                 RemainingLine(entry: entry, window: active.window)
                     .font(.caption)
             } else {
-                Text("Tap to start a fast.")
+                Text("Tap to open fasting.")
                     .font(.caption)
             }
         }
