@@ -191,6 +191,9 @@ struct BiologyView: View {
         .task(id: SleepKey(reloadID: reloadID, healthConnected: dataStore.profile.healthConnected)) {
             let next = await SleepInsightsSection.load()
             let temperature = await SleepInsightsSection.loadWristTemperature()
+            // HealthKit reads don't stop on cancellation; a superseded run
+            // must not land after the newer one.
+            guard !Task.isCancelled else { return }
             AppAnimation.with(AppAnimation.springSmooth) {
                 sleepInsights = next
                 wristTemperature = temperature
