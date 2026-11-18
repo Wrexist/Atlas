@@ -29,6 +29,10 @@ and they let English section headings leak into the Swedish UI. So do
 properties that return a key. Every such literal must have a catalog key
 translated into each shipped language.
 
+This scan is the fast pre-check. It skips interpolated keys and call forms it
+does not know; `check-extracted-strings.py` closes that gap from the
+compiler's own `.stringsdata` after the CI build.
+
     python3 scripts/check-localization.py [--min-coverage 80]
 """
 from __future__ import annotations
