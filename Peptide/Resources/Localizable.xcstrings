@@ -49775,6 +49775,26 @@
           }
         }
       }
+    },
+    "Discard this meal?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slänga den här måltiden?"
+          }
+        }
+      }
+    },
+    "Discard meal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Släng måltid"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

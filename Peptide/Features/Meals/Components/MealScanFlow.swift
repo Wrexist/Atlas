@@ -171,11 +171,11 @@ struct MealScanFlow: View {
             if value != .active && phase == .review { _ = persistDraft() }
         }
         .confirmationDialog(
-            discardIsRetake ? "Retake photo?" : "Discard this scan?",
+            discardDialogTitle,
             isPresented: $discardConfirmation,
             titleVisibility: .visible
         ) {
-            Button(discardIsRetake ? "Retake photo" : "Discard scan", role: .destructive) { discardDraft() }
+            Button(discardDialogAction, role: .destructive) { discardDraft() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(discardIsRetake
@@ -433,6 +433,18 @@ struct MealScanFlow: View {
             }
     }
 
+    /// A typed meal has no photo to retake, so its reset is worded as
+    /// discarding the meal.
+    private var discardDialogTitle: LocalizedStringKey {
+        guard discardIsRetake else { return "Discard this scan?" }
+        return image == nil ? "Discard this meal?" : "Retake photo?"
+    }
+
+    private var discardDialogAction: LocalizedStringKey {
+        guard discardIsRetake else { return "Discard scan" }
+        return image == nil ? "Discard meal" : "Retake photo"
+    }
+
     private var previewBox: some View {
         photoCard(height: 220) { EmptyView() }
     }
@@ -448,18 +460,13 @@ struct MealScanFlow: View {
     /// shape of what is coming rather than a spinner.
     private var analyzing: some View {
         VStack(spacing: Spacing.lg) {
-            photoCard(height: 200) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "sparkles")
-                        .font(AppFont.scaled(13, weight: .bold))
-                    Text("Analyzing your meal")
-                        .font(AppFont.scaled(13, weight: .semibold))
+            // A typed meal has no photo; its caption stands on its own.
+            if image != nil {
+                photoCard(height: 200) {
+                    analyzingCaption.padding(.bottom, Spacing.md)
                 }
-                .foregroundStyle(AppColor.textPrimary)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                .glassSurfaceCapsule()
-                .padding(.bottom, Spacing.md)
+            } else {
+                analyzingCaption
             }
 
             ScanProgressBar()
@@ -470,6 +477,19 @@ struct MealScanFlow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Analyzing your meal")
+    }
+
+    private var analyzingCaption: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "sparkles")
+                .font(AppFont.scaled(13, weight: .bold))
+            Text("Analyzing your meal")
+                .font(AppFont.scaled(13, weight: .semibold))
+        }
+        .foregroundStyle(AppColor.textPrimary)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+        .glassSurfaceCapsule()
     }
 
     private var skeletonRow: some View {
@@ -536,13 +556,12 @@ struct MealScanFlow: View {
     private var reviewCard: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                photoCard(height: 200) {
-                    HStack(alignment: .bottom) {
-                        detectedBadge
-                        Spacer(minLength: Spacing.sm)
-                        retakeButton
+                if image != nil {
+                    photoCard(height: 200) {
+                        reviewHeaderRow.padding(Spacing.md)
                     }
-                    .padding(Spacing.md)
+                } else {
+                    reviewHeaderRow
                 }
 
                 if let insight {
@@ -661,6 +680,14 @@ struct MealScanFlow: View {
         .appAnimation(AppAnimation.springSnappy, value: logAsOneMeal)
     }
 
+    private var reviewHeaderRow: some View {
+        HStack(alignment: .bottom) {
+            detectedBadge
+            Spacer(minLength: Spacing.sm)
+            retakeButton
+        }
+    }
+
     /// Sits on the photo, where the count belongs — it describes the picture.
     private var detectedBadge: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -692,7 +719,7 @@ struct MealScanFlow: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "arrow.counterclockwise")
-                Text("Retake")
+                Text(image == nil ? "Start over" : "Retake")
             }
             .font(AppFont.scaled(13, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary)
@@ -702,7 +729,7 @@ struct MealScanFlow: View {
         }
         .buttonStyle(.plain)
         .minimumHitArea()
-        .accessibilityLabel("Retake photo")
+        .accessibilityLabel(image == nil ? "Start over" : "Retake photo")
     }
 
     /// `LocalizedStringKey`, not `String`: GlassButton takes a key, and
