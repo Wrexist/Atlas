@@ -29224,16 +29224,6 @@
         }
       }
     },
-    "Re-log %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Logga %@ igen"
-          }
-        }
-      }
-    },
     "Reach the app without opening it": {
       "localizations": {
         "sv": {
@@ -49822,6 +49812,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Det numret är inte en produktstreckkod. Produktstreckkoder har 8 till 14 siffror."
+          }
+        }
+      }
+    },
+    "The camera is restricted on this device. Type the code below instead.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kameran är begränsad på den här enheten. Skriv koden nedan i stället."
+          }
+        }
+      }
+    },
+    "Opens this product so you can log it again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar produkten så att du kan logga den igen."
           }
         }
       }

@@ -299,7 +299,8 @@ struct BarcodeScanFlow: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Re-log \(product.name)")
+        .accessibilityLabel(Text(product.name))
+        .accessibilityHint("Opens this product so you can log it again.")
     }
 
     private var manualEntry: some View {
@@ -1083,7 +1084,10 @@ struct BarcodeScanFlow: View {
             phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
         case .denied, .restricted:
             cameraDenied = outcome == .denied
-            errorText = String(localized: "Camera access is off. Enable it in Settings to scan barcodes, or type a code below.")
+            // Settings can't lift a Screen Time or profile restriction.
+            errorText = cameraDenied
+                ? String(localized: "Camera access is off. Enable it in Settings to scan barcodes, or type a code below.")
+                : String(localized: "The camera is restricted on this device. Type the code below instead.")
             phase = .manualEntry
         }
     }
