@@ -192,7 +192,11 @@ final class WeeklySummaryServiceTests: XCTestCase {
     }
 
     func test_weeklySummaryCache_languageSwitch_changesFingerprint() throws {
-        let entries = [entry(daysFromMonday: 0, completed: true)]
+        let entries = [
+            entry(daysFromMonday: 0, completed: true),
+            entry(daysFromMonday: 1, completed: true),
+            entry(daysFromMonday: 2, completed: true),
+        ]
         let aggregate = try XCTUnwrap(WeeklySummaryEngine.build(
             profile: .fresh, protocols: [], entries: entries, referenceDate: weekMonday
         ))
@@ -204,7 +208,11 @@ final class WeeklySummaryServiceTests: XCTestCase {
     }
 
     func test_weeklySummaryCache_regionOnlySwitch_keepsFingerprint() throws {
-        let entries = [entry(daysFromMonday: 0, completed: true)]
+        let entries = [
+            entry(daysFromMonday: 0, completed: true),
+            entry(daysFromMonday: 1, completed: true),
+            entry(daysFromMonday: 2, completed: true),
+        ]
         let aggregate = try XCTUnwrap(WeeklySummaryEngine.build(
             profile: .fresh, protocols: [], entries: entries, referenceDate: weekMonday
         ))
