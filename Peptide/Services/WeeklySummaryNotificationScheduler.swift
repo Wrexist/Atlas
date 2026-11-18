@@ -67,11 +67,18 @@ enum WeeklySummaryNotificationScheduler {
     /// back with a real delta.
     static let genericBody = String(localized: "Tap to see how the week went — training, nutrition, recovery, and the patterns that mattered.")
 
-    /// The two most recently *generated* summaries in `profile
-    /// .weeklySummaries`, newest first. Deliberately not "this calendar
-    /// week" — see `notificationBody(for:)`.
-    private static func mostRecentSummaries(in profile: UserProfile) -> (current: WeeklySummary, previous: WeeklySummary?)? {
-        let sorted = profile.weeklySummaries.values.sorted { $0.weekStart > $1.weekStart }
+    /// The two most recent summaries of finished weeks in `profile
+    /// .weeklySummaries`, newest first. Home records the week in progress
+    /// on any day, so that one is left out — see `notificationBody(for:)`.
+    private static func mostRecentSummaries(
+        in profile: UserProfile,
+        now: Date
+    ) -> (current: WeeklySummary, previous: WeeklySummary?)? {
+        let thisWeek = WeeklySummaryService.weekStartString(for: now)
+        // ISO yyyy-MM-dd keys sort chronologically as strings.
+        let sorted = profile.weeklySummaries.values
+            .filter { $0.weekStart < thisWeek }
+            .sorted { $0.weekStart > $1.weekStart }
         guard let current = sorted.first else { return nil }
         return (current, sorted.dropFirst().first)
     }
@@ -79,15 +86,15 @@ enum WeeklySummaryNotificationScheduler {
     /// Builds the notification body from a real week-over-week delta when
     /// one exists, falling back to `genericBody` otherwise.
     ///
-    /// Deliberately compares the two most recently *generated* summaries
+    /// Deliberately compares the two most recent finished weeks' summaries
     /// rather than "this calendar week vs last" — a `UNCalendarNotification-
     /// Trigger` bakes `content.body` in at schedule time (any app
     /// foreground during the week), not at Sunday-morning fire time, so
     /// describing a week still in progress would go stale the moment it
     /// actually finishes. Two already-final summaries are stable no matter
     /// when this runs. See `WeeklySummaryEngine.changeHeadline`.
-    static func notificationBody(for profile: UserProfile) -> String {
-        guard let (current, previous) = mostRecentSummaries(in: profile),
+    static func notificationBody(for profile: UserProfile, now: Date = Date()) -> String {
+        guard let (current, previous) = mostRecentSummaries(in: profile, now: now),
               let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
         else {
             return genericBody
