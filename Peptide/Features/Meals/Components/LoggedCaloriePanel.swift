@@ -43,7 +43,7 @@ struct LoggedCaloriePanel: View {
                 Circle()
                     .trim(from: 0, to: ringTrim)
                     .stroke(
-                        AppColor.accentPrimary,
+                        AppColor.macroCalories,
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
@@ -55,7 +55,13 @@ struct LoggedCaloriePanel: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                         .contentTransition(.numericText())
-                    Text("of \(targetCalories) kcal")
+                    Group {
+                        if targetCalories > 0 {
+                            Text("of \(targetCalories) kcal")
+                        } else {
+                            Text("kcal")
+                        }
+                    }
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
@@ -66,8 +72,8 @@ struct LoggedCaloriePanel: View {
             }
             .frame(width: ringDiameter, height: ringDiameter)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Calories for \(date.formatted(date: .abbreviated, time: .omitted)): \(totalCalories) of \(targetCalories)")
-            .accessibilityValue("\(Int(finalProgress * 100)) percent")
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityValue(targetCalories > 0 ? Text("\(Int(finalProgress * 100)) percent") : Text(verbatim: ""))
 
             budgetLine
 
@@ -94,23 +100,55 @@ struct LoggedCaloriePanel: View {
         }
     }
 
+    private var accessibilityLabel: Text {
+        let day = date.formatted(date: .abbreviated, time: .omitted)
+        return targetCalories > 0
+            ? Text("Calories for \(day): \(totalCalories) of \(targetCalories)")
+            : Text("Calories for \(day): \(totalCalories)")
+    }
+
+    /// Where the day stands against its calorie target. Landing within 5%
+    /// either side counts as reached; further over is reported as over,
+    /// never as a success.
+    enum Budget: Equatable {
+        case left(Int)
+        case reached
+        case over(Int)
+    }
+
+    nonisolated static func budget(total: Int, target: Int) -> Budget? {
+        guard target > 0 else { return nil }
+        let remaining = target - total
+        let band = Int((Double(target) * 0.05).rounded())
+        if remaining > band { return .left(remaining) }
+        if remaining < -band { return .over(-remaining) }
+        return .reached
+    }
+
     /// What the meal leaves of the day's budget, so the success screen
     /// ends on where the day stands rather than only on what was added.
     @ViewBuilder
     private var budgetLine: some View {
-        if targetCalories > 0 {
-            let remaining = targetCalories - totalCalories
+        switch Self.budget(total: totalCalories, target: targetCalories) {
+        case .left(let remaining):
             Label {
-                if remaining > 0 {
-                    Text("\(remaining) kcal left").monospacedDigit()
-                } else {
-                    Text("Daily target reached")
-                }
+                Text("\(remaining) kcal left").monospacedDigit()
             } icon: {
-                Image(systemName: remaining > 0 ? "flag.checkered" : "checkmark.seal.fill")
+                Image(systemName: "flag.checkered")
             }
             .font(AppFont.scaled(13, weight: .semibold))
-            .foregroundStyle(remaining > 0 ? AppColor.textPrimary : AppColor.positive)
+            .foregroundStyle(AppColor.textPrimary)
+        case .reached:
+            Label("Daily target reached", systemImage: "checkmark.seal.fill")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.positive)
+        case .over(let over):
+            Text("\(over) kcal over")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(AppColor.macroCalories)
+        case nil:
+            EmptyView()
         }
     }
 

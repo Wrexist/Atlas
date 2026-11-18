@@ -1092,7 +1092,7 @@ struct MealScanFlow: View {
                 productName: loggedTitle,
                 deltaCalories: loggedCalories,
                 totalCalories: dataStore.consumption(for: logDate).caloriesKcal,
-                targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories,
+                targetCalories: dataStore.profile.nutritionTargets?.calories ?? 0,
                 date: logDate
             )
             if dataStore.isEphemeral {

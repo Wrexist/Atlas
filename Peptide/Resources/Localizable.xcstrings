@@ -161,6 +161,16 @@
         }
       }
     },
+    "%lld kcal over": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kcal över"
+          }
+        }
+      }
+    },
     "%lld mg/dL": {
       "localizations": {
         "sv": {
@@ -6196,6 +6206,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bygg pass"
+          }
+        }
+      }
+    },
+    "Calories for %@: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalorier för %@: %lld"
           }
         }
       }
