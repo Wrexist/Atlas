@@ -83,13 +83,7 @@ final class FridgeStoreTests: XCTestCase {
         let product = try XCTUnwrap(store.products.first)
         XCTAssertNotNil(store.cachedPhoto(for: product), "the row draws the new photo before the PNG is written")
 
-        // The PNG is written off the main actor; give it a moment to land.
-        let file = directory.appendingPathComponent("product-\(product.id.uuidString).png")
-        var waited = 0
-        while !FileManager.default.fileExists(atPath: file.path), waited < 100 {
-            try await Task.sleep(for: .milliseconds(20))
-            waited += 1
-        }
+        await store.photoWritesSettled()
 
         let relaunched = FridgeStore(directory: directory)
         let reloaded = try XCTUnwrap(relaunched.products.first)
@@ -99,14 +93,64 @@ final class FridgeStoreTests: XCTestCase {
         XCTAssertNotNil(relaunched.cachedPhoto(for: reloaded))
     }
 
-    func test_deleteAll_leavesNothingOnDisk() {
+    func test_photoWriteFails_hasPhotoIsClearedAgain() async throws {
+        // A plain file where the directory should be: every write under it fails.
+        try Data().write(to: directory)
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Smör"), photo: UIImage(systemName: "star"), now: date(), calendar: calendar)
+        XCTAssertEqual(store.products.first?.hasPhoto, true)
+
+        await store.photoWritesSettled()
+
+        let product = try XCTUnwrap(store.products.first)
+        XCTAssertFalse(product.hasPhoto)
+        XCTAssertNil(store.cachedPhoto(for: product))
+    }
+
+    func test_twoQuickPhotoUpdates_leaveTheNewerPhotoOnDisk() async throws {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Smör"), now: date(), calendar: calendar)
+        let product = try XCTUnwrap(store.products.first)
+
+        store.update(product, photo: solidImage(side: 40))
+        store.update(product, photo: solidImage(side: 20))
+        await store.photoWritesSettled()
+
+        let file = directory.appendingPathComponent("product-\(product.id.uuidString).png")
+        let onDisk = try XCTUnwrap(UIImage(contentsOfFile: file.path))
+        XCTAssertEqual(onDisk.size.width * onDisk.scale, 20)
+    }
+
+    func test_forgetWhilePhotoIsWriting_leavesNoOrphanFile() async throws {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Smör"), photo: solidImage(side: 20), now: date(), calendar: calendar)
+        let product = try XCTUnwrap(store.products.first)
+
+        store.forget(product.id)
+        await store.photoWritesSettled()
+
+        let file = directory.appendingPathComponent("product-\(product.id.uuidString).png")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+    }
+
+    func test_deleteAll_leavesNothingOnDisk() async {
         let store = FridgeStore(directory: directory)
         store.add(FridgeProduct(name: "Smör"), photo: UIImage(systemName: "star"), now: date(), calendar: calendar)
 
         store.deleteAll()
+        await store.photoWritesSettled()
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: directory.path))
         XCTAssertTrue(FridgeStore(directory: directory).products.isEmpty)
+    }
+
+    private func solidImage(side: CGFloat) -> UIImage {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { context in
+            UIColor.gray.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: side, height: side))
+        }
     }
 
     func test_pantry_countsTheFridgeAsAtHomeWithoutATick() {
