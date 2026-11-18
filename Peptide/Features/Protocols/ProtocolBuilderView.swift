@@ -761,6 +761,7 @@ struct ProtocolBuilderView: View {
     private var schedulePresetChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             presetChipRow
+                .padding(.vertical, Spacing.sm)
         }
     }
 

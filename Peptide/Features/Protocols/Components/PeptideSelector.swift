@@ -181,7 +181,7 @@ struct PeptideSelector: View {
                 }
             }
             .padding(.horizontal, 1)
-            .padding(.vertical, 1)
+            .padding(.vertical, Spacing.sm)
         }
     }
 

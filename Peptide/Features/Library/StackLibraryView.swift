@@ -104,6 +104,7 @@ struct StackLibraryView: View {
                     }
                 }
             }
+            .padding(.vertical, Spacing.sm)
         }
     }
 

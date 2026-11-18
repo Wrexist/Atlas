@@ -120,6 +120,7 @@ struct FastingSheet: View {
                         }
                     }
                 }
+                .padding(.vertical, Spacing.sm)
             }
             if plan == .custom {
                 Stepper(value: $customHours, in: FastingEngine.customHoursRange, step: 1) {
