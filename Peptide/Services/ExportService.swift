@@ -22,9 +22,11 @@ final class ExportService {
     /// call is the expensive part of an otherwise cheap reduce.
     /// `nonisolated(unsafe)`: the PDF renders off the main actor, and
     /// DateFormatter is thread-safe for formatting; it is never mutated
-    /// after this initializer.
+    /// after this initializer. Its locale follows the language the
+    /// report's text resolves to, so month names match the copy around them.
     nonisolated(unsafe) private static let monthFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
         f.dateFormat = "LLLL yyyy"
         return f
     }()
@@ -343,8 +345,9 @@ final class ExportService {
         let pageRect = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
 
         let format = UIGraphicsPDFRendererFormat()
+        let reportTitle = String(localized: "Atlas Protocol Report", comment: "PDF export title")
         format.documentInfo = [
-            kCGPDFContextTitle as String: "Atlas Protocol Report",
+            kCGPDFContextTitle as String: reportTitle,
             kCGPDFContextAuthor as String: "Atlas",
         ]
 
@@ -360,8 +363,12 @@ final class ExportService {
                 y = margin
             }
 
-            func checkPageBreak(for height: CGFloat) {
-                if y + height > pageHeight - margin - 20 { startPage() }
+            /// True when it started a new page, so a table can repeat its header.
+            @discardableResult
+            func checkPageBreak(for height: CGFloat) -> Bool {
+                guard y + height > pageHeight - margin - 20 else { return false }
+                startPage()
+                return true
             }
 
             @discardableResult
@@ -435,19 +442,23 @@ final class ExportService {
 
             startPage()
 
-            let titleH = drawText("Atlas Protocol Report", font: titleFont, color: accentColor)
+            let titleH = drawText(reportTitle, font: titleFont, color: accentColor)
             y += titleH + 4
 
             let userName = profile.name.trimmingCharacters(in: .whitespaces).isEmpty
-                ? "Atlas User" : profile.name
+                ? String(localized: "Atlas User", comment: "PDF export — fallback when the profile has no name")
+                : profile.name
             let dateStr = Date().formatted(date: .long, time: .omitted)
-            let subH = drawText("\(userName)  ·  Exported \(dateStr)", font: captionFont, color: mutedColor)
+            let subH = drawText(
+                String(localized: "\(userName)  ·  Exported \(dateStr)", comment: "PDF export subtitle — name and export date"),
+                font: captionFont, color: mutedColor
+            )
             y += subH + 12
 
             drawRule(color: accentColor.withAlphaComponent(0.5))
             y += 14
 
-            let sumTH = drawText("SUMMARY", font: sectionFont)
+            let sumTH = drawText(String(localized: "SUMMARY", comment: "PDF export section heading"), font: sectionFont)
             y += sumTH + 8
 
             let completedDoses = entries.filter(\.completed).count
@@ -455,9 +466,9 @@ final class ExportService {
             let activeCount    = protocols.filter { $0.status == .active }.count
 
             for (label, value) in [
-                ("Active Protocols", "\(activeCount) of \(protocols.count)"),
-                ("Doses Logged", "\(completedDoses) of \(entries.count)"),
-                ("Overall Adherence", "\(compliancePct)%"),
+                (String(localized: "Active Protocols"), String(localized: "\(activeCount) of \(protocols.count)")),
+                (String(localized: "Doses Logged"), String(localized: "\(completedDoses) of \(entries.count)")),
+                (String(localized: "Overall Adherence"), "\(compliancePct)%"),
             ] {
                 let h = drawText(label, font: bodyFont, color: mutedColor)
                 drawText(value, font: labelFont, x: pageWidth - margin - 60, width: 60, align: .right)
@@ -479,16 +490,18 @@ final class ExportService {
 
                 checkPageBreak(for: 80)
 
-                // Protocol header
-                let proH = drawText(proto.name, font: sectionFont)
-                drawText(proto.status.rawValue.capitalized, font: captionFont,
+                // Protocol header. The name stops short of the 60 pt status
+                // column so a long name wraps instead of running into it.
+                let proH = drawText(proto.name, font: sectionFont, width: contentWidth - 70)
+                drawText(proto.status.displayName, font: captionFont,
                          color: mutedColor, x: pageWidth - margin - 60, width: 60, align: .right)
                 y += proH + 3
 
                 let startStr   = proto.startDate.formatted(date: .abbreviated, time: .omitted)
                 let peptideStr = proto.peptides.map(\.abbreviation).joined(separator: ", ")
                 let metaH = drawText(
-                    "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% adherence",
+                    String(localized: "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% adherence",
+                           comment: "PDF export — protocol start date, cycle length in weeks, adherence percent"),
                     font: captionFont, color: mutedColor
                 )
                 y += metaH + 2
@@ -502,7 +515,7 @@ final class ExportService {
                 // suppressed.
                 let monthlyBuckets = Self.monthlyBuckets(for: protoEntries)
                 if !monthlyBuckets.isEmpty {
-                    let summaryHeaderH = drawText("MONTHLY SUMMARY",
+                    let summaryHeaderH = drawText(String(localized: "MONTHLY SUMMARY", comment: "PDF export section heading"),
                         font: labelFont, color: mutedColor)
                     y += summaryHeaderH + 3
                     drawRule()
@@ -510,7 +523,8 @@ final class ExportService {
                     for bucket in monthlyBuckets {
                         checkPageBreak(for: 18)
                         let lineH = drawText(
-                            "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% adherence",
+                            String(localized: "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% adherence",
+                                   comment: "PDF export — month, logged doses, missed doses, adherence percent"),
                             font: captionFont
                         )
                         y += lineH + 3
@@ -519,30 +533,38 @@ final class ExportService {
                 }
 
                 guard !protoEntries.isEmpty else {
-                    let emptyH = drawText("No entries recorded.", font: captionFont, color: mutedColor)
+                    let emptyH = drawText(String(localized: "No entries recorded.", comment: "PDF export — protocol with no entries"), font: captionFont, color: mutedColor)
                     y += emptyH + 10
                     drawRule()
                     y += 14
                     continue
                 }
 
-                // Table header row
-                drawRule()
-                y += 4
-                var hdrH: CGFloat = 0
-                for (text, x, width) in [
-                    ("DATE", cDate, 68.0),
-                    ("PEPTIDE", cPep, 110.0),
-                    ("DOSE", cDose, 75.0),
-                    ("TIME", cTime, 70.0),
-                    ("SITE", cSite, 95.0),
-                    ("DONE", cDone, 40.0),
-                ] {
-                    hdrH = max(hdrH, drawText(text, font: labelFont, color: mutedColor, x: x, width: width))
+                // Table header row — kept with the first entry row and
+                // repeated on every page the table continues onto.
+                let headerColumns: [(String, CGFloat, CGFloat)] = [
+                    (String(localized: "DATE", comment: "PDF export table column"), cDate, 68.0),
+                    (String(localized: "PEPTIDE", comment: "PDF export table column"), cPep, 110.0),
+                    (String(localized: "DOSE", comment: "PDF export table column"), cDose, 75.0),
+                    (String(localized: "TIME", comment: "PDF export table column"), cTime, 70.0),
+                    (String(localized: "SITE", comment: "PDF export table column"), cSite, 95.0),
+                    (String(localized: "DONE", comment: "PDF export table column"), cDone, 40.0),
+                ]
+                let headerHeight = headerColumns
+                    .map { measureText($0.0, font: labelFont, width: $0.2) }
+                    .max() ?? 12
+                func drawTableHeader() {
+                    drawRule()
+                    y += 4
+                    for (text, x, width) in headerColumns {
+                        drawText(text, font: labelFont, color: mutedColor, x: x, width: width)
+                    }
+                    y += headerHeight + 3
+                    drawRule()
+                    y += 5
                 }
-                y += hdrH + 3
-                drawRule()
-                y += 5
+                checkPageBreak(for: 4 + headerHeight + 3 + 5 + 1 + 18)
+                drawTableHeader()
 
                 // Entry rows. Two modes based on volume:
                 //   - ≤ Self.pdfFullDetailLimit (90): paginate every
@@ -562,7 +584,9 @@ final class ExportService {
                     let timeVal = (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
                     let doseVal = entry.actualDose ?? entry.dose
                     let siteVal = entry.injectionSite ?? "—"
-                    let doneVal = entry.completed ? "Yes" : "No"
+                    let doneVal = entry.completed
+                        ? String(localized: "Yes", comment: "PDF export — dose taken")
+                        : String(localized: "No", comment: "PDF export — dose not taken")
 
                     let rowH = [
                         measureText(dateVal, font: bodyFont, width: 68),
@@ -572,7 +596,9 @@ final class ExportService {
                         measureText(siteVal, font: bodyFont, width: 95),
                         measureText(doneVal, font: bodyFont, width: 40),
                     ].max() ?? 14
-                    checkPageBreak(for: rowH + 3)
+                    if checkPageBreak(for: rowH + 3) {
+                        drawTableHeader()
+                    }
 
                     for (text, x, width) in [
                         (dateVal, cDate, 68.0),
@@ -591,7 +617,8 @@ final class ExportService {
                 if protoEntries.count > entriesToRender.count {
                     let hidden = protoEntries.count - entriesToRender.count
                     let moreH = drawText(
-                        "… \(hidden) earlier entries · use the CSV export in Profile → Settings → Data Export for the complete log",
+                        String(localized: "… \(hidden) earlier entries · use the CSV export in Profile → Settings → Data Export for the complete log",
+                               comment: "PDF export — entries left out of the table"),
                         font: captionFont, color: mutedColor
                     )
                     y += moreH + 3
@@ -605,7 +632,8 @@ final class ExportService {
             // Footer
             y = pageHeight - margin + 6
             drawText(
-                "Generated by Atlas  ·  \(Date().formatted(date: .abbreviated, time: .shortened))",
+                String(localized: "Generated by Atlas  ·  \(Date().formatted(date: .abbreviated, time: .shortened))",
+                       comment: "PDF export footer — generation date and time"),
                 font: captionFont, color: mutedColor, align: .center
             )
         }
