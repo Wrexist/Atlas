@@ -4,6 +4,7 @@ struct ProfileView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @State private var storeService = StoreService.shared
     @AppStorage(HealthSyncSettings.enabledKey) private var healthActivitySync = false
     @AppStorage(HealthSyncSettings.nutritionEnabledKey) private var healthNutritionWrite = false
@@ -136,8 +137,10 @@ struct ProfileView: View {
             }
             .task { await authService.validateCredential() }
             .task { workoutCount = SwiftDataRepository.shared.workoutSessionCount() }
-            .task(id: dataStore.profile.healthConnected) {
-                guard dataStore.profile.healthConnected else { return }
+            // Re-checked on return from iOS Settings too, where the notice's
+            // own button sends the user to grant read access.
+            .task(id: "\(dataStore.profile.healthConnected)-\(scenePhase)") {
+                guard dataStore.profile.healthConnected, scenePhase == .active else { return }
                 healthDataVisible = await HealthKitService.shared.hasReadableData(days: 30)
             }
             .sheet(isPresented: $showReconstitutionCalculator) {

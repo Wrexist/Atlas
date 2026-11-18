@@ -207,6 +207,23 @@ struct BodyMetrics: Codable, Hashable, Sendable {
         }
     }
 
+    /// Weight as every screen shows it: at most one decimal, with its unit.
+    var weightLabel: String? {
+        weightKg.map { "\(unit.weightValue($0, fractionDigits: 0...1)) \(unit.weightSuffix)" }
+    }
+
+    /// Height as every screen shows it: centimetres to one decimal, or
+    /// feet + inches ("5'11\""), rounding total inches first so it never
+    /// reads "5'12\"".
+    var heightLabel: String? {
+        guard let heightCm else { return nil }
+        if unit == .metric {
+            return "\(heightCm.formatted(.number.precision(.fractionLength(0...1)).grouping(.never))) cm"
+        }
+        let totalInches = Int((heightCm / 2.54).rounded())
+        return "\(totalInches / 12)'\(totalInches % 12)\""
+    }
+
     func ageAsOf(_ date: Date, calendar: Calendar = .current) -> Int? {
         guard let enteredAge else { return nil }
         guard let ageRecordedAt else { return enteredAge }
