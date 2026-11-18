@@ -24,8 +24,8 @@ export default async function handler(req, res) {
     // transaction in X-Atlas-Entitlement. Opus reading up to four pages
     // is the most expensive call the proxy makes.
     requirePro: true,
-    // Several dense pages take longer than one plate; vercel.json's
-    // maxDuration covers this.
-    timeoutMs: 55_000,
+    // Several dense pages take longer than one plate; kept a few seconds
+    // under vercel.json's 60 s maxDuration (see MIN_UPSTREAM_MS).
+    timeoutMs: 52_000,
   });
 }

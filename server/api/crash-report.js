@@ -29,7 +29,7 @@
 import { randomUUID } from 'node:crypto';
 import { clientKey } from './_lib/anthropic-proxy.js';
 import { authorize } from './_lib/auth.js';
-import { allowRate, principalLimit } from './_lib/rate-limit.js';
+import { allowRate, intEnv, principalLimit } from './_lib/rate-limit.js';
 
 const MAX_BODY_BYTES = 256 * 1024;
 const MAX_DIAGNOSTICS = 10;
@@ -265,7 +265,7 @@ export default async function handler(req, res) {
     return;
   }
   const ip = clientKey(req);
-  const limit = parseInt(process.env.CRASH_REPORT_RPM || '10', 10);
+  const limit = intEnv('CRASH_REPORT_RPM', 10);
   if (!(await allowRate({ name: 'crash-report', key: ip, limit: principalLimit(`ip:${ip}`, limit), windowSeconds: 60 }))) {
     res.status(429).json({ error: { message: 'Too many requests' } });
     return;

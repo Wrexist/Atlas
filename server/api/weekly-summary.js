@@ -17,12 +17,20 @@
  * A verified Pro entitlement is required (403 `pro_required`
  * otherwise); the app falls back to its offline recap on any refusal.
  */
-import { passesProGate, principalFor, refuse, THINKING_OFF } from './_lib/anthropic-proxy.js';
+import {
+  MIN_UPSTREAM_MS,
+  passesProGate,
+  principalFor,
+  refuse,
+  remainingUpstreamMs,
+  THINKING_OFF,
+} from './_lib/anthropic-proxy.js';
 import { checkAppAttest } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
 import {
   allowRate,
   costForBytes,
+  intEnv,
   isBlocked,
   principalLimit,
   recordLimitStrike,
@@ -38,6 +46,9 @@ const MAX_TOKENS = 500;
 // The aggregate is tiny; nothing larger is legitimate. Checked on the
 // parsed body like `_lib/anthropic-proxy.js` does.
 const MAX_BODY_BYTES = 64 * 1024;
+// The whole request's deadline, a few seconds under vercel.json's 30 s
+// maxDuration; see MIN_UPSTREAM_MS in `_lib/anthropic-proxy.js`.
+const TIMEOUT_MS = 25_000;
 
 const SYSTEM_PROMPT = [
   "You are Atlas's weekly coach. Summarize the user's last 7 days in 2-3 short paragraphs, ~150 words total.",
@@ -66,7 +77,7 @@ const SYSTEM_PROMPT = [
 // is retry-loop noise or abuse. The principal is derived exactly as on
 // the other routes; see `principalFor` in `_lib/anthropic-proxy.js`.
 function checkRateLimit(principal) {
-  const limit = parseInt(process.env.WEEKLY_RPM || '6', 10);
+  const limit = intEnv('WEEKLY_RPM', 6);
   return allowRate({ name: 'weekly-summary', key: principal, limit: principalLimit(principal, limit), windowSeconds: 60 });
 }
 
@@ -220,6 +231,7 @@ function buildUserPrompt(aggregate, language) {
 }
 
 export default async function handler(req, res) {
+  const startedAt = Date.now();
   if (req.method !== 'POST') {
     res.status(405).json({ error: { message: 'Use POST' } });
     return;
@@ -317,8 +329,16 @@ export default async function handler(req, res) {
     ]
   };
 
+  const upstreamMs = remainingUpstreamMs(startedAt, TIMEOUT_MS);
+  if (upstreamMs < MIN_UPSTREAM_MS) {
+    console.error('[weekly-summary] too little time left for the upstream call');
+    await refundSpend({ principal, cost });
+    refuse(res, 'unavailable');
+    return;
+  }
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25_000);
+  const timeout = setTimeout(() => controller.abort(), upstreamMs);
   try {
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

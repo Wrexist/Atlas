@@ -338,3 +338,25 @@ test('test_weeklySummary_rawAverages_reachModelRoundedToOneDecimal', async (t) =
   assert.equal(sent.biometrics.sleepHoursAvg, 7.4);
   assert.match(JSON.parse(upstream[0][1].body).system, /1-5 self-ratings/);
 });
+
+test('test_weeklySummary_tooLittleTimeLeftAfterChecks_refuses503BeforeUpstream', async (t) => {
+  setEnv(t, BASE_ENV);
+  t.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 10, 18, 12, 0, 30) });
+  const upstream = stubUpstream(t);
+  const req = makeReq('10.1.2.5');
+  const secret = req.headers['x-peptide-proxy'];
+  let delay = 21_000;
+  Object.defineProperty(req.headers, 'x-peptide-proxy', {
+    enumerable: true,
+    get() {
+      t.mock.timers.tick(delay);
+      delay = 0;
+      return secret;
+    },
+  });
+  const res = makeRes();
+  await handler(req, res);
+  assert.equal(res.statusCode, 503);
+  assert.equal(res.body.error.code, 'unavailable');
+  assert.equal(upstream.length, 0);
+});

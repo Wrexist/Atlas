@@ -167,7 +167,9 @@ export function dailyBudgetLimit() {
   return intEnv('ANTHROPIC_DAILY_REQUEST_BUDGET', defaultDailyBudget());
 }
 
-function intEnv(name, fallback) {
+// A malformed value ('twenty') falls back to the default; a NaN limit
+// would read as "disabled" in allowRate.
+export function intEnv(name, fallback) {
   const parsed = parseInt(process.env[name] ?? '', 10);
   return Number.isFinite(parsed) ? parsed : fallback;
 }

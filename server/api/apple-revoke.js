@@ -21,7 +21,7 @@
 import { createPrivateKey, sign } from 'node:crypto';
 import { clientKey } from './_lib/anthropic-proxy.js';
 import { authorize } from './_lib/auth.js';
-import { allowRate } from './_lib/rate-limit.js';
+import { allowRate, intEnv } from './_lib/rate-limit.js';
 
 const APPLE_AUTH = 'https://appleid.apple.com';
 const MAX_CODE_LENGTH = 1024;
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     res.status(401).json({ error: { message: 'Unauthorised' } });
     return;
   }
-  const limit = parseInt(process.env.REVOKE_RPM || '5', 10);
+  const limit = intEnv('REVOKE_RPM', 5);
   if (!(await allowRate({ name: 'apple-revoke', key: clientKey(req), limit, windowSeconds: 60 }))) {
     res.status(429).json({ error: { message: 'Too many requests' } });
     return;
