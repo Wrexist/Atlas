@@ -114,6 +114,47 @@ let s = GlassSegmentedControl(
 """
         self.assertEqual(scan(source), set())
 
+    def test_ternary_inside_text_and_navigation_title_is_found(self):
+        source = """
+let t = Text(daysPastEnd > 0 ? "Your cycle has ended" : "Your cycle just finished")
+let v = view.navigationTitle(program == nil ? "Create a program" : "Your program")
+"""
+        self.assertEqual(scan(source), {"Your cycle has ended", "Your cycle just finished",
+                                        "Create a program", "Your program"})
+
+    def test_dialog_and_accessibility_modifier_literals_are_found(self):
+        source = """
+let d = view.confirmationDialog("Discard these results?", isPresented: $shown) {}
+let a = view.accessibilityLabel(isOn ? "Included" : "Skipped")
+    .accessibilityHint("Toggles whether this result is saved.")
+"""
+        self.assertEqual(scan(source), {"Discard these results?", "Included", "Skipped",
+                                        "Toggles whether this result is saved."})
+
+    def test_literals_returned_as_a_key_are_found(self):
+        source = """
+private var hint: LocalizedStringKey {
+    switch category {
+    case .health: return "e.g. 8 (glasses of water)"
+    case .custom: "Set whatever number reads naturally."
+    }
+}
+private func spoken(for status: Status) -> LocalizedStringKey {
+    switch status {
+    case .lower: return "Below your usual range"
+    }
+}
+private var footer: LocalizedStringKey {
+    "Not enough recent Health data"
+}
+"""
+        self.assertEqual(scan(source), {"e.g. 8 (glasses of water)", "Set whatever number reads naturally.",
+                                        "Below your usual range", "Not enough recent Health data"})
+
+    def test_string_localized_literal_is_found_but_interpolated_one_is_not(self):
+        source = 'let a = String(localized: "Your program")\nlet b = String(localized: "Day \\(n)")'
+        self.assertEqual(scan(source), {"Your program"})
+
 
 class UntranslatedArgumentTests(unittest.TestCase):
     STRINGS = {

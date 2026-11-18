@@ -7493,6 +7493,16 @@
         }
       }
     },
+    "remaining": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kvar"
+          }
+        }
+      }
+    },
     "Report not on this device": {
       "localizations": {
         "sv": {
