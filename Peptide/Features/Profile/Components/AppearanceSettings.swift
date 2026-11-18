@@ -240,6 +240,5 @@ struct SettingsPickerRow<Control: View>: View {
             .padding(Spacing.screenPadding)
     }
     .environment(DataStore(seedSampleData: true))
-    .environment(LocalizationManager.shared)
     .preferredColorScheme(.dark)
 }

@@ -9,7 +9,6 @@ struct PeptideApp: App {
     @UIApplicationDelegateAdaptor(AtlasAppDelegate.self) private var appDelegate
     @State private var appState: AppState
     @State private var dataStore: DataStore
-    @State private var localization = LocalizationManager.shared
     @State private var themeManager = ThemeManager.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     /// `UNUserNotificationCenter` holds its delegate weakly; this keeps it
@@ -223,14 +222,6 @@ struct PeptideApp: App {
                 mainContent
                     .accessibilityHidden(privacyCover != nil)
             }
-        }
-        .environment(localization)
-        .environment(\.locale, localization.effectiveLocale)
-        .id(localization.selectedCode ?? "system")
-        .onChange(of: localization.selectedCode) { _, _ in
-            // The long-press menu is set at runtime to follow the in-app
-            // language; without this it kept the old one until relaunch.
-            QuickActionRouter.installHomeScreenShortcuts()
         }
         .onChange(of: dataStore.profile.biometricLockEnabled) { _, enabled in
             if !enabled { isUnlocked = true }
@@ -454,11 +445,10 @@ struct PeptideApp: App {
     }
 
     /// The lock window hosts its own view tree, outside the app's
-    /// environment, so it gets the language and theme here.
+    /// environment, so it gets the theme here.
     private func privacyCoverContent(_ cover: some View) -> some View {
         cover
-            .environment(\.locale, localization.effectiveLocale)
-                .preferredColorScheme(themeManager.displayMode.preferredScheme)
+            .preferredColorScheme(themeManager.displayMode.preferredScheme)
             .tint(AppColor.accentPrimary)
     }
 

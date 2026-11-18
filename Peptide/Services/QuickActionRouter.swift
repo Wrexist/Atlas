@@ -29,16 +29,12 @@ enum QuickActionRouter {
         }
     }
 
-    /// Long-press menu on the app icon. Set at runtime rather than in
-    /// Info.plist so the titles follow the in-app language, which only
-    /// the views' locale carries; a plain lookup uses the system one.
-    static func installHomeScreenShortcuts(locale: Locale = LocalizationManager.shared.effectiveLocale) {
+    /// Long-press menu on the app icon, titled in the app's language.
+    static func installHomeScreenShortcuts() {
         UIApplication.shared.shortcutItems = QuickAction.allCases.map { action -> UIApplicationShortcutItem in
-            var title = action.title
-            title.locale = locale
-            return UIApplicationShortcutItem(
+            UIApplicationShortcutItem(
                 type: action.rawValue,
-                localizedTitle: String(localized: title),
+                localizedTitle: String(localized: action.title),
                 localizedSubtitle: nil,
                 icon: UIApplicationShortcutIcon(systemImageName: action.systemImage)
             )
