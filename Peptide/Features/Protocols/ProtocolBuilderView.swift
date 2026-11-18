@@ -331,6 +331,9 @@ struct ProtocolBuilderView: View {
             .onChange(of: selectedPeptides) { _, newValue in
                 // Drop overrides for peptides that have been deselected.
                 peptideOverrides = peptideOverrides.filter { newValue.contains($0.key) }
+                // Clearing every compound abandons the template, so the
+                // saved protocol must not count as its fork.
+                if newValue.isEmpty { templateSource = nil }
             }
             .sheet(item: $editingOverridePeptide) { peptide in
                 PeptideScheduleSheet(
