@@ -126,18 +126,18 @@ private struct DailyReminderRow: View {
             Spacer(minLength: Spacing.sm)
 
             if slot.isEnabled {
-                DatePicker(
-                    kind.displayName,
-                    selection: time,
-                    displayedComponents: .hourAndMinute
-                )
+                DatePicker(selection: time, displayedComponents: .hourAndMinute) {
+                    Text("\(kind.displayName) reminder time")
+                }
                 .labelsHidden()
                 .transition(.opacity)
             }
 
-            Toggle(kind.displayName, isOn: enabled)
-                .labelsHidden()
-                .tint(AppColor.accentPrimary)
+            Toggle(isOn: enabled) {
+                Text("\(kind.displayName) reminder")
+            }
+            .labelsHidden()
+            .tint(AppColor.accentPrimary)
         }
         .appAnimation(AppAnimation.quick, value: slot.isEnabled)
     }
@@ -188,8 +188,11 @@ struct NotificationsDeniedRow: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .accessibilityHint("Opens Settings")
     }
 }
 

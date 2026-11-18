@@ -51,7 +51,9 @@ struct HealthConnectionCard: View {
                     }
                 }
 
-                Text("Connect Apple Health to bring heart rate, HRV, sleep and activity into your recovery score.")
+                Text(isConnected
+                     ? "Heart rate, HRV, sleep and activity from Apple Health feed your recovery score."
+                     : "Connect Apple Health to bring heart rate, HRV, sleep and activity into your recovery score.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

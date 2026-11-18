@@ -121,12 +121,43 @@
         }
       }
     },
+    "%@ lock": {
+      "comment": "Settings toggle title; %@ is the biometry name, e.g. Face ID",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@-lås"
+          }
+        }
+      }
+    },
     "%@ mg/L": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "%@ mg/L"
+          }
+        }
+      }
+    },
+    "%@ reminder": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Påminnelse för %@"
+          }
+        }
+      }
+    },
+    "%@ reminder time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Påminnelsetid för %@"
           }
         }
       }
@@ -3665,6 +3696,16 @@
         }
       }
     },
+    "%lld of %lld reminders active — other reminders share iOS's %lld-reminder limit": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld påminnelser aktiva – andra påminnelser delar iOS gräns på %lld påminnelser"
+          }
+        }
+      }
+    },
     "%lld of %lld sets": {
       "localizations": {
         "sv": {
@@ -6523,6 +6564,16 @@
         }
       }
     },
+    "Heart rate, HRV, sleep and activity from Apple Health feed your recovery score.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puls, HRV, sömn och aktivitet från Apple Hälsa matar din återhämtningspoäng."
+          }
+        }
+      }
+    },
     "How has it moved over the last 90 days?": {
       "localizations": {
         "sv": {
@@ -6792,6 +6843,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Öppnar Atlas och startar ett pass från en rutin, eller ett tomt pass om ingen väljs."
+          }
+        }
+      }
+    },
+    "Opens Settings": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Inställningar"
           }
         }
       }
