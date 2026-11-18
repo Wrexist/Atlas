@@ -1,7 +1,12 @@
 import SwiftUI
 
+/// The top banner for an achievement unlock: a compact capsule that sits
+/// under the status bar rather than a card over the navigation title.
+/// `count` above one turns it into a summary of that many unlocks, shown
+/// with the first one's artwork.
 struct AchievementToastView: View {
     let achievement: Achievement
+    var count = 1
     @Binding var isShowing: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -19,16 +24,14 @@ struct AchievementToastView: View {
             }
             Spacer()
         }
-        .padding(.top, Spacing.sm)
+        .padding(.top, Spacing.xs)
         .task(id: ToastKey(id: achievement.id, isShowing: isShowing)) {
             guard isShowing else { return }
             // A canceled toast must not dismiss the next queued achievement.
             do {
                 try await Task.sleep(for: .milliseconds(120))
                 Haptics.success()
-                AccessibilityNotification.Announcement(
-                    String(localized: "Achievement unlocked: \(achievement.title)")
-                ).post()
+                AccessibilityNotification.Announcement(announcement).post()
                 // VoiceOver needs time to finish the announcement and
                 // reach the Dismiss button before the toast hides.
                 try await Task.sleep(for: .seconds(voiceOverEnabled ? 10 : 4))
@@ -46,29 +49,43 @@ struct AchievementToastView: View {
         let isShowing: Bool
     }
 
+    private var isSummary: Bool { count > 1 }
+
+    private var title: String {
+        isSummary ? String(localized: "\(count) achievements unlocked") : achievement.title
+    }
+
+    private var announcement: String {
+        isSummary ? title : String(localized: "Achievement unlocked: \(achievement.title)")
+    }
+
     private var card: some View {
-        HStack(spacing: Spacing.md) {
+        HStack(spacing: Spacing.sm) {
             // Combined on its own so the Dismiss button stays a
             // separate, actionable VoiceOver element.
-            HStack(spacing: Spacing.md) {
-                MilestoneArtwork(symbol: achievement.icon, tint: AppColor.achievement, size: 48)
+            HStack(spacing: Spacing.sm) {
+                MilestoneArtwork(symbol: achievement.icon, tint: AppColor.achievement, size: 32)
                     .id(achievement.id)
 
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Achievement unlocked")
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.accentLight)
-                    Text(achievement.title)
-                        .font(AppFont.headline)
+                VStack(alignment: .leading, spacing: 0) {
+                    if !isSummary {
+                        Text("Achievement unlocked")
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    Text(title)
+                        .font(AppFont.subheadline)
+                        .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(2)
                 }
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Achievement unlocked: \(achievement.title)")
-            .accessibilityValue(achievement.description)
+            .accessibilityLabel(announcement)
+            .accessibilityValue(isSummary ? "" : achievement.description)
             .accessibilityAddTraits(.isStaticText)
-
-            Spacer()
 
             Button {
                 withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { isShowing = false }
@@ -82,10 +99,15 @@ struct AchievementToastView: View {
             }
             .accessibilityLabel("Dismiss")
         }
-        .padding(Spacing.lg)
-        // Same surface as SyncToast, so the two top toasts read as
-        // one family.
-        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
-        .padding(.horizontal, Spacing.screenPadding)
+        .padding(.leading, Spacing.sm)
+        .padding(.vertical, Spacing.xxs)
+        // A capsule hugging its content and inset well inside the
+        // screen edges, so the large title and the trailing toolbar
+        // button stay readable while it's up.
+        .glassSurfaceCapsule()
+        .padding(.horizontal, Spacing.xxxxl)
+        // A transient banner, capped like the system's: at the largest
+        // sizes it would otherwise cover half the screen.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     }
 }

@@ -149,7 +149,7 @@ final class AchievementServiceTests: XCTestCase {
     /// This used to assert `latestUnlock == nil` after the second call,
     /// which encoded a contract the service deliberately abandoned:
     /// `latestUnlock` is the head of a *pending queue* that drains on
-    /// `acknowledgeLatestUnlock()`, not "what unlocked on this call".
+    /// `acknowledgeUnlocks(_:)`, not "what unlocked on this call".
     /// `checkAchievements` even carries a comment explaining why it must
     /// not clear the queue — so the old assertion could only ever fail,
     /// and it did, on every run. What is actually worth protecting is
@@ -162,8 +162,27 @@ final class AchievementServiceTests: XCTestCase {
         XCTAssertEqual(service.pendingUnlocks.count, 1, "the same milestone must only queue once")
         XCTAssertEqual(service.latestUnlock?.id, "first_dose")
 
-        service.acknowledgeLatestUnlock()
+        service.acknowledgeUnlocks(1)
         XCTAssertNil(service.latestUnlock)
+    }
+
+    // MARK: - Draining the queue
+
+    func test_acknowledgeUnlocks_shownBatch_keepsUnlocksQueuedAfterIt() {
+        service.checkAchievements(totalDoses: 10, currentStreak: 0, bestStreak: 0, protocolCount: 0, daysLogged: 0)
+        let shown = service.pendingUnlocks.count
+        XCTAssertGreaterThan(shown, 1, "ten doses crosses more than one milestone")
+        service.checkAchievements(totalDoses: 50, currentStreak: 0, bestStreak: 0, protocolCount: 0, daysLogged: 0)
+
+        service.acknowledgeUnlocks(shown)
+
+        XCTAssertEqual(service.pendingUnlocks.map(\.id), ["fifty_doses"])
+    }
+
+    func test_acknowledgeUnlocks_moreThanQueued_emptiesWithoutCrashing() {
+        service.checkAchievements(totalDoses: 1, currentStreak: 0, bestStreak: 0, protocolCount: 0, daysLogged: 0)
+        service.acknowledgeUnlocks(5)
+        XCTAssertTrue(service.pendingUnlocks.isEmpty)
     }
 
     // MARK: - latestUnlock

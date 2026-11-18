@@ -73,6 +73,10 @@ enum AppAnimation {
     /// is too short.
     static let sheetDismissDelay: Duration = .milliseconds(350)
 
+    /// How long a dismissed top toast takes to slide away before the
+    /// next queued one may present, so the two never overlap.
+    static let toastHandoffDelay: Duration = .milliseconds(450)
+
     /// How long an "Added" confirmation stays on screen before its sheet
     /// dismisses. Skipped under Reduce Motion.
     static let confirmationHold: Duration = .milliseconds(600)
