@@ -1291,9 +1291,22 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         grams = delta > 0 ? max(grams, target) : min(grams, target)
     }
 
-    /// Current portion expressed in servings, where one serving is the
-    /// model's depicted-portion estimate (`aiGrams`).
-    var servings: Double { aiGrams > 0 ? grams / aiGrams : 1 }
+    /// Current portion expressed in servings of `oneServingGrams`.
+    var servings: Double { oneServingGrams > 0 ? grams / oneServingGrams : 1 }
+
+    /// One serving for the portion controls: the replacement food's own
+    /// serving once swapped (when it states one), else the scanner's
+    /// depicted portion.
+    var oneServingGrams: Double {
+        if let servingGrams, servingGrams > 0 { return servingGrams }
+        return aiGrams
+    }
+
+    /// The scanner's suggested amounts describe the food it saw, so a
+    /// replacement food drops them.
+    var activePortionOptions: [FoodPortionOption] {
+        replacementSourceID == nil ? portionOptions ?? [] : []
+    }
 
     /// The name to log: the edited one, or the scanner's when the field
     /// was cleared, so the diary never gets a blank row.
@@ -1404,6 +1417,7 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         replacedBrand = nil
         nutritionEdited = false
         savedToLibrary = false
+        portionMode = .serving
     }
 
     mutating func replace(with product: ScannedProduct) {
@@ -1682,8 +1696,8 @@ private struct FoodItemEditCard: View {
             }
 
             // Name what one serving actually is, when the scan gave a label.
-            if !item.quantityLabel.isEmpty {
-                Text("1 serving = \(item.quantityLabel)")
+            if let servingLabel = item.servingLabel {
+                Text("1 serving = \(servingLabel)")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .lineLimit(2)
@@ -1729,7 +1743,7 @@ private struct FoodItemEditCard: View {
     /// keeping `grams` the single source of truth for macro scaling.
     private func setServings(_ value: Double) {
         let snapped = max(0.5, (value * 2).rounded() / 2)
-        item.grams = EditableFoodItem.clampedGrams((snapped * item.aiGrams).rounded())
+        item.grams = EditableFoodItem.clampedGrams((snapped * item.oneServingGrams).rounded())
     }
 
     private var servingsLabel: String { "\(formatCount(item.servings))×" }
@@ -1746,16 +1760,16 @@ private struct FoodItemEditCard: View {
     private var presetChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
-                ForEach(item.portionOptions ?? []) { option in
+                ForEach(item.activePortionOptions) { option in
                     chip(label: option.label, grams: option.grams)
                 }
                 switch item.portionMode {
                 case .serving:
                     ForEach(Self.servingPresets, id: \.self) { count in
-                        chip(label: "\(formatCount(count))×", spoken: spokenServings(count), grams: count * item.aiGrams)
+                        chip(label: "\(formatCount(count))×", spoken: spokenServings(count), grams: count * item.oneServingGrams)
                     }
                 case .grams:
-                    chip(label: String(localized: "1 serving"), grams: item.aiGrams)
+                    chip(label: String(localized: "1 serving"), grams: item.oneServingGrams)
                     ForEach(Self.gramPresets, id: \.self) { grams in
                         chip(label: "\(Int(grams)) g", grams: grams)
                     }
