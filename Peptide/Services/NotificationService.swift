@@ -140,8 +140,9 @@ final class NotificationService {
     /// entry in `occupied` — matching weekday, or any weekday when
     /// `weekday` is `nil` (a "daily" habit can collide with a dose
     /// reminder on any day of the week) — shifts the candidate forward by
-    /// `crossTypeCooldownMinutes` (backwards when forward would cross
-    /// midnight) so the two don't land in the same
+    /// `crossTypeCooldownMinutes` (or, when forward would cross midnight,
+    /// back to a full cooldown before every slot it would collide with) so
+    /// the two don't land in the same
     /// notification-center pull. Deterministic: the same inputs always
     /// produce the same shifted time, so a reschedule never nudges an
     /// already-resolved reminder a second time.
@@ -157,15 +158,22 @@ final class NotificationService {
         avoiding occupied: [(weekday: Int, hour: Int, minute: Int)]
     ) -> (hour: Int, minute: Int) {
         let candidateMinuteOfDay = hour * 60 + minute
-        let collides = occupied.contains { slot in
-            (weekday == nil || slot.weekday == weekday)
-                && abs(slot.hour * 60 + slot.minute - candidateMinuteOfDay) < crossTypeCooldownMinutes
+        let slotMinutes = occupied
+            .filter { weekday == nil || $0.weekday == weekday }
+            .map { $0.hour * 60 + $0.minute }
+        func earliestCollision(at minuteOfDay: Int) -> Int? {
+            slotMinutes.filter { abs($0 - minuteOfDay) < crossTypeCooldownMinutes }.min()
         }
-        guard collides else { return (hour, minute) }
-        // The caller keeps the weekday, so a shift past midnight would fire
-        // at the start of the same day; late reminders yield backwards.
+        guard let firstCollision = earliestCollision(at: candidateMinuteOfDay) else { return (hour, minute) }
         let forward = candidateMinuteOfDay + crossTypeCooldownMinutes
-        let shifted = forward < 24 * 60 ? forward : max(0, candidateMinuteOfDay - crossTypeCooldownMinutes)
+        if forward < 24 * 60 { return (forward / 60, forward % 60) }
+        // The caller keeps the weekday, so a shift past midnight would fire
+        // at the start of the same day; late reminders step back a full
+        // cooldown before each slot they still collide with.
+        var shifted = max(0, firstCollision - crossTypeCooldownMinutes)
+        while shifted > 0, let collision = earliestCollision(at: shifted) {
+            shifted = max(0, collision - crossTypeCooldownMinutes)
+        }
         return (shifted / 60, shifted % 60)
     }
 
