@@ -138,10 +138,12 @@ struct TrainingBodyExplorer: View {
                 } label: {
                     HStack(spacing: Spacing.sm) {
                         Image(systemName: "list.bullet")
+                            .accessibilityHidden(true)
                         Text("Explore trained muscles")
                             .multilineTextAlignment(.leading)
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.down")
+                            .accessibilityHidden(true)
                     }
                     .font(AppFont.subheadline)
                     .padding(Spacing.md)
@@ -166,8 +168,18 @@ struct TrainingBodyExplorer: View {
 
     @ViewBuilder
     private var roleLabels: some View {
-        Label("Primary", systemImage: "circle.fill").foregroundStyle(primaryColor)
-        Label("Supporting", systemImage: "circle.lefthalf.filled").foregroundStyle(secondaryColor)
+        // The dots carry the multiply tints the figure uses; the words are
+        // ink, since those tints sit near 2:1 on a light card.
+        Label {
+            Text("Primary").foregroundStyle(AppColor.textSecondary)
+        } icon: {
+            Image(systemName: "circle.fill").foregroundStyle(primaryColor)
+        }
+        Label {
+            Text("Supporting").foregroundStyle(AppColor.textSecondary)
+        } icon: {
+            Image(systemName: "circle.lefthalf.filled").foregroundStyle(secondaryColor)
+        }
     }
 
     private var selectionDescription: String {
