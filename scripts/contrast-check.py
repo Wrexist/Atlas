@@ -182,7 +182,7 @@ def main() -> int:
 
     tokens = parse_tokens(COLOR_THEME)
     ramps = parse_ramps(APP_THEME)
-    missing = [n for n in TEXT_INKS + UI_INKS + LAB_INKS + SURFACES + ON_ACCENT_FILLS + [w[0] for w in WASH_INKS] if n not in tokens]
+    missing = [n for n in TEXT_INKS + UI_INKS + LAB_INKS + SURFACES + ON_ACCENT_FILLS + ["paperGlow"] + [w[0] for w in WASH_INKS] if n not in tokens]
     if missing:
         print(f"could not parse tokens: {', '.join(missing)}", file=sys.stderr)
         return 2
@@ -265,6 +265,21 @@ def main() -> int:
                 wash = blend(tokens[wash_token][index], tokens[surface][index], alpha)
                 ratio = contrast(tokens[ink][index], wash)
                 rows.append((scheme, ink, "on", f"{surface}+wash",
+                             ratio, AA_TEXT, ratio >= AA_TEXT))
+
+    # GlowBackdrop (PremiumPromoCard): the page colour under one soft light
+    # at 0.18 at its brightest, peach in light and the accent in dark. The
+    # card sets its title in textPrimary and its 18+ note in textSecondary.
+    for index, scheme in enumerate(("light", "dark")):
+        tints = (
+            [("paperGlow", tokens["paperGlow"][index])] if index == 0
+            else [(ramp, stops["primary"][index]) for ramp, stops in ramps.items()]
+        )
+        for tint_name, tint in tints:
+            glow = blend(tint, tokens["background"][index], 0.18)
+            for ink in ("textPrimary", "textSecondary"):
+                ratio = contrast(tokens[ink][index], glow)
+                rows.append((scheme, ink, "on", f"glow.{tint_name}",
                              ratio, AA_TEXT, ratio >= AA_TEXT))
 
     # Fixed fills that carry `onAccent` text (the streak Freeze button).

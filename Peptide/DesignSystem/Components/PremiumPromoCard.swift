@@ -102,8 +102,9 @@ struct PremiumPromoCard<Trailing: View>: View {
     private func qualifierNote(label: LocalizedStringKey) -> some View {
         Text(label)
             .font(AppFont.caption2)
-            .foregroundStyle(AppColor.textPrimary.opacity(0.75))
+            .foregroundStyle(AppColor.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, Spacing.xs)
     }
 }
 
