@@ -59,6 +59,22 @@ final class WristTemperatureEngineTests: XCTestCase {
         XCTAssertNotNil(WristTemperatureEngine.deviation(readings: readings, now: now(day: 6), calendar: utc))
     }
 
+    func test_deviation_todaysWakeUp_isLastNight() throws {
+        let readings = (0..<7).map { reading(day: $0, 35.2) }
+
+        let deviation = try XCTUnwrap(WristTemperatureEngine.deviation(readings: readings, now: now(day: 6), calendar: utc))
+
+        XCTAssertTrue(deviation.isLastNight)
+    }
+
+    func test_deviation_yesterdaysWakeUp_isNotLastNight() throws {
+        let readings = (0..<6).map { reading(day: $0, 35.2) }
+
+        let deviation = try XCTUnwrap(WristTemperatureEngine.deviation(readings: readings, now: now(day: 6), calendar: utc))
+
+        XCTAssertFalse(deviation.isLastNight)
+    }
+
     func test_deviation_splitNight_averagesIntoOneReading() throws {
         let baseline = (0..<5).map { reading(day: $0, 35.0) }
         let lastNight = [

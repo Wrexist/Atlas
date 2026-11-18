@@ -49825,6 +49825,16 @@
           }
         }
       }
+    },
+    "Night before last vs your baseline": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förrförra natten mot din baslinje"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

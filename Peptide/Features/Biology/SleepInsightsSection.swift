@@ -181,7 +181,7 @@ struct SleepInsightsSection: View {
             Text("Wrist temperature")
                 .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.textPrimary)
-            Text("Last night vs your baseline")
+            Text(deviation.isLastNight ? "Last night vs your baseline" : "Night before last vs your baseline")
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
         }

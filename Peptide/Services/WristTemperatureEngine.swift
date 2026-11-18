@@ -20,6 +20,9 @@ enum WristTemperatureEngine {
         let celsius: Double
         /// How many earlier nights the baseline was built from.
         let baselineNights: Int
+        /// True when the night ended this morning; false for the night
+        /// before, still shown until this morning's sample syncs.
+        let isLastNight: Bool
     }
 
     /// Apple asks for about five nights before it shows a baseline.
@@ -37,7 +40,12 @@ enum WristTemperatureEngine {
         guard let latest = nights.last, isRecent(latest.day, now: now, calendar: calendar) else { return nil }
         let baseline = nights.dropLast().suffix(baselineWindowNights).map(\.celsius)
         guard baseline.count >= minBaselineNights, let median = median(baseline) else { return nil }
-        return Deviation(night: latest.day, celsius: latest.celsius - median, baselineNights: baseline.count)
+        return Deviation(
+            night: latest.day,
+            celsius: latest.celsius - median,
+            baselineNights: baseline.count,
+            isLastNight: calendar.isDate(latest.day, inSameDayAs: now)
+        )
     }
 
     /// A deviation in the user's unit: a Fahrenheit *difference* scales by
