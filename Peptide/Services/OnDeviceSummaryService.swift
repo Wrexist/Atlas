@@ -75,7 +75,7 @@ final class OnDeviceSummaryService {
     private func withTimeout(prompt: String) async -> String? {
         let generator = generator
         let limit = timeout
-        let instructions = OnDeviceSummaryEngine.instructions
+        let instructions = OnDeviceSummaryEngine.instructions(languageCode: Self.uiLanguageCode)
         return await withTaskGroup(of: String?.self) { group in
             group.addTask { try? await generator(instructions, prompt) }
             group.addTask {
@@ -90,10 +90,21 @@ final class OnDeviceSummaryService {
 
     // MARK: - Foundation Models
 
+    /// The language the app's UI runs in, which can differ from the
+    /// device's when Atlas has its own per-app language.
+    nonisolated static var uiLanguageCode: String {
+        Bundle.main.preferredLocalizations.first ?? "en"
+    }
+
+    /// Available and able to write the UI language: otherwise a Swedish
+    /// coaching line would come back in English, so the fallback stays.
     nonisolated static func systemModelAvailable() -> Bool {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *) {
-            if case .available = SystemLanguageModel.default.availability { return true }
+            let model = SystemLanguageModel.default
+            if case .available = model.availability {
+                return model.supportsLocale(Locale(identifier: uiLanguageCode))
+            }
         }
         #endif
         return false

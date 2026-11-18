@@ -29,13 +29,20 @@ enum OnDeviceSummaryEngine {
 
     static let maxLength = 280
 
-    static let instructions = """
+    private static let baseInstructions = """
     You write one or two short, friendly sentences for a fitness app. \
     Use only the facts provided. Never add numbers, names, causes, comparisons, \
     medical claims, or advice that are not in the facts. \
     Write every number with digits, exactly as it appears in the facts. \
     Address the user as "you". No greetings, no emoji, no markdown.
     """
+
+    /// The prompt is English, so without a named output language the model
+    /// answered in English even when it was rewriting a Swedish fact.
+    static func instructions(languageCode: String) -> String {
+        let language = Locale(identifier: "en").localizedString(forLanguageCode: languageCode) ?? "English"
+        return baseInstructions + " Write in \(language)."
+    }
 
     // MARK: - Fact building
 

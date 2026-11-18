@@ -175,6 +175,11 @@ final class OnDeviceSummaryTests: XCTestCase {
                                                   for: facts))
     }
 
+    func test_instructions_namesTheUILanguage() {
+        XCTAssertTrue(OnDeviceSummaryEngine.instructions(languageCode: "sv").hasSuffix("Write in Swedish."))
+        XCTAssertTrue(OnDeviceSummaryEngine.instructions(languageCode: "en").hasSuffix("Write in English."))
+    }
+
     func test_prompt_listsEveryFact() throws {
         let facts = try coachingFacts()
         let prompt = OnDeviceSummaryEngine.prompt(for: facts)
