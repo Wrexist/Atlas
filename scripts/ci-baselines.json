@@ -1,4 +1,6 @@
 {
-  "concurrency_warnings": {"baseline": 70, "better": "lower"},
-  "line_coverage_pct": {"baseline": 18.7, "better": "higher"}
+  "concurrency_warnings": {"baseline": null, "better": "lower",
+    "source": "Not yet recorded. Commit the count from the first full (uncached) Debug build's step summary, then add --require-baseline to its ratchet call in pr-checks.yml."},
+  "line_coverage_pct": {"baseline": 18.7, "better": "higher",
+    "source": "PR Checks run 44093643684 on main (build-check job, xccov total, 2026-11-17)."}
 }

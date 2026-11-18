@@ -279,7 +279,11 @@ jobs:
             echo ""
             echo "Unique warnings mentioning Sendable, actor-isolated, data race or nonisolated in the full (uncached) Debug app build: **${COUNT}**"
           } >> "$GITHUB_STEP_SUMMARY" || true
-          python3 scripts/ratchet.py --require-baseline concurrency_warnings "$COUNT"
+          # Report-only until a baseline from this full build is committed:
+          # main's earlier count (70) came from an incremental build, which
+          # under-counts, so gating on it would fail PRs for no regression.
+          # Add --require-baseline here once ci-baselines.json records it.
+          python3 scripts/ratchet.py concurrency_warnings "$COUNT"
 
       - name: Build app (Release)
         # Debug alone never sees a symbol referenced outside its

@@ -1,6 +1,7 @@
 """Regression checks for ratchet.py, so a CI ratchet cannot pass a regression."""
 import importlib.util
 import json
+import re
 from pathlib import Path
 import unittest
 
@@ -40,13 +41,21 @@ class VerdictTests(unittest.TestCase):
 
     def test_requireBaselineFlag_withRecordedBaseline_stillGatesOnValue(self):
         entries = json.loads(ratchet.BASELINES.read_text())
-        baseline = entries["concurrency_warnings"]["baseline"]
-        self.assertEqual(ratchet.main(["ratchet.py", "--require-baseline", "concurrency_warnings", str(baseline)]), 0)
-        self.assertEqual(ratchet.main(["ratchet.py", "--require-baseline", "concurrency_warnings", str(baseline + 1)]), 1)
+        baseline = entries["line_coverage_pct"]["baseline"]
+        self.assertEqual(ratchet.main(["ratchet.py", "--require-baseline", "line_coverage_pct", str(baseline)]), 0)
+        self.assertEqual(ratchet.main(["ratchet.py", "--require-baseline", "line_coverage_pct", str(baseline - 0.1)]), 1)
 
-    def test_committedBaselines_areRecorded(self):
+    def test_metricsRequiredInPRChecks_haveRecordedBaselines(self):
+        workflow = Path(__file__).parent.parent / ".github/workflows/pr-checks.yml"
+        required = re.findall(r"ratchet\.py --require-baseline (\w+)", workflow.read_text())
+        self.assertTrue(required)
+        entries = json.loads(ratchet.BASELINES.read_text())
+        for name in required:
+            self.assertIsNotNone(entries[name]["baseline"], name)
+
+    def test_committedBaselines_nameTheirSource(self):
         for name, entry in json.loads(ratchet.BASELINES.read_text()).items():
-            self.assertIsNotNone(entry["baseline"], name)
+            self.assertTrue(entry.get("source"), name)
 
     def test_unknownMetric_exitsWithUsageError(self):
         self.assertEqual(ratchet.main(["ratchet.py", "no_such_metric", "1"]), 2)
