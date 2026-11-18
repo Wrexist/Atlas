@@ -26,7 +26,11 @@ struct FastingSheet: View {
                         hero(now: context.date)
                     }
                     if let active = store.active {
-                        activeControls(active)
+                        // Ticks so the picker's "now" bound keeps up while
+                        // the sheet stays open.
+                        TimelineView(.everyMinute) { context in
+                            activeControls(active, now: context.date)
+                        }
                     } else {
                         planPicker
                         reminderToggle
@@ -164,9 +168,8 @@ struct FastingSheet: View {
         .tint(AppColor.accentPrimary)
     }
 
-    private func activeControls(_ active: FastSession) -> some View {
-        let now = Date()
-        return VStack(alignment: .leading, spacing: Spacing.md) {
+    private func activeControls(_ active: FastSession, now: Date) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             DatePicker(
                 "Started",
                 selection: Binding(
