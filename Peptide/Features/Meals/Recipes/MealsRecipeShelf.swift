@@ -127,7 +127,9 @@ private struct RecipeShelfCard: View {
         } label: {
             Image(systemName: justLogged ? "checkmark" : "plus")
                 .font(AppFont.scaled(13, weight: .bold))
-                .foregroundStyle(justLogged ? AppColor.onAccent : AppColor.accentLight)
+                // positive is an ink, light in dark mode, so the check on it
+                // takes the scheme's inverse ink rather than near-white.
+                .foregroundStyle(justLogged ? AppColor.inverseInk : AppColor.accentInkOnWash)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 32, height: 32)
                 .background(Circle().fill(justLogged ? AppColor.positive : AppColor.accentPrimary.opacity(0.18)))

@@ -114,9 +114,11 @@ struct ThemeChoicePage: View {
                     }
 
                 if isSelected {
+                    // Inverse ink: the pill is the theme's ink stops,
+                    // bright in dark mode, where near-white vanishes on it.
                     Image(systemName: "checkmark")
                         .font(AppFont.scaled(13, weight: .semibold))
-                        .foregroundStyle(AppColor.onAccent)
+                        .foregroundStyle(AppColor.inverseInk)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
