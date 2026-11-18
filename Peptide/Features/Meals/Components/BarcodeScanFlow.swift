@@ -50,6 +50,9 @@ struct BarcodeScanFlow: View {
     /// all — a QR code, a shipping label — so the screen can say what it
     /// was instead of blaming the scan.
     @State private var unsupportedPayload: BarcodePayload?
+    /// The last code came from the keypad, not the camera, so the
+    /// unsupported-code card talks about the typed number.
+    @State private var lastInputWasTyped = false
     @State private var isIdentifying = false
     /// Held so "Try another barcode" can cancel an in-flight
     /// identification instead of letting it land on the next scan's card.
@@ -343,7 +346,7 @@ struct BarcodeScanFlow: View {
                 }
 
             GlassButton(title: "Look up", style: .primary) {
-                handleDetected(barcode: manualBarcode)
+                handleDetected(barcode: manualBarcode, typed: true)
             }
             .disabled(manualBarcode.trimmingCharacters(in: .whitespaces).count < 8)
 
@@ -864,17 +867,19 @@ struct BarcodeScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
-            Text("Product barcodes are the striped ones with the digits printed underneath.")
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textTertiary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
+            if !lastInputWasTyped {
+                Text("Product barcodes are the striped ones with the digits printed underneath.")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+            }
 
             VStack(spacing: Spacing.sm) {
-                GlassButton(title: "Scan another code", style: .primary) {
+                GlassButton(title: anotherCodeTitle, style: .primary) {
                     errorText = nil
                     resetScanResults()
-                    phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+                    phase = lastInputWasTyped || !BarcodeScannerView.canScan ? .manualEntry : .scanning
                 }
                 GlassButton(title: "Scan meal photo", icon: "camera.fill", style: .secondary) {
                     onRequestPhotoFallback()
@@ -888,7 +893,14 @@ struct BarcodeScanFlow: View {
     /// payload is arbitrary external content, so it gets truncated and
     /// stays inside quotation marks rather than being presented as the
     /// app's own copy.
+    private var anotherCodeTitle: LocalizedStringKey {
+        lastInputWasTyped ? "Type another code" : "Scan another code"
+    }
+
     private var unsupportedCodeDetail: String {
+        if lastInputWasTyped {
+            return String(localized: "That number isn't a product barcode. Product barcodes have 8 to 14 digits.")
+        }
         let unreadable = String(localized: "The camera read it cleanly, but there's no product code in it.")
         guard let unsupportedPayload else { return unreadable }
         switch unsupportedPayload {
@@ -1076,13 +1088,14 @@ struct BarcodeScanFlow: View {
         }
     }
 
-    private func handleDetected(barcode: String) {
+    private func handleDetected(barcode: String, typed: Bool = false) {
         // Guard against rapid double-fires: the live scanner stops
         // after one detection, but the recently-scanned tiles can
         // trigger this from any phase. Only start a new lookup when
         // we're actually waiting for one.
         guard phase == .scanning || phase == .manualEntry else { return }
         resetScanResults()
+        lastInputWasTyped = typed
 
         // Classification is pure string work, so deciding here rather
         // than inside the network task keeps a QR code from flashing the

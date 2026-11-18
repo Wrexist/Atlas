@@ -49805,6 +49805,26 @@
           }
         }
       }
+    },
+    "Type another code": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skriv en annan kod"
+          }
+        }
+      }
+    },
+    "That number isn't a product barcode. Product barcodes have 8 to 14 digits.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det numret är inte en produktstreckkod. Produktstreckkoder har 8 till 14 siffror."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
