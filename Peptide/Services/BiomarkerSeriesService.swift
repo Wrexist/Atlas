@@ -325,14 +325,14 @@ enum BiomarkerSeriesService {
         "\(formatValue(systolic, for: .bloodPressure))/\(formatValue(diastolic, for: .bloodPressure))"
     }
 
-    /// Biomarker-specific number formatting. Weight is one
+    /// Biomarker-specific number formatting. Weight and waist are one
     /// decimal, HRV / RHR / steps are integers, sleep is one
     /// decimal in hours. Keeps the view from doing this math.
     static func formatValue(_ value: Double, for biomarker: Biomarker) -> String {
         switch biomarker {
-        case .weight, .sleepBaseline, .bodyTemperature, .bodyFat:
+        case .weight, .sleepBaseline, .bodyTemperature, .bodyFat, .waist:
             return value.formatted(.number.precision(.fractionLength(1)))
-        case .hrvBaseline, .rhrBaseline, .stepsBaseline, .waist, .bloodPressure:
+        case .hrvBaseline, .rhrBaseline, .stepsBaseline, .bloodPressure:
             return value.formatted(.number.precision(.fractionLength(0)))
         case .latestLabPanel:
             return LabValueFormat.string(value)

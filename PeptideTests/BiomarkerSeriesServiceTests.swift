@@ -83,6 +83,10 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
         XCTAssertEqual(BiomarkerSeriesService.formatValue(58.7, for: .hrvBaseline), "59")
     }
 
+    func test_formatValue_waistKeepsHalfUnits() {
+        XCTAssertEqual(BiomarkerSeriesService.formatValue(32.5, for: .waist), "32.5")
+    }
+
     func test_formatValue_sleepOneDecimal() {
         XCTAssertEqual(BiomarkerSeriesService.formatValue(7.83, for: .sleepBaseline), "7.8")
     }
@@ -277,7 +281,7 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
 
     func test_changeText_waistImperial_convertsToInches() {
         let text = BiomarkerSeriesService.changeText(for: .waist, trend: .flat, latest: 86, unit: .imperial)
-        XCTAssertEqual(text, "Holding · 34 in")
+        XCTAssertEqual(text, "Holding · 33.9 in")
     }
 
     func test_changeText_bloodPressure_showsBothHalves() {
