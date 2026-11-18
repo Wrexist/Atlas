@@ -406,7 +406,7 @@ struct StackAdjustmentSheet: View {
                                 Label {
                                     VStack(alignment: .leading) {
                                         Text(option.label)
-                                        Text(subtitle).font(.caption2)
+                                        Text(subtitle).font(AppFont.caption2)
                                     }
                                 } icon: { Image(systemName: optionIcon(option)) }
                             } else {

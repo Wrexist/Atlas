@@ -172,6 +172,9 @@ struct PortionPicker: View {
             )
             .tint(AppColor.accentPrimary)
             .accessibilityLabel(isDrink ? "Millilitres" : "Grams")
+            // A slider's default value is the percentage of its range,
+            // which for 5…2000 g turns 120 g into "6 percent".
+            .accessibilityValue(isDrink ? Text("\(Int(grams.rounded())) ml") : Text("\(Int(grams.rounded())) g"))
             // A tick every 25 g so dragging has a feel without buzzing
             // on each 5 g step.
             .appSensoryFeedback(.selection, trigger: Int(grams / 25))

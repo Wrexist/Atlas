@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 import UserNotifications
 
 /// The countdowns a recipe's steps have started. Shared by the recipe page
@@ -84,6 +85,9 @@ final class CookingTimers {
         tasks[key] = nil
         finished.insert(key)
         Haptics.success()
+        // Haptics can be off and the notification is skipped without
+        // permission, so VoiceOver gets its own cue.
+        AccessibilityNotification.Announcement(String(localized: "Step \(key.step + 1) timer done")).post()
     }
 
     /// "4:05", or "1:02:30" past an hour.

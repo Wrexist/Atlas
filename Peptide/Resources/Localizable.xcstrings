@@ -21930,16 +21930,6 @@
         }
       }
     },
-    "Included with Atlas Pro": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ingår i Atlas Pro"
-          }
-        }
-      }
-    },
     "Increase": {
       "localizations": {
         "sv": {
@@ -52372,6 +52362,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ditt program"
+          }
+        }
+      }
+    },
+    "%@ left": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kvar"
+          }
+        }
+      }
+    },
+    "%lld ml": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ml"
+          }
+        }
+      }
+    },
+    "Groceries found. Review before putting them in.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matvaror hittade. Granska innan du lägger in dem."
+          }
+        }
+      }
+    },
+    "Results ready. Review before logging.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resultatet är klart. Granska innan du loggar."
+          }
+        }
+      }
+    },
+    "Size %lld percent, %lld percent across, %lld percent down": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storlek %lld procent, %lld procent åt sidan, %lld procent nedåt"
+          }
+        }
+      }
+    },
+    "Step %lld timer done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timern för steg %lld är klar"
+          }
+        }
+      }
+    },
+    "Today, %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idag, %@"
           }
         }
       }

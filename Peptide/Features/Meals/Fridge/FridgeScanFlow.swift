@@ -67,6 +67,17 @@ struct FridgeScanFlow: View {
         .background(AppColor.background)
         .accessibilityIdentifier("fridge-scan-flow")
         .appAnimation(AppAnimation.step, value: phase)
+        // The stage swaps when the read lands; tell VoiceOver what arrived.
+        .onChange(of: phase) { _, phase in
+            switch phase {
+            case .review:
+                AccessibilityNotification.Announcement(String(localized: "Groceries found. Review before putting them in.")).post()
+            case .failed:
+                AccessibilityNotification.Announcement(errorText ?? String(localized: "Something went wrong. Try again.")).post()
+            case .capture, .reading:
+                break
+            }
+        }
         .interactiveDismissDisabled(phase == .reading || phase == .review)
         .task { await startCamera() }
         .onDisappear {
@@ -195,6 +206,7 @@ struct FridgeScanFlow: View {
                 if let photo {
                     Image(uiImage: photo)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                 }
             }
@@ -259,6 +271,7 @@ struct FridgeScanFlow: View {
                     let rect = TableStageLayout.place(grocery.frame, photo: photo.size, card: cardSize)
                     Image(uiImage: grocery.sticker)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFit()
                         .frame(width: rect.width, height: rect.height)
                         .matchedGeometryEffect(id: grocery.id, in: lift)

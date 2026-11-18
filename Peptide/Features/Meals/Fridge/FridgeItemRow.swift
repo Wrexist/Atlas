@@ -15,6 +15,7 @@ struct FridgeProductImage: View {
             if let photo = store.cachedPhoto(for: product) ?? loaded {
                 Image(uiImage: photo)
                     .resizable()
+                    .accessibilityIgnoresInvertColors()
                     .scaledToFit()
                     .frame(width: size, height: size)
                     .accessibilityHidden(true)

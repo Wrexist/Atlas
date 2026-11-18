@@ -93,9 +93,9 @@ struct SleepInsightsSection: View {
 
     private func stages(_ shares: SleepInsightsEngine.StageShares) -> some View {
         let parts: [(LocalizedStringKey, Double, Color)] = [
-            ("Deep sleep", shares.deep, AppColor.metricHRV),
-            ("Core sleep", shares.core, AppColor.accentLight),
-            ("REM sleep", shares.rem, AppColor.metricSleep),
+            ("Deep sleep", shares.deep, AppColor.sleepDeep),
+            ("Core sleep", shares.core, AppColor.sleepCore),
+            ("REM sleep", shares.rem, AppColor.sleepREM),
         ]
         return VStack(alignment: .leading, spacing: Spacing.sm) {
             GeometryReader { proxy in

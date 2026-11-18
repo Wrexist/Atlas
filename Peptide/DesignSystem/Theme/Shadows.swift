@@ -16,8 +16,9 @@ enum AppShadow {
     /// An `IconTile`'s drop: the key's edge on the card, then a short lift.
     static let tileContact = Shadow(color: ink(light: 0.08, dark: 0.6), radius: 0.5, x: 0, y: 0.5)
     static let tileDrop = Shadow(color: ink(light: 0.06, dark: 0.35), radius: 4, x: 0, y: 2)
-    static var accentTile: Shadow { Shadow(color: AppColor.accentPrimary.opacity(0.28), radius: 6, x: 0, y: 3) }
-    static var accentGlow: Shadow { Shadow(color: AppColor.accentPrimary.opacity(0.3), radius: 12, x: 0, y: 4) }
+    /// The halo that lifts a ring's second lap off its first. Lighter in
+    /// light mode, where a dark-weight halo smudges the pale card.
+    static let ringLap = Shadow(color: ink(light: 0.12, dark: 0.35), radius: 2.5, x: 0, y: 0)
 
     private static func ink(light: Double, dark: Double) -> Color {
         .adaptive(light: .black.opacity(light), dark: .black.opacity(dark))

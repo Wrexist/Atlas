@@ -12,8 +12,8 @@ enum MuscleHighlight: Hashable, Sendable {
     /// aren't the focus.
     case secondary
     /// Frequency-driven shade for the weekly heatmap, rendered on the
-    /// green → yellow → orange → red → purple load ramp. `0.0` is a
-    /// just-started green, `1.0` the most-trained purple.
+    /// peach → burnt-orange load ramp. `0.0` is a faint peach wash,
+    /// `1.0` the most-trained, saturated burnt orange.
     case intensity(Double)
 }
 
@@ -23,9 +23,9 @@ enum MuscleHighlight: Hashable, Sendable {
 /// - **Exercise** — pass a `[muscle: .primary | .secondary]` map. Prime
 ///   movers take the strong primary tint, assisting muscles a lighter wash.
 /// - **Weekly heatmap** — pass `[muscle: .intensity(0…1)]`. Renders
-///   each muscle on the load ramp: green for freshly-started work
-///   climbing through yellow, orange and red to purple for the
-///   most-trained muscle.
+///   each muscle on the load ramp: a faint peach wash for freshly-started
+///   work deepening to a saturated burnt orange for the most-trained
+///   muscle.
 /// - **Empty** — pass `[:]` (or omit). Renders the bare body as a calm
 ///   baseline so the surface still reads as the user's body before
 ///   they've logged anything.
@@ -179,7 +179,7 @@ struct MuscleMapView: View {
         switch highlight {
         case .primary:           return 1.0
         case .secondary:         return 0.8
-        case .intensity(let v):  return 0.3 + min(max(v, 0), 1) * 0.7
+        case .intensity(let v):  return Self.heatStrength(for: v)
         }
     }
 
@@ -235,10 +235,22 @@ extension MuscleMapView {
         return Color(red: last.r, green: last.g, blue: last.b)
     }
 
+    /// How strongly an intensity's tint reads over the figure: a faint
+    /// wash for a lightly-trained muscle, saturated for a hammered one.
+    static func heatStrength(for intensity: Double) -> Double {
+        0.3 + max(0, min(1, intensity)) * 0.7
+    }
+
     /// The full ramp as a gradient, for legend capsules under heatmaps.
+    /// Each stop carries the strength the figure draws it at, so the low
+    /// end is the faint wash a barely-lit muscle actually gets rather than
+    /// a solid peach no muscle shows.
     static var heatLegendGradient: Gradient {
         Gradient(stops: heatStops.map {
-            .init(color: Color(red: $0.r, green: $0.g, blue: $0.b), location: $0.position)
+            .init(
+                color: Color(red: $0.r, green: $0.g, blue: $0.b).opacity(heatStrength(for: $0.position)),
+                location: $0.position
+            )
         })
     }
 }
@@ -286,8 +298,8 @@ extension MuscleMapView {
 // MARK: - Legend
 
 /// Compact legend strip explaining the load ramp under a heatmap
-/// figure: a green → yellow → orange → red → purple capsule between
-/// two extreme labels.
+/// figure: a faint-peach → burnt-orange capsule between two extreme
+/// labels.
 struct MuscleHeatLegend: View {
     var lowLabel: String = String(localized: "Less")
     var highLabel: String = String(localized: "Most")

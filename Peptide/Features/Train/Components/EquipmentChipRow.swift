@@ -31,7 +31,10 @@ struct EquipmentChipRow: View {
                     }
                 }
                 .padding(.horizontal, Spacing.screenPadding)
-                .padding(.vertical, Spacing.xs)
+                // GlassChip's 44pt target overhangs its capsule; this keeps
+                // that overhang inside the scroll view, which won't hit-test
+                // past its own bounds.
+                .padding(.vertical, Spacing.sm)
             }
             .onChange(of: selection) { _, kind in
                 guard let kind else { return }

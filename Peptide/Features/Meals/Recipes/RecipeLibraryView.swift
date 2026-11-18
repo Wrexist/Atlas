@@ -127,6 +127,7 @@ struct RecipeLibraryView: View {
                     }
                 }
             }
+            .padding(.vertical, Spacing.sm)
         }
         .contentMargins(.horizontal, Spacing.screenPadding, for: .scrollContent)
     }

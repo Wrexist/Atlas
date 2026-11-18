@@ -107,8 +107,12 @@ struct ReconstitutionCalculator: View {
                     .contentTransition(.numericText())
                     .fixedSize()
             }
+            // The slider carries the name and value below.
+            .accessibilityHidden(true)
             Slider(value: bind, in: range, step: step)
                 .tint(AppColor.accentPrimary)
+                .accessibilityLabel(Text(label))
+                .accessibilityValue(Text(verbatim: "\(formatted(value)) \(unit)"))
                 // Through Haptics so the in-app haptics switch applies.
                 .onChange(of: value) { _, _ in Haptics.selection() }
             HStack(spacing: Spacing.xs) {
@@ -119,7 +123,7 @@ struct ReconstitutionCalculator: View {
                     } label: {
                         Text(verbatim: formatted(pick))
                             .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.accentInkOnWash)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, Spacing.xs)
                             .background {

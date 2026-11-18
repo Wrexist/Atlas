@@ -146,6 +146,7 @@ struct PlateTableView: View {
         if let sticker = store.cachedSticker(for: dish) ?? stickers[dish.id] {
             Image(uiImage: sticker)
                 .resizable()
+                .accessibilityIgnoresInvertColors()
                 .scaledToFit()
                 .appShadow(AppShadow.glassSubtle)
         } else {

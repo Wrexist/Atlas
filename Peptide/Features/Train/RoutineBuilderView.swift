@@ -314,7 +314,7 @@ private struct RoutineSlotRow: View {
             Button(action: onEditTargets) {
                 Text("\(sets) × \(reps)")
                     .font(AppFont.scaled(13, weight: .bold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentInkOnWash)
                     .fixedSize()
                     .padding(.horizontal, Spacing.md)
                     .frame(minHeight: Spacing.minimumHitTarget)

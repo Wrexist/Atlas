@@ -208,7 +208,7 @@ private struct PlateInventoryRow: View {
             title: "Plates",
             subtitle: "The plate calculator and barbell jumps use these"
         ) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: Spacing.xs)], alignment: .leading, spacing: Spacing.xs) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: Spacing.xs)], alignment: .leading, spacing: Spacing.sm) {
                 ForEach(PlateCalculatorEngine.defaultPlates(for: unit), id: \.self) { plate in
                     GlassChip(
                         "\(plate.formatted(.number.precision(.fractionLength(0...2)))) \(unit.weightSuffix)",

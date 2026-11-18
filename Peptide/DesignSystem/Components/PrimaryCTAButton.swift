@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// The solid call-to-action. `GlassButton` is the app's button — tinted
-/// glass, accent ink, at home inside a card. This is the other thing: the
-/// one action a screen exists for, painted rather than glazed, so it
-/// outranks every glass control around it.
+/// The screen's full-width call to action: the one action a screen exists
+/// for. `GlassButton` is the in-card control, and its `.primary` style is a
+/// compact solid-ink pill; this is the full-width version with the CTA
+/// gradient and drop shadow, so it outranks every control around it.
 ///
 /// The fill is `ctaGradientStart → ctaGradientEnd`: an ink pill in light
 /// mode, a near-white pill in dark, carrying `inverseInk` well past 4.5:1 in

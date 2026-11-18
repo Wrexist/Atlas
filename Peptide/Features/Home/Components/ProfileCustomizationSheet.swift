@@ -169,7 +169,7 @@ struct ProfileCustomizationSheet: View {
                     )
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentInkOnWash)
                     .padding(.horizontal, Spacing.lg)
                     .padding(.vertical, Spacing.sm)
                     .background {
@@ -286,6 +286,7 @@ struct ProfileCustomizationSheet: View {
             if let data = avatarData, let uiImage = AvatarImageCache.shared.image(for: data) {
                 Image(uiImage: uiImage)
                     .resizable()
+                    .accessibilityIgnoresInvertColors()
                     .scaledToFill()
                     .frame(width: size, height: size)
                     .clipShape(Circle())
@@ -624,15 +625,16 @@ struct ProfileCustomizationSheet: View {
         let key = goal.rawValue
         let selected = dataStore.profile.goals.contains(key)
         let pinned = dataStore.profile.primaryGoal == key
-        return Button {
+        return GlassChip(
+            LocalizedStringKey(goal.displayName),
+            // Pin for the primary goal, checkmark otherwise: the same
+            // glyphs Profile's goal chips show.
+            icon: pinned ? "pin.fill" : (selected ? "checkmark" : nil),
+            isSelected: selected
+        ) {
             toggleGoal(key)
-        } label: {
-            GoalChipLabel(title: goal.displayName, isSelected: selected, isPinned: pinned)
         }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
-        .accessibilityLabel(goal.displayName)
         .accessibilityValue(pinned ? Text("Primary goal") : Text(""))
-        .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityActions {
             if selected {
                 if pinned {

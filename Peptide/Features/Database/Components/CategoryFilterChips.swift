@@ -24,6 +24,7 @@ struct CategoryFilterChips: View {
                 }
             }
             .padding(.horizontal, Spacing.screenPadding)
+            .padding(.vertical, Spacing.sm)
         }
     }
 }

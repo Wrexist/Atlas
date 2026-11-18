@@ -98,6 +98,7 @@ struct WelcomeHeader: View {
             if let data = avatarImageData, let uiImage = AvatarImageCache.shared.image(for: data) {
                 Image(uiImage: uiImage)
                     .resizable()
+                    .accessibilityIgnoresInvertColors()
                     .scaledToFill()
                     .frame(width: avatarSize, height: avatarSize)
                     .clipShape(Circle())

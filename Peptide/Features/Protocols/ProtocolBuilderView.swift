@@ -542,7 +542,7 @@ struct ProtocolBuilderView: View {
     private func startFromPill(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(AppFont.chipText)
-            .foregroundStyle(AppColor.accentLight)
+            .foregroundStyle(AppColor.accentInkOnWash)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.xs + Spacing.xxs)
             .background {
@@ -761,6 +761,7 @@ struct ProtocolBuilderView: View {
     private var schedulePresetChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             presetChipRow
+                .padding(.vertical, Spacing.sm)
         }
     }
 

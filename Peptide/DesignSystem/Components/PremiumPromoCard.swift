@@ -1,11 +1,9 @@
 import SwiftUI
 
-/// Cosmic-backdrop promo card — Bevel's "Upgrade to Bevel Pro" and
-/// "View Your Biological Age" cards use this exact pattern: a
-/// deep-purple gradient with a faint starfield, a brand glyph on the
-/// right, headline copy on the left, and a small "View" / "Unlock"
-/// pill. Sets Pro upsell + signature-feature surfaces visually
-/// apart from utility cards.
+/// Promo card for Pro upsell and signature-feature surfaces: a warm glow
+/// backdrop, a brand seal on the right, headline copy on the left, and a
+/// small solid-ink "View" / "Unlock" pill, the app's "do this" mark. Sets
+/// those surfaces visually apart from utility cards.
 ///
 /// Generic over `Trailing` so the caller can replace the default
 /// chevron glyph with a custom right-side element (the B logo,
@@ -15,9 +13,8 @@ struct PremiumPromoCard<Trailing: View>: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey?
     let ctaLabel: LocalizedStringKey?
-    /// Optional qualifier pill rendered between subtitle and CTA.
-    /// Used by the Biology tab's "Available for users 18+" gate;
-    /// other surfaces leave it nil and the pill doesn't render.
+    /// Optional eligibility note under the CTA. Used by the Biology tab's
+    /// "Available for users 18+" gate; other surfaces leave it nil.
     let qualifier: LocalizedStringKey?
     let onTap: () -> Void
     let trailing: () -> Trailing
@@ -62,14 +59,13 @@ struct PremiumPromoCard<Trailing: View>: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    if let qualifier {
-                        qualifierPill(label: qualifier)
-                            .padding(.top, Spacing.xs)
-                    }
-
                     if let ctaLabel {
                         ctaPill(label: ctaLabel)
-                            .padding(.top, qualifier == nil ? Spacing.xs : 2)
+                            .padding(.top, Spacing.sm)
+                    }
+
+                    if let qualifier {
+                        qualifierNote(label: qualifier)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -90,41 +86,25 @@ struct PremiumPromoCard<Trailing: View>: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
     }
 
+    /// The same solid-ink pill as `GlassButton.primary`: the card's one
+    /// action has to read as tappable, not as a disabled grey chip.
     private func ctaPill(label: LocalizedStringKey) -> some View {
         Text(label)
-            .font(AppFont.scaled(11, weight: .semibold))
-            .foregroundStyle(AppColor.textPrimary)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, 6)
-            .background {
-                Capsule().fill(AppColor.textPrimary.opacity(0.15))
-                    .overlay {
-                        Capsule().strokeBorder(AppColor.textPrimary.opacity(0.25), lineWidth: 0.5)
-                    }
-            }
+            .font(AppFont.subheadline.weight(.semibold))
+            .foregroundStyle(AppColor.inverseInk)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
+            .background(Capsule(style: .continuous).fill(AppColor.textPrimary))
     }
 
-    /// "Available for users 18+" style qualifier — quieter than
-    /// the CTA pill so it reads as a regulatory / eligibility
-    /// note, not a tappable action. Uses a lock glyph to suggest
-    /// "this is gated".
-    private func qualifierPill(label: LocalizedStringKey) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: "lock.fill")
-                .font(AppFont.scaled(8, weight: .semibold))
-            Text(label)
-                .font(AppFont.scaled(11, weight: .semibold))
-                .tracking(0.3)
-        }
-        .foregroundStyle(AppColor.textPrimary.opacity(0.85))
-        .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, 4)
-        .background {
-            Capsule().fill(AppColor.textPrimary.opacity(0.08))
-                .overlay {
-                    Capsule().strokeBorder(AppColor.textPrimary.opacity(0.12), lineWidth: 0.5)
-                }
-        }
+    /// An eligibility note, set as plain text so it can't be mistaken for
+    /// a second button, and without a lock: the card invites an upgrade.
+    private func qualifierNote(label: LocalizedStringKey) -> some View {
+        Text(label)
+            .font(AppFont.caption2)
+            .foregroundStyle(AppColor.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, Spacing.xs)
     }
 }
 

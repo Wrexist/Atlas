@@ -22,7 +22,7 @@ struct TodayStepsCard: View {
                         progress: progress,
                         diameter: 64,
                         strokeWidth: 7,
-                        gradient: [AppColor.metricActivity, AppColor.accentLight],
+                        gradient: [AppColor.accentDark, AppColor.accentPrimary],
                         celebrateAtCompletion: !isPastDay
                     ) {
                         Image(systemName: isMet ? "checkmark" : "figure.walk")

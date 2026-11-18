@@ -51,6 +51,8 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
+        // A live camera feed, not UI: Smart Invert must leave it alone.
+        view.accessibilityIgnoresInvertColors = true
         preview.session = session
         preview.videoGravity = .resizeAspectFill
         view.layer.addSublayer(preview)

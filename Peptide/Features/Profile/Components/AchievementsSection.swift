@@ -6,6 +6,8 @@ struct AchievementsSection: View {
     private var unlocked: [Achievement] { achievements.filter(\.isUnlocked) }
     private var locked: [Achievement] { achievements.filter { !$0.isUnlocked } }
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -30,7 +32,7 @@ struct AchievementsSection: View {
                                 achievementBadge(achievement)
                                     .scrollTransition { content, phase in
                                         content
-                                            .scaleEffect(phase.isIdentity ? 1 : 0.9)
+                                            .scaleEffect(reduceMotion || phase.isIdentity ? 1 : 0.9)
                                             .opacity(phase.isIdentity ? 1 : 0.6)
                                     }
                             }

@@ -92,6 +92,17 @@ struct TableScanFlow: View {
         .background(AppColor.background)
         .accessibilityIdentifier("table-scan-flow")
         .appAnimation(AppAnimation.step, value: phase)
+        // The stage swaps when the lift lands; tell VoiceOver what arrived.
+        .onChange(of: phase) { _, phase in
+            switch phase {
+            case .review:
+                AccessibilityNotification.Announcement(String(localized: "Results ready. Review before logging.")).post()
+            case .failed:
+                AccessibilityNotification.Announcement(errorText ?? String(localized: "Something went wrong. Try again.")).post()
+            case .capture, .lifting:
+                break
+            }
+        }
         .interactiveDismissDisabled(phase == .lifting || isReading)
         .task { await startCamera() }
         .onDisappear(perform: finishOnDismiss)
@@ -314,6 +325,7 @@ struct TableScanFlow: View {
                 if let photo {
                     Image(uiImage: photo)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                 }
             }
@@ -388,6 +400,7 @@ struct TableScanFlow: View {
                     let rect = TableStageLayout.place(dish.frame, photo: photo.size, card: cardSize)
                     Image(uiImage: dish.sticker)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFit()
                         .frame(width: rect.width, height: rect.height)
                         .matchedGeometryEffect(id: dish.id, in: lift)

@@ -197,6 +197,7 @@ struct FoodThumbnail: View {
     private func cutout(_ image: UIImage) -> some View {
         Image(uiImage: image)
             .resizable()
+            .accessibilityIgnoresInvertColors()
             .scaledToFit()
             .padding(size * 0.02)
             .appShadow(AppShadow.tileContact)
@@ -209,6 +210,7 @@ struct FoodThumbnail: View {
     private func packshot(_ image: UIImage) -> some View {
         Image(uiImage: image)
             .resizable()
+            .accessibilityIgnoresInvertColors()
             .scaledToFit()
             .padding(size * 0.1)
             .frame(width: size, height: size)
@@ -242,6 +244,7 @@ struct FoodArtworkImage: View {
         if let image = UIImage(named: artwork.assetName) {
             Image(uiImage: image)
                 .resizable()
+                .accessibilityIgnoresInvertColors()
                 .scaledToFit()
         } else {
             Image(systemName: "fork.knife")

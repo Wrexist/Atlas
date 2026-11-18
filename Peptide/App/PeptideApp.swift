@@ -870,6 +870,7 @@ struct WorkoutAccessoryView: View {
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.accentPrimary)
                 .contentTransition(.symbolEffect(.replace))
+                .accessibilityHidden(true)
             Text(label)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
@@ -1016,7 +1017,7 @@ struct PersistenceErrorBanner: View {
         if let message {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
                 Text(message)
                     .font(AppFont.caption2)

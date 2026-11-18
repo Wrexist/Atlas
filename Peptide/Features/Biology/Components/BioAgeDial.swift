@@ -126,10 +126,8 @@ struct BioAgeDial: View {
     // MARK: - Marker
 
     /// A disc at the head of the progress arc, ringed in the app
-    /// background so it stays legible where it overlaps the track. The
-    /// coloured drop is elevation under a filled shape, which is how every
-    /// accent medallion in the app reads as floating — not a halo behind a
-    /// glyph.
+    /// background so it stays legible where it overlaps the track. A
+    /// neutral drop lifts it; emphasis never comes from a coloured glow.
     @ViewBuilder
     private var marker: some View {
         if let markerValue {
@@ -139,7 +137,7 @@ struct BioAgeDial: View {
                 .overlay {
                     Circle().strokeBorder(AppColor.background, lineWidth: 2)
                 }
-                .shadow(color: AppColor.accentGlow, radius: 8)
+                .appShadow(AppShadow.glassSubtle)
                 .offset(y: -(size / 2))
                 .rotationEffect(.degrees(angle(for: markerValue)))
                 .appAnimation(AppAnimation.springSmooth, value: markerValue)

@@ -75,7 +75,7 @@ struct HeroMetricTrio: View {
                 }
             }
         }
-        .padding(Spacing.md)
+        .padding(Spacing.cardPadding)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Today's metrics")

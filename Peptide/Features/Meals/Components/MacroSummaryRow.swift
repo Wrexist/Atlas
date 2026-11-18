@@ -206,27 +206,31 @@ struct MacroSummaryRow: View {
         ZStack {
             Circle()
                 .strokeBorder(colors[1].opacity(0.16), lineWidth: Self.ringLineWidth)
-            ringFill(progress: min(1, progress), colors: colors, index: index)
+            ringFill(progress: min(1, progress), colors: colors, index: index, diameter: diameter)
             // Past the goal the ring keeps going, Activity style: a second
             // lap in a deeper shade of the same colour, with a soft shadow
             // under its leading cap so the overlap reads as "one more lap".
             if progress > 1 {
-                ringFill(progress: min(1, progress - 1), colors: [colors[1], colors[1].mix(with: .black, by: 0.35)], index: index)
-                    .shadow(color: .black.opacity(0.35), radius: 2.5)
+                ringFill(progress: min(1, progress - 1), colors: [colors[1], colors[1].mix(with: .black, by: 0.35)], index: index, diameter: diameter)
+                    .appShadow(AppShadow.ringLap)
             }
         }
         .frame(width: diameter, height: diameter)
     }
 
-    private func ringFill(progress: Double, colors: [Color], index: Int) -> some View {
-        Circle()
+    private func ringFill(progress: Double, colors: [Color], index: Int, diameter: CGFloat) -> some View {
+        // The gradient starts a cap's width behind 0° so the round start
+        // cap samples the first stop, not the clamped last one. The fill is
+        // inset by half a stroke, so its centre line is a stroke narrower.
+        let capDegrees = RingGeometry.capDegrees(strokeWidth: Self.ringLineWidth, diameter: diameter - Self.ringLineWidth)
+        return Circle()
             .inset(by: Self.ringLineWidth / 2)
             .trim(from: 0, to: isRevealed ? progress : 0)
             .stroke(
                 AngularGradient(
                     gradient: Gradient(colors: colors),
                     center: .center,
-                    startAngle: .degrees(0),
+                    startAngle: .degrees(-capDegrees),
                     endAngle: .degrees(360 * max(progress, 0.01))
                 ),
                 style: StrokeStyle(lineWidth: Self.ringLineWidth, lineCap: .round)
@@ -361,14 +365,17 @@ struct MacroSummaryRow: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .foregroundStyle(AppColor.macroWaterLight)
+            .foregroundStyle(AppColor.macroWaterInk)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
+            // ScalePressStyle owns the press; interactive glass would run a
+            // second, competing scale on iOS 26.
             .glassControl(
                 .capsule,
                 tint: AppColor.macroWater.opacity(0.18),
-                border: AppColor.macroWater.opacity(0.32)
+                border: AppColor.macroWater.opacity(0.32),
+                interactive: false
             )
             .minimumHitArea()
         }
@@ -387,7 +394,8 @@ struct MacroSummaryRow: View {
                 .glassControl(
                     .capsule,
                     tint: AppColor.surfaceElevated.opacity(0.3),
-                    border: AppColor.glassBorder
+                    border: AppColor.glassBorder,
+                    interactive: false
                 )
                 .minimumHitArea()
         }

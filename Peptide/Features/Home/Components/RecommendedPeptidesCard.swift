@@ -147,7 +147,7 @@ struct RecommendedPeptidesCard: View {
     private func stackPill(_ name: String) -> some View {
         Text(name)
             .font(AppFont.badgeSmall)
-            .foregroundStyle(AppColor.accentLight)
+            .foregroundStyle(AppColor.accentInkOnWash)
             .lineLimit(1)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)

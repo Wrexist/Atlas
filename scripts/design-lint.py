@@ -249,6 +249,59 @@ def rule_system_font_modifier(path, source, code) -> list[Finding]:
             for m in re.finditer(r"\.font\(\s*\.system\(size:", code)]
 
 
+# Share images laid out with SwiftUI's own text styles: they render to a
+# fixed export canvas, where Dynamic Type deliberately does not apply.
+SHARE_CANVAS_FILES = FIXED_CANVAS_FILES | {"WorkoutSocialCanvas.swift", "WorkoutHighlightCanvas.swift"}
+
+
+def rule_bare_text_style_font(path, source, code) -> list[Finding]:
+    """`.font(.caption)` and friends sidestep the type ramp.
+
+    The bare text-style spelling escaped `rule_fixed_font`, which only looks
+    at `.system(...)`; a tab-bar glyph set in `.caption` sat 1pt off the
+    `AppFont.caption2` label beside it. Feature code uses an `AppFont`
+    token; the design system and the share canvases are exempt.
+    """
+    if DESIGN_SYSTEM in path.parents or path.name in SHARE_CANVAS_FILES:
+        return []
+    pattern = r"\.font\(\s*\.(?:caption2?|footnote|body|headline|subheadline|callout|title[23]?|largeTitle)\b"
+    return [Finding(path, line_of(code, m.start()), "bare-text-style-font",
+                    "bare text-style font bypasses AppFont; use an AppFont token", "error")
+            for m in re.finditer(pattern, code)]
+
+
+def rule_accent_ink_on_wash(path, source, code) -> list[Finding]:
+    """`accentLight` text on the accent's own wash falls under 4.5:1.
+
+    Light mode's wash darkens the backdrop until `accentLight` drops to
+    about 3.5:1 in every theme; `AppColor.accentInkOnWash` exists for this
+    exact case. Fires when text (`Text(` or `Label(` just above) is inked
+    `accentLight` and an `accentPrimary.opacity(...)` fill or tint follows
+    within a few lines. A glyph alone only needs 3:1, which it clears;
+    an HStack of glyph and text is judged by its nearest constructor, so a
+    trailing `Text(` makes it text.
+    """
+    out = []
+    lines = code.split("\n")
+    for m in re.finditer(r"\.foregroundStyle\([^)\n]*AppColor\.accentLight\b", code):
+        line = line_of(code, m.start())
+        below = "\n".join(lines[line - 1:line + 10])
+        # The nearest view constructor above decides whether this is text.
+        anchor = None
+        for j in range(line - 1, max(-1, line - 9), -1):
+            anchor = re.search(r"\b(Text|Label|Image)\(", lines[j])
+            if anchor:
+                break
+        if not anchor or anchor.group(1) == "Image":
+            continue
+        if not re.search(r"(?:fill\(|tint:\s*)AppColor\.accentPrimary\.opacity\(", below):
+            continue
+        out.append(Finding(path, line, "accent-ink-on-wash",
+                           "accentLight text on an accentPrimary wash is under 4.5:1 in "
+                           "light mode; use AppColor.accentInkOnWash", "error"))
+    return out
+
+
 def rule_display_scale_ramp(path, source, code) -> list[Finding]:
     """A display size must say how it scales.
 
@@ -948,6 +1001,8 @@ RULES = [
     rule_fixed_font,
     rule_display_scale_ramp,
     rule_system_font_modifier,
+    rule_bare_text_style_font,
+    rule_accent_ink_on_wash,
     rule_glow,
     rule_untargeted_animation,
     rule_unnamed_motion,

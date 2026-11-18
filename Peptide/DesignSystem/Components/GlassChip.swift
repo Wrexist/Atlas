@@ -25,6 +25,10 @@ struct GlassChip: View {
     private let isSelected: Bool
     private let action: () -> Void
 
+    /// The drawn capsule's height. Seeded with the default-size value
+    /// (13pt text plus 2 × 6pt padding) so the first layout pass is close.
+    @State private var capsuleHeight: CGFloat = 28
+
     init(
         _ title: LocalizedStringKey,
         icon: String? = nil,
@@ -80,7 +84,12 @@ struct GlassChip: View {
                 }
             }
             .glassControl(.capsule, tint: wash, border: border, interactive: false)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { capsuleHeight = $0 }
             .minimumHitArea()
+            // The 44pt target overhangs the capsule instead of adding to
+            // the layout, so a wrapped chip row sits as close as the chips
+            // beside each other rather than 16pt further apart.
+            .padding(.vertical, -max(0, Spacing.minimumHitTarget - capsuleHeight) / 2)
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityAddTraits(isSelected ? .isSelected : [])

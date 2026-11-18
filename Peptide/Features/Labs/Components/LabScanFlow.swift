@@ -188,6 +188,7 @@ struct LabScanFlow: View {
                 ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
                     Image(uiImage: page)
                         .resizable()
+                        .accessibilityIgnoresInvertColors()
                         .scaledToFill()
                         .frame(width: 96, height: 128)
                         .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))

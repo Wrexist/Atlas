@@ -87,7 +87,8 @@ struct MealsContainerView: View {
                     icon: "refrigerator.fill",
                     title: "Fridge",
                     subtitle: fridgeSubtitle,
-                    badge: fridgeBadge
+                    badge: fridgeBadge,
+                    surface: .card
                 )
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.98))
@@ -97,7 +98,8 @@ struct MealsContainerView: View {
                 GlassEntryRowLabel(
                     icon: "shippingbox.fill",
                     title: "Weekly prep",
-                    subtitle: Text("Two dishes, one shopping list, boxes for the week")
+                    subtitle: Text("Two dishes, one shopping list, boxes for the week"),
+                    surface: .card
                 )
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.98))
@@ -105,6 +107,7 @@ struct MealsContainerView: View {
                 icon: "wand.and.stars",
                 title: "Plan my day",
                 subtitle: Text("Meals from foods you already eat, sized to your targets"),
+                surface: .card,
                 action: { showMealPlan = true }
             )
             GlassEntryRow(
@@ -112,6 +115,7 @@ struct MealsContainerView: View {
                 title: "Ask Atlas",
                 subtitle: Text("Review your last 7 days of meals with AI"),
                 badge: storeService.canAccessAIFeatures ? nil : Badge("Pro"),
+                surface: .card,
                 action: openCoach
             )
         }
