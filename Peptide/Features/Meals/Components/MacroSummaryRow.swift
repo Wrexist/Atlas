@@ -398,6 +398,13 @@ struct MacroSummaryRow: View {
     private var accessibilitySummary: String {
         let water = LifestyleDataLogic.displayedWater(consumed, unit: unit)
         let waterTarget = waterTargetDisplay
+        // No targets yet: read the intake alone rather than "of 0".
+        guard targets.calories > 0 else {
+            return String(
+                localized: "Calories \(consumed.caloriesKcal). Protein \(consumed.proteinG) grams. Water \(water) of \(waterTarget) \(unit.volumeSpokenUnit).",
+                comment: "VoiceOver summary of the day's calories, protein and water when no nutrition targets are set."
+            )
+        }
         return String(
             localized: "Calories \(consumed.caloriesKcal) of \(targets.calories). Protein \(consumed.proteinG) of \(targets.proteinG) grams. Water \(water) of \(waterTarget) \(unit.volumeSpokenUnit).",
             comment: "VoiceOver summary of the day's calories, protein and water against targets."

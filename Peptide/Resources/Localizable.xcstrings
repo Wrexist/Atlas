@@ -6282,6 +6282,16 @@
         }
       }
     },
+    "Calories %lld. Protein %lld grams. Water %lld of %lld %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalorier %lld. Protein %lld gram. Vatten %lld av %lld %@."
+          }
+        }
+      }
+    },
     "Calories for %@: %lld": {
       "localizations": {
         "sv": {
