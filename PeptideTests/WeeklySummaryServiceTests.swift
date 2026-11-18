@@ -203,6 +203,18 @@ final class WeeklySummaryServiceTests: XCTestCase {
         )
     }
 
+    func test_weeklySummaryCache_regionOnlySwitch_keepsFingerprint() throws {
+        let entries = [entry(daysFromMonday: 0, completed: true)]
+        let aggregate = try XCTUnwrap(WeeklySummaryEngine.build(
+            profile: .fresh, protocols: [], entries: entries, referenceDate: weekMonday
+        ))
+        XCTAssertEqual(
+            WeeklySummaryService.sourceFingerprint(of: aggregate, locale: "en_US"),
+            WeeklySummaryService.sourceFingerprint(of: aggregate, locale: "en_SE"),
+            "The summary's language is unchanged, so a region change must not regenerate it"
+        )
+    }
+
     func test_staleSummary_generatedRecently_isNotDueForRegeneration() throws {
         var profile = UserProfile.fresh
         let entries = [

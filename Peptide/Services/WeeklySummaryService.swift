@@ -196,14 +196,16 @@ final class WeeklySummaryService {
     /// passively and would re-fire the API on every new sample) and
     /// `topInsightCategory` (derived, churny) — the finding this guards
     /// against is edits to entries, workouts, meals, check-ins and labs.
-    /// The locale is included because the proxy writes the summary in the
-    /// app's language, so switching language must regenerate it.
+    /// The locale's language is included because the proxy writes the
+    /// summary in the app's language, so switching language must
+    /// regenerate it. The region is left out: moving from en_US to en_SE
+    /// changes no word of the summary and should not cost a proxy call.
     static func sourceFingerprint(
         of aggregate: WeeklyAggregate,
         locale: String = MealScannerService.localeIdentifier
     ) -> String {
         struct Sources: Encodable {
-            let locale: String
+            let language: String
             let weekStart: String
             let compliance: WeeklyAggregate.Compliance
             let streak: WeeklyAggregate.Streak
@@ -213,7 +215,7 @@ final class WeeklySummaryService {
             let labs: WeeklyAggregate.Labs
         }
         let sources = Sources(
-            locale: locale,
+            language: String(locale.split(separator: "_").first ?? ""),
             weekStart: aggregate.weekStart,
             compliance: aggregate.compliance,
             streak: aggregate.streak,
