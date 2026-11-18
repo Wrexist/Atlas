@@ -149,7 +149,7 @@ struct ProtocolsStackHealthSection: View {
                     washoutWeeks: source.washoutWeeks,
                     startDate: Date(),
                     status: .active,
-                    notes: String(localized: "Spun off from \(source.name) to reduce compounding side effects.")
+                    notes: String(localized: "Spun off from \(source.name).")
                 )
                 dataStore.addProtocol(newStack)
             }

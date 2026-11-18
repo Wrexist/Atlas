@@ -110,7 +110,6 @@ struct AddToStackSheet: View {
             guard !alreadyIn else { return }
             let success = dataStore.addPeptide(peptide, toProtocolId: proto.id)
             if success {
-                Haptics.success()
                 AppAnimation.with(AppAnimation.springSnappy) {
                     justAddedTo = proto.id
                 }

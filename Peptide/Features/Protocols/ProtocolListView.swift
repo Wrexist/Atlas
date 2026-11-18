@@ -9,7 +9,6 @@ struct ProtocolListView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingBuilder = false
     @State private var showingPaywall = false
-    @State private var preselectedPeptide: Peptide?
     // Type-erased — this stack pushes three distinct value types
     // (PeptideProtocol, CommunityStack, StackLibraryRoute). A typed
     // `[PeptideProtocol]` binding couldn't represent the other two,
@@ -141,7 +140,6 @@ struct ProtocolListView: View {
 
                 // Floating add button
                 GlassIconButton(icon: "plus", accessibilityLabel: "New protocol", size: 56, tinted: true) {
-                    preselectedPeptide = nil
                     let blocked = StoreService.shared.requiresPro(
                         activeProtocolCount: dataStore.activeProtocols.count
                     )
@@ -184,7 +182,7 @@ struct ProtocolListView: View {
                 StackLibraryView()
             }
             .glassSheet(isPresented: $showingBuilder) {
-                ProtocolBuilderView(preselectedPeptide: preselectedPeptide)
+                ProtocolBuilderView()
             }
             .sheet(isPresented: $showingPaywall) {
                 PaywallView(source: .protocolLimit)

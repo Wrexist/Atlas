@@ -135,6 +135,13 @@ struct ScheduleEditor: View {
                     }
                 }
             }
+
+            // Save is disabled with no day picked; say why.
+            if selectedDays.isEmpty {
+                Text("Pick at least one day")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.warning)
+            }
         }
     }
 

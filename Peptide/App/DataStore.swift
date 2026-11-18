@@ -543,6 +543,7 @@ final class DataStore {
         entries.removeAll { $0.protocolId == id }
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
     }
 
     /// Returns true on success, false when activating would exceed
@@ -567,6 +568,7 @@ final class DataStore {
         }
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
         return true
     }
 
@@ -580,6 +582,7 @@ final class DataStore {
         protocols[index].cycleLengthWeeks = max(1, protocols[index].cycleLengthWeeks + weeks)
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
     }
 
     /// Starts a fresh cycle for an existing protocol — same compounds,
@@ -600,6 +603,7 @@ final class DataStore {
         appendTodayEntries(for: protocols[index])
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
         return true
     }
 
@@ -788,6 +792,36 @@ final class DataStore {
         toProtocolId protocolId: UUID,
         schedule: ProtocolSchedule? = nil
     ) -> Bool {
+        guard insertPeptide(peptide, toProtocolId: protocolId, schedule: schedule) else { return false }
+        commitPeptideAddition()
+        return true
+    }
+
+    /// Appends several peptides in one mutation, so the caller gets one
+    /// save, one reminder reschedule and one success haptic rather than
+    /// one per peptide. Returns how many were actually added.
+    @discardableResult
+    func addPeptides(_ peptides: [Peptide], toProtocolId protocolId: UUID) -> Int {
+        var added = 0
+        for peptide in peptides where insertPeptide(peptide, toProtocolId: protocolId, schedule: nil) {
+            added += 1
+        }
+        if added > 0 { commitPeptideAddition() }
+        return added
+    }
+
+    private func commitPeptideAddition() {
+        save()
+        rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
+        Haptics.success()
+    }
+
+    private func insertPeptide(
+        _ peptide: Peptide,
+        toProtocolId protocolId: UUID,
+        schedule: ProtocolSchedule?
+    ) -> Bool {
         guard let index = protocols.firstIndex(where: { $0.id == protocolId }) else { return false }
         if protocols[index].peptides.contains(where: { $0.id == peptide.id }) { return false }
 
@@ -813,10 +847,6 @@ final class DataStore {
             }
             entries.append(contentsOf: Self.todayEntries(for: peptide, in: updated))
         }
-
-        save()
-        rescheduleNotificationsIfEnabled()
-        Haptics.success()
         return true
     }
 
@@ -864,6 +894,7 @@ final class DataStore {
 
         save()
         rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
     }
 
     /// Regenerates today's entries for `proto` after a schedule change,
@@ -934,7 +965,7 @@ final class DataStore {
 
         save()
         rescheduleNotificationsIfEnabled()
-        Haptics.impact(.light)
+        reconcileDoseLiveActivities()
     }
 
     func entriesFor(protocolId: UUID, days: Int = 14) -> [ProtocolEntry] {

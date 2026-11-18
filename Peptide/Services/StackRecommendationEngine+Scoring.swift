@@ -27,7 +27,7 @@ extension StackRecommendationEngine {
             window != .anyTime && (windowCounts[window] ?? 0) <= 1
         }) {
             return (1, .timingComplement(
-                description: String(localized: "Fills a \(PeptideCompatibilityData.displayText(underservedWindow.rawValue)) dosing gap in your schedule")
+                description: String(localized: "Fills a gap in your schedule: \(underservedWindow.displayName)")
             ))
         }
         return (0, nil)
@@ -74,18 +74,22 @@ extension StackRecommendationEngine {
 
         guard !isInjectable && injectableCount >= 2 else { return (0, nil) }
 
-        let routeLabel: String
-        if primaryRoute.contains("oral") || primaryRoute.contains("sublingual") {
-            routeLabel = "oral"
-        } else if primaryRoute.contains("nasal") || primaryRoute.contains("intranasal") {
-            routeLabel = "intranasal"
-        } else if primaryRoute.contains("topical") {
-            routeLabel = "topical"
-        } else {
-            routeLabel = primaryRoute
-        }
+        return (1, .routeDiversity(route: routeDiversityText(primaryRoute: primaryRoute)))
+    }
 
-        return (1, .routeDiversity(route: String(localized: "Available as \(routeLabel) — reduces injection burden")))
+    /// One whole sentence per route, so no English route word ends up
+    /// inside a translated sentence.
+    private static func routeDiversityText(primaryRoute: String) -> String {
+        if primaryRoute.contains("oral") || primaryRoute.contains("sublingual") {
+            return String(localized: "Available orally — reduces injection burden")
+        }
+        if primaryRoute.contains("nasal") {
+            return String(localized: "Available as a nasal spray — reduces injection burden")
+        }
+        if primaryRoute.contains("topical") {
+            return String(localized: "Available topically — reduces injection burden")
+        }
+        return String(localized: "Non-injectable route — reduces injection burden")
     }
 
     // MARK: Signal 9: Half-Life Complementarity
@@ -186,11 +190,10 @@ extension StackRecommendationEngine {
             if case .validatedStack = $0 { return true }
             return false
         }
+        // .high renders as "Research-backed", so only a validated stack
+        // earns it; seasonal, route or half-life signals never do.
         if hasValidated { return .high }
-
-        let signalCount = reasons.count
-        if signalCount >= 4 || score >= 8 { return .high }
-        if signalCount >= 2 { return .medium }
+        if reasons.count >= 2 || score >= 8 { return .medium }
         return .low
     }
 

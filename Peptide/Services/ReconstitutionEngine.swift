@@ -89,12 +89,27 @@ enum ReconstitutionEngine {
     /// Parses a typed amount. Trims the ends and accepts a comma
     /// decimal separator, but rejects interior junk ("2 50") rather
     /// than guessing, and rejects zero, negatives and empty input.
+    /// A value that could be digit grouping ("1,000", "1.000,5") is
+    /// rejected too: reading it as a decimal would be a 1000x error.
     static func parseAmount(_ text: String) -> Double? {
-        let cleaned = text
-            .trimmingCharacters(in: .whitespaces)
-            .replacingOccurrences(of: ",", with: ".")
+        guard !hasAmbiguousSeparator(text) else { return nil }
+        let cleaned = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
         guard let value = Double(cleaned), isPositive(value) else { return nil }
         return value
+    }
+
+    /// More than one separator, or a single one followed by exactly
+    /// three digits after a non-zero whole part, reads as grouping in
+    /// some locales and as a decimal in others. The calculator uses it
+    /// to explain why such input gives no result.
+    static func hasAmbiguousSeparator(_ text: String) -> Bool {
+        let parts = text.trimmingCharacters(in: .whitespaces).split(separator: ",", omittingEmptySubsequences: false)
+            .flatMap { $0.split(separator: ".", omittingEmptySubsequences: false) }
+        guard parts.count > 1 else { return false }
+        guard parts.count == 2 else { return true }
+        let whole = parts[0].trimmingCharacters(in: CharacterSet(charactersIn: "+-"))
+        let wholeIsZero = !whole.isEmpty && whole.allSatisfy { $0 == "0" }
+        return parts[1].count == 3 && !whole.isEmpty && !wholeIsZero
     }
 
     private static func isPositive(_ value: Double) -> Bool {

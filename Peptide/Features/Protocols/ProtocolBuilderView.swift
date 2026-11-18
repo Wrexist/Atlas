@@ -26,6 +26,9 @@ struct ProtocolBuilderView: View {
     @State private var peptideOverrides: [UUID: ProtocolSchedule] = [:]
     @State private var editingOverridePeptide: Peptide?
     @State private var appendTargetProtocolId: UUID?
+    /// The library template this protocol was started from, so the saved
+    /// protocol keeps its link and attribution like a library fork.
+    @State private var templateSource: CommunityStack?
     @State private var isShowingAppendPicker = false
     /// Stable identity for the live-preview `PeptideProtocol`. Computed once
     /// per builder lifecycle so SwiftUI doesn't see a fresh id on every
@@ -104,10 +107,7 @@ struct ProtocolBuilderView: View {
         let peptidesToAdd = orderedSelectedPeptides
             .filter { peptide in !target.peptides.contains { $0.id == peptide.id } }
         guard !peptidesToAdd.isEmpty else { dismiss(); return }
-        for peptide in peptidesToAdd {
-            dataStore.addPeptide(peptide, toProtocolId: target.id)
-        }
-        Haptics.success()
+        dataStore.addPeptides(peptidesToAdd, toProtocolId: target.id)
         dismiss()
     }
 
@@ -199,15 +199,15 @@ struct ProtocolBuilderView: View {
             startDate: editingProtocol?.startDate ?? previewDate,
             status: .active,
             notes: notes,
-            authorName: editingProtocol?.authorName ?? attributionName,
-            authorHandle: editingProtocol?.authorHandle,
-            forkedFromStackId: editingProtocol?.forkedFromStackId,
+            authorName: editingProtocol?.authorName ?? templateSource?.authorName ?? attributionName,
+            authorHandle: editingProtocol?.authorHandle ?? templateSource?.authorHandle,
+            forkedFromStackId: editingProtocol?.forkedFromStackId ?? templateSource?.id,
             createdAt: editingProtocol?.createdAt ?? previewDate
         )
     }
 
-    /// What the share card actually draws. `PeptideProtocol`'s equality is
-    /// id-only, so it can't key the preview task by itself.
+    /// What the share card actually draws, so edits to anything else
+    /// (schedule, notes) don't re-render the preview.
     private struct PreviewKey: Hashable {
         let name: String
         let peptideIDs: [UUID]
@@ -331,6 +331,9 @@ struct ProtocolBuilderView: View {
             .onChange(of: selectedPeptides) { _, newValue in
                 // Drop overrides for peptides that have been deselected.
                 peptideOverrides = peptideOverrides.filter { newValue.contains($0.key) }
+                // Clearing every compound abandons the template, so the
+                // saved protocol must not count as its fork.
+                if newValue.isEmpty { templateSource = nil }
             }
             .sheet(item: $editingOverridePeptide) { peptide in
                 PeptideScheduleSheet(
@@ -457,6 +460,7 @@ struct ProtocolBuilderView: View {
     /// a saved copy behind a builder that can still create a second one.
     private func applyTemplate(_ stack: CommunityStack) {
         hydrate(from: CommunityStackService.shared.forkToProtocol(stack))
+        templateSource = stack
         currentStep = 0
         navigationPath = NavigationPath()
     }
@@ -806,7 +810,9 @@ struct ProtocolBuilderView: View {
             startDate: Date(),
             status: .active,
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-            authorName: attributionName,
+            authorName: templateSource?.authorName ?? attributionName,
+            authorHandle: templateSource?.authorHandle,
+            forkedFromStackId: templateSource?.id,
             createdAt: Date()
         )
 

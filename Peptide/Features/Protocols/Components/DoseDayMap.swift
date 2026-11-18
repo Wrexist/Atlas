@@ -1,16 +1,20 @@
 import Foundation
 
 /// Single dose marker rendered on the Track-tab calendar. Carries enough
-/// state for the day cell to render the right-coloured dot (logged) or
-/// outlined ring (scheduled) plus the per-day detail panel to list the
-/// matching cards.
+/// state for the day cell to render the right-coloured dot (logged),
+/// outlined ring (scheduled) or muted ring (missed: a past dose day with
+/// nothing logged) plus the per-day detail panel to list the matching
+/// cards.
 struct CalendarDoseMark: Identifiable, Hashable {
-    enum Kind: Hashable { case logged, scheduled }
+    enum Kind: Hashable { case logged, missed, scheduled }
 
     let kind: Kind
     let day: Date
     let peptideID: UUID
     let peptideName: String
+    /// The compound's real category, so the dot, band and panel vial pick
+    /// the same palette as the filter pill instead of a name-inferred one.
+    let peptideCategory: PeptideCategory
     let peptideAbbreviation: String
     let dose: String
     let time: String?
@@ -28,10 +32,10 @@ struct CalendarDoseMark: Identifiable, Hashable {
 
     /// Derived from content rather than minted per build, so a rebuilt map
     /// keeps the same identities and `ForEach` can diff and animate it.
-    /// Unique per day: logged marks differ by entry, and scheduled marks
-    /// are emitted at most once per compound per day.
+    /// Unique per day: logged marks differ by entry, and synthetic marks
+    /// are emitted at most once per compound per dose time per day.
     var id: String {
-        "\(kind)-\(day.timeIntervalSinceReferenceDate)-\(peptideID)-\(entryID?.uuidString ?? "")"
+        "\(kind)-\(day.timeIntervalSinceReferenceDate)-\(peptideID)-\(entryID?.uuidString ?? "")-\(time ?? "")"
     }
 }
 
@@ -39,17 +43,23 @@ struct CalendarDoseMark: Identifiable, Hashable {
 /// future doses for a given month. Logged comes from `dataStore.entries`
 /// directly; scheduled is synthesized by walking each active protocol's
 /// schedule (daysOfWeek + cycle window) and emitting one mark per
-/// peptide × day for the days that don't already have a logged entry
-/// for that compound (so the calendar doesn't double-stamp).
+/// peptide × dose time × day for the days that don't already have an
+/// entry for that compound (so the calendar doesn't double-stamp). A dose
+/// day before `today` with nothing logged is `.missed`, not scheduled.
 enum DoseDayMap {
 
     static func build(
         for monthDate: Date,
         entries: [ProtocolEntry],
         protocols: [PeptideProtocol],
+        today: Date = Date(),
         calendar: Calendar = .current
     ) -> [Date: [CalendarDoseMark]] {
         let cal = calendar
+        let startOfToday = cal.startOfDay(for: today)
+        let openKind: (Date) -> CalendarDoseMark.Kind = { day in
+            day < startOfToday ? .missed : .scheduled
+        }
         let grid = CalendarMonth.grid(for: monthDate, firstWeekday: cal.firstWeekday, calendar: cal)
         guard let monthStart = grid.first, let monthEnd = grid.last else { return [:] }
 
@@ -64,16 +74,17 @@ enum DoseDayMap {
         )
 
         // Real entries inside the visible window, grouped by day. Only a
-        // completed entry counts as logged; a pending or missed one is
-        // still just scheduled.
+        // completed entry counts as logged; an open one is missed once
+        // its day has passed and scheduled until then.
         for entry in entries {
             let day = cal.startOfDay(for: entry.date)
             guard day >= monthStart && day <= monthEnd else { continue }
             let mark = CalendarDoseMark(
-                kind: entry.completed ? .logged : .scheduled,
+                kind: entry.completed ? .logged : openKind(day),
                 day: day,
                 peptideID: entry.peptide.id,
                 peptideName: entry.peptide.name,
+                peptideCategory: entry.peptide.category,
                 peptideAbbreviation: entry.peptide.abbreviation,
                 dose: entry.dose.isEmpty ? String(localized: "Dose not set") : entry.dose,
                 time: timeString(for: entry.actualTime ?? entry.date, calendar: cal),
@@ -85,10 +96,10 @@ enum DoseDayMap {
         }
 
         // Scheduled — for every day in the grid, emit one mark per
-        // (active-protocol × peptide) when the peptide's own schedule (its
-        // override, else the protocol default — weekly or every-N-days)
-        // lands on that day inside the cycle window. Skip when a
-        // logged mark for the same compound already exists that day so the
+        // (active-protocol × peptide × dose time) when the peptide's own
+        // schedule (its override, else the protocol default — weekly or
+        // every-N-days) lands on that day inside the cycle window. Skip
+        // when a mark for the same compound already exists that day so the
         // dot row doesn't show two of the same colour.
         for day in grid {
             for proto in protocols where proto.status == .active {
@@ -109,23 +120,31 @@ enum DoseDayMap {
                     }) ?? false
                     if alreadyMarked { continue }
 
-                    let mark = CalendarDoseMark(
-                        kind: .scheduled,
-                        day: day,
-                        peptideID: peptide.id,
-                        peptideName: peptide.name,
-                        peptideAbbreviation: peptide.abbreviation,
-                        // Never the database research range: that would present a
-                        // reference figure as the user's own dose (Guideline 1.4.1).
-                        dose: schedule.customDose ?? String(localized: "Dose not set"),
-                        time: schedule.preferredTimes.first,
-                        injectionSite: nil,
-                        entryID: nil,
-                        // Synthetic scheduled marks only emit for
-                        // active protocols (guard above on line 69).
-                        protocolStatus: .active
-                    )
-                    result[day, default: []].append(mark)
+                    // One mark per daily dose, so a twice-daily compound
+                    // shows two dots and both times, like today's entries.
+                    let times: [String?] = schedule.preferredTimes.isEmpty
+                        ? [nil]
+                        : schedule.preferredTimes.map(Optional.some)
+                    for time in times {
+                        let mark = CalendarDoseMark(
+                            kind: openKind(day),
+                            day: day,
+                            peptideID: peptide.id,
+                            peptideName: peptide.name,
+                            peptideCategory: peptide.category,
+                            peptideAbbreviation: peptide.abbreviation,
+                            // Never the database research range: that would present a
+                            // reference figure as the user's own dose (Guideline 1.4.1).
+                            dose: schedule.customDose ?? String(localized: "Dose not set"),
+                            time: time,
+                            injectionSite: nil,
+                            entryID: nil,
+                            // Synthetic marks only emit for active
+                            // protocols (the loop's `where` clause).
+                            protocolStatus: .active
+                        )
+                        result[day, default: []].append(mark)
+                    }
                 }
             }
         }

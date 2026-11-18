@@ -446,14 +446,6 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         max(1, cycleLengthWeeks)
     }
 
-    static func == (lhs: PeptideProtocol, rhs: PeptideProtocol) -> Bool {
-        lhs.id == rhs.id
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-
     // MARK: - Codable (backwards-compatible: peptideSchedules is optional)
 
     private enum CodingKeys: String, CodingKey {

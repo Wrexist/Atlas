@@ -33,13 +33,22 @@ struct DoseDayDetailPanel: View {
     }
 
     private var sortedMarks: [CalendarDoseMark] {
-        // Logged first, then scheduled — within each group, alphabetical
-        // by peptide so the order is stable across re-renders.
+        // Logged first, then not logged, then scheduled — within each
+        // group, alphabetical by peptide so the order is stable across
+        // re-renders.
         marks.sorted { lhs, rhs in
             if lhs.kind != rhs.kind {
-                return lhs.kind == .logged
+                return Self.sortRank(lhs.kind) < Self.sortRank(rhs.kind)
             }
             return lhs.peptideName < rhs.peptideName
+        }
+    }
+
+    private static func sortRank(_ kind: CalendarDoseMark.Kind) -> Int {
+        switch kind {
+        case .logged: 0
+        case .missed: 1
+        case .scheduled: 2
         }
     }
 
@@ -112,12 +121,13 @@ struct DoseDayDetailPanel: View {
 
     private var summaryCounts: String {
         let logged = marks.filter { $0.kind == .logged }.count
+        let missed = marks.filter { $0.kind == .missed }.count
         let scheduled = marks.filter { $0.kind == .scheduled }.count
-        switch (logged, scheduled) {
-        case (let l, 0): return String(localized: "\(l) logged")
-        case (0, let s): return String(localized: "\(s) scheduled")
-        default:         return String(localized: "\(logged) logged · \(scheduled) scheduled")
-        }
+        var parts: [String] = []
+        if logged > 0 { parts.append(String(localized: "\(logged) logged")) }
+        if missed > 0 { parts.append(String(localized: "\(missed) not logged")) }
+        if scheduled > 0 { parts.append(String(localized: "\(scheduled) scheduled")) }
+        return parts.joined(separator: " · ")
     }
 
     // MARK: - Empty state
@@ -191,7 +201,8 @@ struct DoseDayDetailPanel: View {
             // the user reads "this is what's queued, not what was taken".
             CompoundVial(
                 compoundName: mark.peptideName,
-                liquidLevel: mark.kind == .scheduled ? 1.0 : 0.65,
+                category: mark.peptideCategory,
+                liquidLevel: mark.kind == .logged ? 0.65 : 1.0,
                 labelText: nil,
                 size: .sm
             )
@@ -203,6 +214,8 @@ struct DoseDayDetailPanel: View {
                         .foregroundStyle(AppColor.textPrimary)
                     if mark.kind == .scheduled {
                         scheduledBadge
+                    } else if mark.kind == .missed {
+                        Badge("Not logged", tint: AppColor.textSecondary)
                     } else if mark.protocolStatus != .active {
                         // Historical dose from a paused / completed
                         // protocol — surface the status so the user

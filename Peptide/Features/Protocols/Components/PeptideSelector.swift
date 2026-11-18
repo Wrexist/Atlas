@@ -91,6 +91,11 @@ struct PeptideSelector: View {
                 addCustomButton
             }
         }
+        // The Selected chip disappears with the last selection; leaving its
+        // filter on would strand the list on an empty result.
+        .onChange(of: selectedPeptides.isEmpty) { _, isEmpty in
+            if isEmpty { showSelectedOnly = false }
+        }
         .sheet(isPresented: $showCustomForm) {
             CustomPeptideForm { peptide in
                 onAddCustomPeptide?(peptide)

@@ -10042,16 +10042,6 @@
         }
       }
     },
-    "Add to Another Protocol": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lägg till i ett annat protokoll"
-          }
-        }
-      }
-    },
     "Add to protocol": {
       "localizations": {
         "sv": {
@@ -11478,16 +11468,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tillgänglig"
-          }
-        }
-      }
-    },
-    "Available as %@ — reduces injection burden": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Finns som %@ – färre injektioner"
           }
         }
       }
@@ -19662,16 +19642,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fyll i med AI"
-          }
-        }
-      }
-    },
-    "Fills a %@ dosing gap in your schedule": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fyller en lucka i doseringen på %@ i ditt schema"
           }
         }
       }
@@ -34992,16 +34962,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spotlight-sökning hittar dina egna livsmedel"
-          }
-        }
-      }
-    },
-    "Spun off from %@ to reduce compounding side effects.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Utbruten från %@ för att minska förstärkta biverkningar."
           }
         }
       }
@@ -52727,6 +52687,126 @@
           "stringUnit": {
             "state": "translated",
             "value": "fiber"
+          }
+        }
+      }
+    },
+    "%@, %lld logged, %lld not logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld loggade, %3$lld inte loggade"
+          }
+        }
+      }
+    },
+    "%lld not logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld inte loggade"
+          }
+        }
+      }
+    },
+    "Add to another protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till i ett annat protokoll"
+          }
+        }
+      }
+    },
+    "Around lunch": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runt lunch"
+          }
+        }
+      }
+    },
+    "Available as a nasal spray — reduces injection burden": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finns som nässpray – färre injektioner"
+          }
+        }
+      }
+    },
+    "Available orally — reduces injection burden": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan tas oralt – färre injektioner"
+          }
+        }
+      }
+    },
+    "Available topically — reduces injection burden": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan användas utvärtes – färre injektioner"
+          }
+        }
+      }
+    },
+    "Fills a gap in your schedule: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fyller en lucka i ditt schema: %@"
+          }
+        }
+      }
+    },
+    "Non-injectable route — reduces injection burden": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tas utan injektion – färre injektioner"
+          }
+        }
+      }
+    },
+    "Pick at least one day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj minst en dag"
+          }
+        }
+      }
+    },
+    "Spun off from %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utbruten från %@."
+          }
+        }
+      }
+    },
+    "Check the number. Write it without thousands separators, for example 1000 or 12.5.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontrollera talet. Skriv det utan tusentalsavgränsare, till exempel 1000 eller 12,5."
           }
         }
       }

@@ -108,7 +108,7 @@ extension StackRecommendationEngine {
                 warnings.append(Warning(
                     severity: .caution,
                     title: String(localized: "Redundant GHS-R agonists"),
-                    detail: "\(names.joined(separator: " & ")) target the same ghrelin receptor. Risk of desensitization.",
+                    detail: String(localized: "\(names.joined(separator: " & ")) target the same ghrelin receptor. Risk of desensitization."),
                     suggestion: String(localized: "Research usually pairs one GHS-R agonist with one GHRH analog (e.g., CJC-1295). Discuss changes with a qualified clinician."),
                     peptides: names,
                     icon: "arrow.triangle.2.circlepath"
@@ -126,7 +126,7 @@ extension StackRecommendationEngine {
                 warnings.append(Warning(
                     severity: .caution,
                     title: String(localized: "Multiple appetite regulators"),
-                    detail: "\(names.joined(separator: " & ")) both affect appetite/satiety pathways.",
+                    detail: String(localized: "\(names.joined(separator: " & ")) both affect appetite/satiety pathways."),
                     suggestion: String(localized: "Combining GLP-1 agonists can amplify GI side effects. Discuss using one at a time with a qualified clinician."),
                     peptides: names,
                     icon: "fork.knife"
