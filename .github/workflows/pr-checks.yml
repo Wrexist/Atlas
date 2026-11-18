@@ -244,12 +244,19 @@ jobs:
           #
           # The log feeds the concurrency-warning count below; pipefail
           # keeps a compile error failing this step through the tee.
+          #
+          # Built into its own uncached DerivedData: the compiler only
+          # warns about files it recompiles, so an incremental build off
+          # the restored cache would count the PR's files rather than the
+          # project, and the ratchet would pass or fail on cache freshness.
+          # The later Release, test and coverage steps keep the cache.
           set -o pipefail
           xcodebuild build \
             -project Peptide.xcodeproj \
             -scheme Peptide \
             -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/build-warnings" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
@@ -270,7 +277,7 @@ jobs:
           {
             echo "## Swift concurrency warnings"
             echo ""
-            echo "Unique warnings mentioning Sendable, actor-isolated, data race or nonisolated in the Debug app build: **${COUNT}**"
+            echo "Unique warnings mentioning Sendable, actor-isolated, data race or nonisolated in the full (uncached) Debug app build: **${COUNT}**"
           } >> "$GITHUB_STEP_SUMMARY" || true
           python3 scripts/ratchet.py concurrency_warnings "$COUNT"
 
