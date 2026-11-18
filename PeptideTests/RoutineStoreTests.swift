@@ -22,6 +22,7 @@ final class RoutineStoreTests: XCTestCase {
     }
 
     override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: RoutineStore.untitledDraftsKey)
         repo.deleteAll()
         store.load()
         WorkoutSessionService.shared.discardWorkout()
@@ -50,6 +51,25 @@ final class RoutineStoreTests: XCTestCase {
         store.discardAbandonedDrafts()
 
         XCTAssertTrue(store.routines.isEmpty)
+    }
+
+    func test_discardAbandonedDrafts_draftLeftByAnEarlierLaunch_isDeleted() {
+        let leftOver = Routine(name: RoutineStore.untitledName)
+        repo.upsertRoutine(leftOver)
+        store.load()
+        // What createDraft wrote before the app was killed.
+        UserDefaults.standard.set([leftOver.id.uuidString], forKey: RoutineStore.untitledDraftsKey)
+
+        store.discardAbandonedDrafts()
+
+        XCTAssertTrue(store.routines.isEmpty)
+        XCTAssertNil(UserDefaults.standard.stringArray(forKey: RoutineStore.untitledDraftsKey))
+    }
+
+    func test_createDraft_remembersTheDraftOnThisDevice() {
+        let draft = store.createDraft()
+
+        XCTAssertEqual(UserDefaults.standard.stringArray(forKey: RoutineStore.untitledDraftsKey), [draft.id.uuidString])
     }
 
     func test_discardAbandonedDrafts_blankRoutineFromAnotherDevice_isKept() {
