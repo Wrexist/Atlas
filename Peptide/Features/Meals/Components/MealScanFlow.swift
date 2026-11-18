@@ -603,7 +603,7 @@ struct MealScanFlow: View {
                     fatG: totalFat
                 )
 
-                if suggestedMealName != nil {
+                if suggestedMealName != nil && includedItems.count > 1 {
                     combineControl
                 }
 
@@ -732,6 +732,16 @@ struct MealScanFlow: View {
         .accessibilityLabel(image == nil ? "Start over" : "Retake photo")
     }
 
+    private var combinesItems: Bool {
+        Self.combinesIntoOneEntry(logAsOneMeal: logAsOneMeal, includedCount: includedItems.count)
+    }
+
+    /// One ticked item is logged under its own name: combining it would
+    /// file a lone side salad as "Spaghetti Bolognese".
+    nonisolated static func combinesIntoOneEntry(logAsOneMeal: Bool, includedCount: Int) -> Bool {
+        logAsOneMeal && includedCount > 1
+    }
+
     /// `LocalizedStringKey`, not `String`: GlassButton takes a key, and
     /// interpolating the count produces the same "Add %lld items" key the
     /// manual `String(format:)` was looking up — so this is the identical
@@ -741,7 +751,7 @@ struct MealScanFlow: View {
     /// the key text itself. That was already true before this change; the
     /// catalog sits at 13% coverage and is tracked separately.
     private var addButtonTitle: LocalizedStringKey {
-        if logAsOneMeal { return "Log meal · \(totalCalories) kcal" }
+        if combinesItems { return "Log meal · \(totalCalories) kcal" }
         return includedItems.count <= 1
             ? "Log meal · \(totalCalories) kcal"
             : "Log \(includedItems.count) items · \(totalCalories) kcal"
@@ -1024,7 +1034,7 @@ struct MealScanFlow: View {
     private func confirm() {
         let toLog = includedItems
         guard !toLog.isEmpty, !hasLogged else { return }
-        if logAsOneMeal {
+        if combinesItems {
             let name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
             pendingEntries = [MealEntry(date: logDate, category: category,
                 name: name.isEmpty ? (suggestedMealName ?? String(localized: "Meal")) : name,

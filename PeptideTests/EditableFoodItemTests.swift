@@ -172,6 +172,12 @@ final class EditableFoodItemTests: XCTestCase {
         XCTAssertEqual(item.activePortionOptions.map(\.label), ["1 bowl"])
     }
 
+    func test_oneTickedItem_isNotCombinedUnderTheDishName() {
+        XCTAssertFalse(MealScanFlow.combinesIntoOneEntry(logAsOneMeal: true, includedCount: 1))
+        XCTAssertTrue(MealScanFlow.combinesIntoOneEntry(logAsOneMeal: true, includedCount: 2))
+        XCTAssertFalse(MealScanFlow.combinesIntoOneEntry(logAsOneMeal: false, includedCount: 3))
+    }
+
     private func crispbread(servingGrams: Double?) -> ScannedProduct {
         ScannedProduct(
             barcode: "7310865004703", name: "Crispbread", brand: nil, imageURL: nil,
