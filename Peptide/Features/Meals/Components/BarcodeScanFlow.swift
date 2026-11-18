@@ -35,6 +35,7 @@ struct BarcodeScanFlow: View {
     @State private var showEditSheet = false
     @State private var editingExactPortion = false
     @State private var loggedSnapshot: LoggedSnapshot?
+    @State private var mealSaveError: String?
     @State private var torchOn = false
     @State private var ocrPickerItem: PhotosPickerItem?
     /// Drives the "you just logged this 30 minutes ago — log again?"
@@ -99,19 +100,24 @@ struct BarcodeScanFlow: View {
     /// Captures what was logged so the Undo button can reverse it
     /// exactly. Stored on the view so a re-render can't lose the
     /// reversal data while the success screen is up. Includes
-    /// `barcode` + `portion` so Undo can also roll back the
-    /// scan-history record (otherwise an undone scan still inflates
-    /// the recents-row ranking and preselects the wrong portion next
-    /// time).
+    /// `barcode` so Undo can also roll back the scan-history record
+    /// (otherwise an undone scan still inflates the recents-row
+    /// ranking), and the My Foods correction the log saved so Undo
+    /// can take that back too.
     private struct LoggedSnapshot: Equatable {
         let productName: String
-        let entryID: UUID
+        let entry: MealEntry
         let calories: Int
         let date: Date
         let barcode: String
-        let portion: ScannedProduct.Portion
-        /// Water a hydrating drink added, so Undo takes it back too.
-        let waterMillilitres: Double?
+        let correction: SavedCorrection?
+    }
+
+    /// A typed nutrition fix saved to My Foods, with the version it
+    /// replaced (nil when it created a new food).
+    private struct SavedCorrection: Equatable {
+        let saved: CustomFood
+        let previous: CustomFood?
     }
 
     var body: some View {
@@ -158,6 +164,11 @@ struct BarcodeScanFlow: View {
             insightTask?.cancel()
             identifyTask?.cancel()
         }
+        .alert("Meal action failed", isPresented: Binding(
+            get: { mealSaveError != nil }, set: { if !$0 { mealSaveError = nil } }
+        )) {
+            Button("OK", role: .cancel) { mealSaveError = nil }
+        } message: { Text(mealSaveError ?? String(localized: "Please retry.")) }
         .confirmationDialog(
             "Already logged this recently",
             isPresented: Binding(
@@ -603,8 +614,7 @@ struct BarcodeScanFlow: View {
                 // (today - just-logged) to today on appear, so the
                 // user sees the meal's effect on today's target as
                 // visceral feedback rather than a plain "420 kcal"
-                // readout. The kcal target falls back to the
-                // placeholder when no profile target is set.
+                // readout. Without a profile target it shows no budget.
                 LoggedCaloriePanel(
                     productName: snapshot.productName,
                     deltaCalories: snapshot.calories,
@@ -1399,26 +1409,29 @@ struct BarcodeScanFlow: View {
             category: category,
             source: source,
             sourceID: product.barcode,
-            date: loggedAt
+            date: loggedAt,
+            waterMillilitres: product.waterMillilitres(for: portion)
         )
-        dataStore.logMealEntry(entry)
-        rememberCorrection(product: product)
-        let waterMillilitres = product.waterMillilitres(for: portion)
-        if let waterMillilitres {
-            dataStore.logWater(fluidOunces: LifestyleDataLogic.fluidOunces(millilitres: waterMillilitres), date: loggedAt)
+        // The durable path, so a log that fails to persist says so
+        // instead of showing success and vanishing on relaunch.
+        do {
+            try dataStore.commitScannedMeals([entry])
+        } catch {
+            mealSaveError = String(localized: "Couldn't save the meal. Nothing was added. Please retry.")
+            return
         }
+        let correction = rememberCorrection(product: product)
         // .logCommitted carries a heavier impact than the lookup
         // success — the user feels "I just logged a meal" as a
         // distinct beat from "I just scanned a barcode".
         BarcodeHaptics.logCommitted()
         loggedSnapshot = LoggedSnapshot(
             productName: product.name,
-            entryID: entry.id,
+            entry: entry,
             calories: meal.calories,
             date: loggedAt,
             barcode: product.barcode,
-            portion: portion,
-            waterMillilitres: waterMillilitres
+            correction: correction
         )
         // Record the scan + portion choice in history so the recents
         // row re-ranks and the next re-scan of this product preselects
@@ -1441,16 +1454,18 @@ struct BarcodeScanFlow: View {
 
     /// A nutrition fix the user typed for a real barcode is kept in My
     /// Foods under that code, so the next scan opens their values.
-    private func rememberCorrection(product: ScannedProduct) {
+    /// Returns what was saved and what it replaced, for Undo.
+    private func rememberCorrection(product: ScannedProduct) -> SavedCorrection? {
         // A record still without a name would be saved as "Unknown
         // product" and then shadow every later rename.
         guard let typed = manualOverride, Self.hasRealBarcode(product), product.nameMissing != true,
-              let grams = product.grams(for: portion),
-              let food = SmartFoodLogic.correctedFood(
-                  product, portionGrams: grams, typed: typed,
-                  existing: SmartFoodLogic.myFood(forBarcode: product.barcode, in: dataStore.profile.customFoods)
-              ) else { return }
+              let grams = product.grams(for: portion) else { return nil }
+        let existing = SmartFoodLogic.myFood(forBarcode: product.barcode, in: dataStore.profile.customFoods)
+        guard let food = SmartFoodLogic.correctedFood(
+            product, portionGrams: grams, typed: typed, existing: existing
+        ) else { return nil }
         dataStore.saveCustomFood(food)
+        return SavedCorrection(saved: food, previous: existing)
     }
 
     private static func hasRealBarcode(_ product: ScannedProduct) -> Bool {
@@ -1462,10 +1477,21 @@ struct BarcodeScanFlow: View {
             onClose()
             return
         }
+        do {
+            try dataStore.commitScannedMeals([snapshot.entry], undo: true)
+        } catch {
+            mealSaveError = String(localized: "Couldn't undo. The meal is still saved. Please retry.")
+            return
+        }
         phase = .review
-        dataStore.unlogMealEntry(id: snapshot.entryID)
-        if let water = snapshot.waterMillilitres {
-            dataStore.logWater(fluidOunces: -LifestyleDataLogic.fluidOunces(millilitres: water), date: snapshot.date)
+        // An undone log takes its My Foods correction with it, so the
+        // next scan doesn't reopen numbers the user backed out of.
+        if let correction = snapshot.correction {
+            if let previous = correction.previous {
+                dataStore.saveCustomFood(previous)
+            } else {
+                dataStore.deleteCustomFood(id: correction.saved.id)
+            }
         }
         // Roll back the scan-history record too so an undone scan
         // doesn't inflate the recents ranking or preselect the wrong

@@ -9,6 +9,9 @@ struct MealFoodComponent: Codable, Hashable, Identifiable, Sendable {
     var servingLabel: String?
     var per100g: ScannedProduct.Nutriments
     var sourceID: String?
+    /// True for a drink, so a re-portion from the diary speaks
+    /// millilitres. Nil for food and for components logged before it.
+    var isDrink: Bool? = nil
 
     var fiberG: Double? { scaled(per100g.fiberG) }
     var sugarsG: Double? { scaled(per100g.sugarsG) }

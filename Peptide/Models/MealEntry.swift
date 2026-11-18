@@ -126,6 +126,10 @@ struct MealEntry: Codable, Hashable, Identifiable, Sendable {
     var source: MealSource
     /// Optional additive data. Legacy meals remain valid with unknown portions.
     var components: [MealFoodComponent]?
+    /// Water a hydrating drink added to the day when it was logged. Kept
+    /// on the entry so deleting, re-portioning or re-logging the drink
+    /// moves the day's water with it. Nil for food and legacy entries.
+    var waterMillilitres: Double?
 
     var fiberG: Double? { MealFoodComponent.completeTotal(components?.map(\.fiberG) ?? []) }
     var sugarsG: Double? { MealFoodComponent.completeTotal(components?.map(\.sugarsG) ?? []) }
@@ -141,7 +145,8 @@ struct MealEntry: Codable, Hashable, Identifiable, Sendable {
         fatG: Int,
         sourceID: String? = nil,
         source: MealSource,
-        components: [MealFoodComponent]? = nil
+        components: [MealFoodComponent]? = nil,
+        waterMillilitres: Double? = nil
     ) {
         self.id = id
         self.date = date
@@ -154,6 +159,7 @@ struct MealEntry: Codable, Hashable, Identifiable, Sendable {
         self.sourceID = sourceID
         self.source = source
         self.components = components
+        self.waterMillilitres = waterMillilitres
     }
 }
 
@@ -167,7 +173,8 @@ extension MealEntry {
         category: MealCategory,
         source: MealSource,
         sourceID: String? = nil,
-        date: Date = Date()
+        date: Date = Date(),
+        waterMillilitres: Double? = nil
     ) {
         self.init(
             date: date,
@@ -179,7 +186,8 @@ extension MealEntry {
             fatG: loggable.fatG,
             sourceID: sourceID,
             source: source,
-            components: loggable.components
+            components: loggable.components,
+            waterMillilitres: waterMillilitres
         )
     }
 }

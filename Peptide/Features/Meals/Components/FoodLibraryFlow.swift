@@ -50,8 +50,6 @@ struct FoodLibraryFlow: View {
     @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var loggedSnapshot: LoggedSnapshot?
     @State private var lastLoggedEntry: MealEntry?
-    /// Water a hydrating drink added with the last log, for Undo.
-    @State private var loggedWaterMillilitres: Double?
     @State private var mealSaveError: String?
     @State private var editingExactPortion = false
     @State private var loggedHistoryBarcode: String?
@@ -124,7 +122,6 @@ struct FoodLibraryFlow: View {
 
     private struct LoggedSnapshot: Equatable {
         let foodName: String
-        let entryID: UUID
         let calories: Int
         let date: Date
     }
@@ -1067,7 +1064,8 @@ struct FoodLibraryFlow: View {
             category: loggedCategory,
             source: source,
             sourceID: product.barcode,
-            date: loggedAt
+            date: loggedAt,
+            waterMillilitres: product.waterMillilitres(for: chosen)
         )
         guard commitLibraryEntry(entry) else { return }
         BarcodeHaptics.logCommitted()
@@ -1373,20 +1371,11 @@ struct FoodLibraryFlow: View {
             category: category,
             source: source,
             sourceID: product.barcode,
-            date: logTimestamp()
+            date: logTimestamp(),
+            waterMillilitres: product.waterMillilitres(for: portion)
         )
         guard commitLibraryEntry(entry) else { return }
-        loggedWaterMillilitres = product.waterMillilitres(for: portion)
-        if let loggedWaterMillilitres {
-            dataStore.logWater(fluidOunces: LifestyleDataLogic.fluidOunces(millilitres: loggedWaterMillilitres), date: entry.date)
-        }
         BarcodeHaptics.logCommitted()
-        loggedSnapshot = LoggedSnapshot(
-            foodName: product.name,
-            entryID: entry.id,
-            calories: meal.calories,
-            date: entry.date
-        )
         // Record the choice in scan history so this food shows up in
         // the barcode recents row too — keeps the two scanners' notion
         // of "recently logged" consistent. Fire-and-forget.
@@ -1415,10 +1404,8 @@ struct FoodLibraryFlow: View {
 
     private func showLogged(_ entry: MealEntry) {
         lastLoggedEntry = entry
-        loggedWaterMillilitres = nil
         loggedHistoryBarcode = nil
-        loggedSnapshot = LoggedSnapshot(foodName: entry.name, entryID: entry.id,
-                                        calories: entry.calories, date: entry.date)
+        loggedSnapshot = LoggedSnapshot(foodName: entry.name, calories: entry.calories, date: entry.date)
         phase = .logged
     }
 
@@ -1447,10 +1434,6 @@ struct FoodLibraryFlow: View {
         guard phase == .logged, let entry = lastLoggedEntry else { return }
         do {
             try dataStore.commitScannedMeals([entry], undo: true)
-            if let water = loggedWaterMillilitres {
-                dataStore.logWater(fluidOunces: -LifestyleDataLogic.fluidOunces(millilitres: water), date: entry.date)
-                loggedWaterMillilitres = nil
-            }
             if let barcode = loggedHistoryBarcode {
                 let previous = historyWriteTask
                 historyWriteTask = Task {
