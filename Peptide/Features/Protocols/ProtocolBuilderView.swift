@@ -26,6 +26,9 @@ struct ProtocolBuilderView: View {
     @State private var peptideOverrides: [UUID: ProtocolSchedule] = [:]
     @State private var editingOverridePeptide: Peptide?
     @State private var appendTargetProtocolId: UUID?
+    /// The library template this protocol was started from, so the saved
+    /// protocol keeps its link and attribution like a library fork.
+    @State private var templateSource: CommunityStack?
     @State private var isShowingAppendPicker = false
     /// Stable identity for the live-preview `PeptideProtocol`. Computed once
     /// per builder lifecycle so SwiftUI doesn't see a fresh id on every
@@ -196,9 +199,9 @@ struct ProtocolBuilderView: View {
             startDate: editingProtocol?.startDate ?? previewDate,
             status: .active,
             notes: notes,
-            authorName: editingProtocol?.authorName ?? attributionName,
-            authorHandle: editingProtocol?.authorHandle,
-            forkedFromStackId: editingProtocol?.forkedFromStackId,
+            authorName: editingProtocol?.authorName ?? templateSource?.authorName ?? attributionName,
+            authorHandle: editingProtocol?.authorHandle ?? templateSource?.authorHandle,
+            forkedFromStackId: editingProtocol?.forkedFromStackId ?? templateSource?.id,
             createdAt: editingProtocol?.createdAt ?? previewDate
         )
     }
@@ -454,6 +457,7 @@ struct ProtocolBuilderView: View {
     /// a saved copy behind a builder that can still create a second one.
     private func applyTemplate(_ stack: CommunityStack) {
         hydrate(from: CommunityStackService.shared.forkToProtocol(stack))
+        templateSource = stack
         currentStep = 0
         navigationPath = NavigationPath()
     }
@@ -802,7 +806,9 @@ struct ProtocolBuilderView: View {
             startDate: Date(),
             status: .active,
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-            authorName: attributionName,
+            authorName: templateSource?.authorName ?? attributionName,
+            authorHandle: templateSource?.authorHandle,
+            forkedFromStackId: templateSource?.id,
             createdAt: Date()
         )
 

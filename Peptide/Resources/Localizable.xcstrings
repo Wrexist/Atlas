@@ -7006,6 +7006,16 @@
         }
       }
     },
+    "Pick at least one day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj minst en dag"
+          }
+        }
+      }
+    },
     "Pick for me": {
       "localizations": {
         "sv": {
