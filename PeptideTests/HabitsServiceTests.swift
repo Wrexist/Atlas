@@ -459,4 +459,21 @@ final class HabitsServiceTests: XCTestCase {
         XCTAssertLessThan(Date().timeIntervalSince(start), 0.5)
         XCTAssertEqual(summary.bestStreak, 1000)
     }
+
+    // MARK: - Schedule label (C244)
+
+    func test_mediumName_tuesdayAndThursday_areDistinct() {
+        var english = Calendar(identifier: .gregorian)
+        english.locale = Locale(identifier: "en_US")
+        english.timeZone = TimeZone(identifier: "UTC")!
+        XCTAssertEqual(HabitWeekday.tuesday.mediumName(calendar: english), "Tue")
+        XCTAssertEqual(HabitWeekday.thursday.mediumName(calendar: english), "Thu")
+    }
+
+    func test_displayName_tuesdayThursday_listsDistinguishableDays() {
+        let label = HabitSchedule.weekdays([.thursday, .tuesday]).displayName
+        let parts = label.components(separatedBy: ", ")
+        XCTAssertEqual(parts.count, 2)
+        XCTAssertNotEqual(parts[0], parts[1], "Tue/Thu must not both read 'T'")
+    }
 }
