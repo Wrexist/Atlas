@@ -533,14 +533,17 @@ struct PeptideApp: App {
     }
 
     /// One-shot travel detection on every transition to `.active`.
-    /// Reads the user's last-known zone from `dataStore.profile`,
+    /// Reads the zone this device last acknowledged (seeded from
+    /// `dataStore.profile`),
     /// hands it to `TimezoneChangeDetector`, and sets
     /// `travelChange` (which drives the prompt sheet) only on a
     /// real crossing. On a fresh install (no previous identifier)
     /// we silently record the current zone so the next launch has
     /// a baseline to compare against.
     private func detectTimezoneChange() {
-        let stored = dataStore.profile.lastKnownTimezoneIdentifier
+        let stored = TravelModeLogic.acknowledgedTimezone(
+            seededFrom: dataStore.profile.lastKnownTimezoneIdentifier
+        )
         if stored == nil {
             dataStore.acknowledgeTimezone(TimeZone.current.identifier)
             return
