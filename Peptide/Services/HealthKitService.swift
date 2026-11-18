@@ -512,6 +512,7 @@ final class HealthKitService {
             id: workout.uuid,
             activity: CardioActivity(workout.workoutActivityType),
             start: workout.startDate,
+            end: workout.endDate,
             duration: workout.duration,
             distanceMeters: distance,
             activeKilocalories: energy,

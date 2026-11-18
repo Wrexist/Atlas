@@ -27,6 +27,7 @@ final class CardioWorkoutEngineTests: XCTestCase {
             id: UUID(),
             activity: .running,
             start: start,
+            end: start.addingTimeInterval(minutes * 60),
             duration: minutes * 60,
             distanceMeters: meters,
             activeKilocalories: kcal,
@@ -100,6 +101,20 @@ final class CardioWorkoutEngineTests: XCTestCase {
         XCTAssertEqual(session.finishedAt, watch.end)
         XCTAssertEqual(session.name, CardioActivity.strength.name)
         XCTAssertTrue(session.exercises.isEmpty)
+    }
+
+    func test_pausedHealthWorkout_loggedSessionEndsAtHealthsEndDate() {
+        let start = october(7, 10)
+        let paused = ImportedCardioWorkout(
+            id: UUID(), activity: .strength, start: start, end: start.addingTimeInterval(3_600),
+            duration: 3_000, distanceMeters: nil, activeKilocalories: nil, averageHeartRate: nil,
+            sourceName: "Apple Watch"
+        )
+
+        let session = CardioWorkoutEngine.session(loggingExercisesFor: paused)
+
+        XCTAssertEqual(session.finishedAt, start.addingTimeInterval(3_600),
+                       "Ten paused minutes still pass on the clock")
     }
 
     func test_untypedHealthWorkout_logsAnUnnamedSession() {
