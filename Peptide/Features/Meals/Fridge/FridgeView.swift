@@ -82,8 +82,7 @@ struct FridgeView: View {
         EmptyStateView(
             icon: "refrigerator",
             title: "Your fridge, kept track of",
-            message: "Scan the fridge or your shopping and Atlas keeps an eye on use-by dates and cooks from what you have.",
-            action: .init(title: "Scan the fridge", icon: "camera.viewfinder") { showScan = true }
+            message: "Scan the fridge or your shopping and Atlas keeps an eye on use-by dates and cooks from what you have."
         )
     }
 
@@ -97,7 +96,9 @@ struct FridgeView: View {
 
     private func summary(_ items: [FridgeItem], now: Date) -> some View {
         let total = items.reduce(0) { $0 + $1.count }
-        let soon = items.filter { FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar).needsUse }.count
+        let soon = items
+            .filter { FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar).needsUse }
+            .reduce(0) { $0 + $1.count }
         return HStack(spacing: Spacing.sm) {
             StatChip(icon: "basket.fill", text: Self.itemCount(total), tint: AppColor.accentLight)
             if soon > 0 {
@@ -241,7 +242,15 @@ struct FridgeView: View {
 
     @ViewBuilder
     private func sections(_ items: [FridgeItem], products: [UUID: FridgeProduct], now: Date) -> some View {
-        let soon = items.filter { FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar).needsUse }
+        let needsUse = items.filter { FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar).needsUse }
+        let expired = needsUse.filter {
+            if case .expired = FridgeEngine.freshness($0.expiresOn, now: now, calendar: calendar) { return true }
+            return false
+        }
+        let soon = needsUse.filter { item in !expired.contains { $0.id == item.id } }
+        if !expired.isEmpty {
+            itemSection(eyebrow: "Past use-by", title: "Check or throw out", items: expired, products: products, now: now)
+        }
         if !soon.isEmpty {
             itemSection(eyebrow: "Use soon", title: "About to go off", items: soon, products: products, now: now)
         }
@@ -358,10 +367,13 @@ struct FridgeView: View {
 
     /// Back in, with a use-by date from how long it kept last time.
     private func quickAdd(_ product: FridgeProduct) {
-        let days = product.shelfDays ?? FridgeEngine.defaultShelfDays(place: product.place, pantryKey: product.pantryKey)
+        let days = product.shelfLife(in: product.place)
+            ?? FridgeEngine.defaultShelfDays(place: product.place, pantryKey: product.pantryKey)
+        let expiresOn = FridgeEngine.expiry(from: .now, shelfDays: days, calendar: calendar)
         AppAnimation.with(AppAnimation.springSnappy) {
-            store.add(product, expiresOn: FridgeEngine.expiry(from: .now, shelfDays: days, calendar: calendar))
+            store.add(product, expiresOn: expiresOn)
         }
+        if expiresOn != nil { Task { await store.askForRemindersIfNeeded() } }
         Haptics.success()
         show("\(product.name) put in")
     }

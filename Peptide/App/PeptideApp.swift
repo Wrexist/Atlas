@@ -133,6 +133,8 @@ struct PeptideApp: App {
                 Task { @MainActor in
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
                     await dataStore.rescheduleHabitReminders()
+                    await FridgeStore.shared.reconcileReminders()
+                    await WeeklyPrepStore.shared.reconcileReminders()
                     backgroundTask.end()
                 }
             }
@@ -200,6 +202,11 @@ struct PeptideApp: App {
                         isPro: StoreService.shared.isProUser
                     )
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
+                    // Each keeps one reminder, for the soonest day: once it
+                    // fires, the next day's is only scheduled from here.
+                    // Also picks up a permission granted later in Settings.
+                    await FridgeStore.shared.reconcileReminders()
+                    await WeeklyPrepStore.shared.reconcileReminders()
                 }
                 detectTimezoneChange()
                 maybePresentWhatsNewTour()

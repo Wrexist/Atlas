@@ -150,9 +150,14 @@ final class WeeklyPrepStore {
             !WeeklyPrepEngine.pruned([$0.value], recipes: recipes, now: now, calendar: calendar).isEmpty
         }
         persist()
-        let scheduledBoxes = boxes
-        let scheduledRecipes = recipes
-        Task { await PrepBoxReminderScheduler.reconcile(boxes: scheduledBoxes, recipes: scheduledRecipes) }
+        Task { await reconcileReminders() }
+    }
+
+    /// Rolls the eat-by reminder forward from the boxes there are now.
+    /// Called on every change and whenever the app comes forward or
+    /// leaves, since the one pending reminder covers only the soonest day.
+    func reconcileReminders() async {
+        await PrepBoxReminderScheduler.reconcile(boxes: boxes, recipes: recipes)
     }
 
     // MARK: - Storage

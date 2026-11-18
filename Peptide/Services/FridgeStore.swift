@@ -14,6 +14,8 @@ final class FridgeStore {
     private struct Contents: Codable {
         var products: [FridgeProduct] = []
         var items: [FridgeItem] = []
+        /// Nil in files saved while use-by days were stored at midnight.
+        var daysAtNoon: Bool?
     }
 
     private(set) var products: [FridgeProduct] = []
@@ -24,12 +26,17 @@ final class FridgeStore {
 
     @ObservationIgnored private let directory: URL?
     @ObservationIgnored private let photos = NSCache<NSString, UIImage>()
+    @ObservationIgnored private var reminderTask: Task<Void, Never>?
 
     init(directory: URL? = FridgeStore.defaultDirectory) {
         self.directory = directory
         let contents = load()
         products = contents.products
-        items = contents.items
+        items = contents.daysAtNoon == true ? contents.items : contents.items.map { item in
+            var item = item
+            item.expiresOn = item.expiresOn.map { FridgeEngine.migratedDay($0, calendar: .current) }
+            return item
+        }
     }
 
     nonisolated static var defaultDirectory: URL? {
@@ -65,6 +72,15 @@ final class FridgeStore {
 
     // MARK: - Adding
 
+    /// One product going in, for `add(_:)`.
+    struct Addition {
+        var product: FridgeProduct
+        var photo: UIImage?
+        var count = 1
+        var place: FridgePlace?
+        var expiresOn: Date?
+    }
+
     /// Puts `count` of a product in, saving the product (or refreshing the
     /// saved one it matches) along the way. The same product with the same
     /// use-by day in the same place stacks onto one row.
@@ -78,25 +94,50 @@ final class FridgeStore {
         now: Date = .now,
         calendar: Calendar = .current
     ) -> FridgeItem {
-        let saved = save(product, photo: photo, expiresOn: expiresOn, now: now, calendar: calendar)
-        let place = place ?? saved.place
-        let day = expiresOn.map(calendar.startOfDay)
-        if let index = items.firstIndex(where: {
-            $0.productID == saved.id && $0.place == place && $0.expiresOn.map(calendar.startOfDay) == day
-        }) {
-            items[index].count += max(1, count)
-            changed()
-            return items[index]
-        }
-        let item = FridgeItem(productID: saved.id, count: max(1, count), place: place, expiresOn: day, addedAt: now)
-        items.append(item)
+        let addition = Addition(product: product, photo: photo, count: count, place: place, expiresOn: expiresOn)
+        let item = insert(addition, now: now, calendar: calendar)
         changed()
         return item
     }
 
+    /// Puts a whole scan in with one write to disk and one reminder pass.
+    func add(_ additions: [Addition], now: Date = .now, calendar: Calendar = .current) {
+        guard !additions.isEmpty else { return }
+        for addition in additions {
+            insert(addition, now: now, calendar: calendar)
+        }
+        changed()
+    }
+
+    @discardableResult
+    private func insert(_ addition: Addition, now: Date, calendar: Calendar) -> FridgeItem {
+        let place = addition.place ?? addition.product.place
+        let saved = save(addition.product, photo: addition.photo, place: place, expiresOn: addition.expiresOn, now: now, calendar: calendar)
+        let day = addition.expiresOn.map { FridgeEngine.storedDay($0, calendar: calendar) }
+        let count = max(1, addition.count)
+        if let index = items.firstIndex(where: {
+            $0.productID == saved.id && $0.place == place
+                && $0.expiresOn.map(calendar.startOfDay) == day.map(calendar.startOfDay)
+        }) {
+            items[index].count += count
+            return items[index]
+        }
+        let item = FridgeItem(productID: saved.id, count: count, place: place, expiresOn: day, addedAt: now)
+        items.append(item)
+        return item
+    }
+
     /// Stores the product under the saved one it matches (same id, barcode,
-    /// or name and brand), learning how long it keeps from `expiresOn`.
-    private func save(_ product: FridgeProduct, photo: UIImage?, expiresOn: Date?, now: Date, calendar: Calendar) -> FridgeProduct {
+    /// or name and brand), learning how long it keeps in `place` from
+    /// `expiresOn`.
+    private func save(
+        _ product: FridgeProduct,
+        photo: UIImage?,
+        place: FridgePlace,
+        expiresOn: Date?,
+        now: Date,
+        calendar: Calendar
+    ) -> FridgeProduct {
         var product = product
         if let existing = products.first(where: { Self.isSame($0, product) }) {
             product.id = existing.id
@@ -105,13 +146,15 @@ final class FridgeStore {
             product.per100g = product.per100g ?? existing.per100g
             product.pantryKey = product.pantryKey ?? existing.pantryKey
             product.shelfDays = product.shelfDays ?? existing.shelfDays
+            product.shelfDaysByPlace = (existing.shelfDaysByPlace ?? [:])
+                .merging(product.shelfDaysByPlace ?? [:]) { _, new in new }
             product.amount = product.amount ?? existing.amount
         }
         product.lastAddedAt = now
         if let expiresOn,
            let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: expiresOn)).day,
            days > 0 {
-            product.shelfDays = days
+            product.learnShelfLife(days, in: place)
         }
         if let photo, writePhoto(photo, for: product.id) { product.hasPhoto = true }
         if let index = products.firstIndex(where: { $0.id == product.id }) {
@@ -132,8 +175,10 @@ final class FridgeStore {
 
     // MARK: - Changing
 
-    func update(_ item: FridgeItem) {
+    func update(_ item: FridgeItem, calendar: Calendar = .current) {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        var item = item
+        item.expiresOn = item.expiresOn.map { FridgeEngine.storedDay($0, calendar: calendar) }
         items[index] = item
         changed()
     }
@@ -176,15 +221,50 @@ final class FridgeStore {
         products = []
         items = []
         photos.removeAllObjects()
+        reminderTask?.cancel()
         if let directory { try? FileManager.default.removeItem(at: directory) }
         FridgeReminderScheduler.cancel()
     }
 
     private func changed() {
         persist()
+        scheduleReminders()
+    }
+
+    // MARK: - Reminders
+
+    /// Rolls the use-by reminder forward from what is in now. Called on
+    /// every change and whenever the app comes forward or leaves, since the
+    /// one pending reminder covers only the soonest day.
+    func reconcileReminders() async {
+        await scheduleReminders().value
+    }
+
+    /// Asks for notifications the first time a dated item goes in, and
+    /// schedules on a yes; a no keeps the coloured badges doing the reminding.
+    func askForRemindersIfNeeded() async {
+        guard items.contains(where: { $0.expiresOn != nil }),
+              await NotificationService.shared.checkAuthorization() == .notDetermined,
+              await NotificationService.shared.requestAuthorization() else { return }
+        await reconcileReminders()
+    }
+
+    /// One pass at a time, newest wins: each waits for the one before, and
+    /// a pass replaced before it starts is skipped, so an older snapshot can
+    /// never land after a newer one.
+    @discardableResult
+    private func scheduleReminders() -> Task<Void, Never> {
+        let previous = reminderTask
+        previous?.cancel()
         let items = items
         let products = productsByID
-        Task { await FridgeReminderScheduler.reconcile(items: items, products: products) }
+        let task = Task {
+            await previous?.value
+            guard !Task.isCancelled else { return }
+            await FridgeReminderScheduler.reconcile(items: items, products: products)
+        }
+        reminderTask = task
+        return task
     }
 
     // MARK: - Disk
@@ -208,7 +288,7 @@ final class FridgeStore {
     private func persist() {
         guard let url = contentsURL, ensureDirectory() else { return }
         do {
-            try JSONEncoder().encode(Contents(products: products, items: items))
+            try JSONEncoder().encode(Contents(products: products, items: items, daysAtNoon: true))
                 .write(to: url, options: [.atomic, .completeFileProtection])
         } catch {
             AppLog.persistence.error("Fridge not saved: \(error.localizedDescription, privacy: .public)")

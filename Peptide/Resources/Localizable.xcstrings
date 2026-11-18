@@ -6210,6 +6210,16 @@
         }
       }
     },
+    "Check or throw out": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kolla eller släng"
+          }
+        }
+      }
+    },
     "Connect Apple Health to fill this in": {
       "localizations": {
         "sv": {
@@ -6307,6 +6317,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kärnsömn"
+          }
+        }
+      }
+    },
+    "Couldn't reach the scanner. Check your connection and try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte nå skannern. Kontrollera anslutningen och försök igen."
           }
         }
       }
@@ -6812,6 +6832,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Originalrapport"
+          }
+        }
+      }
+    },
+    "Past use-by": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förbi bäst före"
+          }
+        }
+      }
+    },
+    "Something went wrong reading the photo. Try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Något gick fel när fotot lästes. Försök igen."
           }
         }
       }
@@ -47355,10 +47395,40 @@
     },
     "One photo of the whole shelf or bag. %lld free scans left this week.": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "One photo of the whole shelf or bag. %lld free scan left this week."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "One photo of the whole shelf or bag. %lld free scans left this week."
+                }
+              }
+            }
+          }
+        },
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ett foto av hela hyllan eller kassen. %lld gratis skanningar kvar den här veckan."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ett foto av hela hyllan eller kassen. %lld gratis skanning kvar den här veckan."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ett foto av hela hyllan eller kassen. %lld gratis skanningar kvar den här veckan."
+                }
+              }
+            }
           }
         }
       }
@@ -47589,16 +47659,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Skanna kylen eller dina inköp så håller Atlas koll på datumen och lagar mat av det du har."
-          }
-        }
-      }
-    },
-    "Scan the fridge": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Skanna kylen"
           }
         }
       }

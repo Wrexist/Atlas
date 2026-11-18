@@ -177,4 +177,31 @@ final class FridgeEngineTests: XCTestCase {
         let items = [item(milk, expiresOn: date(day: 28, hour: 0))]
         XCTAssertNil(FridgeEngine.nextReminder(for: items, now: date(), calendar: calendar))
     }
+
+    func test_storedDay_survivesATimeZoneChangeOfElevenHours() {
+        var stockholm = Calendar(identifier: .gregorian)
+        stockholm.timeZone = TimeZone(identifier: "Europe/Stockholm")!
+        var newYork = Calendar(identifier: .gregorian)
+        newYork.timeZone = TimeZone(identifier: "America/New_York")!
+        let useBy = stockholm.date(from: DateComponents(year: 2026, month: 11, day: 5))!
+
+        let stored = FridgeEngine.storedDay(useBy, calendar: stockholm)
+
+        XCTAssertEqual(newYork.component(.day, from: stored), 5)
+        XCTAssertEqual(stockholm.component(.day, from: stored), 5)
+    }
+
+    func test_migratedDay_midnightSavedEastAndReadWest_keepsItsDay() {
+        var stockholm = Calendar(identifier: .gregorian)
+        stockholm.timeZone = TimeZone(identifier: "Europe/Stockholm")!
+        var london = Calendar(identifier: .gregorian)
+        london.timeZone = TimeZone(identifier: "Europe/London")!
+        let savedMidnight = stockholm.date(from: DateComponents(year: 2026, month: 11, day: 5))!
+
+        let migrated = FridgeEngine.migratedDay(savedMidnight, calendar: london)
+
+        XCTAssertEqual(london.component(.day, from: migrated), 5)
+        XCTAssertEqual(london.component(.hour, from: migrated), 12)
+    }
 }
+

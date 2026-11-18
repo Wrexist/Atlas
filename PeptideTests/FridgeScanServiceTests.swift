@@ -9,6 +9,10 @@ final class FridgeScanServiceTests: XCTestCase {
         return calendar
     }
 
+    private var now: Date {
+        calendar.date(from: DateComponents(year: 2026, month: 11, day: 1, hour: 12))!
+    }
+
     private func response(_ items: String, isGroceries: Bool = true) -> Data {
         Data("""
         {"result": {"is_groceries": \(isGroceries), "items": [\(items)]}, "model": "claude-opus-5-5"}
@@ -22,7 +26,7 @@ final class FridgeScanServiceTests: XCTestCase {
     """
 
     func test_parse_readsEveryField() throws {
-        let found = try FridgeScanService.parse(response(milk), pantryKeys: ["milk"], calendar: calendar)
+        let found = try FridgeScanService.parse(response(milk), pantryKeys: ["milk"], calendar: calendar, now: now)
 
         XCTAssertEqual(found.count, 1)
         let item = try XCTUnwrap(found.first)
@@ -45,7 +49,7 @@ final class FridgeScanServiceTests: XCTestCase {
          "printed_expiry": "soon", "pantry_key": "kombucha", "box": {"x": 0.9, "y": 0.9, "width": 0.5, "height": 0.5},
          "kcal_100g": null, "protein_100g": null, "carbs_100g": null, "fat_100g": null}
         """
-        let item = try XCTUnwrap(FridgeScanService.parse(response(odd), pantryKeys: ["milk"], calendar: calendar).first)
+        let item = try XCTUnwrap(FridgeScanService.parse(response(odd), pantryKeys: ["milk"], calendar: calendar, now: now).first)
 
         XCTAssertNil(item.pantryKey)
         XCTAssertEqual(item.count, 1)
@@ -58,7 +62,7 @@ final class FridgeScanServiceTests: XCTestCase {
 
     func test_parse_photoWithoutGroceries_throwsNoFood() throws {
         do {
-            _ = try FridgeScanService.parse(response("", isGroceries: false), pantryKeys: [], calendar: calendar)
+            _ = try FridgeScanService.parse(response("", isGroceries: false), pantryKeys: [], calendar: calendar, now: now)
             XCTFail("expected noFoodDetected")
         } catch MealScannerService.ScanError.noFoodDetected {
             // Expected.
@@ -78,8 +82,23 @@ final class FridgeScanServiceTests: XCTestCase {
         buddhist.timeZone = TimeZone(identifier: "UTC")!
 
         XCTAssertEqual(
-            FridgeScanService.day(from: "2026-11-03", calendar: buddhist),
+            FridgeScanService.day(from: "2026-11-03", calendar: buddhist, now: now),
             calendar.date(from: DateComponents(year: 2026, month: 11, day: 3))
         )
+    }
+
+    func test_day_monthOrDayOutOfRange_isNoDate() {
+        XCTAssertNil(FridgeScanService.day(from: "2026-13-40", calendar: calendar, now: now))
+        XCTAssertNil(FridgeScanService.day(from: "2026-02-30", calendar: calendar, now: now))
+    }
+
+    func test_day_twoDigitYear_isNoDate() {
+        XCTAssertNil(FridgeScanService.day(from: "26-11-17", calendar: calendar, now: now))
+    }
+
+    func test_day_farFromToday_isNoDate() {
+        XCTAssertNil(FridgeScanService.day(from: "2031-11-03", calendar: calendar, now: now))
+        XCTAssertNil(FridgeScanService.day(from: "2024-11-03", calendar: calendar, now: now))
+        XCTAssertNotNil(FridgeScanService.day(from: "2027-06-01", calendar: calendar, now: now))
     }
 }
