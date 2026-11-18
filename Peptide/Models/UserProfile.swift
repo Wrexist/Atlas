@@ -344,9 +344,9 @@ struct DailyConsumption: Codable, Hashable, Sendable {
     /// it existed decode unchanged and it's omitted from the JSON when nil.
     var waterOzRemainder: Double?
 
-    static func empty(on date: Date) -> DailyConsumption {
+    static func empty(on date: Date, calendar: Calendar = .current) -> DailyConsumption {
         DailyConsumption(
-            date: Calendar.current.startOfDay(for: date),
+            date: calendar.startOfDay(for: date),
             caloriesKcal: 0,
             proteinG: 0,
             carbsG: 0,

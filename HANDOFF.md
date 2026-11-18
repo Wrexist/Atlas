@@ -2,6 +2,17 @@
 
 ## Current in-flight state
 
+### Drink water on meal entries (branch `claude/audit3-meals-diary`)
+
+A hydrating drink now carries its water credit on
+`MealEntry.waterMillilitres`, so deleting, relogging or re-portioning
+it moves the day's water with it. Known gap, accepted: drinks logged
+before this change have no `waterMillilitres` (their water went in as a
+separate `logWater`), so deleting or re-portioning one of those still
+leaves its water on the day. A compacted entry (`components == nil`)
+keeps its credit unchanged on edit, because there is no gram total to
+rescale against.
+
 ### Crash reports to Sentry (branch `feature/crash-reports`)
 
 `DiagnosticsService` hands every MetricKit diagnostic payload to
