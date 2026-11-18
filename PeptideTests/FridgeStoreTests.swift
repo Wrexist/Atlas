@@ -137,5 +137,31 @@ final class FridgeStoreTests: XCTestCase {
 
         XCTAssertEqual(item.expiresOn, date(day: 31, hour: 12))
     }
-}
 
+    func test_movingALegacyProductWithADate_keepsItsShelfLifeInTheOldPlace() {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Mjölk", place: .fridge, shelfDays: 7), now: date(day: 20), calendar: calendar)
+        var moved = store.products[0]
+        moved.place = .freezer
+
+        store.add(moved, place: .freezer, expiresOn: date(day: 31, hour: 0), now: date(), calendar: calendar)
+
+        let product = store.products.first
+        XCTAssertEqual(store.products.count, 1)
+        XCTAssertEqual(product?.shelfLife(in: .fridge), 7)
+        XCTAssertEqual(product?.shelfLife(in: .freezer), 2)
+    }
+
+    func test_movingALegacyProductWithoutADate_keepsItsShelfLifeOutOfTheNewPlace() {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Mjölk", place: .fridge, shelfDays: 7), now: date(day: 20), calendar: calendar)
+        var moved = store.products[0]
+        moved.place = .freezer
+
+        store.add(moved, place: .freezer, now: date(), calendar: calendar)
+
+        let product = store.products.first
+        XCTAssertEqual(product?.shelfLife(in: .fridge), 7)
+        XCTAssertNil(product?.shelfLife(in: .freezer))
+    }
+}

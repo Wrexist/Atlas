@@ -146,9 +146,9 @@ final class FridgeStore {
             product.imageURL = product.imageURL ?? existing.imageURL
             product.per100g = product.per100g ?? existing.per100g
             product.pantryKey = product.pantryKey ?? existing.pantryKey
-            product.shelfDays = product.shelfDays ?? existing.shelfDays
-            product.shelfDaysByPlace = (existing.shelfDaysByPlace ?? [:])
+            product.shelfDaysByPlace = Self.shelfDaysByPlace(of: existing)
                 .merging(product.shelfDaysByPlace ?? [:]) { _, new in new }
+            product.shelfDays = nil
             product.amount = product.amount ?? existing.amount
         }
         product.lastAddedAt = now
@@ -164,6 +164,15 @@ final class FridgeStore {
             products.append(product)
         }
         return product
+    }
+
+    /// The saved product's shelf lives per place, with one saved before
+    /// they were kept per place filed under the place it was saved in, not
+    /// the place it is being moved to.
+    private static func shelfDaysByPlace(of existing: FridgeProduct) -> [FridgePlace: Int] {
+        var byPlace = existing.shelfDaysByPlace ?? [:]
+        if let legacy = existing.shelfDays, byPlace[existing.place] == nil { byPlace[existing.place] = legacy }
+        return byPlace
     }
 
     static func isSame(_ lhs: FridgeProduct, _ rhs: FridgeProduct) -> Bool {
