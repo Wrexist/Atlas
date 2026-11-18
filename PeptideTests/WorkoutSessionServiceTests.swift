@@ -505,6 +505,7 @@ final class WorkoutSessionServiceTests: XCTestCase {
             RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 3, targetReps: 8),
         ]))
         XCTAssertEqual(service.activeAdjustment, .deload)
+        XCTAssertEqual(session.adjustment, .deload)
         XCTAssertEqual(session.exercises[0].sets.map(\.weightKg), [75, 75, 75])
         XCTAssertEqual(session.exercises[0].sets.map(\.reps), [5, 5, 5])
 
@@ -516,10 +517,40 @@ final class WorkoutSessionServiceTests: XCTestCase {
 
         let sets = try XCTUnwrap(service.activeSession?.exercises.first?.sets)
         XCTAssertNil(service.activeAdjustment)
+        XCTAssertNil(service.activeSession?.adjustment, "The session records that it went back to normal")
         XCTAssertEqual(sets[0].weightKg, 75, "A logged set keeps what was lifted")
         XCTAssertEqual(sets[0].reps, 5)
         XCTAssertEqual(sets.dropFirst().map(\.weightKg), [82.5, 82.5])
         XCTAssertEqual(sets.dropFirst().map(\.reps), [8, 8])
+    }
+
+    func test_sessionAfterADeloadWeek_progressesFromTheLastNormalSession() throws {
+        let saved = DataStore.current
+        DataStore.current = nil
+        defer { DataStore.current = saved }
+        let calendar = Calendar.current
+        let thisWeek = try XCTUnwrap(calendar.dateInterval(of: .weekOfYear, for: Date())).start
+        func logged(weeksAgo: Int, kg: Double, reps: Int, adjustment: ProgressionEngine.Adjustment?) throws {
+            let day = try XCTUnwrap(calendar.date(byAdding: .day, value: 1 - 7 * weeksAgo, to: thisWeek))
+            var session = WorkoutSession(startedAt: day, finishedAt: day.addingTimeInterval(3600), exercises: [
+                WorkoutExerciseEntry(exerciseID: bench().id, index: 0, sets: [
+                    SetEntry(index: 1, weightKg: kg, reps: reps, completed: true),
+                ]),
+            ])
+            session.adjustment = adjustment
+            repo.upsertWorkoutSession(session)
+        }
+        try logged(weeksAgo: 2, kg: 100, reps: 8, adjustment: nil)
+        try logged(weeksAgo: 1, kg: 90, reps: 5, adjustment: .deload)
+
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 2, targetReps: 8),
+        ]))
+
+        XCTAssertNil(service.activeAdjustment, "A deload just taken isn't due again")
+        XCTAssertEqual(session.exercises[0].sets.map(\.weightKg), [102.5, 102.5])
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [90],
+                       "The previous hint still shows what was really lifted")
     }
 
     func test_plannedSetTwoRepsShort_dropsTheRemainingSetsOneStep() throws {

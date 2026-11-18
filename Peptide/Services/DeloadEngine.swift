@@ -26,12 +26,15 @@ enum DeloadEngine {
         let finished = history
             .filter { $0.finishedAt != nil && $0.dayAnchor < thisWeek.start }
             .sorted { $0.dayAnchor < $1.dayAnchor }
+        guard let lookbackStart = calendar.date(byAdding: .weekOfYear, value: -stallLookbackWeeks, to: thisWeek.start)
+        else { return nil }
+        let recent = finished.filter { $0.dayAnchor >= lookbackStart }
+        // A deload just taken needs time to pay off before another is due.
+        guard !recent.contains(where: { $0.adjustment == .deload }) else { return nil }
         if risingVolumeWeeks(finished, before: thisWeek.start, calendar: calendar) >= risingWeeks {
             return .risingVolume
         }
-        guard let lookbackStart = calendar.date(byAdding: .weekOfYear, value: -stallLookbackWeeks, to: thisWeek.start)
-        else { return nil }
-        let (stalled, tracked) = stalledLifts(finished.filter { $0.dayAnchor >= lookbackStart })
+        let (stalled, tracked) = stalledLifts(recent)
         guard stalled >= stalledLiftCount, Double(stalled) >= Double(tracked) * stalledShare else { return nil }
         return .stalledLifts
     }
@@ -55,9 +58,11 @@ enum DeloadEngine {
 
     /// How many loaded lifts with enough recent sessions have stalled, out of
     /// how many had enough sessions to judge. `sessions` run oldest first.
+    /// Sessions run under a deload or low-recovery adjustment are light on
+    /// purpose, so they say nothing about a stall.
     static func stalledLifts(_ sessions: [WorkoutSession]) -> (stalled: Int, tracked: Int) {
         var topSets: [String: [SetEntry]] = [:]
-        for session in sessions {
+        for session in sessions where session.adjustment == nil {
             for exerciseID in Set(session.exercises.map(\.exerciseID)) {
                 let working = session.exercises
                     .filter { $0.exerciseID == exerciseID }

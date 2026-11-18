@@ -155,7 +155,7 @@ final class WorkoutSessionService {
             routineID: linksRoutine ? routine?.id : nil,
             startedAt: now,
             exercises: exercises,
-            focus: WorkoutFocusState(selectedEntryID: exercises.first?.id)
+            focus: WorkoutFocusState(selectedEntryID: exercises.first?.id, adjustment: proposedAdjustment)
         )
         activeSession = session
         seedRoutine = routine.map { SeedRoutine(sessionID: session.id, routine: $0) }
@@ -577,17 +577,40 @@ final class WorkoutSessionService {
         return older
     }
 
+    /// The completed sets progression builds on: those of the newest prior
+    /// session that ran at normal suggestions, so a deload week's or a
+    /// low-recovery day's lighter loads don't become the next target. Falls
+    /// back to the newest session when every one that logged the lift was
+    /// adjusted. Memoised alongside `previousSessionSets`.
+    func progressionBaselineSets(forExerciseID id: String) -> [SetEntry] {
+        _ = previousSetsByExercise()
+        if let sets = baselineSetCache?[id] { return sets }
+        let older = SwiftDataRepository.shared.loadFinishedWorkoutSessions(touching: [id])
+            .reversed()
+            .lazy
+            .filter { $0.adjustment == nil }
+            .map { Self.completedSets(of: id, in: $0) }
+            .first { !$0.isEmpty }
+        let sets = older ?? previousSessionSets(forExerciseID: id)
+        baselineSetCache?[id] = sets
+        return sets
+    }
+
     private func previousSetsByExercise() -> [String: [SetEntry]] {
         if let cached = previousSetCache { return cached }
         var byExercise: [String: [SetEntry]] = [:]
+        var baseline: [String: [SetEntry]] = [:]
         // Newest first, so each exercise keeps its most recent session.
         for session in SwiftDataRepository.shared.loadWorkoutSessions() where session.finishedAt != nil {
-            for exerciseID in Set(session.exercises.map(\.exerciseID)) where byExercise[exerciseID] == nil {
+            for exerciseID in Set(session.exercises.map(\.exerciseID)) {
                 let completed = Self.completedSets(of: exerciseID, in: session)
-                if !completed.isEmpty { byExercise[exerciseID] = completed }
+                guard !completed.isEmpty else { continue }
+                if byExercise[exerciseID] == nil { byExercise[exerciseID] = completed }
+                if session.adjustment == nil, baseline[exerciseID] == nil { baseline[exerciseID] = completed }
             }
         }
         previousSetCache = byExercise
+        baselineSetCache = baseline
         return byExercise
     }
 
@@ -642,7 +665,7 @@ final class WorkoutSessionService {
         let exercise = ExerciseLibrary.shared.lookup(id: id)
         let increment = incrementKg(forExerciseID: id)
         guard let suggestion = ProgressionEngine.suggestion(
-            previous: previousSessionSets(forExerciseID: id),
+            previous: progressionBaselineSets(forExerciseID: id),
             repRange: ProgressionEngine.repRange(targetReps: target, mechanic: exercise?.mechanic),
             incrementKg: increment
         ) else { return nil }
@@ -771,23 +794,22 @@ final class WorkoutSessionService {
 
     /// Moves sets still at the old suggestion to the new one when the
     /// adjustment changes, the way starting the workout seeded them.
+    /// The new adjustment is recorded on the session either way, so history
+    /// knows which workouts were deliberately light.
     private func reseedUntouchedSets(from old: ProgressionEngine.Adjustment?) {
         let new = activeAdjustment
-        guard old != new, autoProgression, var session = activeSession else { return }
+        guard old != new, var session = activeSession else { return }
+        session.adjustment = new
         let routine = activeRoutine
-        var changed = false
-        for idx in session.exercises.indices {
+        for idx in session.exercises.indices where autoProgression {
             let entry = session.exercises[idx]
             let target = targetReps(for: entry, in: routine)
             guard let before = progression(for: entry.exerciseID, targetReps: target, adjustment: old),
                   let after = progression(for: entry.exerciseID, targetReps: target, adjustment: new)
             else { continue }
-            let reseeded = ProgressionEngine.reseed(from: before, to: after, in: entry.sets)
-            guard reseeded != entry.sets else { continue }
-            session.exercises[idx].sets = reseeded
-            changed = true
+            session.exercises[idx].sets = ProgressionEngine.reseed(from: before, to: after, in: entry.sets)
         }
-        if changed { persist(session) }
+        persist(session)
     }
 
     // MARK: - Focus and session clocks
@@ -921,10 +943,14 @@ final class WorkoutSessionService {
     /// and a tracked write there would re-render the reader for no visible
     /// change.
     @ObservationIgnored private var previousSetCache: [String: [SetEntry]]?
+    /// `[exerciseID: sets progression builds on]`, filled with
+    /// `previousSetCache`; see `progressionBaselineSets`.
+    @ObservationIgnored private var baselineSetCache: [String: [SetEntry]]?
 
     /// Called whenever stored history changes under an active workout.
     func invalidatePreviousSetCache() {
         previousSetCache = nil
+        baselineSetCache = nil
     }
 
     private func persist(_ value: WorkoutSession) {

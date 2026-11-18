@@ -110,6 +110,24 @@ final class DeloadEngineTests: XCTestCase {
         XCTAssertEqual(DeloadEngine.stalledLifts(sessions).tracked, 0)
     }
 
+    func test_stalledHistoryFollowedByDeloadWeek_returnsNil() {
+        let lifts = ["bench", "row", "press"]
+        let stalled = [4, 3, 2].map { weeksAgo in
+            workout(weeksAgo: weeksAgo, lifts.map { (id: $0, kg: 60.0, reps: 4 + weeksAgo) })
+        }
+        var deloadWeek = workout(weeksAgo: 1, lifts.map { (id: $0, kg: 54.0, reps: 5) })
+        deloadWeek.adjustment = .deload
+        XCTAssertEqual(DeloadEngine.reason(history: stalled, now: now, calendar: calendar), .stalledLifts)
+        XCTAssertNil(DeloadEngine.reason(history: stalled + [deloadWeek], now: now, calendar: calendar))
+    }
+
+    func test_adjustedSessions_areNotJudgedAsStalls() {
+        var lighterDay = workout(weeksAgo: 1, [("bench", 55, 8)])
+        lighterDay.adjustment = .lowRecovery
+        let sessions = [workout(weeksAgo: 3, [("bench", 60, 8)]), workout(weeksAgo: 2, [("bench", 60, 8)]), lighterDay]
+        XCTAssertEqual(DeloadEngine.stalledLifts(sessions).tracked, 0)
+    }
+
     private var weekStart: Date {
         calendar.dateInterval(of: .weekOfYear, for: now)!.start
     }

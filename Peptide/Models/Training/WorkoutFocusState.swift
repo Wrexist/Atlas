@@ -9,6 +9,10 @@ struct WorkoutFocusState: Codable, Hashable, Sendable {
     var pausedAt: Date?
     var pausedSeconds: TimeInterval = 0
     var rest: WorkoutRestContext?
+    /// What the workout's suggestions were lowered for, as last chosen.
+    /// Kept here, in the session's JSON state, so history can tell a
+    /// deliberately light session from a stall without a new stored column.
+    var adjustment: ProgressionEngine.Adjustment?
 
     mutating func pause(at now: Date) {
         guard pausedAt == nil else { return }
@@ -65,6 +69,18 @@ extension WorkoutSession {
     }
 
     var isPaused: Bool { focus?.pausedAt != nil }
+
+    /// The adjustment this workout's suggestions ran under: nil for a
+    /// normal session, `.deload` or `.lowRecovery` for a deliberately
+    /// lighter one.
+    var adjustment: ProgressionEngine.Adjustment? {
+        get { focus?.adjustment }
+        set {
+            guard newValue != nil || focus != nil else { return }
+            if focus == nil { focus = WorkoutFocusState() }
+            focus?.adjustment = newValue
+        }
+    }
 
     var selectedExercise: WorkoutExerciseEntry? {
         exercises.first { $0.id == focus?.selectedEntryID }
