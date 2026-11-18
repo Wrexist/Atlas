@@ -135,6 +135,21 @@ final class WidgetDataDisplayTests: XCTestCase {
         XCTAssertFalse(payload(totalToday: 3).isRedundant(after: payload(totalToday: 2), calendar: calendar))
     }
 
+    // MARK: - Overdue
+
+    func test_isOverdue_atDoseMinute_isFalse() {
+        XCTAssertFalse(WidgetData.isOverdue(written, at: written))
+    }
+
+    func test_isOverdue_pastTakeNowWindow_isTrue() {
+        XCTAssertFalse(WidgetData.isOverdue(written, at: written.addingTimeInterval(4 * 60)))
+        XCTAssertTrue(WidgetData.isOverdue(written, at: written.addingTimeInterval(5 * 60)))
+    }
+
+    func test_overdueGrace_matchesLiveActivityTakeNowWindow() {
+        XCTAssertEqual(WidgetData.overdueGrace, TimeInterval(DoseWindowAttributes.ContentState.dueNowToleranceMinutes * 60))
+    }
+
     // MARK: - Reload schedule
 
     func test_nextRefresh_midDay_isFifteenMinutesOut() {

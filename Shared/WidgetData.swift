@@ -235,6 +235,17 @@ struct WidgetData: Codable, Equatable, Sendable {
         hasSameContent(as: previous) && calendar.isDate(lastUpdated, inSameDayAs: previous.lastUpdated)
     }
 
+    /// How long past its time an unlogged dose waits before the widgets
+    /// call it overdue: the dose Live Activity's "Take now" window
+    /// (`DoseWindowAttributes.ContentState.dueNowToleranceMinutes`), so
+    /// the two surfaces flip together.
+    static let overdueGrace: TimeInterval = 5 * 60
+
+    /// When an unlogged dose due at `due` turns overdue.
+    static func overdueAt(_ due: Date) -> Date { due.addingTimeInterval(overdueGrace) }
+
+    static func isOverdue(_ due: Date, at now: Date) -> Bool { now >= overdueAt(due) }
+
     /// Weight-unit suffix, mirroring `MeasurementUnit.weightSuffix`.
     /// Deliberately unlocalised: "kg" and "lb" are the symbols in every
     /// locale Atlas ships.
