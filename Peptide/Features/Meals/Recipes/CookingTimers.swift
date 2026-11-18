@@ -14,8 +14,9 @@ import UserNotifications
 final class CookingTimers {
 
     let recipeID: String
-    /// Names the dish on the notification, which may ring with the page closed.
-    let recipeName: String
+    /// Names the dish on the notification, which may ring with the page
+    /// closed. Kept in the app's current language by the recipe page.
+    var recipeName: String
 
     init(recipeID: String, recipeName: String) {
         self.recipeID = recipeID
@@ -33,6 +34,9 @@ final class CookingTimers {
     @ObservationIgnored private var tasks: [Key: Task<Void, Never>] = [:]
 
     func isRunning(_ key: Key) -> Bool { endDates[key] != nil }
+
+    /// Nothing running and nothing rung, so there is nothing to come back to.
+    var isIdle: Bool { endDates.isEmpty && finished.isEmpty }
 
     struct Running: Identifiable, Hashable {
         let key: Key
@@ -117,8 +121,9 @@ final class CookingTimers {
     }
 }
 
-/// One `CookingTimers` per recipe for the whole session, so leaving a
-/// recipe page doesn't drop its running timers.
+/// One `CookingTimers` per recipe while its page is showing or one of its
+/// timers is running or rung, so leaving a recipe page doesn't drop its
+/// running timers and idle ones don't pile up over the session.
 @MainActor
 final class CookingTimerStore {
     static let shared = CookingTimerStore()
@@ -126,9 +131,25 @@ final class CookingTimerStore {
     private var timers: [String: CookingTimers] = [:]
 
     func timers(for recipeID: String, recipeName: String) -> CookingTimers {
-        if let existing = timers[recipeID] { return existing }
-        let created = CookingTimers(recipeID: recipeID, recipeName: recipeName)
-        timers[recipeID] = created
-        return created
+        let entry = timers[recipeID] ?? CookingTimers(recipeID: recipeID, recipeName: recipeName)
+        entry.recipeName = recipeName
+        timers[recipeID] = entry
+        return entry
+    }
+
+    /// Keeps a showing page's timers findable, naming the dish in the
+    /// current language. An idle stand-in made while the page was hidden
+    /// gives way to it.
+    func keep(_ cookingTimers: CookingTimers, recipeName: String) {
+        cookingTimers.recipeName = recipeName
+        if let existing = timers[cookingTimers.recipeID], existing !== cookingTimers, !existing.isIdle { return }
+        timers[cookingTimers.recipeID] = cookingTimers
+    }
+
+    /// Lets a page's timers go once it is off screen with nothing running
+    /// or rung.
+    func release(_ cookingTimers: CookingTimers) {
+        guard timers[cookingTimers.recipeID] === cookingTimers, cookingTimers.isIdle else { return }
+        timers[cookingTimers.recipeID] = nil
     }
 }

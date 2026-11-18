@@ -83,7 +83,12 @@ struct RecipeDetailView: View {
         .toolbarBackground(showsTitle ? .visible : .hidden, for: .navigationBar)
         // Step amounts follow the servings stepper.
         .onChange(of: servings) { rebuildSteps() }
-        .onChange(of: locale) { rebuildSteps() }
+        .onChange(of: locale) {
+            rebuildSteps()
+            timers.recipeName = recipe.displayName(locale: locale)
+        }
+        .onAppear { CookingTimerStore.shared.keep(timers, recipeName: recipe.displayName(locale: locale)) }
+        .onDisappear { CookingTimerStore.shared.release(timers) }
         .fullScreenCover(isPresented: $showsCookingMode) {
             CookingModeView(
                 recipeName: recipe.displayName(locale: locale),
