@@ -1219,7 +1219,7 @@ final class DataStore {
         AdaptiveTDEEEngine.estimate(
             weights: dedupedWeightHistory,
             intake: Array(profile.dailyConsumption.values),
-            formulaTDEE: NutritionMath.formulaTDEE(for: profile.bodyMetrics),
+            formulaTDEE: NutritionMath.formulaTDEE(for: LifestyleDataLogic.currentBodyMetrics(profile, now: now)),
             asOf: now
         )
     }
@@ -1234,7 +1234,7 @@ final class DataStore {
             let estimate = expenditureEstimate(asOf: now),
             estimate.source == .adaptive,
             let next = NutritionMath.recommendedTargets(
-                for: profile.bodyMetrics,
+                for: LifestyleDataLogic.currentBodyMetrics(profile, now: now),
                 goalRaw: profile.primaryGoal,
                 maintenanceKcal: Double(estimate.kcal)
             ),
@@ -1282,6 +1282,11 @@ final class DataStore {
     /// Weight history with at-most-one entry per calendar day.
     /// See `LifestyleDataLogic.dedupedWeightHistory` for the dedup rule
     /// (most recently logged entry within each day wins).
+    /// Body metrics at the latest weigh-in — what targets are sized from.
+    var currentBodyMetrics: BodyMetrics {
+        LifestyleDataLogic.currentBodyMetrics(profile)
+    }
+
     var dedupedWeightHistory: [WeightEntry] {
         LifestyleDataLogic.dedupedWeightHistory(profile)
     }

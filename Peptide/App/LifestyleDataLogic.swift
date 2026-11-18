@@ -51,6 +51,23 @@ enum LifestyleDataLogic {
         return byDay.values.sorted { $0.date < $1.date }
     }
 
+    /// How long a weigh-in stands in for the stored body weight.
+    static let currentWeightWindow: TimeInterval = 30 * 86_400
+
+    /// Body metrics with the newest weigh-in from the last 30 days in
+    /// place of the stored weight, which only the profile editor writes.
+    /// Targets sized from it follow a cut or a bulk instead of staying on
+    /// the onboarding weight; with no recent weigh-in the stored value stands.
+    static func currentBodyMetrics(_ profile: UserProfile, now: Date = Date()) -> BodyMetrics {
+        var metrics = profile.bodyMetrics
+        let cutoff = now.addingTimeInterval(-currentWeightWindow)
+        let latest = profile.weightHistory
+            .filter { $0.date >= cutoff && $0.date <= now && $0.kg.isFinite && $0.kg > 0 }
+            .max { $0.date < $1.date }
+        if let latest { metrics.weightKg = latest.kg }
+        return metrics
+    }
+
     /// Removes a bodyweight entry by id. Used by the entry-list editor
     /// inside the weight log sheet.
     static func deleteWeight(from profile: inout UserProfile, id: UUID) {

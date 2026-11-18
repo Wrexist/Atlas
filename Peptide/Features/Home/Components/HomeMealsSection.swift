@@ -204,7 +204,7 @@ struct HomeMealsSection: View {
         .sheet(isPresented: $showTargetsEditor) {
             NutritionTargetsEditor(
                 initial: dataStore.profile.nutritionTargets ?? .zero,
-                bodyMetrics: dataStore.profile.bodyMetrics,
+                bodyMetrics: dataStore.currentBodyMetrics,
                 goalRaw: dataStore.profile.primaryGoal,
                 expenditure: dataStore.expenditureEstimate(),
                 onSave: { targets in
