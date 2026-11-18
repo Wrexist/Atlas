@@ -12,8 +12,8 @@ enum MuscleHighlight: Hashable, Sendable {
     /// aren't the focus.
     case secondary
     /// Frequency-driven shade for the weekly heatmap, rendered on the
-    /// green → yellow → orange → red → purple load ramp. `0.0` is a
-    /// just-started green, `1.0` the most-trained purple.
+    /// peach → orange → burnt-orange load ramp. `0.0` is a just-started
+    /// pale peach, `1.0` the most-trained burnt orange.
     case intensity(Double)
 }
 
@@ -23,9 +23,9 @@ enum MuscleHighlight: Hashable, Sendable {
 /// - **Exercise** — pass a `[muscle: .primary | .secondary]` map. Prime
 ///   movers take the strong primary tint, assisting muscles a lighter wash.
 /// - **Weekly heatmap** — pass `[muscle: .intensity(0…1)]`. Renders
-///   each muscle on the load ramp: green for freshly-started work
-///   climbing through yellow, orange and red to purple for the
-///   most-trained muscle.
+///   each muscle on the load ramp: pale peach for freshly-started work,
+///   deepening through orange to burnt orange for the most-trained
+///   muscle.
 /// - **Empty** — pass `[:]` (or omit). Renders the bare body as a calm
 ///   baseline so the surface still reads as the user's body before
 ///   they've logged anything.
@@ -207,39 +207,30 @@ struct MuscleMapView: View {
 
 extension MuscleMapView {
     /// Training-load colour ramp for `.intensity` highlights, in the same
-    /// orange the exercise pictures use: a pale peach for a muscle the user
-    /// has only just started hitting, deepening to a burnt red-orange for
-    /// the most-trained muscle.
-    private static let heatStops: [(position: Double, r: Double, g: Double, b: Double)] = [
-        (0.00, 1.00, 0.80, 0.62),  // peach
-        (0.50, 1.00, 0.55, 0.22),  // exercise-picture orange
-        (1.00, 0.86, 0.27, 0.10),  // burnt orange
+    /// orange the exercise pictures use (see `AppColor.trainingHeat*`).
+    private static let heatStops: [(position: Double, color: Color)] = [
+        (0.0, AppColor.trainingHeatLow),
+        (0.5, AppColor.trainingHeatMid),
+        (1.0, AppColor.trainingHeatHigh),
     ]
 
     /// Colour on the load ramp for a normalised intensity (0…1),
-    /// linearly interpolated between the stops.
+    /// linearly interpolated between the stops. The tokens resolve for
+    /// the view's colour scheme when drawn.
     static func heatColor(for intensity: Double) -> Color {
         let v = max(0, min(1, intensity))
         for i in 0..<(heatStops.count - 1) {
             let a = heatStops[i]
             let b = heatStops[i + 1]
             guard v <= b.position else { continue }
-            let t = (v - a.position) / (b.position - a.position)
-            return Color(
-                red: a.r + (b.r - a.r) * t,
-                green: a.g + (b.g - a.g) * t,
-                blue: a.b + (b.b - a.b) * t
-            )
+            return a.color.mix(with: b.color, by: (v - a.position) / (b.position - a.position), in: .device)
         }
-        let last = heatStops[heatStops.count - 1]
-        return Color(red: last.r, green: last.g, blue: last.b)
+        return heatStops[heatStops.count - 1].color
     }
 
     /// The full ramp as a gradient, for legend capsules under heatmaps.
     static var heatLegendGradient: Gradient {
-        Gradient(stops: heatStops.map {
-            .init(color: Color(red: $0.r, green: $0.g, blue: $0.b), location: $0.position)
-        })
+        Gradient(stops: heatStops.map { .init(color: $0.color, location: $0.position) })
     }
 }
 
@@ -286,8 +277,8 @@ extension MuscleMapView {
 // MARK: - Legend
 
 /// Compact legend strip explaining the load ramp under a heatmap
-/// figure: a green → yellow → orange → red → purple capsule between
-/// two extreme labels.
+/// figure: a peach → orange → burnt-orange capsule between two
+/// extreme labels.
 struct MuscleHeatLegend: View {
     var lowLabel: String = String(localized: "Less")
     var highLabel: String = String(localized: "Most")

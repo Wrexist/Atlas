@@ -72,6 +72,13 @@ enum AppColor {
     /// the exercise pictures use (#F2782E / #3E82F5) in both modes.
     static let trainingPrimaryMuscleTint = Color(light: 0xFF9C3B, dark: 0xFF9C3B)
     static let trainingSecondaryMuscleTint = Color(light: 0x50A7FF, dark: 0x50A7FF)
+    /// The heat-map load ramp: pale peach for a muscle only just picked up,
+    /// the exercise-picture orange, then burnt orange for the most-trained.
+    /// Multiplied onto the figure like the tints above, so one value per
+    /// stop reads the same in both modes.
+    static let trainingHeatLow = Color(light: 0xFFCC9E, dark: 0xFFCC9E)
+    static let trainingHeatMid = Color(light: 0xFF8C38, dark: 0xFF8C38)
+    static let trainingHeatHigh = Color(light: 0xDB451A, dark: 0xDB451A)
 
     // MARK: - Bar plates
 

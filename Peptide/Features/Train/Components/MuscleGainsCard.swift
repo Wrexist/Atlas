@@ -6,11 +6,11 @@ import SwiftUI
 ///
 /// - **Regular** — how consistently each muscle gets trained: the
 ///   fraction of the last 12 weeks it received stimulus, mapped
-///   straight onto the load ramp (purple = trained every week,
-///   green = only just picked up).
+///   straight onto the load ramp (burnt orange = trained every week,
+///   pale peach = only just picked up).
 /// - **Total** — accumulated working-set volume per muscle over all
 ///   logged sessions, normalised so the most-built muscle reads
-///   purple and the least-touched green.
+///   burnt orange and the least-touched pale peach.
 ///
 /// Both maps come precomputed from `MuscleGainsEngine` so the card
 /// stays a dumb renderer and the parent controls when the expensive
@@ -97,7 +97,7 @@ struct MuscleGainsCard: View {
         case .regular:
             // Regularity is already a 0…1 fraction of weeks trained, so
             // it maps onto the ramp without normalising — every-week
-            // work reads purple even when nothing else comes close.
+            // work reads burnt orange even when nothing else comes close.
             return regularity.reduce(into: [:]) { acc, pair in
                 acc[pair.key] = .intensity(pair.value)
             }
