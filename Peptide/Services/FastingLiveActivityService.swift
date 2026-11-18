@@ -21,7 +21,8 @@ final class FastingLiveActivityService {
     /// left up when the user disabled them still clears — then starts or
     /// updates one for the open fast. iOS ends a Live Activity after
     /// eight hours, shorter than most fasts, so the next reconcile (the
-    /// app coming to the foreground) starts a fresh one.
+    /// app coming to the foreground) dismisses that one and starts a
+    /// fresh one.
     func reconcile(active fast: FastSession?) {
         for activity in openActivities where activity.attributes.fastId != fast?.id {
             end(activity)
@@ -32,6 +33,7 @@ final class FastingLiveActivityService {
             guard activity.content.state != state else { return }
             Task { await activity.update(ActivityContent(state: state, staleDate: state.staleDate())) }
         } else {
+            dismissExpired(for: fast)
             start(fast)
         }
     }
@@ -73,6 +75,17 @@ final class FastingLiveActivityService {
     private var openActivities: [Activity<FastingActivityAttributes>] {
         Activity<FastingActivityAttributes>.activities.filter {
             $0.activityState == .active || $0.activityState == .stale
+        }
+    }
+
+    /// iOS ends an activity at its eight-hour limit but can leave it on
+    /// the lock screen for hours more, frozen. Clear this fast's before a
+    /// fresh one starts so the two never show side by side. Only this
+    /// fast's: an ended fast's summary beat dismisses on its own schedule.
+    private func dismissExpired(for fast: FastSession) {
+        for activity in Activity<FastingActivityAttributes>.activities
+        where activity.activityState == .ended && activity.attributes.fastId == fast.id {
+            Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }
     }
 
