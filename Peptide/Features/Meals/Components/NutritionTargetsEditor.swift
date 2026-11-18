@@ -47,8 +47,9 @@ struct NutritionTargetsEditor: View {
     @FocusState private var focusedField: Field?
     @AppStorage(AdaptiveTDEESettings.enabledKey) private var useAdaptive = true
     /// The adaptive switch as drafted in this sheet; written to
-    /// `useAdaptive` only on Save so Cancel really discards it.
-    @State private var useAdaptiveDraft = true
+    /// `useAdaptive` only on Save so Cancel really discards it. Seeded
+    /// from the stored switch so the first frame already matches it.
+    @State private var useAdaptiveDraft = AdaptiveTDEESettings.isEnabled
 
     private enum Field: Hashable { case calories, protein, carbs, fat, fiber }
 
