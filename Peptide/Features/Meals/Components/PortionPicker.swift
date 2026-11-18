@@ -26,11 +26,11 @@ struct PortionPicker: View {
         QuickPick(amount: 250, label: LocalizedStringResource("Glass", comment: "Drink quick pick, 25 cl")),
         QuickPick(amount: 330, label: LocalizedStringResource("Can 33 cl", comment: "Drink quick pick")),
         QuickPick(amount: 500, label: LocalizedStringResource("Bottle 50 cl", comment: "Drink quick pick")),
-        QuickPick(amount: 1000, label: LocalizedStringResource("1 l", comment: "Drink quick pick, one litre")),
+        QuickPick(amount: 1000, label: LocalizedStringResource("1 L", comment: "Drink quick pick, one litre")),
     ]
 
     private var isDrink: Bool { product.isDrink == true }
-    private var unit: LocalizedStringKey { isDrink ? "ml" : "g" }
+    private var unit: LocalizedStringKey { isDrink ? "mL" : "g" }
 
     private enum Mode: Hashable {
         case serving, wholePack, grams
@@ -83,7 +83,7 @@ struct PortionPicker: View {
         switch mode {
         case .serving: "Serving"
         case .wholePack: "Package"
-        case .grams: isDrink ? "ml" : "Grams"
+        case .grams: isDrink ? "mL" : "Grams"
         }
     }
 
@@ -144,7 +144,7 @@ struct PortionPicker: View {
             }
             .frame(minHeight: Spacing.minimumHitTarget)
             if let grams = product.packageGrams {
-                Text(isDrink ? "1 package = \(Int(grams.rounded())) ml" : "1 package = \(Int(grams.rounded())) g")
+                Text(isDrink ? "1 package = \(Int(grams.rounded())) mL" : "1 package = \(Int(grams.rounded())) g")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()

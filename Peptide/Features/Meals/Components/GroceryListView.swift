@@ -206,6 +206,6 @@ private struct GroceryRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: "\(item.name), \(item.quantityText)"))
         .accessibilityAddTraits(isChecked ? [.isButton, .isSelected] : .isButton)
-        .accessibilityHint(isChecked ? Text("Double-tap to put back on the list") : Text("Double-tap to tick off"))
+        .accessibilityHint(isChecked ? Text("Puts it back on the list") : Text("Ticks it off"))
     }
 }

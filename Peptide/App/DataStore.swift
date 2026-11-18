@@ -1222,7 +1222,7 @@ final class DataStore {
         AdaptiveTDEEEngine.estimate(
             weights: dedupedWeightHistory,
             intake: Array(profile.dailyConsumption.values),
-            formulaTDEE: NutritionMath.formulaTDEE(for: profile.bodyMetrics),
+            formulaTDEE: NutritionMath.formulaTDEE(for: LifestyleDataLogic.currentBodyMetrics(profile, now: now)),
             asOf: now
         )
     }
@@ -1237,7 +1237,7 @@ final class DataStore {
             let estimate = expenditureEstimate(asOf: now),
             estimate.source == .adaptive,
             let next = NutritionMath.recommendedTargets(
-                for: profile.bodyMetrics,
+                for: LifestyleDataLogic.currentBodyMetrics(profile, now: now),
                 goalRaw: profile.primaryGoal,
                 maintenanceKcal: Double(estimate.kcal)
             ),
@@ -1280,6 +1280,11 @@ final class DataStore {
             await previous?.value
             await write()
         }
+    }
+
+    /// Body metrics at the latest weigh-in — what targets are sized from.
+    var currentBodyMetrics: BodyMetrics {
+        LifestyleDataLogic.currentBodyMetrics(profile)
     }
 
     /// Weight history with at-most-one entry per calendar day.
@@ -1353,8 +1358,10 @@ final class DataStore {
     func logMealEntry(_ entry: MealEntry) {
         LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
         save()
+        mirrorMealWater([entry])
         if HealthSyncSettings.isNutritionEnabled {
-            Task { await HealthKitService.shared.writeMealEntry(entry) }
+            // Queued, so a delete right after can't run before this lands.
+            enqueueMealHealthWrite { await HealthKitService.shared.writeMealEntry(entry) }
         }
     }
 
@@ -1388,6 +1395,7 @@ final class DataStore {
             LifestyleDataLogic.logMealEntry(into: &profile, entry: copy)
         }
         save()
+        mirrorMealWater(copies)
         if HealthSyncSettings.isNutritionEnabled {
             enqueueMealHealthWrite {
                 for copy in copies { await HealthKitService.shared.writeMealEntry(copy) }
@@ -1421,6 +1429,7 @@ final class DataStore {
         // Keep the established projection/achievement save path. It may save
         // other pending changes; the meals above already have durable storage.
         save()
+        mirrorMealWater(changed, removing: undo)
         if HealthSyncSettings.isNutritionEnabled && !isEphemeral {
             let previous = mealHealthWriteTask
             mealHealthWriteTask = Task {
@@ -1445,11 +1454,13 @@ final class DataStore {
     /// external UUID, new values written. No-op when the id isn't in
     /// history.
     func updateMealEntry(_ updated: MealEntry) {
-        guard profile.mealHistory.contains(where: { $0.id == updated.id }) else { return }
+        guard let previous = profile.mealHistory.first(where: { $0.id == updated.id }) else { return }
         LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
         save()
+        mirrorMealWater([previous], removing: true)
+        mirrorMealWater(profile.mealHistory.filter { $0.id == updated.id })
         if HealthSyncSettings.isNutritionEnabled {
-            Task {
+            enqueueMealHealthWrite {
                 await HealthKitService.shared.deleteSamples(forEntryID: updated.id)
                 await HealthKitService.shared.writeMealEntry(updated)
             }
@@ -1460,14 +1471,26 @@ final class DataStore {
     /// the day's aggregate. Used by every review screen's Undo button
     /// once it switches to the new logging path.
     func unlogMealEntry(id: UUID) {
+        let removed = profile.mealHistory.filter { $0.id == id }
         LifestyleDataLogic.unlogMealEntry(from: &profile, id: id)
         save()
+        mirrorMealWater(removed, removing: true)
         TableMomentStore.shared.removeDish(id: id)
         WeeklyPrepStore.shared.returnBox(forMeal: id)
         if HealthSyncSettings.isNutritionEnabled {
             // Queued behind pending writes, so an Undo right after a copy
             // can't delete before the copy's samples exist.
             enqueueMealHealthWrite { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+        }
+    }
+
+    /// Mirrors the water a drink entry carries to Health, the same way
+    /// a quick-add does; `removing` takes it back on delete and Undo.
+    private func mirrorMealWater(_ entries: [MealEntry], removing: Bool = false) {
+        for entry in entries {
+            guard let ml = entry.waterMillilitres, ml.isFinite, ml > 0 else { continue }
+            let ounces = LifestyleDataLogic.fluidOunces(millilitres: ml)
+            mirrorWaterToHealth(fluidOunces: removing ? -ounces : ounces, date: entry.date)
         }
     }
 

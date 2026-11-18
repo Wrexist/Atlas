@@ -18,19 +18,24 @@ struct FastingSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    VStack(alignment: .leading, spacing: Spacing.xl) {
+                // Only the clock and the stage highlight tick. The history
+                // stats scan every session, so they render with the body,
+                // not once a second.
+                VStack(alignment: .leading, spacing: Spacing.xl) {
+                    TimelineView(.periodic(from: .now, by: store.active == nil ? 60 : 1)) { context in
                         hero(now: context.date)
-                        if let active = store.active {
-                            activeControls(active)
-                        } else {
-                            planPicker
-                            reminderToggle
-                            PrimaryCTAButton(title: "Start fast", icon: "play.fill", action: startFast)
-                        }
-                        stageGuide(now: context.date)
-                        history(now: context.date)
                     }
+                    if let active = store.active {
+                        activeControls(active)
+                    } else {
+                        planPicker
+                        reminderToggle
+                        PrimaryCTAButton(title: "Start fast", icon: "play.fill", action: startFast)
+                    }
+                    TimelineView(.periodic(from: .now, by: 60)) { context in
+                        stageGuide(now: context.date)
+                    }
+                    history(now: Date())
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.vertical, Spacing.lg)

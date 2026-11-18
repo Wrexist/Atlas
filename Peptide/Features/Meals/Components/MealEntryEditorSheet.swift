@@ -177,7 +177,7 @@ struct MealEntryEditorSheet: View {
                 Text("Subtracts \(initial.calories) kcal from that day's totals. This can't be undone.")
             }
             .sheet(item: $editingComponent) { component in
-                FoodPortionEditor(component: component) { grams in
+                FoodPortionEditor(component: component, isDrink: component.isDrink == true) { grams in
                     guard let index = components?.firstIndex(where: { $0.id == component.id }) else { return }
                     components?[index].grams = grams
                     if let components, let total = MealFoodComponent.totals(components) { apply(total) }

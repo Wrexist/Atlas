@@ -46,6 +46,10 @@ struct NutritionTargetsEditor: View {
     @State private var openedFields: [String] = []
     @FocusState private var focusedField: Field?
     @AppStorage(AdaptiveTDEESettings.enabledKey) private var useAdaptive = true
+    /// The adaptive switch as drafted in this sheet; written to
+    /// `useAdaptive` only on Save so Cancel really discards it. Seeded
+    /// from the stored switch so the first frame already matches it.
+    @State private var useAdaptiveDraft = AdaptiveTDEESettings.isEnabled
 
     private enum Field: Hashable { case calories, protein, carbs, fat, fiber }
 
@@ -63,7 +67,7 @@ struct NutritionTargetsEditor: View {
     /// Measured maintenance calories when adaptive targets are on and the
     /// estimate rests on logged data; nil means "use the formula".
     private var adaptiveMaintenance: Double? {
-        guard useAdaptive, let expenditure, expenditure.source == .adaptive else { return nil }
+        guard useAdaptiveDraft, let expenditure, expenditure.source == .adaptive else { return nil }
         return Double(expenditure.kcal)
     }
 
@@ -118,6 +122,7 @@ struct NutritionTargetsEditor: View {
         }
         .interactiveDismissDisabled(hasChanges)
         .onAppear {
+            useAdaptiveDraft = useAdaptive
             hydrate()
             openedFields = fields
         }
@@ -295,7 +300,7 @@ struct NutritionTargetsEditor: View {
 
                 rowDivider
 
-                Toggle(isOn: $useAdaptive) {
+                Toggle(isOn: $useAdaptiveDraft) {
                     HStack(spacing: Spacing.md) {
                         Image(systemName: "chart.line.uptrend.xyaxis")
                             .font(AppFont.scaled(13, weight: .semibold))
@@ -553,7 +558,11 @@ struct NutritionTargetsEditor: View {
 
     /// Lenient parse — an empty or mid-edit field reads as 0 for the live
     /// summary without blocking the keyboard.
-    private func intValue(_ s: String) -> Int { Int(s) ?? 0 }
+    private func intValue(_ s: String) -> Int { Self.liveValue(s) }
+
+    /// Clamped so the live macro→calorie maths (grams × 9) can never
+    /// overflow `Int`, however many digits are typed or pasted.
+    nonisolated static func liveValue(_ s: String) -> Int { min(max(Int(s) ?? 0, 0), 100_000) }
 
     /// The field's target, or nil when it is blank or out of range. A 0 kcal
     /// target would leave every ring permanently empty. Fiber is optional,
@@ -574,7 +583,7 @@ struct NutritionTargetsEditor: View {
 
     private var fields: [String] { [calories, protein, carbs, fat, fiber] }
 
-    private var hasChanges: Bool { fields != openedFields }
+    private var hasChanges: Bool { fields != openedFields || useAdaptiveDraft != useAdaptive }
 
     private var isValid: Bool {
         [Field.calories, .protein, .carbs, .fat, .fiber].allSatisfy { value(for: $0) != nil }
@@ -592,6 +601,7 @@ struct NutritionTargetsEditor: View {
         // may move it later; custom numbers opt out of auto-updates.
         let targets = NutritionTargets(calories: kcal, proteinG: p, carbsG: c, fatG: f, fiberG: fib)
         AdaptiveTDEESettings.followedTargets = matchesDraft(recommended) ? targets : nil
+        useAdaptive = useAdaptiveDraft
         onSave(targets)
     }
 }

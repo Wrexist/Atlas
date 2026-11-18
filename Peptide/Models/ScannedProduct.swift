@@ -119,7 +119,8 @@ extension ScannedProduct {
             carbsG:   roundedNonNegative(per100g.carbsG * multiplier),
             fatG:     roundedNonNegative(per100g.fatG * multiplier),
             components: [MealFoodComponent(id: barcode, name: name, grams: grams, servingGrams: servingGrams,
-                                           servingLabel: servingSizeText, per100g: per100g, sourceID: barcode)]
+                                           servingLabel: servingSizeText, per100g: per100g, sourceID: barcode,
+                                           isDrink: isDrink)]
         )
     }
 

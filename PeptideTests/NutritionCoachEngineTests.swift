@@ -50,6 +50,15 @@ final class NutritionCoachEngineTests: XCTestCase {
         XCTAssertEqual(summary.averageCarbsG, 100)
     }
 
+    func test_summary_partialLogToday_leavesAveragesUnchanged() {
+        var profile = loggedProfile
+        log(450, protein: 20, daysAgo: 0, into: &profile)
+        let summary = NutritionCoachEngine.summary(of: profile, now: now, calendar: calendar)
+        XCTAssertEqual(summary.loggedDays, 3)
+        XCTAssertEqual(summary.averageCalories, 2000)
+        XCTAssertEqual(summary.averageProteinG, 150)
+    }
+
     func test_summary_countsDaysThatReachedProtein() {
         let summary = NutritionCoachEngine.summary(of: loggedProfile, now: now, calendar: calendar)
         XCTAssertEqual(summary.proteinDaysHit, 2)

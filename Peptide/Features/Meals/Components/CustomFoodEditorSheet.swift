@@ -48,6 +48,9 @@ struct CustomFoodEditorSheet: View {
     @State private var pricePer100g: FoodPriceEstimate?
     /// Carried from the label or an AI fill; the editor has no fields for it.
     @State private var micros: Micronutrients?
+    /// Whether the food is a drink — from the food being edited, or from
+    /// an Atlas AI fill that recognised one — so it saves with mL portions.
+    @State private var isDrink: Bool?
     @State private var aiQuery = ""
     @State private var aiPhoto: PhotosPickerItem?
     @State private var isFilling = false
@@ -506,6 +509,7 @@ struct CustomFoodEditorSheet: View {
         servingLabel = food.servingLabel ?? ""
         pricePer100g = food.pricePer100g
         micros = food.per100g.micros
+        isDrink = food.isDrink ?? isDrink
 
         // Auto-focus the name field on a fresh food — the user almost
         // always wants to start typing immediately.
@@ -540,7 +544,7 @@ struct CustomFoodEditorSheet: View {
             servingLabel: servingLabel.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
             pricePer100g: pricePer100g,
             imageURL: initial.imageURL,
-            isDrink: initial.isDrink,
+            isDrink: isDrink,
             barcode: initial.barcode,
             updatedAt: Date()
         )

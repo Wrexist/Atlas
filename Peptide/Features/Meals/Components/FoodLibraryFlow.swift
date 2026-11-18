@@ -50,8 +50,6 @@ struct FoodLibraryFlow: View {
     @State private var category: MealCategory = MealCategory.auto(for: Date())
     @State private var loggedSnapshot: LoggedSnapshot?
     @State private var lastLoggedEntry: MealEntry?
-    /// Water a hydrating drink added with the last log, for Undo.
-    @State private var loggedWaterMillilitres: Double?
     @State private var mealSaveError: String?
     @State private var editingExactPortion = false
     @State private var loggedHistoryBarcode: String?
@@ -124,7 +122,6 @@ struct FoodLibraryFlow: View {
 
     private struct LoggedSnapshot: Equatable {
         let foodName: String
-        let entryID: UUID
         let calories: Int
         let date: Date
     }
@@ -596,10 +593,13 @@ struct FoodLibraryFlow: View {
                     emptyState(
                         icon: "questionmark.app.dashed",
                         title: "No results",
-                        body: "We couldn't find a match for “\(debouncedQuery)”. Let Atlas AI add it, scan a barcode, or scan a meal photo.",
+                        body: "We couldn't find a match for “\(debouncedQuery)”. Let Atlas AI add it or scan its barcode.",
                         action: .init(title: "Add “\(debouncedQuery)” with AI", icon: "sparkles") {
                             aiFillQuery = debouncedQuery
                             editingCustomFood = .blank
+                        },
+                        secondary: .init(title: "Scan a barcode", icon: "barcode.viewfinder") {
+                            onRequestBarcodeScan()
                         }
                     )
                 }
@@ -1067,7 +1067,8 @@ struct FoodLibraryFlow: View {
             category: loggedCategory,
             source: source,
             sourceID: product.barcode,
-            date: loggedAt
+            date: loggedAt,
+            waterMillilitres: product.waterMillilitres(for: chosen)
         )
         guard commitLibraryEntry(entry) else { return }
         BarcodeHaptics.logCommitted()
@@ -1121,9 +1122,10 @@ struct FoodLibraryFlow: View {
         icon: String,
         title: LocalizedStringKey,
         body: LocalizedStringKey,
-        action: EmptyStateView.Action? = nil
+        action: EmptyStateView.Action? = nil,
+        secondary: EmptyStateView.Action? = nil
     ) -> some View {
-        EmptyStateView(icon: icon, title: title, message: body, action: action, style: .compact)
+        EmptyStateView(icon: icon, title: title, message: body, action: action, secondary: secondary, style: .compact)
             .padding(.vertical, Spacing.sm)
     }
 
@@ -1222,9 +1224,9 @@ struct FoodLibraryFlow: View {
                 PortionPicker(product: product, portion: $portion)
                 Button(product.isDrink == true ? "Enter exact millilitres" : "Enter exact grams") { editingExactPortion = true }
                     .minimumHitArea()
-                WaterCreditNote(millilitres: product.waterMillilitres(for: portion))
+                WaterCreditNote(millilitres: product.waterMillilitres(for: portion), unit: dataStore.profile.bodyMetrics.unit)
                 if let grams = FoodLibraryLogic.previousGrams(for: product, history: profile.mealHistory) {
-                    Text(product.isDrink == true ? "Last logged amount: \(grams.formatted()) ml" : "Last logged amount: \(grams.formatted()) g")
+                    Text(product.isDrink == true ? "Last logged amount: \(grams.formatted()) mL" : "Last logged amount: \(grams.formatted()) g")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -1287,7 +1289,7 @@ struct FoodLibraryFlow: View {
                     productName: snapshot.foodName,
                     deltaCalories: snapshot.calories,
                     totalCalories: dataStore.consumption(for: snapshot.date).caloriesKcal,
-                    targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories,
+                    targetCalories: dataStore.profile.nutritionTargets?.calories ?? 0,
                     date: snapshot.date
                 )
             }
@@ -1373,20 +1375,11 @@ struct FoodLibraryFlow: View {
             category: category,
             source: source,
             sourceID: product.barcode,
-            date: logTimestamp()
+            date: logTimestamp(),
+            waterMillilitres: product.waterMillilitres(for: portion)
         )
         guard commitLibraryEntry(entry) else { return }
-        loggedWaterMillilitres = product.waterMillilitres(for: portion)
-        if let loggedWaterMillilitres {
-            dataStore.logWater(fluidOunces: LifestyleDataLogic.fluidOunces(millilitres: loggedWaterMillilitres), date: entry.date)
-        }
         BarcodeHaptics.logCommitted()
-        loggedSnapshot = LoggedSnapshot(
-            foodName: product.name,
-            entryID: entry.id,
-            calories: meal.calories,
-            date: entry.date
-        )
         // Record the choice in scan history so this food shows up in
         // the barcode recents row too — keeps the two scanners' notion
         // of "recently logged" consistent. Fire-and-forget.
@@ -1415,10 +1408,8 @@ struct FoodLibraryFlow: View {
 
     private func showLogged(_ entry: MealEntry) {
         lastLoggedEntry = entry
-        loggedWaterMillilitres = nil
         loggedHistoryBarcode = nil
-        loggedSnapshot = LoggedSnapshot(foodName: entry.name, entryID: entry.id,
-                                        calories: entry.calories, date: entry.date)
+        loggedSnapshot = LoggedSnapshot(foodName: entry.name, calories: entry.calories, date: entry.date)
         phase = .logged
     }
 
@@ -1447,10 +1438,6 @@ struct FoodLibraryFlow: View {
         guard phase == .logged, let entry = lastLoggedEntry else { return }
         do {
             try dataStore.commitScannedMeals([entry], undo: true)
-            if let water = loggedWaterMillilitres {
-                dataStore.logWater(fluidOunces: -LifestyleDataLogic.fluidOunces(millilitres: water), date: entry.date)
-                loggedWaterMillilitres = nil
-            }
             if let barcode = loggedHistoryBarcode {
                 let previous = historyWriteTask
                 historyWriteTask = Task {

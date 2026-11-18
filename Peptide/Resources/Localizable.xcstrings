@@ -9764,16 +9764,6 @@
         }
       }
     },
-    "Add height, weight, age, and gender on Profile to compute calorie and macro targets, or tap Edit targets to set them manually.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lägg till längd, vikt, ålder och kön i Profil för att räkna ut kalori- och makromål, eller tryck på Redigera mål för att ställa in dem manuellt."
-          }
-        }
-      }
-    },
     "Add ingredient": {
       "localizations": {
         "sv": {
@@ -39946,16 +39936,6 @@
         }
       }
     },
-    "We couldn't find a match for “%@”. Let Atlas AI add it, scan a barcode, or scan a meal photo.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vi hittade ingen träff för ”%@”. Låt Atlas AI lägga till det, skanna en streckkod eller skanna ett måltidsfoto."
-          }
-        }
-      }
-    },
     "We couldn't find that product. Try a photo instead?": {
       "localizations": {
         "sv": {
@@ -46061,26 +46041,6 @@
         }
       }
     },
-    "Double-tap to put back on the list": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck två gånger för att lägga tillbaka på listan"
-          }
-        }
-      }
-    },
-    "Double-tap to tick off": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck två gånger för att bocka av"
-          }
-        }
-      }
-    },
     "Everything this plan needs, sorted by store section": {
       "localizations": {
         "sv": {
@@ -50916,36 +50876,6 @@
         }
       }
     },
-    "1 l": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 l"
-          }
-        }
-      }
-    },
-    "ml": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ml"
-          }
-        }
-      }
-    },
-    "1 package = %lld ml": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 förpackning = %lld ml"
-          }
-        }
-      }
-    },
     "Millilitres": {
       "localizations": {
         "sv": {
@@ -50972,26 +50902,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ange exakt antal ml"
-          }
-        }
-      }
-    },
-    "Last logged amount: %@ ml": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Senast loggade mängd: %@ ml"
-          }
-        }
-      }
-    },
-    "Also counts as %lld ml water": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Räknas även som %lld ml vatten"
           }
         }
       }
@@ -51122,6 +51032,158 @@
           "stringUnit": {
             "state": "translated",
             "value": "Förrförra natten mot din baslinje"
+          }
+        }
+      }
+    },
+    "%lld day meal-logging streak.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dags loggningssvit för måltider."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dagars loggningssvit för måltider."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld kcal over": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kcal över"
+          }
+        }
+      }
+    },
+    "1 L": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 l"
+          }
+        }
+      }
+    },
+    "1 package = %lld mL": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 förpackning = %lld ml"
+          }
+        }
+      }
+    },
+    "Add your height, weight and age in Profile to get calorie and macro targets, or tap Edit targets to set them yourself.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till längd, vikt och ålder i Profil för att få kalori- och makromål, eller tryck på Redigera mål för att ställa in dem själv."
+          }
+        }
+      }
+    },
+    "Also counts as %lld mL water": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas även som %lld ml vatten"
+          }
+        }
+      }
+    },
+    "Also counts as %lld oz water": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas även som %lld oz vatten"
+          }
+        }
+      }
+    },
+    "Calories %lld. Protein %lld grams. Water %lld of %lld %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalorier %lld. Protein %lld gram. Vatten %lld av %lld %@."
+          }
+        }
+      }
+    },
+    "Calories for %@: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalorier för %@: %lld"
+          }
+        }
+      }
+    },
+    "Last logged amount: %@ mL": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast loggade mängd: %@ ml"
+          }
+        }
+      }
+    },
+    "Puts it back on the list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägger tillbaka den på listan"
+          }
+        }
+      }
+    },
+    "Scan a barcode": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna en streckkod"
+          }
+        }
+      }
+    },
+    "Ticks it off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bockar av den"
+          }
+        }
+      }
+    },
+    "We couldn't find a match for “%@”. Let Atlas AI add it or scan its barcode.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vi hittade ingen träff för ”%@”. Låt Atlas AI lägga till det eller skanna streckkoden."
           }
         }
       }
