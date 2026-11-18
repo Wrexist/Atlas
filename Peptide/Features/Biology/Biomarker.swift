@@ -86,7 +86,7 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         case .hrvBaseline:      return "ms"
         case .rhrBaseline:      return "bpm"
         case .sleepBaseline:    return "h"
-        case .stepsBaseline:    return "steps"
+        case .stepsBaseline:    return String(localized: "steps")
         case .bodyTemperature:  return unit == .imperial ? "°F" : "°C"
         case .bodyFat:          return "%"
         case .waist:            return unit == .imperial ? "in" : "cm"
