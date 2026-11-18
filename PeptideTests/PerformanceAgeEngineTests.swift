@@ -438,6 +438,42 @@ final class PerformanceAgeEngineTests: XCTestCase {
         XCTAssertEqual(result.biologicalAge, 50 + PerformanceAgeEngine.maxDriftYears, accuracy: 0.001)
     }
 
+    /// The rows sum past the cap, so the page must be told the age was held.
+    func test_estimate_driversSumPastCap_isFlaggedCapped() {
+        let inputs = PerformanceAgeEngine.Inputs(
+            chronologicalAge: 50,
+            sex: .female,
+            hrvMedian30d: 5,
+            rhrMedian30d: 95,
+            sleepHoursMedian30d: 4,
+            weightDeltaKg30d: 6,
+            vo2MaxRecent: 12,
+            stepsMedian30d: 1_000,
+            bodyMassIndex: 42,
+            healthDataDays: 30
+        )
+        guard let result = PerformanceAgeEngine.estimate(inputs: inputs) else {
+            return XCTFail("Expected estimate")
+        }
+        XCTAssertTrue(result.isCapped)
+        XCTAssertGreaterThan(result.drivers.map(\.deltaYears).reduce(0, +), PerformanceAgeEngine.maxDriftYears)
+    }
+
+    func test_estimate_driversWithinCap_isNotCapped() {
+        let inputs = PerformanceAgeEngine.Inputs(
+            chronologicalAge: 35,
+            hrvMedian30d: 18,
+            rhrMedian30d: 82,
+            sleepHoursMedian30d: 5.5,
+            weightDeltaKg30d: 3.5,
+            healthDataDays: 30
+        )
+        guard let result = PerformanceAgeEngine.estimate(inputs: inputs) else {
+            return XCTFail("Expected estimate")
+        }
+        XCTAssertFalse(result.isCapped)
+    }
+
     /// Drivers carry the reading and its reference so the page can show
     /// "48 ms · typical 41 ms" without recomputing anything.
     func test_estimate_driversCarryValueAndReference() {

@@ -49805,6 +49805,16 @@
           }
         }
       }
+    },
+    "Capped at %lld years from your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Begränsad till %lld år från din ålder"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
