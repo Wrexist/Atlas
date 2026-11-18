@@ -808,7 +808,8 @@ final class WorkoutSessionService {
         guard old != new, var session = activeSession else { return }
         session.adjustment = new
         let routine = activeRoutine
-        for idx in session.exercises.indices where autoProgression {
+        let reseeds = autoProgression
+        for idx in session.exercises.indices where reseeds {
             let entry = session.exercises[idx]
             let target = targetReps(for: entry, in: routine)
             guard let before = progression(for: entry.exerciseID, targetReps: target, adjustment: old),
