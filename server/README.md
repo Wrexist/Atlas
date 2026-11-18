@@ -21,7 +21,7 @@ real Anthropic API is reached one hop away.
 | `POST /api/lab-scan`         | Blood-test report photos (1–4 JPEG pages) → transcribed markers, units, reference ranges, draw date (structured output) | LabScanService |
 | `POST /api/fridge-scan`      | One photo of a fridge, shelf or shopping haul → groceries with count, place, shelf life, recipe key, box and per-100 g macros (structured output; spends a free weekly scan) | FridgeScanService |
 | `POST /api/ai-research`      | Multi-turn research chat           | AIResearchService     |
-| `POST /api/weekly-summary`   | AI weekly recap (prompt-cached)    | WeeklySummaryService  |
+| `POST /api/weekly-summary`   | AI weekly recap (structured aggregate, no caching; English or Swedish by `Accept-Language`) | WeeklySummaryService  |
 | `GET/POST /api/attest-register` | App Attest key registration     | AppAttestService      |
 | `POST /api/apple-revoke`     | Revoke Sign in with Apple on account deletion | AuthService |
 | `POST /api/crash-report`     | MetricKit crash / hang diagnostics → Sentry events | CrashReportUploader |
@@ -39,7 +39,8 @@ needed; the payload carries app/OS version, device model and call stacks
 only — no user identifier, no health data. Per-IP limit `CRASH_REPORT_RPM`
 (default 10), 256 KB body cap.
 
-meal-scan, food-scan and ai-research share `_lib/anthropic-proxy.js` —
+meal-scan, food-scan, lab-scan, fridge-scan and ai-research share
+`_lib/anthropic-proxy.js` —
 auth, App Attest gate, per-principal limits, body sanitisation, model
 allowlist, and the forward to `api.anthropic.com/v1/messages` live
 there. weekly-summary owns its prompt and upstream call but uses the
@@ -193,17 +194,27 @@ endpoint.
   `error.code` — `rate_limited`, `blocked` and `daily_quota` (429,
   with `Retry-After`), `scan_quota` (429, free weekly scans spent),
   `pro_required` (403, Pro-only route without a verified entitlement)
-  or `unavailable` (503).
-- **Free scan quota** (`_lib/scan-quota.js`, `/api/food-scan` only).
+  or `unavailable` (503 — also when the App Attest key registry is
+  unreachable, so the app retries with its key instead of re-registering).
+- **Request deadline**: each route's timeout (25 s on 30 s functions,
+  50–52 s on 60 s ones) bounds the whole request, not just the upstream
+  call. The upstream call gets what is left after the Redis checks and
+  is refused (503, everything refunded) with under 5 s to go, because
+  Vercel kills a function at `maxDuration` without running the refund.
+- **Free scan quota** (`_lib/scan-quota.js`, `/api/food-scan` and
+  `/api/fridge-scan`).
   See below.
-- **Body sanitisation**: only `model`, `max_tokens`, `messages`, and
-  optional `system` are forwarded; everything else is stripped so a
+- **Body sanitisation**: on the pass-through routes (meal-scan,
+  ai-research) only `model`, `max_tokens`, `messages`, and optional
+  `system` are taken from the client; everything else is stripped so a
   compromised client can't smuggle alternate prompts or `tools`.
+  `thinking` is set server-side per route, never forwarded. food-scan,
+  lab-scan and fridge-scan build the whole request server-side.
 - **Model allowlist**: anything outside `ALLOWED_MODELS` is rewritten
   to the first allowed model — caps your spend per call.
-- **`max_tokens` hard cap** at 800 on the pass-through routes;
-  food-scan builds its own request with 6 000 (thinking + JSON), and
-  weekly-summary uses 500.
+- **`max_tokens` hard cap** per route: ai-research 800 (the default),
+  meal-scan 1 200, food-scan 6 000 (thinking + JSON), lab-scan and
+  fridge-scan 8 000, weekly-summary 500.
 - **`messages` length cap** at 40 (covers the multi-turn chat
   history without giving an attacker unbounded prompts).
 - **Body-size cap** at 4.4 MB, under the 4.5 MB request payload limit

@@ -5,7 +5,7 @@
  * `api.anthropic.com/v1/messages`. The iOS client never sees the
  * upstream Anthropic key.
  *
- * Routes (meal-scan, food-scan, ai-research) thin-wrap
+ * Routes (meal-scan, food-scan, lab-scan, fridge-scan, ai-research) thin-wrap
  * `forwardToAnthropic`, so a new defense is a one-place change.
  * weekly-summary shares the limiter and `refuse` but owns its upstream
  * call.
