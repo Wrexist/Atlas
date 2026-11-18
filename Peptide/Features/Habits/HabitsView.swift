@@ -309,7 +309,7 @@ struct HabitsView: View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "snowflake")
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.macroWater)
+                .foregroundStyle(AppColor.accentPrimary)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Streak at risk")
                     .font(AppFont.subheadline.weight(.semibold))
@@ -331,21 +331,14 @@ struct HabitsView: View {
                     .foregroundStyle(AppColor.onAccent)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.sm)
-                    .background(Capsule().fill(AppColor.macroWater))
+                    .background(Capsule().fill(AppColor.accentPrimary))
                     .minimumHitArea()
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
             .fixedSize()
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.macroWater.opacity(0.12))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .strokeBorder(AppColor.macroWater.opacity(0.35), lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Streak at risk. You missed yesterday. Use your monthly freeze to keep your streak.")
     }

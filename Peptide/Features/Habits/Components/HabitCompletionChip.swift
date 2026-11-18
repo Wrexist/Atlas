@@ -55,7 +55,6 @@ struct HabitCompletionChip: View {
             .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.95))
-        .appSensoryFeedback(.success, trigger: completionTrigger)
         .accessibilityLabel(habit.name)
         .accessibilityValue(accessibilityValue)
         .onChange(of: isCompleted) { _, completed in
