@@ -215,7 +215,7 @@ final class ExportService {
         exerciseName: (String) -> String,
         timeZone: TimeZone = .current
     ) -> String {
-        var csv = "Date,Workout,Exercise,Set,Reps,Weight (kg),RPE,Set Type,Superset,Duration (min),Set Note,Workout Note\n"
+        var csv = "Date,Workout,Exercise,Set,Reps,Weight (kg),RPE,Measurement,Load,Seconds,Meters,Set Type,Superset,Duration (min),Set Note,Workout Note\n"
         let dateStyle = Date.ISO8601FormatStyle(timeZoneSeparator: .colon, timeZone: timeZone)
         let finished = sessions.filter { !$0.isActive }.sorted { $0.startedAt > $1.startedAt }
         for session in finished {
@@ -224,7 +224,7 @@ final class ExportService {
             // Quick-logged workouts carry no sets, only a note; keep them
             // as one session-level row so the export doesn't drop them.
             if !session.exercises.contains(where: { $0.sets.contains(where: \.completed) }) {
-                let fields = [dateStr, csvQuote(session.displayName), "", "", "", "", "", "", "", minutes, "", csvQuote(session.note ?? "")]
+                let fields = [dateStr, csvQuote(session.displayName)] + Array(repeating: "", count: 11) + [minutes, "", csvQuote(session.note ?? "")]
                 csv += fields.joined(separator: ",") + "\n"
                 continue
             }
@@ -239,6 +239,13 @@ final class ExportService {
                         "\(set.reps)",
                         formatPlainNumber(set.weightKg),
                         set.rpe.map { formatPlainNumber($0) } ?? "",
+                        // Timed, distance and assisted sets keep their real
+                        // values here; Weight (kg) of an assisted set is the
+                        // assistance, which Measurement says.
+                        set.measurement?.kind.rawValue ?? SetEntry.Measurement.Kind.repetitions.rawValue,
+                        set.measurement?.load.rawValue ?? SetEntry.Measurement.Load.recorded.rawValue,
+                        set.measurement?.seconds.map { formatPlainNumber($0) } ?? "",
+                        set.measurement?.meters.map { formatPlainNumber($0) } ?? "",
                         set.isWarmup ? "Warm-up" : "Working",
                         superset,
                         minutes,
