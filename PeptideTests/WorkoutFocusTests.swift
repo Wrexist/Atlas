@@ -270,6 +270,21 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertEqual(sets.map(\.completed), [true, true, false, false])
     }
 
+    func test_completeNextSet_restIntoNextExercise_movesFocusToIt() throws {
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: "Incline_Dumbbell_Press", index: 0, targetSets: 1, targetReps: 10),
+            RoutineExercise(exerciseID: "Standing_Military_Press", index: 1, targetSets: 2, targetReps: 8),
+        ]))
+        let next = session.exercises[1]
+        service.completeNextSet()
+        XCTAssertEqual(service.activeSession?.focus?.rest?.targetEntryID, next.id)
+
+        service.completeNextSet()
+
+        XCTAssertTrue(try XCTUnwrap(service.activeSession?.exercises[1].sets[0].completed))
+        XCTAssertEqual(service.activeSession?.focus?.selectedEntryID, next.id)
+    }
+
     func test_completeNextSet_whilePaused_changesNothing() {
         start()
         service.togglePause()

@@ -861,6 +861,9 @@ final class WorkoutSessionService {
                 .sets.first(where: { $0.id == target.set }),
               !set.completed
         else { return }
+        // Focus follows the set, as on the Watch, so the rest it starts
+        // ends on the exercise being worked rather than the finished one.
+        selectExercise(target.entry)
         set.completed = true
         updateSet(set, inExerciseEntryID: target.entry, now: now)
     }
