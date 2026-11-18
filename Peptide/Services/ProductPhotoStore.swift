@@ -22,6 +22,11 @@ actor ProductPhotoStore {
     /// holds a well-used library in a few tens of MB.
     static let defaultMaxFiles = 400
 
+    /// Longest side, in pixels, of a photo handed to a view: the largest
+    /// thumbnail (56 pt, or a 44 pt row at a large Dynamic Type size) at
+    /// 3x. Kept small so the memory cache holds a whole library.
+    static let maxPixelSize: CGFloat = 320
+
     typealias CutOut = @Sendable (UIImage) throws -> UIImage?
 
     private final class Entry {
@@ -64,7 +69,7 @@ actor ProductPhotoStore {
     func photo(for url: URL) async -> ProductPhoto? {
         if let cached = cached(url) { return cached }
         if let running = inFlight[url] { return await running.value }
-        let task = Task { await load(url) }
+        let task = Task { await load(url).map(Self.prepared) }
         inFlight[url] = task
         let photo = await task.value
         inFlight[url] = nil
@@ -95,6 +100,26 @@ actor ProductPhotoStore {
             // photo now and leave the cut for a later launch.
             return ProductPhoto(image: image, isCutout: false)
         }
+    }
+
+    /// `photo` drawn into a bitmap no larger than `maxPixelSize`. A
+    /// `UIImage` read from disk or the network decodes lazily, at full
+    /// size, on the first draw — the main thread, as a row scrolls in.
+    /// Drawing it here pays that decode once, off-main, at thumbnail size.
+    static func prepared(_ photo: ProductPhoto) -> ProductPhoto {
+        let image = photo.image
+        let pixels = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+        let longest = max(pixels.width, pixels.height)
+        guard longest > 0 else { return photo }
+        let ratio = min(1, maxPixelSize / longest)
+        let target = CGSize(width: (pixels.width * ratio).rounded(), height: (pixels.height * ratio).rounded())
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let rendered = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: target))
+        }
+        return ProductPhoto(image: rendered, isCutout: photo.isCutout)
     }
 
     private func cutOutSerially(_ image: UIImage) async -> Result<UIImage?, Error> {
