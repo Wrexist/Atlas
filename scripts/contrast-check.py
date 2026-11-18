@@ -169,6 +169,9 @@ LAB_INKS = [
 ]
 SURFACES = ["background", "surfaceElevated", "surfaceSecondary"]
 ON_ACCENT_FILLS = ["macroWaterFill"]
+# (ink, wash token, wash opacity): the destructive GlassButton label on its
+# 0.15 red wash, the water quick-add chip label on its 0.18 blue wash.
+WASH_INKS = [("destructiveInk", "destructive", 0.15), ("macroWaterInk", "macroWater", 0.18)]
 
 
 def main() -> int:
@@ -178,7 +181,7 @@ def main() -> int:
 
     tokens = parse_tokens(COLOR_THEME)
     ramps = parse_ramps(APP_THEME)
-    missing = [n for n in TEXT_INKS + UI_INKS + LAB_INKS + SURFACES + ON_ACCENT_FILLS if n not in tokens]
+    missing = [n for n in TEXT_INKS + UI_INKS + LAB_INKS + SURFACES + ON_ACCENT_FILLS + [w[0] for w in WASH_INKS] if n not in tokens]
     if missing:
         print(f"could not parse tokens: {', '.join(missing)}", file=sys.stderr)
         return 2
@@ -253,6 +256,15 @@ def main() -> int:
                 ratio = contrast(stops["dark"][scheme_index], tokens[surface][scheme_index])
                 rows.append((scheme, f"{ramp}.accentFill", "on", surface,
                              ratio, AA_LARGE, ratio >= AA_LARGE))
+
+    # Inks made for text on a token's own translucent wash.
+    for ink, wash_token, alpha in WASH_INKS:
+        for index, scheme in enumerate(("light", "dark")):
+            for surface in SURFACES:
+                wash = blend(tokens[wash_token][index], tokens[surface][index], alpha)
+                ratio = contrast(tokens[ink][index], wash)
+                rows.append((scheme, ink, "on", f"{surface}+wash",
+                             ratio, AA_TEXT, ratio >= AA_TEXT))
 
     # Fixed fills that carry `onAccent` text (the streak Freeze button).
     for index, scheme in enumerate(("light", "dark")):

@@ -226,7 +226,7 @@ struct TrainOverviewView: View {
 
     @ViewBuilder
     private func otherStarts(showsPlan: Bool) -> some View {
-        GlassButton(title: "Empty workout", icon: "play", style: .secondary, isFullWidth: true) {
+        GlassButton(title: "Empty workout", icon: "play.fill", style: .secondary, isFullWidth: true) {
             Haptics.impact(.medium)
             sessionService.startWorkout()
         }

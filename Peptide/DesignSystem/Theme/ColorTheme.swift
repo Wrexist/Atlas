@@ -136,6 +136,11 @@ enum AppColor {
     // MARK: - Status
 
     static let destructive = Color(light: 0xD32F2F, dark: 0xFF4444)
+    /// Label ink on a `destructive` wash (the destructive `GlassButton`).
+    /// The wash pulls the backdrop toward red, so `destructive` itself drops
+    /// under 4.5:1 as headline text; this is the same red a step deeper in
+    /// light mode and a step lighter in dark.
+    static let destructiveInk = Color(light: 0xB71C1C, dark: 0xFF6B6B)
     static let warning = Color(light: 0x9A6B00, dark: 0xFFB800)
     /// An ink, never a fill: it is `accentPrimary`, so `onAccent` on it
     /// drops below 3:1 in the dark scheme. Fill with `accentFill`.
@@ -271,6 +276,10 @@ enum AppColor {
     static let macroProteinLight = Color(light: 0xB8791E, dark: 0xF5C56C)
     static let macroWater = Color(light: 0x1F6FC0, dark: 0x378ADD)
     static let macroWaterLight = Color(light: 0x3F8BD6, dark: 0x7CC5FF)
+    /// Water blue as small *text* on its own 0.18 wash (the quick-add
+    /// chips). `macroWaterLight` is a gradient stop and too pale in light
+    /// mode; `macroWater` is too dark on the dark wash.
+    static let macroWaterInk = Color(light: 0x1A5386, dark: 0x7CC5FF)
     /// Water blue as a *fill* under `onAccent` text. The dark-scheme
     /// `macroWater` is an ink tuned for a dark surface, and near-white on it
     /// is 3.5:1, so the fill keeps the deep stop in both schemes.
