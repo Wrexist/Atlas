@@ -1671,7 +1671,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@%2$lld %% jämfört med föregående 30 dagar"
+            "value": "%1$@%2$lld%% jämfört med föregående 30 dagar"
           }
         }
       }
@@ -3832,7 +3832,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$lld av %#@arg2@ klara i dag"
+            "value": "%1$lld av %#@arg2@ klara idag"
           },
           "substitutions": {
             "arg2": {
@@ -4952,7 +4952,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld%% återhämtad, lite mindre volym i dag"
+            "value": "%lld%% återhämtad, lite mindre volym idag"
           }
         }
       }
@@ -4962,7 +4962,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld%% återhämtad, bäst att vila den i dag. Du kan ändå träna den, lättare."
+            "value": "%lld%% återhämtad, bäst att vila den idag. Du kan ändå träna den, lättare."
           }
         }
       }
@@ -6271,7 +6271,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Skriv en anteckning om i dag"
+            "value": "Skriv en anteckning om idag"
           }
         }
       }
@@ -6471,7 +6471,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bättre än %lld %% av män i din ålder"
+            "value": "Bättre än %lld%% av män i din ålder"
           }
         }
       }
@@ -6481,7 +6481,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bättre än %lld %% av kvinnor i din ålder"
+            "value": "Bättre än %lld%% av kvinnor i din ålder"
           }
         }
       }
@@ -7528,7 +7528,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vilar i dag: %@"
+            "value": "Vilar idag: %@"
           }
         }
       }
@@ -18380,7 +18380,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Varje dos får nu en Live Activity 30 minuter innan den ska tas. Tryck på Logga direkt från låsskärmen – ingen upplåsning, ingen app som öppnas."
+            "value": "Varje dos får nu en liveaktivitet 30 minuter innan den ska tas. Tryck på Logga direkt från låsskärmen – ingen upplåsning, ingen app som öppnas."
           }
         }
       }
@@ -22448,7 +22448,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Live Activity"
+            "value": "Liveaktivitet"
           }
         }
       }
@@ -28922,7 +28922,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Premium-Live Activity för varje dos"
+            "value": "Premium-liveaktivitet för varje dos"
           }
         }
       }
@@ -31304,7 +31304,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Researchassistent"
+            "value": "Forskningsassistent"
           }
         }
       }
@@ -31314,7 +31314,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Researchassistent. Fråga om en substans eller en studie och få svar med källhänvisningar."
+            "value": "Forskningsassistent. Fråga om en substans eller en studie och få svar med källhänvisningar."
           }
         }
       }
@@ -36482,7 +36482,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Researchassistenten är tillfälligt offline. Försök igen om några minuter."
+            "value": "Forskningsassistenten är tillfälligt offline. Försök igen om några minuter."
           }
         }
       }
@@ -45231,7 +45231,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lättare i dag för att matcha din återhämtning."
+            "value": "Lättare idag för att matcha din återhämtning."
           }
         }
       }
@@ -45241,7 +45241,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Låg återhämtning i dag: vanliga förslag"
+            "value": "Låg återhämtning idag: vanliga förslag"
           }
         }
       }
@@ -45251,7 +45251,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Låg återhämtning i dag: förslagen sänkta 10 %"
+            "value": "Låg återhämtning idag: förslagen sänkta 10%"
           }
         }
       }
@@ -46071,7 +46071,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Markerar som tagen i dag"
+            "value": "Markerar som tagen idag"
           }
         }
       }
@@ -47093,7 +47093,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ät i dag"
+            "value": "Ät idag"
           }
         }
       }
@@ -47643,7 +47643,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ät i dag"
+            "value": "Ät idag"
           }
         }
       }
