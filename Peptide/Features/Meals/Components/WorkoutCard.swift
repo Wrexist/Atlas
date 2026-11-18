@@ -29,7 +29,7 @@ struct WorkoutCard: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(isPastDay ? "Training" : "Today's training")
+                Text(isPastDay ? "Workouts" : "Today's training")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(subtitle)
