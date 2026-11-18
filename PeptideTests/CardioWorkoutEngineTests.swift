@@ -37,6 +37,12 @@ final class CardioWorkoutEngineTests: XCTestCase {
 
     // MARK: - Activity mapping
 
+    func test_durationLabel_matchesTheRecapFormat() {
+        XCTAssertEqual(CardioWorkoutEngine.durationLabel(3_900), WorkoutRecapEngine.Duration.tracked(3_900).label)
+        XCTAssertEqual(CardioWorkoutEngine.durationLabel(20), WorkoutRecapEngine.Duration.tracked(60).label,
+                       "A short workout still reads as a minute")
+    }
+
     func test_commonCardioTypes_mapToTheirOwnActivity() {
         XCTAssertEqual(CardioActivity(.running), .running)
         XCTAssertEqual(CardioActivity(.walking), .walking)

@@ -67,10 +67,11 @@ enum CardioWorkoutEngine {
         return distance.formatted(style)
     }
 
-    /// "1 hr, 5 min", rounded to the minute.
+    /// "1h 5m", rounded to the minute — the recap's format, so Health and
+    /// Atlas rows side by side in history read alike.
     static func durationLabel(_ seconds: TimeInterval) -> String {
         let minutes = max(1, (seconds / 60).rounded())
-        return Duration.seconds(minutes * 60).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
+        return WorkoutRecapEngine.Duration.tracked(minutes * 60).label
     }
 
     static func energyLabel(_ kilocalories: Double?) -> String? {
