@@ -29,7 +29,7 @@ jobs:
       ATLAS_BODY: athletic  # the body Isac picked (gen_human.py BODIES), with short hair
       ATLAS_CLOTHES: "^short01"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install system packages
         run: |
           sudo apt-get update -q
