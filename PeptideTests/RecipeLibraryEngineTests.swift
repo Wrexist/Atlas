@@ -330,4 +330,15 @@ final class RecipeLibraryEngineTests: XCTestCase {
         XCTAssertEqual(RecipeLibraryEngine.recipe(named: " \(recipe.name) ")?.id, recipe.id)
         XCTAssertNil(RecipeLibraryEngine.recipe(named: "Light Protein Cheese"))
     }
+
+    func test_warmUp_racingAReader_bothSeeTheSameLibrary() async throws {
+        async let warm: Void = RecipeLibraryEngine.warmUp()
+        let read = RecipeLibraryEngine.bundled.count
+        await warm
+
+        XCTAssertGreaterThan(read, 0)
+        XCTAssertEqual(RecipeLibraryEngine.bundled.count, read)
+        let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first)
+        XCTAssertEqual(RecipeLibraryEngine.recipe(named: recipe.name)?.id, recipe.id)
+    }
 }

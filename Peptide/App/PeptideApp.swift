@@ -380,6 +380,8 @@ struct PeptideApp: App {
             // synchronously, so warming it here means none of them
             // is the one that pays — and launch doesn't either.
             await PeptideDatabase.warmUp()
+            // Same for the recipe library, first read from Meals views.
+            await RecipeLibraryEngine.warmUp()
         }
         // One-shot Spotlight reindex on app start. Custom foods
         // and favorites stay in sync via DataStore mutation
