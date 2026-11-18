@@ -14,6 +14,15 @@ struct WatchEntry: Codable, Identifiable, Equatable, Sendable {
     /// non-en_US user).
     let scheduledTime: Date
     var completed: Bool
+
+    /// The order the Watch lists doses in: open ones first, then by time.
+    /// Shared by the phone's push and the Watch's optimistic tap, so a
+    /// ticked dose moves at once instead of jumping when the push lands.
+    static func displayOrder(_ lhs: WatchEntry, _ rhs: WatchEntry) -> Bool {
+        lhs.completed == rhs.completed
+            ? lhs.scheduledTime < rhs.scheduledTime
+            : !lhs.completed
+    }
 }
 
 /// Compact nutrition snapshot for the Watch app. Mirrors the
@@ -298,7 +307,7 @@ struct WatchData: Codable, Equatable, Sendable {
     /// ones the caller forgot to re-pass.
     func replacingEntries(_ entries: [WatchEntry]) -> WatchData {
         var copy = self
-        copy.todayEntries = entries
+        copy.todayEntries = entries.sorted(by: WatchEntry.displayOrder)
         copy.completedToday = entries.filter(\.completed).count
         copy.totalToday = entries.count
         return copy
