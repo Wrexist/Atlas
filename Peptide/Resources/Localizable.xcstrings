@@ -49785,6 +49785,17 @@
           }
         }
       }
+    },
+    "Added %@": {
+      "comment": "Toast after a one-tap water log on Today. The value is the amount with its unit.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lade till %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
