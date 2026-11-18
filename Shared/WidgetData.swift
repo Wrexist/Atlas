@@ -143,14 +143,6 @@ struct WidgetData: Codable, Equatable, Sendable {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
     }
 
-    /// Fraction of the day's calorie target consumed. Clamped at 1.0
-    /// so the widget ring never overdraws past full when the user
-    /// exceeds their target.
-    var calorieProgress: Double {
-        guard calorieTarget > 0 else { return 0 }
-        return min(1.0, Double(caloriesToday) / Double(calorieTarget))
-    }
-
     /// True while a workout is in progress — the training widget swaps
     /// to a live elapsed-time layout.
     var workoutInProgress: Bool { activeWorkoutStartedAt != nil }
@@ -252,15 +244,6 @@ struct WidgetData: Codable, Equatable, Sendable {
     func volumeInUserUnit(_ kilograms: Double) -> Double {
         measurementUnit == "imperial" ? kilograms * 2.20462 : kilograms
     }
-
-    static let empty = WidgetData(
-        nextPeptideName: "",
-        nextDose: "",
-        nextDoseTime: nil,
-        completedToday: 0,
-        totalToday: 0,
-        lastUpdated: .distantPast
-    )
 
     // MARK: - Codable (backwards-compatible: every nutrition and
     // training field is optional so older payloads — written before
