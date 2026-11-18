@@ -214,12 +214,15 @@ struct BodyMetrics: Codable, Hashable, Sendable {
         return enteredAge + max(0, years)
     }
 
+    /// An age is stored but the date it was entered is not.
+    var lacksAgeRecordedAt: Bool { enteredAge != nil && ageRecordedAt == nil }
+
     /// Stamps metrics saved without `ageRecordedAt` with `date`. Pass
     /// the load date, never an earlier guess such as `memberSince`: the
     /// age may have been entered or corrected since, and an early stamp
     /// would advance it too far.
     func backfillingAgeRecordedAt(_ date: Date) -> BodyMetrics {
-        guard enteredAge != nil, ageRecordedAt == nil else { return self }
+        guard lacksAgeRecordedAt else { return self }
         var copy = self
         copy.ageRecordedAt = date
         return copy

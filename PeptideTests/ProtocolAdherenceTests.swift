@@ -57,6 +57,22 @@ final class ProtocolAdherenceTests: XCTestCase {
         XCTAssertEqual(ratio ?? -1, 3.0 / 5.0, accuracy: 0.0001)
     }
 
+    func test_stackStats_otherProtocolsAndMissedDays_areScopedToTheStack() {
+        let proto = makeProtocol(startDaysAgo: 4)
+        let finished = makeProtocol(startDaysAgo: 40)
+        let entries = [
+            entry(for: proto, daysAgo: 4, completed: true),
+            entry(for: proto, daysAgo: 2, completed: true),
+            entry(for: proto, daysAgo: 0, completed: true),
+            entry(for: finished, daysAgo: 30, completed: true)
+        ]
+
+        let stats = CycleCardModel.stackStats(protocols: [proto], entries: entries, now: now, calendar: calendar)
+
+        XCTAssertEqual(stats.dosesLogged, 3, "Doses from protocols outside the stack must not count")
+        XCTAssertEqual(stats.adherencePercent, 60, "Unlogged scheduled days count as missed")
+    }
+
     func test_adherence_todaysDoseNotYetDue_isNotAMiss() {
         let proto = makeProtocol(startDaysAgo: 0)
         let entries = [entry(for: proto, daysAgo: 0, hour: 21, completed: false)]

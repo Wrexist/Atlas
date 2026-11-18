@@ -28,12 +28,12 @@ struct RecipeDetailView: View {
         self.recipe = recipe
         self.logDay = logDay
         _servings = State(initialValue: recipe.servings)
-        // Built up front so the method card is there on the first frame.
-        // The app pins `\.locale` to this same locale.
+        // Built up front so the method card is there on the first frame,
+        // in the locale the environment's `\.locale` defaults to.
         _steps = State(initialValue: RecipeStepEngine.steps(
             for: recipe,
             servings: recipe.servings,
-            locale: LocalizationManager.shared.effectiveLocale
+            locale: .current
         ))
     }
 

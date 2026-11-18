@@ -9,7 +9,6 @@ struct PeptideApp: App {
     @UIApplicationDelegateAdaptor(AtlasAppDelegate.self) private var appDelegate
     @State private var appState: AppState
     @State private var dataStore: DataStore
-    @State private var localization = LocalizationManager.shared
     @State private var themeManager = ThemeManager.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     /// `UNUserNotificationCenter` holds its delegate weakly; this keeps it
@@ -224,15 +223,6 @@ struct PeptideApp: App {
                     .accessibilityHidden(privacyCover != nil)
             }
         }
-        .environment(localization)
-        .environment(\.locale, localization.effectiveLocale)
-        .environment(\.layoutDirection, localization.layoutDirection)
-        .id(localization.selectedCode ?? "system")
-        .onChange(of: localization.selectedCode) { _, _ in
-            // The long-press menu is set at runtime to follow the in-app
-            // language; without this it kept the old one until relaunch.
-            QuickActionRouter.installHomeScreenShortcuts()
-        }
         .onChange(of: dataStore.profile.biometricLockEnabled) { _, enabled in
             if !enabled { isUnlocked = true }
         }
@@ -318,7 +308,7 @@ struct PeptideApp: App {
             // mirror mount still on Today.
             appState.dismissModalsForRouting()
             appState.selectedTab = .meals
-            appState.pendingFoodLogID = deepLink
+            appState.afterRoutingDismissals { appState.pendingFoodLogID = deepLink }
         }
         .onReceive(NotificationCenter.default.publisher(
             for: UIApplication.significantTimeChangeNotification
@@ -330,6 +320,11 @@ struct PeptideApp: App {
             dataStore.handleAppActivation()
             dataStore.reconcileDoseLiveActivities()
             detectTimezoneChange()
+        }
+        .onChange(of: appState.rootPromptDismissalRequest) {
+            // Routing elsewhere: the prompt would hide where it lands.
+            travelChange = nil
+            showWhatsNewTour = false
         }
         .sheet(item: $travelChange) { change in
             TravelModePromptSheet(
@@ -450,11 +445,9 @@ struct PeptideApp: App {
     }
 
     /// The lock window hosts its own view tree, outside the app's
-    /// environment, so it gets the language and theme here.
+    /// environment, so it gets the theme here.
     private func privacyCoverContent(_ cover: some View) -> some View {
         cover
-            .environment(\.locale, localization.effectiveLocale)
-            .environment(\.layoutDirection, localization.layoutDirection)
             .preferredColorScheme(themeManager.displayMode.preferredScheme)
             .tint(AppColor.accentPrimary)
     }
@@ -533,14 +526,17 @@ struct PeptideApp: App {
     }
 
     /// One-shot travel detection on every transition to `.active`.
-    /// Reads the user's last-known zone from `dataStore.profile`,
+    /// Reads the zone this device last acknowledged (seeded from
+    /// `dataStore.profile`),
     /// hands it to `TimezoneChangeDetector`, and sets
     /// `travelChange` (which drives the prompt sheet) only on a
     /// real crossing. On a fresh install (no previous identifier)
     /// we silently record the current zone so the next launch has
     /// a baseline to compare against.
     private func detectTimezoneChange() {
-        let stored = dataStore.profile.lastKnownTimezoneIdentifier
+        let stored = TravelModeLogic.acknowledgedTimezone(
+            seededFrom: dataStore.profile.lastKnownTimezoneIdentifier
+        )
         if stored == nil {
             dataStore.acknowledgeTimezone(TimeZone.current.identifier)
             return
@@ -569,7 +565,8 @@ struct PeptideApp: App {
               let firstTime = firstActive.schedule.preferredTimes.first
         else { return nil }
         let shifted = TravelModeLogic.shiftTime(firstTime, byMinutes: change.minutesDelta)
-        return (firstTime, shifted)
+        // Stored keys are en_US_POSIX "h:mm a"; show the user's clock.
+        return (ProtocolSchedule.displayTime(firstTime), ProtocolSchedule.displayTime(shifted))
     }
 
     /// Ticks only for a tab the user picked. Routers, deep links and
@@ -599,7 +596,9 @@ struct PeptideApp: App {
             Tab("Biology", systemImage: "heart.fill", value: .biology) {
                 BiologyView().tint(AppColor.accentPrimary)
             }
-            Tab("Habits", systemImage: "checkmark.circle.fill", value: .habits) {
+            // A list glyph, not a solid disc: the filled circle outweighed
+            // every other tab symbol.
+            Tab("Habits", systemImage: "checklist", value: .habits) {
                 HabitsView().tint(AppColor.accentPrimary)
             }
         }
@@ -638,9 +637,12 @@ struct PeptideApp: App {
         }
     }
 
+    /// The dose strip belongs to Today: protocol tracking is opt-in, and
+    /// the fitness tabs show only a workout in progress.
     private var showsTabAccessory: Bool {
         appState.selectedTab != .train
-            && (workoutSession.activeSession != nil || !dataStore.activeProtocols.isEmpty)
+            && (workoutSession.activeSession != nil
+                || (appState.selectedTab == .today && !dataStore.activeProtocols.isEmpty))
     }
 
     private var mainContent: some View {
@@ -790,42 +792,63 @@ private final class BackgroundTaskHandle {
 }
 
 /// The strip above the tab bar. It answers "is today done?" for whatever
-/// the user is currently looking at — workouts on Train, doses everywhere
-/// else — because a dose reminder under the muscle map is answering a
-/// question nobody on that screen asked. Without an active protocol there
-/// are no doses to report, so the workout strip stands in: an empty
-/// accessory would still draw its glass capsule, and "All doses completed"
-/// with a syringe is noise for someone who never tracks one.
+/// the user is currently looking at — doses on Today, workouts elsewhere —
+/// because protocol tracking is opt-in and a dose reminder under the
+/// muscle map is answering a question nobody on that screen asked.
+/// Without an active protocol there are no doses to report, so the
+/// workout strip stands in: an empty accessory would still draw its glass
+/// capsule, and "All doses completed" with a syringe is noise for someone
+/// who never tracks one.
 ///
 /// The strip is a button, like the system's own bottom accessories: it
 /// opens the tab that acts on what it reports, so "Workout in progress"
-/// or an overdue dose is one tap from being dealt with.
+/// or an overdue dose is one tap from being dealt with. Already on Today,
+/// it opens the next dose's log sheet; with nothing left to open it drops
+/// its chevron and stops being a button.
 struct TabAccessoryView: View {
     let tab: AppTab
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        let showsWorkout = tab == .train || dataStore.activeProtocols.isEmpty
+        let showsWorkout = tab != .today || dataStore.activeProtocols.isEmpty
+        let destination: AppTab = showsWorkout ? .train : .today
+        let acts = canAct(on: destination)
         Button {
-            open(showsWorkout ? .train : .today)
+            open(destination)
         } label: {
             if showsWorkout {
                 // Train draws its own resume banner for a workout in
                 // progress; repeating it here stacks two identical pills.
-                WorkoutAccessoryView(reportsActiveWorkout: tab != .train)
+                WorkoutAccessoryView(reportsActiveWorkout: tab != .train, showsChevron: acts)
             } else {
-                NextDoseAccessoryView()
+                NextDoseAccessoryView(showsChevron: acts)
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-        .accessibilityHint(showsWorkout ? Text("Opens Train") : Text("Opens Today"))
+        .allowsHitTesting(acts)
+        .accessibilityRemoveTraits(acts ? [] : .isButton)
+        .accessibilityHint(acts ? hint(for: destination) : Text(verbatim: ""))
+    }
+
+    private func canAct(on destination: AppTab) -> Bool {
+        guard appState.selectedTab == destination else { return true }
+        return destination == .today && dataStore.nextDose != nil
+    }
+
+    private func hint(for destination: AppTab) -> Text {
+        guard appState.selectedTab != destination else { return Text("Opens the dose log") }
+        return destination == .train ? Text("Opens Train") : Text("Opens Today")
     }
 
     private func open(_ destination: AppTab) {
-        guard appState.selectedTab != destination else { return }
         Haptics.selection()
-        appState.selectedTab = destination
+        guard appState.selectedTab == destination else {
+            appState.selectedTab = destination
+            return
+        }
+        // HomeView presents the log sheet for a parked entry id.
+        appState.pendingDoseLogEntryId = dataStore.nextDose?.id
     }
 }
 
@@ -834,6 +857,7 @@ struct TabAccessoryView: View {
 /// SwiftData, and the accessory re-renders on every tab change.
 struct WorkoutAccessoryView: View {
     let reportsActiveWorkout: Bool
+    var showsChevron = true
     @Environment(DataStore.self) private var dataStore
     @State private var sessionService = WorkoutSessionService.shared
     @State private var loggedToday = 0
@@ -841,7 +865,7 @@ struct WorkoutAccessoryView: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.accentPrimary)
                 .contentTransition(.symbolEffect(.replace))
             Text(label)
@@ -850,12 +874,7 @@ struct WorkoutAccessoryView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Spacer()
-            // The strip is a button; the chevron says so and balances the
-            // icon on the leading edge.
-            Image(systemName: "chevron.right")
-                .font(AppFont.caption2.weight(.semibold))
-                .foregroundStyle(AppColor.textTertiary)
-                .accessibilityHidden(true)
+            if showsChevron { AccessoryChevron() }
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
@@ -883,7 +902,19 @@ struct WorkoutAccessoryView: View {
     }
 }
 
+/// The strip is a button; the chevron says so and balances the icon on
+/// the leading edge. Both accessories end in the same one.
+private struct AccessoryChevron: View {
+    var body: some View {
+        Image(systemName: "chevron.right")
+            .font(AppFont.caption2.weight(.semibold))
+            .foregroundStyle(AppColor.textTertiary)
+            .accessibilityHidden(true)
+    }
+}
+
 struct NextDoseAccessoryView: View {
+    var showsChevron = true
     @Environment(DataStore.self) private var dataStore
     /// Re-read when the shown dose falls due, so "Next" turns into
     /// "Overdue" on time even while nothing else redraws the strip.
@@ -894,10 +925,11 @@ struct NextDoseAccessoryView: View {
         // `nextDose` falls back to a missed dose once none is left ahead,
         // so a past time here means the dose is overdue, not upcoming.
         let isOverdue = next.map { $0.date < now } ?? false
+        let noneScheduled = dataStore.todayEntries.isEmpty
 
         HStack(spacing: Spacing.sm) {
-            Image(systemName: icon(isDone: next == nil, isOverdue: isOverdue))
-                .font(.caption)
+            Image(systemName: icon(isDone: next == nil, noneScheduled: noneScheduled, isOverdue: isOverdue))
+                .font(AppFont.caption2)
                 .foregroundStyle(isOverdue ? AppColor.warning : AppColor.accentPrimary)
                 .contentTransition(.symbolEffect(.replace))
 
@@ -908,19 +940,21 @@ struct NextDoseAccessoryView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Spacer()
+                // The icon alone carries the overdue amber.
                 Text(next.date.formatted(.dateTime.hour().minute()))
                     .font(AppFont.caption2)
-                    .foregroundStyle(isOverdue ? AppColor.warning : AppColor.accentLight)
+                    .foregroundStyle(isOverdue ? AppColor.textSecondary : AppColor.accentLight)
                     .contentTransition(.numericText())
                     .fixedSize()
             } else {
-                Text("All doses completed for today")
+                Text(noneScheduled ? "No doses today" : "All doses completed for today")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Spacer()
             }
+            if showsChevron { AccessoryChevron() }
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
@@ -935,7 +969,8 @@ struct NextDoseAccessoryView: View {
         }
     }
 
-    private func icon(isDone: Bool, isOverdue: Bool) -> String {
+    private func icon(isDone: Bool, noneScheduled: Bool, isOverdue: Bool) -> String {
+        if noneScheduled { return "calendar" }
         if isDone { return "checkmark.circle.fill" }
         return isOverdue ? "exclamationmark.circle.fill" : "syringe.fill"
     }
@@ -955,7 +990,9 @@ struct NextDoseAccessoryView: View {
     /// One VoiceOver stop with the full name, instead of the icon,
     /// the abbreviated line with its bullet glyph, and the time.
     private func voiceOverLabel(isOverdue: Bool) -> Text {
-        guard let next = dataStore.nextDose else { return Text("All doses completed for today") }
+        guard let next = dataStore.nextDose else {
+            return dataStore.todayEntries.isEmpty ? Text("No doses today") : Text("All doses completed for today")
+        }
         let time = next.date.formatted(.dateTime.hour().minute())
         if isOverdue {
             return next.dose.isEmpty

@@ -154,8 +154,16 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.daysOfWeek = try c.decode([Int].self, forKey: .daysOfWeek)
-        self.timesPerDay = try c.decode(Int.self, forKey: .timesPerDay)
-        self.preferredTimes = try c.decode([String].self, forKey: .preferredTimes)
+        // Normalised here, at the model boundary, so a schedule saved
+        // before the editors deduplicated times (or synced from such a
+        // build) can't generate two entries sharing one id. The count
+        // drops with the duplicates, or the summary would still read 2x
+        // for a schedule that now fires once.
+        let storedTimes = try c.decode([String].self, forKey: .preferredTimes)
+        let times = Self.normalizedTimes(storedTimes)
+        let storedTimesPerDay = try c.decode(Int.self, forKey: .timesPerDay)
+        self.timesPerDay = times.count < storedTimes.count ? min(storedTimesPerDay, times.count) : storedTimesPerDay
+        self.preferredTimes = times
         self.customDose = try c.decodeIfPresent(String.self, forKey: .customDose)
         self.intervalDays = try c.decodeIfPresent(Int.self, forKey: .intervalDays)
         self.intervalAnchor = try c.decodeIfPresent(Date.self, forKey: .intervalAnchor)

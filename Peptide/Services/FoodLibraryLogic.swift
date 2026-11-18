@@ -55,6 +55,14 @@ enum FoodLibraryLogic {
         value.isFinite ? Int(min(max(value, 0), 99_999).rounded()) : 0
     }
 
+    /// Siri's match for a user-named item (recipe, routine): case-,
+    /// diacritic- and punctuation-folded containment, so "kottbullar"
+    /// finds "Köttbullar". An empty query matches nothing.
+    static func spokenQuery(_ query: String, matches name: String) -> Bool {
+        let needle = normalized(query)
+        return !needle.isEmpty && normalized(name).contains(needle)
+    }
+
     static func normalized(_ value: String) -> String {
         value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber }).joined(separator: " ")

@@ -55,16 +55,16 @@ struct RecipeEntityQuery: EntityQuery {
     }
 
     /// Siri NL match. Recipe names are user-defined ("morning bowl",
-    /// "post-workout shake"), so case-insensitive containment match
-    /// against the stored name is the right shape — no fuzzy
-    /// stemming needed when the corpus is one user's own library.
+    /// "post-workout shake"), so a folded containment match against the
+    /// stored name is the right shape — no fuzzy stemming needed when
+    /// the corpus is one user's own library. Folding diacritics, as the
+    /// food query does, lets unaccented speech find "Köttbullar".
     func entities(matching string: String) async throws -> [RecipeEntity] {
-        let needle = string.lowercased()
         let all = await MainActor.run {
             let store = IntentDataStore.resolve()
             return Self.allEntities(in: store)
         }
-        return all.filter { $0.displayName.lowercased().contains(needle) }
+        return all.filter { FoodLibraryLogic.spokenQuery(string, matches: $0.displayName) }
     }
 
     @MainActor

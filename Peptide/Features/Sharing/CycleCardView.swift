@@ -41,7 +41,7 @@ struct CycleCardView: View {
         // cards), so the canvas renders at the default size.
         .environment(\.dynamicTypeSize, .large)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(model.spokenSummary(maskCompoundNames: maskCompoundNames))
     }
 
     // MARK: - Layout
@@ -171,7 +171,7 @@ struct CycleCardView: View {
                     .tracking(-0.5)
             }
             Spacer()
-            Text(displayTitle)
+            Text(model.displayTitle(maskCompoundNames: maskCompoundNames))
                 .font(AppFont.scaled(20, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
                 .lineLimit(1)
@@ -193,10 +193,10 @@ struct CycleCardView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Active since \(activeSinceFormatted)")
+                Text("Active since \(model.activeSinceFormatted)")
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.55))
-                Text(cycleProgressLine)
+                Text(model.cycleProgressLine)
                     .font(AppFont.scaled(28, weight: .bold, design: .rounded, in: .large))
                     .foregroundStyle(.white)
             }
@@ -209,10 +209,10 @@ struct CycleCardView: View {
             let visible = Array(model.peptides.prefix(Self.maxVisibleVials))
             ForEach(Array(visible.enumerated()), id: \.offset) { index, peptide in
                 let label: String = maskCompoundNames
-                    ? String(Character(UnicodeScalar(65 + index)!))
+                    ? CycleCardModel.maskLetter(index)
                     : peptide.abbreviation
                 let displayName: String = maskCompoundNames
-                    ? String(localized: "Compound \(label)")
+                    ? CycleCardModel.maskedCompoundName(index)
                     : peptide.name
                 CompoundVial(
                     compoundName: displayName,
@@ -241,32 +241,13 @@ struct CycleCardView: View {
             // specific compounds.
             let count = min(Self.maxVisibleVials, model.peptides.count)
             return (0..<count)
-                .map { "Compound \(Character(UnicodeScalar(65 + $0)!))" }
+                .map(CycleCardModel.maskedCompoundName)
                 .joined(separator: " · ")
         }
         return model.peptides
             .prefix(Self.maxVisibleVials)
             .map(\.name)
             .joined(separator: ", ")
-    }
-
-    private var activeSinceFormatted: String {
-        model.activeSinceDate.formatted(.dateTime.month(.wide).day().year())
-    }
-
-    /// "Day 0 of 84" read as a broken counter for a protocol that
-    /// hasn't begun, and "Day 120 of 84" for one past its length; name
-    /// the start date or the completed cycle instead.
-    private var cycleProgressLine: String {
-        guard model.cycleDay > 0 else { return String(localized: "Starts \(activeSinceFormatted)") }
-        guard model.cycleDay <= model.cycleTotalDays else {
-            return String(localized: "Cycle complete · \(model.cycleTotalDays) days")
-        }
-        return String(localized: "Day \(model.cycleDay) of \(model.cycleTotalDays) cycle")
-    }
-
-    private var streakLabel: String {
-        model.currentStreakDays == 1 ? String(localized: "1 day") : String(localized: "\(model.currentStreakDays) days")
     }
 
     private func atlasMark(size: CGFloat) -> some View {
@@ -280,11 +261,27 @@ struct CycleCardView: View {
 
     // MARK: - Stats row
 
+    private struct Stat {
+        let value: String
+        let label: String
+        var trailingSymbol: String?
+    }
+
+    /// One list for both layouts, so a label can't be localized in one
+    /// and left as an English literal in the other.
+    private var stats: [Stat] {
+        [
+            Stat(value: "\(model.dosesLogged)", label: String(localized: "Doses logged")),
+            Stat(value: "\(model.adherencePercent)%", label: String(localized: "Adherence")),
+            Stat(value: model.streakValue, label: model.streakTitle, trailingSymbol: "flame.fill"),
+        ]
+    }
+
     private var statsRow: some View {
         HStack(spacing: 18) {
-            statCard(value: dosesValue, label: String(localized: "Doses logged"))
-            statCard(value: adherenceValue, label: String(localized: "Adherence"))
-            statCard(value: streakLabel, label: String(localized: "Streak"), trailingSymbol: "flame.fill")
+            ForEach(stats, id: \.label) { stat in
+                statCard(value: stat.value, label: stat.label, trailingSymbol: stat.trailingSymbol)
+            }
         }
         .padding(.top, metrics.statsTop)
     }
@@ -293,14 +290,11 @@ struct CycleCardView: View {
     /// figure right, so the right-hand column reads as a scoreboard.
     private var statsColumn: some View {
         VStack(spacing: 12) {
-            statRow(value: dosesValue, label: "Doses logged")
-            statRow(value: adherenceValue, label: "Adherence")
-            statRow(value: streakLabel, label: "Streak", trailingSymbol: "flame.fill")
+            ForEach(stats, id: \.label) { stat in
+                statRow(value: stat.value, label: stat.label, trailingSymbol: stat.trailingSymbol)
+            }
         }
     }
-
-    private var dosesValue: String { "\(model.dosesLogged)" }
-    private var adherenceValue: String { "\(model.adherencePercent)%" }
 
     private func statCard(value: String, label: String, trailingSymbol: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -466,36 +460,6 @@ struct CycleCardView: View {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .fill(.white)
         }
-    }
-
-    /// Protocols are often named after their compounds ("BPC-157 +
-    /// TB-500"), so the mask hides the title as well as the vials.
-    private var displayTitle: String {
-        maskCompoundNames ? String(localized: "My Protocol") : model.subjectTitle
-    }
-
-    // MARK: - Accessibility
-
-    private var accessibilityLabel: String {
-        // Honour `maskCompoundNames` here too — a sighted user sees
-        // "Compound A / B" while VoiceOver was reading the real
-        // abbreviations, defeating the privacy point of the mask
-        // (audit Sharing P2).
-        let names: String
-        if maskCompoundNames {
-            names = model.peptides
-                .enumerated()
-                .map { idx, _ in
-                    String(localized: "Compound ") + String(Character(UnicodeScalar(65 + idx)!))
-                }
-                .joined(separator: ", ")
-        } else {
-            names = model.peptides.map(\.abbreviation).joined(separator: ", ")
-        }
-        return String(localized: "\(displayTitle) cycle card. \(cycleProgressLine). ") +
-               String(localized: "Peptides: \(names). ") +
-               String(localized: "Doses logged: \(model.dosesLogged). Adherence: \(model.adherencePercent) percent. ") +
-               String(localized: "Streak: \(streakLabel). Watermark: Atlas.")
     }
 
     // MARK: - QR generation

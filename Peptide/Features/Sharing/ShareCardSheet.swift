@@ -68,18 +68,9 @@ struct ShareCardSheet: View {
     @MainActor
     private var modelForRender: CycleCardModel {
         var m = baseModel
-        if includeHealth, let healthSummary {
-            m = CycleCardModel(
-                subjectTitle: m.subjectTitle,
-                peptides: m.peptides,
-                activeSinceDate: m.activeSinceDate,
-                cycleDay: m.cycleDay,
-                cycleTotalDays: m.cycleTotalDays,
-                dosesLogged: m.dosesLogged,
-                adherencePercent: m.adherencePercent,
-                currentStreakDays: m.currentStreakDays,
-                healthSummary: healthSummary
-            )
+        // An empty summary would draw a bare "Health signals" heading.
+        if includeHealth, let healthSummary, !healthSummary.isEmpty {
+            m.healthSummary = healthSummary
         }
         return m
     }
@@ -173,7 +164,9 @@ struct ShareCardSheet: View {
                     .aspectRatio(contentMode: .fill)
                     .id(previewImage)
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                    .accessibilityLabel("Share card preview")
+                    // The pixels carry none of the card's text; read what
+                    // it says so the mask and health toggles can be checked.
+                    .accessibilityLabel(Text(modelForRender.spokenSummary(maskCompoundNames: maskCompoundNames)))
             } else if previewRenderFailed {
                 AppColor.surfaceSecondary
                 VStack(spacing: Spacing.sm) {
@@ -274,6 +267,10 @@ struct ShareCardSheet: View {
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
+            } else if includeHealth, healthSummary?.isEmpty == true {
+                Text("No health data to add yet")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
             }
 
             Divider().overlay(AppColor.glassBorder)

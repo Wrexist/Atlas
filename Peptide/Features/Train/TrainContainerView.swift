@@ -11,6 +11,7 @@ import SwiftUI
 struct TrainContainerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(AppState.self) private var appState
     @State private var exerciseBrowsing = ExerciseBrowsingState()
     @State private var overviewScroll = ScrollPosition(edge: .top)
     @Namespace private var exerciseTransition
@@ -59,7 +60,7 @@ struct TrainContainerView: View {
             }
         }
         .environment(\.resumeActiveWorkout, { showActiveWorkout = true })
-        .fullScreenCover(isPresented: $showActiveWorkout) {
+        .fullScreenCover(isPresented: $showActiveWorkout, onDismiss: { appState.activeWorkoutCoverDidDismiss() }) {
             ActiveWorkoutView()
         }
         .onAppear {
@@ -79,6 +80,11 @@ struct TrainContainerView: View {
             }
         }
         .onDisappear { isVisible = false }
+        .onChange(of: appState.minimizeActiveWorkoutRequest) {
+            // A deep link or quick action is routing elsewhere; the cover
+            // would hide where it lands.
+            showActiveWorkout = false
+        }
         .onChange(of: sessionService.staleClosure) { _, closure in
             guard closure != nil else { return }
             // Left open overnight, the workout screen would come back

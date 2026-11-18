@@ -214,7 +214,7 @@ final class AchievementService {
         }
         do {
             let saved = try JSONDecoder().decode([Achievement].self, from: data)
-            achievements = mergeWithDefaults(saved)
+            achievements = Self.mergeWithDefaults(saved)
         } catch {
             AppLog.achievements.error("Failed to decode achievements; reverting to defaults: \(error.localizedDescription, privacy: .public)")
             achievements = Self.defaultAchievements
@@ -230,13 +230,15 @@ final class AchievementService {
         }
     }
 
-    private func mergeWithDefaults(_ saved: [Achievement]) -> [Achievement] {
-        let savedMap = Dictionary(uniqueKeysWithValues: saved.map { ($0.id, $0) })
-        return Self.defaultAchievements.map { def in
-            if let saved = savedMap[def.id] {
-                return saved
-            }
-            return def
+    /// Only the unlock state persists: title and description come from
+    /// the defaults, resolved in the current language. The saved strings
+    /// are whatever language was active at first save.
+    static func mergeWithDefaults(_ saved: [Achievement]) -> [Achievement] {
+        let savedMap = Dictionary(saved.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return defaultAchievements.map { def in
+            var merged = def
+            merged.unlockedDate = savedMap[def.id]?.unlockedDate
+            return merged
         }
     }
 

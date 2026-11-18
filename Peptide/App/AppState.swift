@@ -97,15 +97,57 @@ final class AppState {
     /// itself, so the system banner for it is suppressed only then.
     var isActiveWorkoutVisible = false
 
+    /// Bumped by `dismissModalsForRouting`; `PeptideApp` closes the
+    /// What's New tour and travel prompt it owns. Both come back on their
+    /// own: the tour until it is finished, the prompt on the next activation.
+    private(set) var rootPromptDismissalRequest = 0
+    /// Bumped when routing needs the workout cover out of the way;
+    /// `TrainContainerView` minimizes it. The workout keeps running
+    /// behind its resume banner.
+    private(set) var minimizeActiveWorkoutRequest = 0
+    /// Set while the workout cover `dismissModalsForRouting` minimized is
+    /// still animating out. UIKit refuses a presentation during a
+    /// dismissal, so `afterRoutingDismissals` holds the landing until
+    /// `activeWorkoutCoverDidDismiss` reports the cover gone.
+    @ObservationIgnored private var isMinimizingActiveWorkout = false
+    @ObservationIgnored private var landingAwaitingCover: (@MainActor () -> Void)?
+
     /// Closes the root-presented modals before a deep link, quick action
     /// or Spotlight tap navigates. A tab switch or a pending flag behind
-    /// an open Profile sheet, Library cover or paywall happens out of sight, and
-    /// the view that consumes the flag can't present over the modal.
-    func dismissModalsForRouting() {
+    /// an open Profile sheet, Library cover, paywall, the workout cover
+    /// or a root prompt happens out of sight, and the view that consumes
+    /// the flag can't present over the modal. A route that lands on the
+    /// workout itself keeps its cover up.
+    func dismissModalsForRouting(keepingActiveWorkout: Bool = false) {
         showProfile = false
         showLibrary = false
         presentedQuickSheet = nil
         presentedPaywall = nil
+        rootPromptDismissalRequest &+= 1
+        if isActiveWorkoutVisible, !keepingActiveWorkout {
+            isMinimizingActiveWorkout = true
+            minimizeActiveWorkoutRequest &+= 1
+        }
+    }
+
+    /// Runs the part of a route that presents something (a sheet, a
+    /// pending flag a view turns into one) once the workout cover is
+    /// gone; at once when no cover is closing. A newer route replaces
+    /// one still waiting.
+    func afterRoutingDismissals(_ land: @escaping @MainActor () -> Void) {
+        if isMinimizingActiveWorkout {
+            landingAwaitingCover = land
+        } else {
+            land()
+        }
+    }
+
+    /// Called by the workout cover's `onDismiss`.
+    func activeWorkoutCoverDidDismiss() {
+        isMinimizingActiveWorkout = false
+        let land = landingAwaitingCover
+        landingAwaitingCover = nil
+        land?()
     }
 }
 
@@ -133,12 +175,12 @@ enum DeepLinkRouter {
             guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return false }
             appState.dismissModalsForRouting()
             appState.selectedTab = .today
-            appState.pendingDoseLogEntryId = entryUUID
+            appState.afterRoutingDismissals { appState.pendingDoseLogEntryId = entryUUID }
         case "weekly":
             // Weekly recap notification → `peptidex://weekly/current`.
             appState.dismissModalsForRouting()
             appState.selectedTab = .today
-            appState.pendingWeeklyRecap = true
+            appState.afterRoutingDismissals { appState.pendingWeeklyRecap = true }
         case "today":
             // Home-screen dose/compliance widgets and dose reminders →
             // land on Today.
@@ -148,7 +190,7 @@ enum DeepLinkRouter {
             // Reserved for workout reminders and a future training
             // widget — lands on the Train tab, where the resume banner
             // or Start Workout CTA is the next action.
-            appState.dismissModalsForRouting()
+            appState.dismissModalsForRouting(keepingActiveWorkout: true)
             appState.selectedTab = .train
         case "meals":
             // Nutrition widget → the Meals tab's log-entry pickers.
@@ -169,7 +211,7 @@ enum DeepLinkRouter {
             // cannot stack on top of a modal that is already up.
             guard !isPro else { return true }
             appState.dismissModalsForRouting()
-            appState.presentedPaywall = .deepLink
+            appState.afterRoutingDismissals { appState.presentedPaywall = .deepLink }
         default:
             return false
         }

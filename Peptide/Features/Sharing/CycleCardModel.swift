@@ -30,7 +30,11 @@ struct CycleCardModel {
     /// flips the "detailed card" toggle in the share preview *and* has
     /// granted Apple Health read access. Off by default, never bundles
     /// injection-site detail (per the spec's privacy guarantees).
-    let healthSummary: HealthSummary?
+    var healthSummary: HealthSummary?
+
+    /// True when `currentStreakDays` is the user's app-wide streak shown on
+    /// a single protocol's card, so the label says so.
+    var streakIsOverall = false
 
     struct HealthSummary: Equatable {
         let weightDeltaKg: Double?
@@ -38,6 +42,11 @@ struct CycleCardModel {
         let hrvTrendDescription: String?
         /// The sharer's display unit for `weightDeltaKg`.
         var weightUnit: MeasurementUnit = .metric
+
+        /// Nothing to draw: the card would carry a bare heading.
+        var isEmpty: Bool {
+            weightDeltaKg == nil && avgSleepHours == nil && hrvTrendDescription == nil
+        }
     }
 }
 
@@ -70,7 +79,8 @@ extension CycleCardModel {
             dosesLogged: logged,
             adherencePercent: Int((adherence * 100).rounded()),
             currentStreakDays: dataStore.currentStreak,
-            healthSummary: healthSummary
+            healthSummary: healthSummary,
+            streakIsOverall: true
         )
     }
 
@@ -86,17 +96,98 @@ extension CycleCardModel {
     ) -> CycleCardModel {
         let anchor = dataStore.activeProtocols.min { $0.startDate < $1.startDate }
         let start = anchor?.startDate ?? Date()
+        let stats = stackStats(protocols: dataStore.activeProtocols, entries: dataStore.entries)
         return CycleCardModel(
             subjectTitle: String(localized: "My Protocol"),
             peptides: dataStore.stackPeptides,
             activeSinceDate: start,
             cycleDay: cycleDay(from: start),
             cycleTotalDays: (anchor?.safeCycleLengthWeeks ?? 1) * 7,
-            dosesLogged: dataStore.entries.filter(\.completed).count,
-            adherencePercent: Int((dataStore.averageCompliance * 100).rounded()),
+            dosesLogged: stats.dosesLogged,
+            adherencePercent: stats.adherencePercent,
             currentStreakDays: dataStore.currentStreak,
             healthSummary: healthSummary
         )
+    }
+
+    /// Doses and adherence scoped to the stack the card shows: completed
+    /// doses of `protocols` only, and their due/completed counts pooled
+    /// with the per-protocol card's definition — each protocol from its
+    /// own start, a scheduled day without a logged dose counting as missed.
+    static func stackStats(
+        protocols: [PeptideProtocol],
+        entries: [ProtocolEntry],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> (dosesLogged: Int, adherencePercent: Int) {
+        let ids = Set(protocols.map(\.id))
+        let logged = entries.filter { ids.contains($0.protocolId) && $0.completed }.count
+        let counts = protocols.map { proto in
+            let days = calendar.dateComponents(
+                [.day],
+                from: calendar.startOfDay(for: proto.startDate),
+                to: calendar.startOfDay(for: now)
+            ).day ?? 0
+            return proto.adherenceCounts(entries: entries, days: max(1, days + 1), now: now, calendar: calendar)
+        }
+        let due = counts.reduce(0) { $0 + $1.due }
+        let completed = counts.reduce(0) { $0 + $1.completed }
+        let percent = due > 0 ? Int((Double(completed) / Double(due) * 100).rounded()) : 0
+        return (logged, percent)
+    }
+
+    // MARK: - Card text
+
+    /// "A", "B", … for the masked vial at `index`.
+    static func maskLetter(_ index: Int) -> String {
+        String(Character(UnicodeScalar(UInt8(65 + index))))
+    }
+
+    static func maskedCompoundName(_ index: Int) -> String {
+        String(localized: "Compound \(maskLetter(index))")
+    }
+
+    /// Protocols are often named after their compounds ("BPC-157 +
+    /// TB-500"), so the mask hides the title as well as the vials.
+    func displayTitle(maskCompoundNames: Bool) -> String {
+        maskCompoundNames ? String(localized: "My Protocol") : subjectTitle
+    }
+
+    var activeSinceFormatted: String {
+        activeSinceDate.formatted(.dateTime.month(.wide).day().year())
+    }
+
+    /// "Day 0 of 84" read as a broken counter for a protocol that
+    /// hasn't begun, and "Day 120 of 84" for one past its length; name
+    /// the start date or the completed cycle instead.
+    var cycleProgressLine: String {
+        guard cycleDay > 0 else { return String(localized: "Starts \(activeSinceFormatted)") }
+        guard cycleDay <= cycleTotalDays else {
+            return String(localized: "Cycle complete · \(cycleTotalDays) days")
+        }
+        return String(localized: "Day \(cycleDay) of \(cycleTotalDays) cycle")
+    }
+
+    var streakValue: String {
+        currentStreakDays == 1 ? String(localized: "1 day") : String(localized: "\(currentStreakDays) days")
+    }
+
+    var streakTitle: String {
+        streakIsOverall ? String(localized: "Overall streak") : String(localized: "Streak")
+    }
+
+    /// What the card says, for VoiceOver — on the card itself and on the
+    /// rendered preview, whose pixels carry none of it. Honours the mask:
+    /// a sighted user sees "Compound A / B", so VoiceOver must not read
+    /// the real abbreviations (audit Sharing P2).
+    func spokenSummary(maskCompoundNames: Bool) -> String {
+        let names = maskCompoundNames
+            ? peptides.indices.map(Self.maskedCompoundName).joined(separator: ", ")
+            : peptides.map(\.abbreviation).joined(separator: ", ")
+        return String(localized: "\(displayTitle(maskCompoundNames: maskCompoundNames)) cycle card. \(cycleProgressLine). ") +
+               String(localized: "Peptides: \(names). ") +
+               String(localized: "Doses logged: \(dosesLogged). Adherence: \(adherencePercent) percent. ") +
+               String(localized: "\(streakTitle): \(streakValue). Watermark: Atlas.")
     }
 
     /// 1-based calendar day of a cycle that began on `start`, counted

@@ -9,13 +9,14 @@ import UIKit
 enum QuickActionRouter {
     static func perform(_ action: QuickAction, appState: AppState, dataStore: DataStore) {
         // Sheets present from the root and can't stack on an open modal.
-        appState.dismissModalsForRouting()
+        // Starting a workout lands on the one already running, if any.
+        appState.dismissModalsForRouting(keepingActiveWorkout: action == .startWorkout)
 
         switch action {
         case .scanMeal:
-            appState.presentedQuickSheet = .scanMeal
+            appState.afterRoutingDismissals { appState.presentedQuickSheet = .scanMeal }
         case .logWeight:
-            appState.presentedQuickSheet = .logWeight
+            appState.afterRoutingDismissals { appState.presentedQuickSheet = .logWeight }
         case .logWater:
             logGlass(at: Date(), into: dataStore)
             Haptics.success()
@@ -28,16 +29,12 @@ enum QuickActionRouter {
         }
     }
 
-    /// Long-press menu on the app icon. Set at runtime rather than in
-    /// Info.plist so the titles follow the in-app language, which only
-    /// the views' locale carries; a plain lookup uses the system one.
-    static func installHomeScreenShortcuts(locale: Locale = LocalizationManager.shared.effectiveLocale) {
+    /// Long-press menu on the app icon, titled in the app's language.
+    static func installHomeScreenShortcuts() {
         UIApplication.shared.shortcutItems = QuickAction.allCases.map { action -> UIApplicationShortcutItem in
-            var title = action.title
-            title.locale = locale
-            return UIApplicationShortcutItem(
+            UIApplicationShortcutItem(
                 type: action.rawValue,
-                localizedTitle: String(localized: title),
+                localizedTitle: String(localized: action.title),
                 localizedSubtitle: nil,
                 icon: UIApplicationShortcutIcon(systemImageName: action.systemImage)
             )
@@ -136,9 +133,17 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
                 let ends = IntentDataStore.resolve().reconcileDoseLiveActivities()
                 // The app may be suspended once the task completes, so
                 // the end requests have to land first.
-                Task {
+                let work = Task {
                     for end in ends { await end.value }
+                    guard !Task.isCancelled else { return }
                     task.setTaskCompleted(success: true)
+                }
+                // Out of budget: stop and complete once, so iOS suspends
+                // the app instead of terminating it and throttling later
+                // refreshes.
+                task.expirationHandler = {
+                    work.cancel()
+                    task.setTaskCompleted(success: false)
                 }
             }
         }

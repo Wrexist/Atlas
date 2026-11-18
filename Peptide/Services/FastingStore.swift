@@ -33,6 +33,11 @@ final class FastingStore {
     /// device may not have.
     func load() {
         sessions = repository.loadFasts()
+        let superseded = FastingEngine.supersededOpenFasts(in: sessions)
+        if !superseded.isEmpty {
+            for fast in superseded { repository.upsertFast(fast) }
+            sessions = repository.loadFasts()
+        }
         syncReminder()
         syncGlanceables()
     }

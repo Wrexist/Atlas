@@ -18,7 +18,7 @@ enum PrepBoxReminderScheduler {
               let reminder = WeeklyPrepEngine.nextReminder(for: boxes, recipes: recipes, now: Date(), calendar: calendar)
         else { return }
 
-        let locale = LocalizationManager.shared.effectiveLocale
+        let locale = Locale.current
         let names = reminder.recipeIDs.compactMap { recipes[$0]?.displayName(locale: locale) }
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Meal prep boxes to eat by tomorrow", comment: "Notification title the evening before meal-prep boxes expire")

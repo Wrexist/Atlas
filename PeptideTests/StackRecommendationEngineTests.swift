@@ -495,6 +495,44 @@ final class StackRecommendationEngineTests: XCTestCase {
         }
     }
 
+    func test_completeness_wolverineForRecoveryGoal_coversBothDimensions() {
+        // C238: the validated-stack match keys on the category's stable raw
+        // value and English goal text, never the localized display name.
+        let stack = peptides(abbrevs: ["BPC-157", "TB-500"])
+        guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
+        let result = StackRecommendationEngine.stackCompleteness(
+            for: stack, goals: ["recovery"], from: database
+        )
+        XCTAssertEqual(result?.score, 1.0)
+    }
+
+    func test_displayText_sentenceWithoutCatalogEntry_returnsTheEnglishSource() {
+        let english = "An uncatalogued compatibility sentence."
+        XCTAssertEqual(PeptideCompatibilityData.displayText(english), english)
+    }
+
+    /// These sentences are data, so the localization lint cannot see
+    /// them; a reworded or new one would ship English-only in Swedish.
+    func test_displayedCompatibilityProse_everySentence_hasSwedishEntry() throws {
+        let path = try XCTUnwrap(Bundle.main.path(forResource: "sv", ofType: "lproj"))
+        let swedish = try XCTUnwrap(Bundle(path: path))
+        var displayed = Set<String>()
+        displayed.formUnion(PeptideCompatibilityData.validatedStacks.map(\.synergy))
+        displayed.formUnion(PeptideCompatibilityData.knownInteractions.flatMap { [$0.reason, $0.recommendation] })
+        displayed.formUnion(PeptideCompatibilityData.pathwayGroups.flatMap { [$0.pathway, $0.warningText] })
+        displayed.formUnion(PeptideTimingData.timingRecommendations.values.map(\.notes))
+        displayed.formUnion(PeptideTimingData.cycleProtocols.values.map(\.reason))
+        displayed.formUnion(PeptideTimingData.desensitizationRisks.values.map(\.description))
+        displayed.formUnion(PeptideTimingData.TimingWindow.allCases.map(\.rawValue))
+        displayed.remove("")
+
+        let marker = "\u{1}missing"
+        let missing = displayed.filter {
+            swedish.localizedString(forKey: $0, value: marker, table: nil) == marker
+        }
+        XCTAssertTrue(missing.isEmpty, "No Swedish entry for: \(missing.sorted())")
+    }
+
     func test_completeness_suggestsMissingCategories() {
         let stack = peptides(abbrevs: ["BPC-157"]) // growth/recovery, no cognitive
         guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }

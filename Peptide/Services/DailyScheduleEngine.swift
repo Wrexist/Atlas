@@ -257,7 +257,7 @@ enum DailyScheduleEngine {
                 && (info?.notes.lowercased().contains("fasted") == true
                     || info?.notes.lowercased().contains("empty stomach") == true)
             let usualWindow = placement.usualSlot.map { String(localized: "Usually taken: \($0.title).") }
-            let note = [usualWindow, info?.notes].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
+            let note = [usualWindow, info.map { PeptideCompatibilityData.displayText($0.notes) }].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
             return (entry, placement.slot, fasted, note)
         }
 
@@ -395,7 +395,7 @@ enum DailyScheduleEngine {
                 seenPairs.insert(partner)
                 hints.append(CombinationHint(
                     withAbbreviation: partner,
-                    synergy: stack.synergy
+                    synergy: PeptideCompatibilityData.displayText(stack.synergy)
                 ))
             }
         }
@@ -436,7 +436,7 @@ enum DailyScheduleEngine {
                 hints.append(ConflictHint(
                     severity: mapped,
                     title: String(localized: "Avoid same-day with \(partner)"),
-                    detail: interaction.reason,
+                    detail: PeptideCompatibilityData.displayText(interaction.reason),
                     counterpart: partner
                 ))
             }
@@ -453,7 +453,7 @@ enum DailyScheduleEngine {
                 hints.append(ConflictHint(
                     severity: .caution,
                     title: String(localized: "Same pathway as \(partner)"),
-                    detail: "\(group.pathway) — \(group.warningText)",
+                    detail: "\(PeptideCompatibilityData.displayText(group.pathway)) — \(PeptideCompatibilityData.displayText(group.warningText))",
                     counterpart: partner
                 ))
             }

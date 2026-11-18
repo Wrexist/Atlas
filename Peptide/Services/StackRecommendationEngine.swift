@@ -283,7 +283,7 @@ enum StackRecommendationEngine {
 
             // Dimension 2: validated stack coverage
             let hasCompleteStack = PeptideCompatibilityData.validatedStacks.contains { stack in
-                let goalRelevant = stack.goal.localizedCaseInsensitiveContains(goal.category.displayName) ||
+                let goalRelevant = stack.goal.localizedCaseInsensitiveContains(goal.category.rawValue) ||
                     goal.benefitTerms.contains { stack.goal.localizedCaseInsensitiveContains($0) }
                 let isComplete = stack.peptideAbbreviations.allSatisfy { currentAbbreviations.contains($0) }
                 return goalRelevant && isComplete
@@ -322,7 +322,7 @@ enum StackRecommendationEngine {
                     peptideAbbreviation: peptide.abbreviation,
                     weeksRemaining: weeksRemaining,
                     suggestedReplacements: cycle.transitionSuggestions,
-                    reason: cycle.reason
+                    reason: PeptideCompatibilityData.displayText(cycle.reason)
                 ))
             }
         }

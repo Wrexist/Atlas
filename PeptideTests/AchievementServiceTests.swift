@@ -36,6 +36,21 @@ final class AchievementServiceTests: XCTestCase {
         XCTAssertTrue(ids.contains("month_logged"))
     }
 
+    // MARK: - Language switch (C252)
+
+    func test_mergeWithDefaults_savedInAnotherLanguage_takesCurrentTextKeepsUnlock() throws {
+        let unlockedAt = Date(timeIntervalSince1970: 1_790_000_000)
+        let saved = Achievement(id: "first_dose", title: "Första steget", description: "Logga din första dos",
+                                icon: "1.circle.fill", unlockedDate: unlockedAt)
+
+        let merged = try XCTUnwrap(AchievementService.mergeWithDefaults([saved]).first { $0.id == "first_dose" })
+        let current = try XCTUnwrap(AchievementService.defaultAchievements.first { $0.id == "first_dose" })
+
+        XCTAssertEqual(merged.title, current.title)
+        XCTAssertEqual(merged.description, current.description)
+        XCTAssertEqual(merged.unlockedDate, unlockedAt)
+    }
+
     // MARK: - Silent seed (reinstall / new device)
 
     func test_seedSilently_with120Doses_unlocksWithoutQueueingToasts() {
