@@ -37,7 +37,9 @@ struct GlassButton: View {
                 // A solid ink pill, the same "do this" mark as
                 // PrimaryCTAButton and the selected segment. A tinted-glass
                 // primary read as one more pastel chip on a calm page.
-                label.background(Capsule(style: .continuous).fill(AppColor.textPrimary))
+                // Disabled, it drops to the track with tertiary ink rather
+                // than fading the heaviest shape on screen to a grey slab.
+                label.background(Capsule(style: .continuous).fill(isEnabled ? AppColor.textPrimary : AppColor.track))
             case .secondary, .destructive:
                 // ScalePressStyle owns the press response; interactive
                 // glass would run a second, competing scale on iOS 26.
@@ -45,7 +47,7 @@ struct GlassButton: View {
             }
         }
         .buttonStyle(ScalePressStyle())
-        .opacity(isEnabled ? 1 : AppOpacity.disabled)
+        .opacity(isEnabled || style == .primary ? 1 : AppOpacity.disabled)
     }
 
     private var label: some View {
@@ -96,7 +98,7 @@ struct GlassButton: View {
 
     private var foregroundColor: Color {
         switch style {
-        case .primary: AppColor.inverseInk
+        case .primary: isEnabled ? AppColor.inverseInk : AppColor.textTertiary
         case .secondary: AppColor.textPrimary
         case .ghost: AppColor.accentPrimary
         case .destructive: AppColor.destructive
