@@ -191,6 +191,18 @@ final class WeeklySummaryServiceTests: XCTestCase {
         XCTAssertFalse(WeeklySummaryService.sourceFingerprint(of: a).isEmpty)
     }
 
+    func test_weeklySummaryCache_languageSwitch_changesFingerprint() throws {
+        let entries = [entry(daysFromMonday: 0, completed: true)]
+        let aggregate = try XCTUnwrap(WeeklySummaryEngine.build(
+            profile: .fresh, protocols: [], entries: entries, referenceDate: weekMonday
+        ))
+        XCTAssertNotEqual(
+            WeeklySummaryService.sourceFingerprint(of: aggregate, locale: "en_SE"),
+            WeeklySummaryService.sourceFingerprint(of: aggregate, locale: "sv_SE"),
+            "A summary written in English must regenerate after switching to Swedish"
+        )
+    }
+
     func test_staleSummary_generatedRecently_isNotDueForRegeneration() throws {
         var profile = UserProfile.fresh
         let entries = [
