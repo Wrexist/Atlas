@@ -329,13 +329,38 @@ enum BiomarkerSeriesService {
     /// decimal, HRV / RHR / steps are integers, sleep is one
     /// decimal in hours. Keeps the view from doing this math.
     static func formatValue(_ value: Double, for biomarker: Biomarker) -> String {
+        guard let digits = fractionDigits(for: biomarker) else { return LabValueFormat.string(value) }
+        return value.formatted(.number.precision(.fractionLength(digits)))
+    }
+
+    /// Decimals a biomarker is shown with; nil for lab values, whose
+    /// precision depends on the panel.
+    static func fractionDigits(for biomarker: Biomarker) -> Int? {
         switch biomarker {
-        case .weight, .sleepBaseline, .bodyTemperature, .bodyFat, .waist:
-            return value.formatted(.number.precision(.fractionLength(1)))
-        case .hrvBaseline, .rhrBaseline, .stepsBaseline, .bloodPressure:
-            return value.formatted(.number.precision(.fractionLength(0)))
-        case .latestLabPanel:
-            return LabValueFormat.string(value)
+        case .weight, .sleepBaseline, .bodyTemperature, .bodyFat, .waist: 1
+        case .hrvBaseline, .rhrBaseline, .stepsBaseline, .bloodPressure: 0
+        case .latestLabPanel: nil
         }
+    }
+
+    /// "4 ms above your recent average.", from display-unit values. A
+    /// difference that rounds to zero at the biomarker's precision reads
+    /// as at the average, never as "0 ms above".
+    static func averageComparisonText(
+        latest: Double,
+        average: Double,
+        for biomarker: Biomarker,
+        unit: MeasurementUnit
+    ) -> String {
+        let delta = latest - average
+        let threshold = fractionDigits(for: biomarker).map { 0.5 * pow(10, -Double($0)) } ?? 0.01
+        if abs(delta) < threshold {
+            return String(localized: "Right at your recent average.")
+        }
+        let formatted = formatValue(abs(delta), for: biomarker)
+        let amount = biomarker.displayUnit(for: unit).map { "\(formatted) \($0)" } ?? formatted
+        return delta > 0
+            ? String(localized: "\(amount) above your recent average.")
+            : String(localized: "\(amount) below your recent average.")
     }
 }

@@ -332,4 +332,27 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
         XCTAssertNil(snapshot.contextLabel)
         XCTAssertNil(snapshot.unitLabel)
     }
+
+    // MARK: - averageComparisonText
+
+    func test_averageComparison_subUnitHRVDifference_readsAtAverage() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 58.3, average: 58, for: .hrvBaseline, unit: .metric)
+        XCTAssertEqual(text, "Right at your recent average.")
+    }
+
+    func test_averageComparison_weightBelowRoundingStep_readsAtAverage() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 71.97, average: 72, for: .weight, unit: .metric)
+        XCTAssertEqual(text, "Right at your recent average.")
+    }
+
+    func test_averageComparison_realHRVDifference_readsAbove() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 62, average: 58, for: .hrvBaseline, unit: .metric)
+        XCTAssertEqual(text, "4 ms above your recent average.")
+    }
+
+    func test_averageComparison_realWeightDifference_readsBelow() {
+        let text = BiomarkerSeriesService.averageComparisonText(latest: 71.6, average: 72, for: .weight, unit: .metric)
+        XCTAssertEqual(text, "0.4 kg below your recent average.")
+    }
 }
+

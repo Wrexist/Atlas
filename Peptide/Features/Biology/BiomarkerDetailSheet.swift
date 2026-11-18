@@ -692,26 +692,24 @@ struct BiomarkerDetailSheet: View {
     private var hasComparison: Bool {
         // A systolic-only average would misread as the whole blood
         // pressure, so that card stays out.
+        // The average is the chart's own, over the selected range, so
+        // the card and the chart legend always quote the same number.
         snapshot.latest != nil && snapshot.secondarySamples.isEmpty
-            && snapshot.sparkline.count >= Self.minimumSamples
+            && chartSamples.count >= Self.minimumSamples
     }
 
     private static let minimumSamples = 4
 
     private var deltaLine: String {
-        guard let latest = snapshot.latest, hasComparison else { return "" }
-        let avg = snapshot.sparkline.reduce(0, +) / Double(snapshot.sparkline.count)
-        // Convert both endpoints to the display unit *before* subtracting so
-        // the temperature offset (°C→°F adds 32) cancels — the delta is a
-        // true difference, not an inflated one.
-        let delta = biomarker.displayValue(latest, for: unit) - biomarker.displayValue(avg, for: unit)
-        if abs(delta) < 0.01 {
-            return String(localized: "Right at your recent average.")
-        }
-        let amount = formattedWithUnit(abs(delta))
-        return delta > 0
-            ? String(localized: "\(amount) above your recent average.")
-            : String(localized: "\(amount) below your recent average.")
+        guard let latest = snapshot.latest, let chartMean, hasComparison else { return "" }
+        // Both sides are in display units (chartMean already is), so the
+        // °C→°F offset cancels and the delta is a true difference.
+        return BiomarkerSeriesService.averageComparisonText(
+            latest: biomarker.displayValue(latest, for: unit),
+            average: chartMean,
+            for: biomarker,
+            unit: unit
+        )
     }
 
     // MARK: - Footnote
