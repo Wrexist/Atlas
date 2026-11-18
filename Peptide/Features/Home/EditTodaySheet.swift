@@ -10,6 +10,9 @@ import SwiftUI
 /// `onDismiss` so a session of edits lands as one save.
 struct EditTodaySheet: View {
     @Binding var layout: TodayLayout
+    /// Why a section shows nothing for this user right now, if it
+    /// doesn't — so switching it on isn't a silent no-op.
+    var note: (TodaySection) -> String? = { _ in nil }
 
     @Environment(\.dismiss) private var dismiss
     @State private var editMode: EditMode = .active
@@ -65,9 +68,17 @@ struct EditTodaySheet: View {
             }
             .frame(width: 32, height: 32)
 
-            Text(section.displayName)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textPrimary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(section.displayName)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textPrimary)
+                if let note = note(section) {
+                    Text(note)
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
 
             Spacer(minLength: 0)
 

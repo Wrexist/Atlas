@@ -49826,6 +49826,56 @@
           }
         }
       }
+    },
+    "Shows once you connect Apple Health or log a workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visas när du ansluter Apple Hälsa eller loggar ett träningspass"
+          }
+        }
+      }
+    },
+    "Shows once you add a protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visas när du lägger till ett protokoll"
+          }
+        }
+      }
+    },
+    "Needs step data from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver stegdata från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Needs Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Shows after a week of Apple Health data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visas efter en vecka med data från Apple Hälsa"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -532,7 +532,7 @@ struct HomeView: View {
             }
             // One save per editing session rather than one per drag.
             .sheet(isPresented: $showEditToday, onDismiss: { dataStore.persistProfile() }) {
-                EditTodaySheet(layout: todayLayoutBinding)
+                EditTodaySheet(layout: todayLayoutBinding, note: editTodayNote)
                     .liquidGlassPresentation()
             }
             // Stack-warning / stack-adjustment / paywall sheets
@@ -1124,6 +1124,26 @@ struct HomeView: View {
     private var healthMonitorSection: some View {
         HealthMonitorGrid(snapshot: healthRange)
             .scrollReveal()
+    }
+
+    /// Edit Today's line under a section that renders nothing for this
+    /// user yet, naming what it waits for.
+    private func editTodayNote(_ section: TodaySection) -> String? {
+        let health = dataStore.profile.healthConnected
+        switch section {
+        case .atAGlance where !showsAtAGlance:
+            return String(localized: "Shows once you connect Apple Health or log a workout")
+        case .doses where !showsDoseSection:
+            return String(localized: "Shows once you add a protocol")
+        case .steps where !health || derived.checklist?.steps == nil:
+            return String(localized: "Needs step data from Apple Health")
+        case .healthMonitor where !health:
+            return String(localized: "Needs Apple Health")
+        case .healthMonitor where healthRange.hrv == nil && healthRange.rhr == nil && healthRange.sleep == nil:
+            return String(localized: "Shows after a week of Apple Health data")
+        default:
+            return nil
+        }
     }
 
     /// Opens "Edit Today". Sits at the end of the scroll — the place a
