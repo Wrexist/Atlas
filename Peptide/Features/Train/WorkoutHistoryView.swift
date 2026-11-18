@@ -333,9 +333,9 @@ struct WorkoutHistoryView: View {
     }
 
     private func reload() {
-        let loaded = SwiftDataRepository.shared.loadWorkoutSessions(limit: fetchLimit)
-        hasOlderSessions = loaded.count >= fetchLimit
-        groupedSessions = Self.group(loaded.filter { $0.finishedAt != nil })
+        let page = SwiftDataRepository.shared.loadWorkoutSessionPage(limit: fetchLimit)
+        hasOlderSessions = page.reachedLimit
+        groupedSessions = Self.group(page.sessions.filter { $0.finishedAt != nil })
         hasLoaded = true
     }
 }

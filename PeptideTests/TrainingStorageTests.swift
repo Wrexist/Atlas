@@ -161,6 +161,24 @@ final class TrainingStorageTests: XCTestCase {
         XCTAssertEqual(loaded.map(\.id), [session.id])
     }
 
+    func test_loadWorkoutSessionPage_undecodableRowInAFullPage_stillReachesTheLimit() throws {
+        let first = makeSession()
+        repo.upsertWorkoutSession(first)
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(StoredWorkoutSession(
+            id: UUID(), name: nil, routineID: nil, programID: nil,
+            startedAt: first.startedAt.addingTimeInterval(60), finishedAt: first.startedAt.addingTimeInterval(120),
+            note: nil, perceivedEffort: nil, exercisesData: Data("not json".utf8),
+            totalVolumeKg: 0, completedSetCount: 0
+        ))
+        try context.save()
+
+        let page = repo.loadWorkoutSessionPage(limit: 2)
+        XCTAssertEqual(page.sessions.map(\.id), [first.id])
+        XCTAssertTrue(page.reachedLimit, "Older workouts may exist past a full page")
+        XCTAssertFalse(repo.loadWorkoutSessionPage(limit: 3).reachedLimit)
+    }
+
     // MARK: - Sessions touching exercises
 
     private func finishedSession(_ exerciseID: String, finished: Bool = true) -> WorkoutSession {

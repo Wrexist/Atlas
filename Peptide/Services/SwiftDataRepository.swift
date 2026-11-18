@@ -1252,14 +1252,22 @@ final class SwiftDataRepository {
     static let workoutHistoryFetchLimit: Int = 200
 
     func loadWorkoutSessions(limit: Int = SwiftDataRepository.workoutHistoryFetchLimit) -> [WorkoutSession] {
-        guard let context else { return [] }
+        loadWorkoutSessionPage(limit: limit).sessions
+    }
+
+    /// The newest `limit` stored rows, decoded, plus whether the store held
+    /// that many. `reachedLimit` counts rows before an undecodable one is
+    /// skipped or CloudKit twins are collapsed, so a pager reading it still
+    /// knows older workouts exist.
+    func loadWorkoutSessionPage(limit: Int) -> (sessions: [WorkoutSession], reachedLimit: Bool) {
+        guard let context else { return ([], false) }
         var descriptor = FetchDescriptor<StoredWorkoutSession>(
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
         descriptor.fetchLimit = max(1, limit)
         do {
             let stored = try context.fetch(descriptor)
-            return Self.keepingFirstPerID(stored.compactMap {
+            let sessions = Self.keepingFirstPerID(stored.compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
@@ -1267,9 +1275,10 @@ final class SwiftDataRepository {
                     return nil
                 }
             })
+            return (sessions, stored.count >= max(1, limit))
         } catch {
             AppLog.swiftData.error("Load workout sessions failed: \(error.localizedDescription, privacy: .public)")
-            return []
+            return ([], false)
         }
     }
 
