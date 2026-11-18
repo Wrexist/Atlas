@@ -112,13 +112,15 @@ final class ExerciseLibraryTests: XCTestCase {
         XCTAssertEqual(library.displayName(for: "custom_deleted_123"), "Unknown exercise")
     }
 
-    func test_load_concurrentCallers_allSeeOneCompleteCatalog() async {
+    func test_load_concurrentCallers_shareOneDecode() async {
         library.reset()
+        let decodesBefore = library.decodeCount
 
         let shared = library
         let callers = (0..<3).map { _ in Task { await shared.load() } }
         for caller in callers { await caller.value }
 
+        XCTAssertEqual(library.decodeCount - decodesBefore, 1, "three concurrent loads must share one decode")
         XCTAssertTrue(library.isLoaded)
         XCTAssertGreaterThan(library.bundled.count, 500)
         let ids = library.filter(query: "").map(\.id)

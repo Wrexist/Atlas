@@ -41,6 +41,9 @@ final class ExerciseLibrary {
     /// once; without this each one passed the `isLoaded` guard and
     /// decoded the whole catalog again.
     @ObservationIgnored private var loadTask: Task<Void, Never>?
+    /// How many times the bundled catalog has been decoded, so a test can
+    /// tell concurrent `load()` calls apart from coalesced ones.
+    @ObservationIgnored private(set) var decodeCount = 0
 
     private init() {}
 
@@ -90,6 +93,7 @@ final class ExerciseLibrary {
     }
 
     private func decodeBundled() async {
+        decodeCount += 1
         let started = Date()
         guard let url = Bundle.main.url(forResource: "exercises", withExtension: "json") else {
             AppLog.training.error("ExerciseLibrary: exercises.json missing from bundle")
