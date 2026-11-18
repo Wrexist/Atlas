@@ -2,8 +2,8 @@
 """Pick the iPhone simulator a CI job runs on, the same way in every job.
 
 Reads `xcrun simctl list devices available -j` on stdin and prints one UDID.
-Runtimes are tried newest iOS first, and within them the named models in the
-order given, then any iPhone. Taking the first iPhone in simctl's dictionary
+Runtimes at or above the iOS 18 deployment target are tried newest first, and
+within them the named models in the order given, then any iPhone. Taking the first iPhone in simctl's dictionary
 order let the runtime move between iOS versions from one runner image to the
 next, so a test result depended on which image a job happened to land on.
 
@@ -17,6 +17,11 @@ import json
 import re
 import sys
 
+# The app's deployment target. An older runtime is not an eligible
+# destination, so a preferred model there must not win over another iPhone
+# on a supported runtime.
+MIN_IOS = (18,)
+
 
 def runtime_version(runtime: str) -> tuple[int, ...]:
     """`com.apple.CoreSimulator.SimRuntime.iOS-18-2` → (18, 2)."""
@@ -26,7 +31,8 @@ def runtime_version(runtime: str) -> tuple[int, ...]:
 def pick(devices: dict[str, list[dict]], preferred: list[str]) -> tuple[dict, str] | None:
     """The device and runtime to use, or None when there is no iPhone at all."""
     iphones = [(device, runtime)
-               for runtime in sorted((r for r in devices if "SimRuntime.iOS-" in r),
+               for runtime in sorted((r for r in devices
+                                      if "SimRuntime.iOS-" in r and runtime_version(r) >= MIN_IOS),
                                      key=runtime_version, reverse=True)
                for device in devices[runtime] if "iPhone" in device.get("name", "")]
     for name in [*preferred, None]:

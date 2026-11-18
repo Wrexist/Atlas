@@ -35,6 +35,14 @@ class PickSimulatorTests(unittest.TestCase):
     def test_preferenceOrder_isRespected(self):
         self.assertEqual(udid(DEVICES, ["iPhone 16", "iPhone 16 Pro"]), "B")
 
+    def test_preferredModelOnlyBelowDeploymentTarget_fallsBackToSupportedIPhone(self):
+        devices = {RT + "iOS-17-5": [{"name": "iPhone 15", "udid": "OLD"}],
+                   RT + "iOS-18-0": [{"name": "iPhone 16", "udid": "NEW"}]}
+        self.assertEqual(udid(devices, ["iPhone 15"]), "NEW")
+
+    def test_onlyRuntimesBelowDeploymentTarget_returnsNone(self):
+        self.assertIsNone(udid({RT + "iOS-17-5": [{"name": "iPhone 15", "udid": "OLD"}]}, ["iPhone 15"]))
+
     def test_noIPhone_returnsNone(self):
         self.assertIsNone(udid({RT + "watchOS-11-0": DEVICES[RT + "watchOS-11-0"]}, []))
 
