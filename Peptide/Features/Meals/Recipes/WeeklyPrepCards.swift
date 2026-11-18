@@ -16,7 +16,7 @@ struct PrepDishCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             NavigationLink {
-                RecipeDetailView(recipe: recipe)
+                RecipeDetailView(recipe: recipe, servings: servings)
             } label: {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     RecipeCutout(recipe: recipe)
@@ -64,7 +64,7 @@ struct PrepDishCard: View {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
-                .frame(width: 32, height: 32)
+                .frame(width: AppFont.scaledValue(32), height: AppFont.scaledValue(32))
                 .glassControl(.circle)
                 .minimumHitArea()
         }
@@ -98,7 +98,7 @@ struct PrepDishCard: View {
             Image(systemName: icon)
                 .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
-                .frame(width: 28, height: 28)
+                .frame(width: AppFont.scaledValue(28), height: AppFont.scaledValue(28))
                 .glassControl(.circle)
                 .minimumHitArea()
         }
@@ -114,6 +114,8 @@ struct PrepDishCard: View {
 struct PrepShoppingCard: View {
     let items: [WeeklyPrepEngine.ShoppingItem]
     let bought: Set<String>
+    /// At home because the fridge holds them, so "not at home" can't apply.
+    let inFridge: Set<String>
     let toggleBought: (WeeklyPrepEngine.ShoppingItem) -> Void
     let toggleAtHome: (WeeklyPrepEngine.ShoppingItem) -> Void
 
@@ -142,6 +144,7 @@ struct PrepShoppingCard: View {
                         if index > 0 {
                             Divider().overlay(AppColor.glassBorder)
                         }
+                        let isInFridge = inFridge.contains(item.pantryKey)
                         ShoppingRow(
                             name: item.displayName(locale: locale),
                             grams: RecipeLibraryEngine.displayGrams(item.grams),
@@ -149,14 +152,19 @@ struct PrepShoppingCard: View {
                             isBought: bought.contains(item.pantryKey),
                             toggle: { item.isAtHome ? toggleAtHome(item) : toggleBought(item) }
                         )
+                        .disabled(isInFridge)
                         .contextMenu {
-                            Button {
-                                toggleAtHome(item)
-                            } label: {
-                                if item.isAtHome {
-                                    Label("Not at home", systemImage: "house.slash")
-                                } else {
-                                    Label("I have this at home", systemImage: "house")
+                            if isInFridge {
+                                Label("In your fridge", systemImage: "refrigerator.fill")
+                            } else {
+                                Button {
+                                    toggleAtHome(item)
+                                } label: {
+                                    if item.isAtHome {
+                                        Label("Not at home", systemImage: "house.slash")
+                                    } else {
+                                        Label("I have this at home", systemImage: "house")
+                                    }
                                 }
                             }
                         }
@@ -236,6 +244,7 @@ struct PrepDayCard: View {
     let finish: () -> Void
 
     @Environment(\.locale) private var locale
+    @State private var confirmsFinish = false
 
     private var doneCount: Int { tasks.filter { done.contains($0.id) }.count }
 
@@ -269,8 +278,22 @@ struct PrepDayCard: View {
                     }
                 }
             }
-            PrimaryCTAButton(title: "Done — boxes in the fridge", icon: "shippingbox.fill", shape: .rounded, action: finish)
-                .padding(.top, Spacing.xs)
+            PrimaryCTAButton(title: "Done — boxes in the fridge", icon: "shippingbox.fill", shape: .rounded) {
+                if doneCount < tasks.count {
+                    confirmsFinish = true
+                } else {
+                    finish()
+                }
+            }
+            .padding(.top, Spacing.xs)
+            .confirmationDialog(
+                "Not every step is ticked. Put the boxes in anyway?",
+                isPresented: $confirmsFinish,
+                titleVisibility: .visible
+            ) {
+                Button("Put the boxes in", action: finish)
+                Button("Cancel", role: .cancel) {}
+            }
         }
         .padding(Spacing.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -348,11 +371,19 @@ struct PrepBoxesCard: View {
     let freeze: (PrepBoxBatch) -> Void
     let discard: (PrepBoxBatch) -> Void
 
-    private var total: Int { boxes.reduce(0) { $0 + $1.count } }
+    /// "3 in the fridge · 2 frozen", leaving out a place with none.
+    private var subtitle: String {
+        let frozen = boxes.filter(\.isFrozen).reduce(0) { $0 + $1.count }
+        let inFridge = boxes.reduce(0) { $0 + $1.count } - frozen
+        var parts: [String] = []
+        if inFridge > 0 { parts.append(String(localized: "\(inFridge) in the fridge", comment: "Meal-prep boxes kept in the fridge")) }
+        if frozen > 0 { parts.append(String(localized: "\(frozen) frozen", comment: "Meal-prep boxes kept in the freezer")) }
+        return parts.joined(separator: " · ")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            CardTitle(title: "Boxes in the fridge", subtitle: Text("\(total) boxes"), isDone: false)
+            CardTitle(title: "Your boxes", subtitle: Text(subtitle), isDone: false)
             ForEach(Array(boxes.enumerated()), id: \.element.id) { index, batch in
                 if index > 0 {
                     Divider().overlay(AppColor.glassBorder)
@@ -525,7 +556,6 @@ struct PrepDishPicker: View {
     let choose: (LibraryRecipe) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.locale) private var locale
     @State private var searchText = ""
 
     private let columns = [
@@ -535,8 +565,7 @@ struct PrepDishPicker: View {
 
     private var shown: [LibraryRecipe] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return recipes }
-        return recipes.filter { $0.displayName(locale: locale).localizedStandardContains(query) }
+        return recipes.filter { RecipeLibraryEngine.matches($0, query: query) }
     }
 
     var body: some View {

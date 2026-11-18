@@ -116,15 +116,24 @@ enum GroceryListEngine {
     // MARK: - From the meal plan
 
     /// Every ingredient of `plan` for `days` days. A meal with an
-    /// ingredient snapshot contributes its components in grams; one
-    /// without uses its serving label when that is a plain amount
-    /// ("150 g", "2 dl"), else counts portions of the food itself.
-    static func ingredients(from plan: MealPlanEngine.Plan, days: Int) -> [Ingredient] {
+    /// ingredient snapshot contributes its components in grams, a library
+    /// dish among them as its own ingredients; one without uses its
+    /// serving label when that is a plain amount ("150 g", "2 dl"), else
+    /// counts portions of the food itself.
+    static func ingredients(
+        from plan: MealPlanEngine.Plan,
+        days: Int,
+        recipes: [LibraryRecipe] = RecipeLibraryEngine.bundled,
+        locale: Locale = .current
+    ) -> [Ingredient] {
         let scale = Double(max(1, days))
         return plan.meals.flatMap { meal -> [Ingredient] in
             let factor = meal.portion * scale
             if let components = meal.food.components, !components.isEmpty {
-                return components.map { Ingredient(name: $0.name, amount: $0.grams * factor, unit: .g) }
+                return components.flatMap { component in
+                    recipeIngredients(of: component, factor: factor, recipes: recipes, locale: locale)
+                        ?? [Ingredient(name: component.name, amount: component.grams * factor, unit: .g)]
+                }
             }
             if let serving = meal.food.servingLabel.flatMap(parseQuantity) {
                 return [Ingredient(name: meal.food.name, amount: serving.amount * factor, unit: serving.unit)]
@@ -132,6 +141,28 @@ enum GroceryListEngine {
             return [Ingredient(name: meal.food.name, amount: factor, unit: .portion)]
         }
     }
+
+    /// A dish logged from the recipe library is one component named after
+    /// the dish ("recipe:<id>"): what to buy is its ingredients, in
+    /// proportion to the weight eaten. Nil for any other component.
+    private static func recipeIngredients(
+        of component: MealFoodComponent,
+        factor: Double,
+        recipes: [LibraryRecipe],
+        locale: Locale
+    ) -> [Ingredient]? {
+        guard component.id.hasPrefix(recipeComponentPrefix),
+              let recipe = recipes.first(where: { recipeComponentPrefix + $0.id == component.id })
+        else { return nil }
+        let totalGrams = recipe.ingredients.reduce(0) { $0 + $1.grams }
+        guard totalGrams > 0 else { return nil }
+        let share = component.grams / totalGrams * factor
+        return recipe.ingredients.map {
+            Ingredient(name: $0.displayName(locale: locale), amount: $0.grams * share, unit: .g)
+        }
+    }
+
+    private static let recipeComponentPrefix = "recipe:"
 
     /// "150 g", "1,5 l", "2 dl" → amount and unit; nil for anything else
     /// ("1 cup", "1 bar").

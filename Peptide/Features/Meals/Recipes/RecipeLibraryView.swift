@@ -26,15 +26,9 @@ struct RecipeLibraryView: View {
     private var favoriteIDs: Set<String> { dataStore.profile.favoriteRecipeIDs }
 
     private var filteredRecipes: [LibraryRecipe] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return recipes.filter { recipe in
-            guard filter.matches(recipe, favorites: favoriteIDs) else { return false }
-            guard !query.isEmpty else { return true }
-            return recipe.name.lowercased().contains(query)
-                || recipe.nameSV.lowercased().contains(query)
-                || recipe.ingredients.contains {
-                    $0.name.lowercased().contains(query) || $0.nameSV.lowercased().contains(query)
-                }
+            filter.matches(recipe, favorites: favoriteIDs) && RecipeLibraryEngine.matches(recipe, query: query)
         }
     }
 

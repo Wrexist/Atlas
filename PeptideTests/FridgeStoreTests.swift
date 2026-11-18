@@ -42,7 +42,7 @@ final class FridgeStoreTests: XCTestCase {
         store.add(FridgeProduct(name: "mjölk", brand: "arla"), expiresOn: date(day: 31, hour: 0), now: date(day: 29), calendar: calendar)
 
         XCTAssertEqual(store.products.count, 1)
-        XCTAssertEqual(store.products.first?.shelfDays, 2)
+        XCTAssertEqual(store.products.first?.shelfLife(in: .fridge), 2)
         XCTAssertEqual(store.items.count, 1, "same product, same day, same place stacks")
         XCTAssertEqual(store.items.first?.count, 2)
     }
@@ -163,5 +163,71 @@ final class FridgeStoreTests: XCTestCase {
         XCTAssertTrue(pantry.has("milk"))
         XCTAssertTrue(pantry.isInFridge("milk"))
         XCTAssertTrue(pantry.manualKeys.isEmpty, "a fridge-held ingredient isn't ticked by hand")
+    }
+
+    func test_shelfLife_learnedInTheFreezer_doesNotDateTheFridge() {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Mjölk"), place: .freezer, expiresOn: date(day: 31, hour: 0), now: date(), calendar: calendar)
+
+        let product = store.products.first
+
+        XCTAssertEqual(product?.shelfLife(in: .freezer), 2)
+        XCTAssertNil(product?.shelfLife(in: .fridge))
+    }
+
+    func test_shelfLife_savedBeforePerPlace_countsForTheProductsPlaceOnly() {
+        let product = FridgeProduct(name: "Mjölk", place: .fridge, shelfDays: 7)
+
+        XCTAssertEqual(product.shelfLife(in: .fridge), 7)
+        XCTAssertNil(product.shelfLife(in: .freezer))
+    }
+
+    func test_addingAScan_putsEveryItemIn() {
+        let store = FridgeStore(directory: directory)
+
+        store.add([
+            FridgeStore.Addition(product: FridgeProduct(name: "Ost"), count: 2),
+            FridgeStore.Addition(product: FridgeProduct(name: "Smör"), place: .pantry),
+        ], now: date(), calendar: calendar)
+
+        let reopened = FridgeStore(directory: directory)
+        XCTAssertEqual(reopened.items.count, 2)
+        XCTAssertEqual(reopened.items.first?.count, 2)
+        XCTAssertEqual(reopened.items.last?.place, .pantry)
+    }
+
+    func test_add_storesTheUseByDayAtNoon() {
+        let store = FridgeStore(directory: directory)
+
+        let item = store.add(FridgeProduct(name: "Ägg"), expiresOn: date(day: 31, hour: 0), now: date(), calendar: calendar)
+
+        XCTAssertEqual(item.expiresOn, date(day: 31, hour: 12))
+    }
+
+    func test_movingALegacyProductWithADate_keepsItsShelfLifeInTheOldPlace() {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Mjölk", place: .fridge, shelfDays: 7), now: date(day: 20), calendar: calendar)
+        var moved = store.products[0]
+        moved.place = .freezer
+
+        store.add(moved, place: .freezer, expiresOn: date(day: 31, hour: 0), now: date(), calendar: calendar)
+
+        let product = store.products.first
+        XCTAssertEqual(store.products.count, 1)
+        XCTAssertEqual(product?.shelfLife(in: .fridge), 7)
+        XCTAssertEqual(product?.shelfLife(in: .freezer), 2)
+    }
+
+    func test_movingALegacyProductWithoutADate_keepsItsShelfLifeOutOfTheNewPlace() {
+        let store = FridgeStore(directory: directory)
+        store.add(FridgeProduct(name: "Mjölk", place: .fridge, shelfDays: 7), now: date(day: 20), calendar: calendar)
+        var moved = store.products[0]
+        moved.place = .freezer
+
+        store.add(moved, place: .freezer, now: date(), calendar: calendar)
+
+        let product = store.products.first
+        XCTAssertEqual(product?.shelfLife(in: .fridge), 7)
+        XCTAssertNil(product?.shelfLife(in: .freezer))
     }
 }

@@ -17,23 +17,27 @@ struct RecipeDetailView: View {
     @State private var heartBurst = false
     @State private var steps: [RecipeStepEngine.Step]
     @State private var doneSteps: Set<Int> = []
-    @State private var timers = CookingTimers()
+    /// Outlives the page, so leaving it doesn't drop a running timer.
+    @State private var timers: CookingTimers
     @State private var showsCookingMode = false
 
     /// The diary day "Log 1 serving" lands on: the day the Meals tab was
     /// showing when the recipe was opened, today from anywhere else.
     private let logDay: Date
 
-    init(recipe: LibraryRecipe, logDay: Date = Date()) {
+    /// `servings` opens it scaled for that many, e.g. a prep dish's boxes.
+    init(recipe: LibraryRecipe, servings: Int? = nil, logDay: Date = Date()) {
         self.recipe = recipe
         self.logDay = logDay
-        _servings = State(initialValue: recipe.servings)
-        // Built up front so the method card is there on the first frame,
-        // in the locale the environment's `\.locale` defaults to.
-        _steps = State(initialValue: RecipeStepEngine.steps(
-            for: recipe,
-            servings: recipe.servings,
-            locale: .current
+        let start = min(Self.servingRange.upperBound, max(Self.servingRange.lowerBound, servings ?? recipe.servings))
+        // The locale the environment's `\.locale` defaults to.
+        let locale = Locale.current
+        _servings = State(initialValue: start)
+        // Built up front so the method card is there on the first frame.
+        _steps = State(initialValue: RecipeStepEngine.steps(for: recipe, servings: start, locale: locale))
+        _timers = State(initialValue: CookingTimerStore.shared.timers(
+            for: recipe.id,
+            recipeName: recipe.displayName(locale: locale)
         ))
     }
 
@@ -79,7 +83,12 @@ struct RecipeDetailView: View {
         .toolbarBackground(showsTitle ? .visible : .hidden, for: .navigationBar)
         // Step amounts follow the servings stepper.
         .onChange(of: servings) { rebuildSteps() }
-        .onChange(of: locale) { rebuildSteps() }
+        .onChange(of: locale) {
+            rebuildSteps()
+            timers.recipeName = recipe.displayName(locale: locale)
+        }
+        .onAppear { CookingTimerStore.shared.keep(timers, recipeName: recipe.displayName(locale: locale)) }
+        .onDisappear { CookingTimerStore.shared.release(timers) }
         .fullScreenCover(isPresented: $showsCookingMode) {
             CookingModeView(
                 recipeName: recipe.displayName(locale: locale),
@@ -256,7 +265,7 @@ struct RecipeDetailView: View {
         MacroChip.fat(Int((recipe.fatG * factor).rounded()))
         MacroChip(
             icon: .symbol("leaf.circle.fill"),
-            name: String(localized: "fibre"),
+            name: String(localized: "fiber"),
             grams: Int((recipe.fiberG * factor).rounded()),
             tint: AppColor.positive
         )
@@ -290,7 +299,7 @@ struct RecipeDetailView: View {
             Image(systemName: icon)
                 .font(AppFont.scaled(16, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
-                .frame(width: 36, height: 36)
+                .frame(width: AppFont.scaledValue(36), height: AppFont.scaledValue(36))
                 .glassControl(.circle)
                 .minimumHitArea()
         }
@@ -341,6 +350,7 @@ struct RecipeDetailView: View {
     }
 
     private func toggle(_ ingredient: LibraryRecipe.Ingredient) {
+        guard !pantry.isInFridge(ingredient.pantryKey) else { return }
         AppAnimation.with(AppAnimation.springSnappy) {
             pantry.toggle(ingredient.pantryKey)
         }
@@ -463,11 +473,13 @@ private struct IngredientRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        // At home while the fridge holds it: a tap couldn't change that.
+        .disabled(isInFridge)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(name), \(grams) g"))
         .accessibilityValue(isInFridge ? Text("In your fridge") : (isAtHome ? Text("At home") : Text("Not at home")))
         .accessibilityAddTraits(isAtHome ? .isSelected : [])
-        .accessibilityHint(Text("Marks whether you have it at home"))
+        .accessibilityHint(isInFridge ? Text(verbatim: "") : Text("Marks whether you have it at home"))
     }
 }
 

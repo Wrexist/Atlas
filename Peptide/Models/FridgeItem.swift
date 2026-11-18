@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Where an item is kept at home.
-enum FridgePlace: String, Codable, CaseIterable, Identifiable, Sendable {
+enum FridgePlace: String, Codable, CodingKeyRepresentable, CaseIterable, Identifiable, Sendable {
     case fridge, freezer, pantry
 
     var id: Self { self }
@@ -37,8 +37,11 @@ struct FridgeProduct: Codable, Hashable, Identifiable, Sendable {
     /// Printed or typed amount, e.g. "1 l" or "500 g".
     var amount: String?
     var place: FridgePlace = .fridge
-    /// Days it usually keeps from the day it goes in; seeds the use-by date
-    /// on the next re-add.
+    /// Days it kept, from the day it went in, the last time it was kept in
+    /// each place; seeds the use-by date on the next re-add there.
+    var shelfDaysByPlace: [FridgePlace: Int]?
+    /// Saved before shelf life was kept per place: taken to be how long it
+    /// keeps in `place`.
     var shelfDays: Int?
     var per100g: ScannedProduct.Nutriments?
     /// Open Food Facts packshot, when it came from a barcode.
@@ -46,6 +49,21 @@ struct FridgeProduct: Codable, Hashable, Identifiable, Sendable {
     /// True when a cut-out photo of it is stored on this device.
     var hasPhoto = false
     var lastAddedAt: Date?
+
+    /// How long it kept in `place` last time, if it has been kept there.
+    func shelfLife(in place: FridgePlace) -> Int? {
+        shelfDaysByPlace?[place] ?? (place == self.place ? shelfDays : nil)
+    }
+
+    /// Remembers how long it kept in `place`, folding in a shelf life
+    /// saved before they were kept per place.
+    mutating func learnShelfLife(_ days: Int, in place: FridgePlace) {
+        var learned = shelfDaysByPlace ?? [:]
+        if let shelfDays, learned[self.place] == nil { learned[self.place] = shelfDays }
+        learned[place] = days
+        shelfDaysByPlace = learned
+        shelfDays = nil
+    }
 
     var displayName: String {
         guard let brand, !brand.isEmpty, !name.localizedCaseInsensitiveContains(brand) else { return name }

@@ -34,9 +34,18 @@ enum WeeklyPrepEngine {
 
     /// The plan for the week holding `now`, or an empty one when the week
     /// has none yet, so a new week starts clean.
+    /// A plan found keeps the `weekStart` it was saved with, so writing it
+    /// back replaces it rather than adding a second plan for the week.
     static func plan(for now: Date, in plans: [PrepWeek], calendar: Calendar) -> PrepWeek {
         let start = weekStart(for: now, calendar: calendar)
-        return plans.first { $0.weekStart == start } ?? PrepWeek(weekStart: start)
+        return plans.first { isWeek($0.weekStart, startingAt: start, calendar: calendar) } ?? PrepWeek(weekStart: start)
+    }
+
+    /// Whether a saved `weekStart` (Monday 00:00 in the zone it was saved
+    /// in) is the week starting at `start` here. Its Monday noon stays on
+    /// that Monday after a time-zone change, where the midnight may not.
+    static func isWeek(_ saved: Date, startingAt start: Date, calendar: Calendar) -> Bool {
+        weekStart(for: saved.addingTimeInterval(12 * 60 * 60), calendar: calendar) == start
     }
 
     static let varietyWeeks = 2

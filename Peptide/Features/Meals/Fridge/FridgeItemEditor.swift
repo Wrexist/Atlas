@@ -1,6 +1,5 @@
 import PhotosUI
 import SwiftUI
-import UserNotifications
 
 /// Add or edit one thing in the fridge.
 ///
@@ -51,14 +50,18 @@ struct FridgeItemEditor: View {
     @State private var cameraDenied = false
     @State private var confirmForget = false
     @State private var hydrated = false
-    /// Sorted once per locale: ~1000 rows, read by the picker and by every
-    /// keystroke's `matchKey`.
-    @State private var ingredients: [LibraryRecipe.Ingredient] = []
+    /// The saved product a scanned barcode matched.
+    @State private var matchedProduct: FridgeProduct?
 
     private var calendar: Calendar { .current }
     private var isEditing: Bool { item != nil }
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
+    /// Every recipe ingredient once, by name; built once per language, so
+    /// the picker has its options on the first frame.
+    private var ingredients: [LibraryRecipe.Ingredient] {
+        RecipeLibraryEngine.distinctIngredients(locale: locale)
+    }
 
     var body: some View {
         NavigationStack {
@@ -86,7 +89,6 @@ struct FridgeItemEditor: View {
             }
         }
         .onAppear(perform: hydrate)
-        .onChange(of: locale) { _, locale in loadIngredients(locale) }
         .onChange(of: name) { _, name in matchKey(name) }
         .onChange(of: pantryKey) { _, _ in seedDate() }
         .onChange(of: place) { _, _ in seedDate() }
@@ -342,7 +344,6 @@ struct FridgeItemEditor: View {
     private func hydrate() {
         guard !hydrated else { return }
         hydrated = true
-        loadIngredients(locale)
         if let product { fill(from: product) }
         if let item {
             count = item.count
@@ -375,20 +376,17 @@ struct FridgeItemEditor: View {
         barcode = product.barcode
     }
 
-    private func loadIngredients(_ locale: Locale) {
-        ingredients = FridgeEngine.pickerIngredients(from: RecipeLibraryEngine.bundled, locale: locale)
-    }
-
     private func matchKey(_ name: String) {
         guard !keyPicked else { return }
         pantryKey = FridgeEngine.pantryKey(for: name, ingredients: ingredients)
     }
 
-    /// A date from the saved product's last shelf life, else the cautious
-    /// default, until the user sets one.
+    /// A date from how long the saved product kept in this place last time,
+    /// else the cautious default, until the user sets one.
     private func seedDate() {
         guard !dateTouched else { return }
-        let days = product?.shelfDays ?? FridgeEngine.defaultShelfDays(place: place, pantryKey: pantryKey)
+        let days = (matchedProduct ?? product)?.shelfLife(in: place)
+            ?? FridgeEngine.defaultShelfDays(place: place, pantryKey: pantryKey)
         guard let date = FridgeEngine.expiry(from: .now, shelfDays: days, calendar: calendar) else {
             hasDate = false
             return
@@ -479,10 +477,13 @@ struct FridgeItemEditor: View {
     /// Food Facts does.
     private func lookUp(_ code: String) async {
         if let saved = store.products.first(where: { $0.barcode == code }) {
+            matchedProduct = saved
             fill(from: saved)
+            seedDate()
             status = nil
             return
         }
+        matchedProduct = nil
         isReading = true
         status = String(localized: "Looking up the barcode…")
         defer { isReading = false }
@@ -506,7 +507,7 @@ struct FridgeItemEditor: View {
     // MARK: - Saving
 
     private func save() {
-        var saved = product ?? FridgeProduct(name: trimmedName)
+        var saved = (isEditing ? product : matchedProduct ?? product) ?? FridgeProduct(name: trimmedName)
         saved.name = trimmedName
         saved.brand = brand.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         saved.amount = amount.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
@@ -528,14 +529,7 @@ struct FridgeItemEditor: View {
             store.add(saved, photo: photo, count: count, place: place, expiresOn: date)
         }
         Haptics.success()
-        if date != nil { Task { await askForReminders() } }
+        if date != nil { Task { await store.askForRemindersIfNeeded() } }
         onClose()
-    }
-
-    /// Asks once; a no keeps the coloured badges doing the reminding.
-    private func askForReminders() async {
-        guard await NotificationService.shared.checkAuthorization() == .notDetermined,
-              await NotificationService.shared.requestAuthorization() else { return }
-        await FridgeReminderScheduler.reconcile(items: store.items, products: store.productsByID)
     }
 }

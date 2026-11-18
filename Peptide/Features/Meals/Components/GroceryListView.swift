@@ -8,12 +8,13 @@ struct GroceryListView: View {
     let plan: MealPlanEngine.Plan
 
     @AppStorage("groceryList.days") private var days = 7
+    @Environment(\.locale) private var locale
     @State private var store = GroceryChecklistStore.shared
 
     private static let dayOptions = [1, 3, 7]
 
     private var items: [GroceryListEngine.Item] {
-        GroceryListEngine.items(from: GroceryListEngine.ingredients(from: plan, days: days))
+        GroceryListEngine.items(from: GroceryListEngine.ingredients(from: plan, days: days, locale: locale))
     }
 
     private var groups: [GroceryListEngine.Group] {

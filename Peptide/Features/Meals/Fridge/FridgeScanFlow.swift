@@ -476,7 +476,10 @@ struct FridgeScanFlow: View {
             Haptics.error()
         } catch {
             guard !Task.isCancelled else { return }
-            errorText = error.localizedDescription
+            AppLog.ai.error("Fridge scan failed: \(error.localizedDescription, privacy: .public)")
+            errorText = error is URLError
+                ? String(localized: "Couldn't reach the scanner. Check your connection and try again.")
+                : String(localized: "Something went wrong reading the photo. Try again.")
             phase = .failed
             Haptics.error()
         }
@@ -521,9 +524,10 @@ struct FridgeScanFlow: View {
         guard !isFinished else { return }
         isFinished = true
         let kept = groceries.filter(\.include)
-        for grocery in kept {
-            store.add(grocery.product, photo: grocery.sticker, count: grocery.count, place: grocery.place, expiresOn: grocery.expiresOn)
-        }
+        store.add(kept.map {
+            FridgeStore.Addition(product: $0.product, photo: $0.sticker, count: $0.count, place: $0.place, expiresOn: $0.expiresOn)
+        })
+        Task { await FridgeStore.shared.askForRemindersIfNeeded() }
         Haptics.success()
         onDone(kept.count)
     }

@@ -46817,16 +46817,6 @@
         }
       }
     },
-    "With your favourites: %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Med dina favoriter: %@"
-          }
-        }
-      }
-    },
     "%lld of %lld at home": {
       "localizations": {
         "sv": {
@@ -46853,16 +46843,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Passar dina %lld kcal kvar"
-          }
-        }
-      }
-    },
-    "Rich in fibre": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fiberrik"
           }
         }
       }
@@ -47129,16 +47109,6 @@
         }
       }
     },
-    "fibre": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "fiber"
-          }
-        }
-      }
-    },
     "Per serving: %lld kcal · %lld g protein": {
       "localizations": {
         "sv": {
@@ -47151,10 +47121,40 @@
     },
     "%lld servings": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld serving"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld servings"
+                }
+              }
+            }
+          }
+        },
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld portioner"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld portion"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld portioner"
+                }
+              }
+            }
           }
         }
       }
@@ -48651,10 +48651,40 @@
     },
     "One photo of the whole shelf or bag. %lld free scans left this week.": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "One photo of the whole shelf or bag. %lld free scan left this week."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "One photo of the whole shelf or bag. %lld free scans left this week."
+                }
+              }
+            }
+          }
+        },
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ett foto av hela hyllan eller kassen. %lld gratis skanningar kvar den här veckan."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ett foto av hela hyllan eller kassen. %lld gratis skanning kvar den här veckan."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ett foto av hela hyllan eller kassen. %lld gratis skanningar kvar den här veckan."
+                }
+              }
+            }
           }
         }
       }
@@ -48885,16 +48915,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Skanna kylen eller dina inköp så håller Atlas koll på datumen och lagar mat av det du har."
-          }
-        }
-      }
-    },
-    "Scan the fridge": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Skanna kylen"
           }
         }
       }
@@ -52542,6 +52562,171 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vikten gick upp den här veckan: dra ner %lld kcal per dag"
+          }
+        }
+      }
+    },
+    "%@ · Step %lld": {
+      "comment": "Cooking timer notification body: the dish and the step whose timer ran out",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · Steg %lld"
+          }
+        }
+      }
+    },
+    "%lld frozen": {
+      "comment": "Meal-prep boxes kept in the freezer",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld frozen"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld frozen"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fryst"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld frysta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld in the fridge": {
+      "comment": "Meal-prep boxes kept in the fridge",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld i kylen"
+          }
+        }
+      }
+    },
+    "Check or throw out": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kolla eller släng"
+          }
+        }
+      }
+    },
+    "Couldn't reach the scanner. Check your connection and try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte nå skannern. Kontrollera anslutningen och försök igen."
+          }
+        }
+      }
+    },
+    "Not every step is ticked. Put the boxes in anyway?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla steg är inte avbockade. Ställa in lådorna ändå?"
+          }
+        }
+      }
+    },
+    "Past use-by": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förbi bäst före"
+          }
+        }
+      }
+    },
+    "Put the boxes in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ställ in lådorna"
+          }
+        }
+      }
+    },
+    "Something went wrong reading the photo. Try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Något gick fel när fotot lästes. Försök igen."
+          }
+        }
+      }
+    },
+    "Your boxes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina lådor"
+          }
+        }
+      }
+    },
+    "With your favorites: %@": {
+      "comment": "Recipe recommendation reason; the list names favorite ingredients",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Med dina favoriter: %@"
+          }
+        }
+      }
+    },
+    "Rich in fiber": {
+      "comment": "Recipe recommendation reason",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fiberrik"
+          }
+        }
+      }
+    },
+    "fiber": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fiber"
           }
         }
       }

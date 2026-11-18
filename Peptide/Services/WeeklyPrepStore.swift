@@ -99,6 +99,17 @@ final class WeeklyPrepStore {
         boxesChanged(now: now, calendar: calendar)
     }
 
+    /// Takes "done" back: the boxes it put in leave the list and the plan
+    /// opens again, for a tap made before anything was cooked.
+    func unfinishPrep(now: Date = .now, calendar: Calendar = .current) {
+        let current = plan(now: now, calendar: calendar)
+        guard let preppedAt = current.preppedAt else { return }
+        let recipeIDs = Set(current.recipeIDs)
+        boxes.removeAll { $0.cookedAt == preppedAt && recipeIDs.contains($0.recipeID) }
+        update(now: now, calendar: calendar) { $0.preppedAt = nil }
+        boxesChanged(now: now, calendar: calendar)
+    }
+
     private func update(now: Date, calendar: Calendar, _ change: (inout PrepWeek) -> Void) {
         var plan = self.plan(now: now, calendar: calendar)
         change(&plan)
@@ -150,9 +161,14 @@ final class WeeklyPrepStore {
             !WeeklyPrepEngine.pruned([$0.value], recipes: recipes, now: now, calendar: calendar).isEmpty
         }
         persist()
-        let scheduledBoxes = boxes
-        let scheduledRecipes = recipes
-        Task { await PrepBoxReminderScheduler.reconcile(boxes: scheduledBoxes, recipes: scheduledRecipes) }
+        Task { await reconcileReminders() }
+    }
+
+    /// Rolls the eat-by reminder forward from the boxes there are now.
+    /// Called on every change and whenever the app comes forward or
+    /// leaves, since the one pending reminder covers only the soonest day.
+    func reconcileReminders() async {
+        await PrepBoxReminderScheduler.reconcile(boxes: boxes, recipes: recipes)
     }
 
     // MARK: - Storage

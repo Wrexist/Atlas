@@ -9,18 +9,27 @@ struct ReviewGrocery: Identifiable {
     var include = true
     var name: String
     var count: Int
-    var place: FridgePlace
-    var expiresOn: Date?
+    private(set) var place: FridgePlace
+    var expiresOn: Date? {
+        didSet { dateIsGuess = false }
+    }
+    /// The date came from a shelf life, not the pack or the user, so a move
+    /// to another place re-dates it.
+    private var dateIsGuess: Bool
+    private let found: FridgeScanService.Found
+    private let saved: FridgeProduct?
     let brand: String?
     let amount: String?
     let pantryKey: String?
     let per100g: ScannedProduct.Nutriments?
 
     /// A date printed on the pack wins; then how long the same product
-    /// kept last time; then the scan's typical shelf life.
+    /// kept in that place last time; then the scan's typical shelf life.
     init(_ found: FridgeScanService.Found, sticker: UIImage, saved: FridgeProduct?, now: Date = .now, calendar: Calendar = .current) {
         id = found.id
         self.sticker = sticker
+        self.found = found
+        self.saved = saved
         frame = found.box
         name = found.name
         count = found.count
@@ -29,8 +38,23 @@ struct ReviewGrocery: Identifiable {
         amount = found.amount
         pantryKey = found.pantryKey ?? saved?.pantryKey
         per100g = found.per100g
-        expiresOn = found.printedExpiry
-            ?? FridgeEngine.expiry(from: now, shelfDays: saved?.shelfDays ?? found.shelfDays, calendar: calendar)
+        dateIsGuess = found.printedExpiry == nil
+        expiresOn = found.printedExpiry ?? guessedExpiry(now: now, calendar: calendar)
+    }
+
+    /// Moves it, re-dating a guessed use-by for the new place; a printed
+    /// or chosen date stays.
+    mutating func move(to place: FridgePlace, now: Date = .now, calendar: Calendar = .current) {
+        self.place = place
+        guard dateIsGuess else { return }
+        expiresOn = guessedExpiry(now: now, calendar: calendar)
+        dateIsGuess = true
+    }
+
+    private func guessedExpiry(now: Date, calendar: Calendar) -> Date? {
+        let days = saved?.shelfLife(in: place)
+            ?? (place == found.place ? found.shelfDays : FridgeEngine.defaultShelfDays(place: place, pantryKey: pantryKey))
+        return FridgeEngine.expiry(from: now, shelfDays: days, calendar: calendar)
     }
 
     var product: FridgeProduct {
@@ -176,7 +200,7 @@ struct FridgeScanCell: View {
     private var placeMenu: some View {
         Menu {
             ForEach(FridgePlace.allCases) { place in
-                Button { grocery.place = place } label: { Label(place.label, systemImage: place.icon) }
+                Button { grocery.move(to: place) } label: { Label(place.label, systemImage: place.icon) }
             }
         } label: {
             chip(Image(systemName: grocery.place.icon))

@@ -58,8 +58,17 @@ enum RecipeStepEngine {
         var found: Set<Int> = []
         for word in words(step) where !stopWords.contains(word) {
             let stepStems = stems(of: word, swedish: swedish)
-            let exact = names.indices.filter { index in
+            var exact = names.indices.filter { index in
                 nameStems[index].contains { !$0.isDisjoint(with: stepStems) }
+            }
+            // An English name's last word is the thing itself ("olive oil"
+            // is oil): a word that is one ingredient's head noun ("olives")
+            // doesn't also pull in those it only describes.
+            if !swedish {
+                let heads = exact.filter { index in
+                    nameStems[index].last.map { !$0.isDisjoint(with: stepStems) } ?? false
+                }
+                if !heads.isEmpty { exact = heads }
             }
             if !exact.isEmpty {
                 found.formUnion(exact)
@@ -113,7 +122,8 @@ enum RecipeStepEngine {
     private static let irregular = ["morötter": "morot", "morötterna": "morot"]
 
     /// Cooking verbs and filler that would otherwise match an ingredient
-    /// ("brown the mince" is not brown rice).
+    /// ("brown the mince" is not brown rice, "the cooking water" is not
+    /// cooking cream, "a burger sauce" is not the burger buns).
     private static let stopWords: Set<String> = [
         "med", "och", "till", "tills", "den", "det", "som", "att", "för", "per", "över", "under", "lite",
         "allt", "alla", "sida", "sidan", "minuter", "lock", "värme", "ugnen", "lådor", "låda", "panna",
@@ -121,7 +131,7 @@ enum RecipeStepEngine {
         "varm", "varmt", "kallt", "klart", "skvätt", "toppa", "rör", "ner", "upp", "sedan", "kött", "köttet",
         "the", "and", "with", "for", "until", "into", "over", "then", "each", "side", "minutes", "lid",
         "heat", "oven", "boxes", "box", "pan", "water", "serve", "slice", "cook", "fry", "mix", "add",
-        "small", "warm", "cold", "done", "splash", "top", "stir", "brown", "season",
+        "small", "warm", "cold", "done", "splash", "top", "stir", "brown", "season", "cooking", "burger",
     ]
 
     // MARK: - Timers
@@ -142,9 +152,20 @@ enum RecipeStepEngine {
         }
     }
 
+    /// "fem", "1,5", "½", "1½" or "1 ½".
     private static func number(_ token: String) -> Double? {
-        numberWords[token] ?? Double(token.replacingOccurrences(of: ",", with: "."))
+        var text = token.filter { !$0.isWhitespace }
+        var fraction = 0.0
+        if let last = text.last, let value = fractions[last] {
+            fraction = value
+            text.removeLast()
+        }
+        if text.isEmpty { return fraction }
+        guard let whole = numberWords[text] ?? Double(text.replacingOccurrences(of: ",", with: ".")) else { return nil }
+        return whole + fraction
     }
+
+    private static let fractions: [Character: Double] = ["½": 0.5, "¼": 0.25, "¾": 0.75]
 
     private static func unitSeconds(_ unit: String) -> Int {
         if unit.hasPrefix("tim") || unit.hasPrefix("hour") { return 3600 }
@@ -161,7 +182,7 @@ enum RecipeStepEngine {
 
     private static let timerPattern: String = {
         let words = numberWords.keys.sorted { $0.count > $1.count }.joined(separator: "|")
-        let amount = #"(\d+(?:[.,]\d+)?|"# + words + ")"
+        let amount = #"(\d+(?:[.,]\d+)?(?:\s*[½¼¾])?|[½¼¾]|"# + words + ")"
         let unit = "(minuter|minuten|minutes|minute|minut|min|timmar|timme|timmen|hours|hour|sekunder|seconds|sek|sec)"
         return #"(?<![\p{L}\d])"# + amount + #"(?:\s*(?:–|-|to|till)\s*"# + amount + #")?\s*"# + unit + #"(?!\p{L})"#
     }()

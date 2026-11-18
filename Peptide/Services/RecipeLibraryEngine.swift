@@ -349,7 +349,7 @@ enum RecipeLibraryEngine {
         case .favorites(let ingredients):
             let names = ingredients.prefix(2).map { $0.displayName(locale: locale).lowercased() }
             let list = names.joined(separator: ", ")
-            return String(localized: "With your favourites: \(list)", comment: "Recipe recommendation reason; the list names favourite ingredients")
+            return String(localized: "With your favorites: \(list)", comment: "Recipe recommendation reason; the list names favorite ingredients")
         case .pantry(let have, let total):
             return String(localized: "\(have) of \(total) at home", comment: "Recipe recommendation reason: ingredients the user has at home")
         case .highProtein:
@@ -357,7 +357,7 @@ enum RecipeLibraryEngine {
         case .fitsCalories(let remaining):
             return String(localized: "Fits your \(remaining) kcal left", comment: "Recipe recommendation reason: the recipe fits the calories left today")
         case .fiber:
-            return String(localized: "Rich in fibre", comment: "Recipe recommendation reason")
+            return String(localized: "Rich in fiber", comment: "Recipe recommendation reason")
         case .micro(let micro):
             return String(localized: "Rich in \(micro.displayName)", comment: "Recipe recommendation reason, e.g. 'Rich in iron'")
         case .timeOfDay(let category):
@@ -368,6 +368,55 @@ enum RecipeLibraryEngine {
             case .snack:     return String(localized: "A smart snack", comment: "Recipe recommendation reason for a snack")
             }
         }
+    }
+
+    // MARK: - Search
+
+    /// A search hit on either language's name or any ingredient, ignoring
+    /// case and accents, so "creme" finds "Crème fraîche" and "kottbullar"
+    /// "Köttbullar". An empty query matches everything.
+    static func matches(_ recipe: LibraryRecipe, query: String) -> Bool {
+        guard !query.isEmpty else { return true }
+        return searchText(for: recipe).contains(fold(query))
+    }
+
+    /// Bundled recipes' folded search text, built once rather than per
+    /// keystroke.
+    private static let bundledSearchText: [String: (recipe: LibraryRecipe, text: String)] =
+        Dictionary(bundled.map { ($0.id, (recipe: $0, text: foldedFields(of: $0))) }) { first, _ in first }
+
+    private static func searchText(for recipe: LibraryRecipe) -> String {
+        if let cached = bundledSearchText[recipe.id], cached.recipe == recipe { return cached.text }
+        return foldedFields(of: recipe)
+    }
+
+    private static func foldedFields(of recipe: LibraryRecipe) -> String {
+        let fields = [recipe.name, recipe.nameSV] + recipe.ingredients.flatMap { [$0.name, $0.nameSV] }
+        return fold(fields.joined(separator: "\n"))
+    }
+
+    private static func fold(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
+    }
+
+    // MARK: - Ingredients
+
+    /// Every bundled ingredient once, sorted by its name in the locale's
+    /// language. Built once per language.
+    static func distinctIngredients(locale: Locale) -> [LibraryRecipe.Ingredient] {
+        LibraryRecipe.isSwedish(locale) ? distinctIngredientsSV : distinctIngredientsEN
+    }
+
+    private static let distinctIngredientsEN = distinctIngredients(sortedIn: Locale(identifier: "en"))
+    private static let distinctIngredientsSV = distinctIngredients(sortedIn: Locale(identifier: "sv"))
+
+    private static func distinctIngredients(sortedIn locale: Locale) -> [LibraryRecipe.Ingredient] {
+        var seen: Set<String> = []
+        return bundled.flatMap(\.ingredients)
+            .filter { seen.insert($0.pantryKey).inserted }
+            .map { (ingredient: $0, name: $0.displayName(locale: locale)) }
+            .sorted { $0.name.compare($1.name, locale: locale) == .orderedAscending }
+            .map(\.ingredient)
     }
 
     // MARK: - Logging

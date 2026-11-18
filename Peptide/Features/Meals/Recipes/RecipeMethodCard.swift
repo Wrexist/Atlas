@@ -85,6 +85,15 @@ private struct RecipeStepRow: View {
     /// The check's tap target, which the circle sits centred in.
     private var slot: CGFloat { max(Spacing.minimumHitTarget, diameter) }
 
+    /// Indices of the step's timers to show.
+    private var shownTimers: [Int] {
+        step.timers.indices.filter { index in
+            guard state == .done else { return true }
+            let key = CookingTimers.Key(step: step.id, index: index)
+            return timers.isRunning(key) || timers.finished.contains(key)
+        }
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Button(action: toggle) {
@@ -107,23 +116,23 @@ private struct RecipeStepRow: View {
                     .contentShape(Rectangle())
                     .onTapGesture(perform: toggle)
                     .accessibilityHidden(true)
-                if state != .done {
-                    if !step.ingredients.isEmpty {
-                        StepIngredientLine(ingredients: step.ingredients)
-                    }
-                    if !step.timers.isEmpty {
-                        HStack(spacing: Spacing.sm) {
-                            ForEach(Array(step.timers.enumerated()), id: \.offset) { index, timer in
-                                StepTimerChip(
-                                    key: CookingTimers.Key(step: step.id, index: index),
-                                    seconds: timer.seconds,
-                                    timers: timers,
-                                    isQuiet: state != .current
-                                )
-                            }
+                if state != .done, !step.ingredients.isEmpty {
+                    StepIngredientLine(ingredients: step.ingredients)
+                }
+                // A ticked step keeps a timer that is still going or has
+                // rung, so its countdown and Stop don't vanish with the tick.
+                if !shownTimers.isEmpty {
+                    HStack(spacing: Spacing.sm) {
+                        ForEach(shownTimers, id: \.self) { index in
+                            StepTimerChip(
+                                key: CookingTimers.Key(step: step.id, index: index),
+                                seconds: step.timers[index].seconds,
+                                timers: timers,
+                                isQuiet: state != .current
+                            )
                         }
-                        .padding(.top, Spacing.xxs)
                     }
+                    .padding(.top, Spacing.xxs)
                 }
             }
             // Centres the first line of text on the number.
