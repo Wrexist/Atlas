@@ -440,4 +440,34 @@ final class TrainingStorageTests: XCTestCase {
         XCTAssertTrue(repo.loadRoutines().isEmpty)
         XCTAssertTrue(repo.loadPersonalRecords().isEmpty)
     }
+
+    // MARK: - Unchanged columns stay clean (C243)
+
+    func test_routineUpdate_withUnchangedRoutine_leavesContextClean() throws {
+        let context = try XCTUnwrap(repo.contextForTesting)
+        let routine = Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: "Barbell_Bench_Press_-_Medium_Grip", index: 0,
+                            targetSets: 5, targetReps: 5),
+        ])
+        let row = try StoredRoutine.make(from: routine)
+        context.insert(row)
+        try context.save()
+
+        try row.update(from: routine)
+
+        XCTAssertFalse(context.hasChanges,
+                       "Re-saving an unchanged routine must not dirty CloudKit fields")
+    }
+
+    func test_workoutSessionUpdate_withUnchangedSession_leavesContextClean() throws {
+        let context = try XCTUnwrap(repo.contextForTesting)
+        let session = makeSession()
+        let row = try StoredWorkoutSession.make(from: session)
+        context.insert(row)
+        try context.save()
+
+        try row.update(from: session)
+
+        XCTAssertFalse(context.hasChanges)
+    }
 }
