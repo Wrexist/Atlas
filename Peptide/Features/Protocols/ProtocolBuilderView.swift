@@ -203,8 +203,8 @@ struct ProtocolBuilderView: View {
         )
     }
 
-    /// What the share card actually draws. `PeptideProtocol`'s equality is
-    /// id-only, so it can't key the preview task by itself.
+    /// What the share card actually draws, so edits to anything else
+    /// (schedule, notes) don't re-render the preview.
     private struct PreviewKey: Hashable {
         let name: String
         let peptideIDs: [UUID]
