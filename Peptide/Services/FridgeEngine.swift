@@ -68,6 +68,17 @@ enum FridgeEngine {
 
     // MARK: - Recipe keys
 
+    /// Every distinct recipe ingredient, by pantry key, sorted by its name
+    /// in `locale` — the editor's "Counts as" list.
+    static func pickerIngredients(from recipes: [LibraryRecipe], locale: Locale) -> [LibraryRecipe.Ingredient] {
+        var seen: Set<String> = []
+        return recipes.flatMap(\.ingredients)
+            .filter { seen.insert($0.pantryKey).inserted }
+            .map { (ingredient: $0, name: $0.displayName(locale: locale)) }
+            .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+            .map(\.ingredient)
+    }
+
     /// The recipe ingredient a product name counts as, or nil when nothing
     /// fits. A whole word scores highest; a Swedish compound sharing its
     /// head or its start ("mellanmjölk" ~ "mjölk", "vitlök" over "lök")

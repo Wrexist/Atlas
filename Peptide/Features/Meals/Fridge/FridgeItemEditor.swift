@@ -51,17 +51,14 @@ struct FridgeItemEditor: View {
     @State private var cameraDenied = false
     @State private var confirmForget = false
     @State private var hydrated = false
+    /// Sorted once per locale: ~1000 rows, read by the picker and by every
+    /// keystroke's `matchKey`.
+    @State private var ingredients: [LibraryRecipe.Ingredient] = []
 
     private var calendar: Calendar { .current }
     private var isEditing: Bool { item != nil }
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-    private var ingredients: [LibraryRecipe.Ingredient] {
-        var seen: Set<String> = []
-        return RecipeLibraryEngine.bundled.flatMap(\.ingredients)
-            .filter { seen.insert($0.pantryKey).inserted }
-            .sorted { $0.displayName(locale: locale).localizedCompare($1.displayName(locale: locale)) == .orderedAscending }
-    }
 
     var body: some View {
         NavigationStack {
@@ -89,6 +86,7 @@ struct FridgeItemEditor: View {
             }
         }
         .onAppear(perform: hydrate)
+        .onChange(of: locale) { _, locale in loadIngredients(locale) }
         .onChange(of: name) { _, name in matchKey(name) }
         .onChange(of: pantryKey) { _, _ in seedDate() }
         .onChange(of: place) { _, _ in seedDate() }
@@ -343,6 +341,7 @@ struct FridgeItemEditor: View {
     private func hydrate() {
         guard !hydrated else { return }
         hydrated = true
+        loadIngredients(locale)
         if let product { fill(from: product) }
         if let item {
             count = item.count
@@ -373,6 +372,10 @@ struct FridgeItemEditor: View {
         per100g = product.per100g
         imageURL = product.imageURL
         barcode = product.barcode
+    }
+
+    private func loadIngredients(_ locale: Locale) {
+        ingredients = FridgeEngine.pickerIngredients(from: RecipeLibraryEngine.bundled, locale: locale)
     }
 
     private func matchKey(_ name: String) {
