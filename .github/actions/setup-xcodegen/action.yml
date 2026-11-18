@@ -4,7 +4,9 @@ description: >
   generates the project with the version PR Checks validated (B344).
 inputs:
   version:
-    description: XcodeGen release. Keep equal to XCODEGEN_VERSION in pr-checks.yml.
+    description: >
+      XcodeGen release. This default is the project's only pin: every lane,
+      PR Checks included, uses it, so bump it here.
     required: false
     default: "2.46.0"
 runs:

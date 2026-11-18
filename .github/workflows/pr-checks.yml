@@ -130,10 +130,9 @@ jobs:
     env:
       # Pinned so a tool upgrade is a reviewed diff, not a runner-image
       # or cache accident (.swiftlint.yml records one that changed the
-      # gate). Bump both here and the cache key follows. The other lanes
-      # install XcodeGen through .github/actions/setup-xcodegen, whose
-      # default version must be bumped with this one.
-      XCODEGEN_VERSION: 2.46.0
+      # gate). Bump it here and the cache key follows. XcodeGen's pin
+      # lives only in .github/actions/setup-xcodegen, which every lane
+      # uses, so PR Checks and TestFlight cannot drift apart.
       SWIFTLINT_VERSION: 0.65.1
 
     steps:
@@ -146,14 +145,14 @@ jobs:
       - name: Verify Xcode version
         run: xcodebuild -version
 
-      - name: Cache pinned tools
-        # Keyed on the job's pinned versions, so bumping one is a recorded
-        # diff that refreshes the cache. The old Homebrew cache had a
-        # constant key and froze whatever version it first saw (B344).
+      - name: Cache SwiftLint
+        # Keyed on the pinned version, so bumping it is a recorded diff
+        # that refreshes the cache. The old Homebrew cache had a constant
+        # key and froze whatever version it first saw (B344).
         uses: actions/cache@v6
         with:
-          path: ~/.ci-tools
-          key: ci-tools-${{ runner.os }}-${{ runner.arch }}-xcodegen-${{ env.XCODEGEN_VERSION }}-swiftlint-${{ env.SWIFTLINT_VERSION }}
+          path: ~/.ci-tools/swiftlint
+          key: swiftlint-${{ runner.os }}-${{ runner.arch }}-${{ env.SWIFTLINT_VERSION }}
 
       - name: Restore DerivedData
         # Keyed per commit and restored from the newest prefix match.
@@ -166,23 +165,20 @@ jobs:
           key: derived-data-${{ runner.os }}-${{ github.sha }}
           restore-keys: derived-data-${{ runner.os }}-
 
-      - name: Install XcodeGen and SwiftLint
+      - name: Install XcodeGen
+        uses: ./.github/actions/setup-xcodegen
+
+      - name: Install SwiftLint
         run: |
-          TOOLS="$HOME/.ci-tools"
-          if [ ! -x "$TOOLS/xcodegen/bin/xcodegen" ]; then
-            mkdir -p "$TOOLS"
-            curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
-              "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
-            unzip -q -o "$RUNNER_TEMP/xcodegen.zip" -d "$TOOLS"
-          fi
-          if [ ! -x "$TOOLS/swiftlint/swiftlint" ]; then
+          TOOL="$HOME/.ci-tools/swiftlint"
+          if [ ! -x "$TOOL/swiftlint" ]; then
+            mkdir -p "$TOOL"
             curl -fsSL -o "$RUNNER_TEMP/swiftlint.zip" \
               "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/portable_swiftlint.zip"
-            unzip -q -o "$RUNNER_TEMP/swiftlint.zip" -d "$TOOLS/swiftlint"
+            unzip -q -o "$RUNNER_TEMP/swiftlint.zip" -d "$TOOL"
           fi
-          echo "$TOOLS/xcodegen/bin" >> "$GITHUB_PATH"
-          echo "$TOOLS/swiftlint" >> "$GITHUB_PATH"
-          echo "XcodeGen $("$TOOLS/xcodegen/bin/xcodegen" --version), SwiftLint $("$TOOLS/swiftlint/swiftlint" version)"
+          echo "$TOOL" >> "$GITHUB_PATH"
+          echo "SwiftLint $("$TOOL/swiftlint" version)"
 
       - name: Generate Xcode project
         run: xcodegen generate
