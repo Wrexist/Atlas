@@ -130,7 +130,9 @@ jobs:
     env:
       # Pinned so a tool upgrade is a reviewed diff, not a runner-image
       # or cache accident (.swiftlint.yml records one that changed the
-      # gate). Bump both here and the cache key follows.
+      # gate). Bump both here and the cache key follows. The other lanes
+      # install XcodeGen through .github/actions/setup-xcodegen, whose
+      # default version must be bumped with this one.
       XCODEGEN_VERSION: 2.46.0
       SWIFTLINT_VERSION: 0.65.1
 

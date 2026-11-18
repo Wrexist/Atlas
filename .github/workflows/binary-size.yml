@@ -51,22 +51,8 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Cache Homebrew packages
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/Library/Caches/Homebrew
-            /usr/local/Cellar/xcodegen
-            /opt/homebrew/Cellar/xcodegen
-          key: brew-xcodegen-${{ runner.os }}-${{ runner.arch }}
-
       - name: Install XcodeGen
-        run: |
-          if ! command -v xcodegen &>/dev/null; then
-            brew install xcodegen || brew reinstall xcodegen
-          fi
-          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
-          echo "XcodeGen: $(xcodegen --version)"
+        uses: ./.github/actions/setup-xcodegen
 
       - name: Build PR HEAD
         id: pr_size

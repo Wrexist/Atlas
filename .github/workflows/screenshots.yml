@@ -61,7 +61,7 @@ jobs:
           xcode-version: latest-stable
 
       - name: Install XcodeGen
-        run: brew install xcodegen || brew reinstall xcodegen
+        uses: ./.github/actions/setup-xcodegen
 
       - name: Generate Xcode project
         run: xcodegen generate
