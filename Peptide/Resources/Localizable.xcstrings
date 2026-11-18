@@ -4756,7 +4756,57 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$lld dagars svit · nästa: %2$@"
+            "value": "%#@streak@ · nästa: %2$@"
+          },
+          "substitutions": {
+            "streak": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dags svit"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dagars svit"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@streak@ · next: %2$@"
+          },
+          "substitutions": {
+            "streak": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg-day streak"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg-day streak"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -6842,6 +6892,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ta bort en"
+          }
+        }
+      }
+    },
+    "Started": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startade"
           }
         }
       }
