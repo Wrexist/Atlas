@@ -44,6 +44,13 @@ final class ProtocolScheduleCadenceTests: XCTestCase {
         let schedule = try JSONDecoder().decode(ProtocolSchedule.self, from: json)
         XCTAssertEqual(schedule.preferredTimes, ["8:00 AM"],
                        "A legacy duplicate would generate two entries sharing one id")
+        XCTAssertEqual(schedule.timesPerDay, 1)
+    }
+
+    func test_decode_timesPerDayWithoutDuplicates_isKept() throws {
+        let json = Data(#"{"daysOfWeek":[1,2,3,4,5,6,7],"timesPerDay":2,"preferredTimes":["8:00 AM"]}"#.utf8)
+        let schedule = try JSONDecoder().decode(ProtocolSchedule.self, from: json)
+        XCTAssertEqual(schedule.timesPerDay, 2)
     }
 
     func test_scheduledDoses_legacyDuplicateTimes_countOneDosePerDay() throws {
