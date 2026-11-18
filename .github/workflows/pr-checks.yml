@@ -500,9 +500,9 @@ jobs:
         # SwiftLint covers Swift-level problems; this covers design-system
         # ones — raw colour literals that skip light mode, fixed font sizes
         # that skip Dynamic Type, glass surfaces that stack two materials,
-        # sub-44pt tap targets, off-grid spacing. Errors fail the build;
-        # warnings are printed for review.
-        run: python3 scripts/design-lint.py --all
+        # sub-44pt tap targets, off-grid spacing. The codebase is at zero
+        # errors and zero warnings, and both counts are held there.
+        run: python3 scripts/design-lint.py --all --max-warnings 0
 
       - name: Checker self-tests
         # design-lint.py once went blind on a rule (rule_glow) without

@@ -7,7 +7,8 @@ assembled by different people. Each rule below exists because the codebase
 had real instances of it.
 
 Run it directly (`python3 scripts/design-lint.py`) or via CI, which fails on
-any error-severity finding. `--all` also prints warnings.
+any error-severity finding. `--all` also prints warnings, and
+`--max-warnings N` fails when there are more than N of them.
 
 Rules are deliberately conservative: a rule that cries wolf gets suppressed
 and then stops protecting anything. Where a pattern has legitimate uses, the
@@ -973,6 +974,8 @@ def main() -> int:
     parser.add_argument("--all", action="store_true",
                         help="print warnings as well as errors")
     parser.add_argument("--rule", help="run a single rule by name")
+    parser.add_argument("--max-warnings", type=int,
+                        help="fail when there are more than this many warnings")
     args = parser.parse_args()
 
     # A mistyped --rule used to skip every rule and report a clean pass.
@@ -1005,7 +1008,16 @@ def main() -> int:
     for rule, count in sorted(by_rule.items(), key=lambda kv: -kv[1]):
         print(f"  {count:4}  {rule}", file=sys.stderr)
 
-    return 1 if errors else 0
+    return exit_code(len(errors), len(warnings), args.max_warnings)
+
+
+def exit_code(errors: int, warnings: int, max_warnings: int | None) -> int:
+    if errors:
+        return 1
+    if max_warnings is not None and warnings > max_warnings:
+        print(f"{warnings} warning(s) exceed --max-warnings {max_warnings}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
