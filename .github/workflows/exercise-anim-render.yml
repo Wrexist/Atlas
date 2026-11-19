@@ -96,7 +96,7 @@ jobs:
             echo "::endgroup::"
           done
           ls -la "$RUNNER_TEMP/videos"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: clips-${{ matrix.shard.id }}
           path: ${{ runner.temp }}/videos

@@ -78,7 +78,7 @@ jobs:
           done
           mkdir -p "$RUNNER_TEMP/clip"
           cp out/${{ matrix.slug }}.mov out/${{ matrix.slug }}_light.mp4 out/${{ matrix.slug }}_dark.mp4 "$RUNNER_TEMP/clip/"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: alpha-${{ matrix.slug }}
           path: ${{ runner.temp }}/clip
