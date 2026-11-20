@@ -228,7 +228,7 @@ struct BiomarkerDetailSheet: View {
                     Label("Learn more · \(reference.publisher)", systemImage: "arrow.up.right")
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.accentPrimary)
                         .minimumHitArea()
                 }
                 .padding(.top, Spacing.xxs)
@@ -404,6 +404,8 @@ struct BiomarkerDetailSheet: View {
             }
         }
         .chartXSelection(value: $selectedDate)
+        // A new range re-scales the line rather than cutting to it.
+        .appAnimation(AppAnimation.settle, value: range)
         .appSensoryFeedback(.selection, trigger: selectedSample?.date)
         .chartXAxis {
             // Stride scales with the window — daily ticks

@@ -143,7 +143,7 @@ struct TrackCalendarSection: View {
             }
             Haptics.selection()
         } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: Spacing.xxs) {
                 CompoundVial(
                     compoundName: peptide.name,
                     category: peptide.category,
@@ -198,7 +198,7 @@ struct TrackCalendarSection: View {
 
     private var navigationHeader: some View {
         HStack(alignment: .center, spacing: Spacing.md) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(monthDate.formatted(.dateTime.month(.wide)))
                     .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
@@ -213,7 +213,7 @@ struct TrackCalendarSection: View {
 
             todayButton
 
-            HStack(spacing: 4) {
+            HStack(spacing: Spacing.xs) {
                 chevronButton(direction: -1, icon: "chevron.left")
                 chevronButton(direction: 1, icon: "chevron.right")
             }
@@ -236,7 +236,7 @@ struct TrackCalendarSection: View {
             } label: {
                 Text("Today")
                     .font(AppFont.badgeSmall)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentPrimary)
                     .padding(.horizontal, Spacing.sm)
                     .padding(.vertical, Spacing.xs)
                     .background {

@@ -20,7 +20,7 @@ struct HealthJournalCard: View {
                     Button("See all") { showHistory = true }
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.accentPrimary)
                         .minimumHitArea()
                         .buttonStyle(.plain)
                         .fixedSize()
@@ -37,7 +37,7 @@ struct HealthJournalCard: View {
                         Button(action: onReflect) {
                             Label("Find patterns in your journal", systemImage: "sparkles")
                                 .font(AppFont.scaled(16, weight: .semibold))
-                                .foregroundStyle(AppColor.accentLight)
+                                .foregroundStyle(AppColor.accentPrimary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .minimumHitArea()
                         }

@@ -116,7 +116,9 @@ struct BiomarkerTile: View {
         Text(footerText)
             .font(AppFont.scaled(11, weight: .medium))
             .foregroundStyle(AppColor.textSecondary)
-            .lineLimit(2)
+            // Small cards pair up: both footers keep two lines so the two
+            // trend lines above them sit on one level.
+            .lineLimit(2, reservesSpace: size == .small)
     }
 
     private var emptyBody: some View {
