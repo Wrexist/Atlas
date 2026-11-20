@@ -75,3 +75,12 @@ struct ScalePressStyle: ButtonStyle {
             .appAnimation(AppAnimation.press, value: configuration.isPressed)
     }
 }
+
+/// The two press depths. `.scalePress` for controls (chips, pills, inline
+/// buttons); `.cardPress` for a whole card or row that opens something,
+/// where a smaller dip keeps a large surface from lurching.
+@MainActor
+extension ButtonStyle where Self == ScalePressStyle {
+    static var scalePress: ScalePressStyle { ScalePressStyle() }
+    static var cardPress: ScalePressStyle { ScalePressStyle(pressedScale: 0.98) }
+}

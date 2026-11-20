@@ -84,6 +84,9 @@ struct GlassChip: View {
                 }
             }
             .glassControl(.capsule, tint: wash, border: border, interactive: false)
+            // The wash and ink ease over rather than snapping, whether the
+            // caller flips the selection inside an animation or not.
+            .appAnimation(AppAnimation.quick, value: isSelected)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { capsuleHeight = $0 }
             .minimumHitArea()
             // The 44pt target overhangs the capsule instead of adding to
@@ -91,7 +94,7 @@ struct GlassChip: View {
             // beside each other rather than 16pt further apart.
             .padding(.vertical, -max(0, Spacing.minimumHitTarget - capsuleHeight) / 2)
         }
-        .buttonStyle(ScalePressStyle())
+        .buttonStyle(.scalePress)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
