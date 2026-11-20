@@ -177,7 +177,7 @@ final class ExerciseStepArtTests: XCTestCase {
             "Pallof_Press",
             "Physioball_Hip_Bridge",
             "Platform_Hamstring_Slides",
-            "Power_Partials", "Prone_Manual_Hamstring", "Push_Up_to_Side_Plank", "Reverse_Cable_Curl", "Reverse_Plate_Curls", "Rope_Crunch"
+            "Power_Partials", "Prone_Manual_Hamstring", "Push_Up_to_Side_Plank", "Reverse_Cable_Curl", "Reverse_Plate_Curls", "Rope_Crunch", "Preacher_Hammer_Dumbbell_Curl", "Seated_Band_Hamstring_Curl", "Seated_Flat_Bench_Leg_Pull-In"
         ]
         for id in illustrated {
             XCTAssertNotNil(ExerciseLibrary.shared.lookup(id: id), "\(id) is not in the library")
