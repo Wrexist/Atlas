@@ -92,7 +92,7 @@ struct StackLibraryView: View {
 
     private var tagChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.chipSpacing) {
                 GlassChip("All", isSelected: selectedTag == nil) {
                     AppAnimation.with(AppAnimation.springSnappy) { selectedTag = nil }
                 }

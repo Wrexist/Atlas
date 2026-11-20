@@ -292,7 +292,7 @@ struct ProtocolBuilderView: View {
                                 currentStep = 0
                             }
                         } label: {
-                            HStack(spacing: 2) {
+                            HStack(spacing: Spacing.xxs) {
                                 Image(systemName: "chevron.left")
                                     .font(AppFont.subheadline.weight(.semibold))
                                     .accessibilityHidden(true)
@@ -577,7 +577,7 @@ struct ProtocolBuilderView: View {
                             .foregroundStyle(AppColor.warning)
                             .frame(width: 18, alignment: .center)
                             .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
                             Text(warning.title)
                                 .font(AppFont.subheadline)
                                 .fontWeight(.semibold)
@@ -861,10 +861,10 @@ private struct PeptideScheduleRow: View {
                             Badge("Custom")
                         }
                     }
-                    HStack(spacing: 4) {
+                    HStack(spacing: Spacing.xs) {
                         Text(schedule.summary)
                             .font(AppFont.caption2)
-                            .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textTertiary)
+                            .foregroundStyle(isCustom ? AppColor.accentPrimary : AppColor.textTertiary)
                         if let dose = schedule.customDose, !dose.isEmpty {
                             Text("·")
                                 .font(AppFont.caption2)
@@ -872,7 +872,7 @@ private struct PeptideScheduleRow: View {
                             Text(dose)
                                 .font(AppFont.caption2)
                                 .fontWeight(.semibold)
-                                .foregroundStyle(AppColor.accentLight)
+                                .foregroundStyle(AppColor.accentPrimary)
                                 .lineLimit(1)
                         }
                     }

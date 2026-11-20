@@ -138,7 +138,7 @@ struct PeptideScheduleSheet: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Toggle(isOn: $useCustom) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("Custom schedule")
                             .font(AppFont.subheadline)
                             .foregroundStyle(AppColor.textPrimary)

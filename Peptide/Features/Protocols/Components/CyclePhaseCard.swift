@@ -38,7 +38,7 @@ struct CyclePhaseCard: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(tint)
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(cycleNumberCopy)
                     .font(AppFont.eyebrow)
                     .tracking(0.6)
@@ -79,7 +79,7 @@ struct CyclePhaseCard: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Spacing.xs) {
             Image(systemName: "clock")
                 .font(AppFont.badgeSmall)
                 .foregroundStyle(AppColor.textSecondary)

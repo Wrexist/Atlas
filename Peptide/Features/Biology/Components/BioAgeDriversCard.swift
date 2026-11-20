@@ -74,7 +74,7 @@ struct BioAgeDriversCard: View {
                     if let placement = placement(for: driver) {
                         Text(placement)
                             .font(AppFont.scaled(13, weight: .medium))
-                            .foregroundStyle(kind.tint)
+                            .foregroundStyle(AppColor.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }

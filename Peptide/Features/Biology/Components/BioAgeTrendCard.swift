@@ -167,7 +167,7 @@ struct BioAgeTrendCard: View {
     }
 
     private func tint(for change: Double) -> Color {
-        if abs(change) < 0.05 { return AppColor.accentLight }
+        if abs(change) < 0.05 { return AppColor.textSecondary }
         return change < 0 ? AppColor.positive : AppColor.negative
     }
 

@@ -56,8 +56,9 @@ struct BiologyView: View {
                     .sectionAppear(index: 0)
 
                     if case .locked? = resolved?.state {
+                        // No eyebrow: the dial above already says Atlas
+                        // Pro, and the card sits lower and level with it.
                         PremiumPromoCard(
-                            eyebrow: "ATLAS PRO",
                             title: "Your age drivers",
                             subtitle: "See how your habits move the number.",
                             ctaLabel: "Unlock",

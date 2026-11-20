@@ -207,7 +207,7 @@ struct DoseDayDetailPanel: View {
                 size: .sm
             )
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 HStack(spacing: Spacing.xs) {
                     Text(mark.peptideName)
                         .font(AppFont.headline)

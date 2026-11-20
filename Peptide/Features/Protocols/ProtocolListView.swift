@@ -60,8 +60,7 @@ struct ProtocolListView: View {
 
                             if !dataStore.activeProtocols.isEmpty {
                                 ProtocolSection(
-                                    eyebrow: "Active",
-                                    title: "Running now",
+                                    title: "Active",
                                     protocols: dataStore.activeProtocols,
                                     onShare: { sharingProtocol = $0 },
                                     zoom: zoom
@@ -97,8 +96,7 @@ struct ProtocolListView: View {
 
                             if !dataStore.pausedProtocols.isEmpty {
                                 ProtocolSection(
-                                    eyebrow: "Paused",
-                                    title: "On hold",
+                                    title: "Paused",
                                     protocols: dataStore.pausedProtocols,
                                     onShare: { sharingProtocol = $0 },
                                     zoom: zoom
@@ -108,8 +106,7 @@ struct ProtocolListView: View {
 
                             if !dataStore.completedProtocols.isEmpty {
                                 ProtocolSection(
-                                    eyebrow: "Completed",
-                                    title: "Finished cycles",
+                                    title: "Completed",
                                     protocols: dataStore.completedProtocols,
                                     onShare: { sharingProtocol = $0 },
                                     zoom: zoom
@@ -136,7 +133,7 @@ struct ProtocolListView: View {
                     .padding(.bottom, Spacing.scrollBottomInset)
                     .readableContentWidth()
                 }
-                .background(AppColor.background)
+                .pageBackground()
 
                 // Floating add button
                 GlassIconButton(icon: "plus", accessibilityLabel: "New protocol", size: 56, tinted: true) {
@@ -219,7 +216,6 @@ struct ProtocolListView: View {
 struct StackLibraryRoute: Hashable {}
 
 private struct ProtocolSection: View {
-    let eyebrow: LocalizedStringKey
     let title: LocalizedStringKey
     let protocols: [PeptideProtocol]
     let onShare: (PeptideProtocol) -> Void
@@ -227,7 +223,9 @@ private struct ProtocolSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            HomeSectionHeader(eyebrow: eyebrow, title: title)
+            // One plain title, as Today and Biology set theirs: an eyebrow
+            // restating it stacked two labels on every section.
+            HomeSectionHeader(title: title)
 
             ForEach(protocols) { protocol_ in
                 NavigationLink(value: protocol_) {

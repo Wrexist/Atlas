@@ -29,7 +29,7 @@ struct WashoutPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Toggle(isOn: isEnabled) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Cycle with wash-out")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
@@ -59,7 +59,7 @@ struct WashoutPicker: View {
                 width: 64
             )
         ) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Wash-out length")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)

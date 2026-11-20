@@ -83,8 +83,8 @@ struct BioAgeHeroSection: View {
                 size: Self.dialSize
             )
             centreContent
-                // The dial is a fixed 280pt; past AX2 the number, unit and
-                // "Why this number" button outgrow its interior and overlap the arc.
+                // The dial is a fixed 280pt; past AX2 the number and its
+                // unit outgrow its interior and overlap the arc.
                 // `AppFont.scaled` ignores this clamp, so the centre fonts
                 // also scale for `centreTypeSize`.
                 .dynamicTypeSize(...Self.centreTypeSizeLimit)
@@ -119,10 +119,7 @@ struct BioAgeHeroSection: View {
             lockedCentre
                 .transition(Self.stateTransition)
         case .needsAge?:
-            Image(systemName: "person.crop.circle.badge.questionmark")
-                .font(AppFont.scaled(32, weight: .light, relativeTo: .title1, in: centreTypeSize))
-                .foregroundStyle(AppColor.textSecondary)
-                .accessibilityHidden(true)
+            centreGlyph("person.crop.circle.badge.questionmark")
                 .transition(Self.stateTransition)
         case .building(let days, let requiredDays)?:
             buildingCentre(progress: Self.buildingProgress(days: days, requiredDays: requiredDays))
@@ -136,14 +133,24 @@ struct BioAgeHeroSection: View {
     /// Locked → building → unlocked cross-fade rather than swap.
     private static var stateTransition: AnyTransition { .opacity.combined(with: .scale(scale: 0.96)) }
 
-    /// Where the number will be: one thin, dim dash. The Pro card right
-    /// below says it's locked; a lock here said it a second time.
+    /// Where the number will be: only the signal it is read from. The Pro
+    /// card right below names the unlock, so saying it here too stacked
+    /// two upsells on one screen.
     private var lockedCentre: some View {
-        Text(verbatim: "—")
-            .font(AppFont.scaled(28, weight: .ultraLight, relativeTo: .title1, in: centreTypeSize))
-            .foregroundStyle(AppColor.textTertiary)
+        centreGlyph("waveform.path.ecg")
+    }
+
+    /// The one glyph size every non-numeric centre uses, so locked, needs
+    /// age and building sit at the same weight in the same spot.
+    private func centreGlyph(_ systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(AppFont.scaled(28, weight: .light, relativeTo: .title1, in: centreTypeSize))
+            .foregroundStyle(AppColor.textSecondary)
             .accessibilityHidden(true)
     }
+
+    /// Text inside the arc stays clear of the stroke at every type size.
+    private static let centreTextWidth: CGFloat = 160
 
     private var resolvingCentre: some View {
         Circle()
@@ -155,18 +162,16 @@ struct BioAgeHeroSection: View {
 
     private func buildingCentre(progress: Double) -> some View {
         VStack(spacing: Spacing.xs) {
-            Image(systemName: "hourglass")
-                .font(AppFont.scaled(28, weight: .light, relativeTo: .title1, in: centreTypeSize))
-                .foregroundStyle(AppColor.textSecondary)
+            centreGlyph("hourglass")
                 .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion && !noHealthData)
-                .accessibilityHidden(true)
             GlassProgressBar(progress: progress)
-                .frame(width: 140)
+                .frame(width: Self.centreTextWidth)
         }
     }
 
-    /// The number, its unit, and the way in. Sign-tinted so "younger" /
-    /// "older" reads in the first glance.
+    /// The number and its unit, alone in the arc so they sit on its
+    /// optical centre. Sign-tinted so "younger" / "older" reads in the
+    /// first glance.
     private func unlockedCentre(estimate: PerformanceAgeEngine.Estimate) -> some View {
         let shown = displayedAge ?? estimate.biologicalAge
         return VStack(spacing: Spacing.xxs) {
@@ -186,8 +191,6 @@ struct BioAgeHeroSection: View {
                 .font(AppFont.scaled(16, weight: .medium, in: centreTypeSize))
                 .foregroundStyle(AppColor.textSecondary)
                 .accessibilityHidden(true)
-            explainButton
-                .padding(.top, Spacing.xs)
         }
     }
 
@@ -195,7 +198,7 @@ struct BioAgeHeroSection: View {
     private var explainButton: some View {
         Button(action: onExplainTapped) {
             Text("Why this number")
-                .font(AppFont.scaled(13, weight: .semibold, in: centreTypeSize))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .minimumHitArea()
         }
@@ -285,8 +288,8 @@ struct BioAgeHeroSection: View {
         return min(1, Double(max(0, days)) / Double(target))
     }
 
-    /// Below the dial: the delta against chronological age, then what it
-    /// was read against and how sure it is.
+    /// Below the dial: the delta against chronological age, what it was
+    /// read against and how sure it is, then the way into the detail.
     private func unlockedSummary(estimate: PerformanceAgeEngine.Estimate) -> some View {
         VStack(spacing: Spacing.sm) {
             deltaBadge(for: estimate)
@@ -294,6 +297,7 @@ struct BioAgeHeroSection: View {
                 .font(AppFont.scaled(13, weight: .medium))
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
+            explainButton
         }
     }
 
