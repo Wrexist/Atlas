@@ -347,7 +347,7 @@ struct HabitEditSheet: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "slider.horizontal.3")
                     .font(AppFont.scaled(20, weight: .medium))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentPrimary)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Customize")
@@ -374,7 +374,7 @@ struct HabitEditSheet: View {
                     }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
     }
 
