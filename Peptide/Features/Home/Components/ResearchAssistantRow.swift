@@ -17,7 +17,7 @@ struct ResearchAssistantRow: View {
             HStack(spacing: Spacing.md) {
                 IconTile("sparkles", size: 32, silhouette: .circle)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Ask Atlas")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)

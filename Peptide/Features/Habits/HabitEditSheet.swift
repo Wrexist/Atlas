@@ -349,7 +349,7 @@ struct HabitEditSheet: View {
                     .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.accentLight)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Customize")
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textPrimary)

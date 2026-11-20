@@ -18,7 +18,7 @@ struct ProtocolsDiscoverRow: View {
             HStack(spacing: Spacing.md) {
                 IconTile("list.clipboard.fill", size: 32, silhouette: .circle)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Protocols")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)

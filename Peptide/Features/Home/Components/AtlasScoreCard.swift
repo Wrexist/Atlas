@@ -46,7 +46,7 @@ struct AtlasScoreCard: View {
             }
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: momentum.tier.symbol)
                         .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(tint)

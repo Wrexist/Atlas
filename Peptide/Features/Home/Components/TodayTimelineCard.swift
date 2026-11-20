@@ -76,7 +76,7 @@ struct TodayTimelineCard: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                     Text(event.date, format: .dateTime.hour().minute())
                         .font(AppFont.scaled(11, weight: .semibold))
@@ -96,7 +96,7 @@ struct TodayTimelineCard: View {
                         .lineLimit(2)
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xs)
         }
     }
 

@@ -267,9 +267,9 @@ struct HabitsView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 if best > 0 {
-                    HStack(spacing: 4) {
+                    HStack(spacing: Spacing.xs) {
                         Image(systemName: "flame.fill")
                             .font(AppFont.scaled(13, weight: .semibold))
                             .foregroundStyle(AppColor.streak)
@@ -315,7 +315,7 @@ struct HabitsView: View {
             Image(systemName: "snowflake")
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Streak at risk")
                     .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)

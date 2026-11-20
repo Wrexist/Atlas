@@ -154,7 +154,7 @@ struct DailyPlanCard: View {
     }
 
     private func countBadge(icon: String, count: Int, color: Color, accessibilityLabel: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Spacing.xs) {
             Image(systemName: icon)
                 .font(AppFont.badgeSmall)
             Text("\(count)")
@@ -162,7 +162,7 @@ struct DailyPlanCard: View {
         }
         .foregroundStyle(color)
         .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, 3)
+        .padding(.vertical, Spacing.xxs)
         .background { Capsule().fill(color.opacity(0.15)) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
@@ -225,7 +225,7 @@ struct DailyPlanCard: View {
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 22, height: 22)
                 .background { Circle().fill(AppColor.accentPrimary.opacity(0.15)) }
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(slot.title)
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
@@ -240,7 +240,7 @@ struct DailyPlanCard: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize()
                 .padding(.horizontal, Spacing.sm)
-                .padding(.vertical, 2)
+                .padding(.vertical, Spacing.xxs)
                 .background { Capsule().fill(AppColor.surfaceElevated) }
                 .accessibilityLabel("\(count) doses")
         }
@@ -341,7 +341,7 @@ private struct DailyPlanDoseRow: View {
                 .symbolEffect(.bounce, value: dose.entry.completed)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 HStack(spacing: Spacing.xs) {
                     Text(dose.entry.peptide.abbreviation)
                         .font(AppFont.subheadline)
@@ -380,8 +380,8 @@ private struct DailyPlanDoseRow: View {
             .font(AppFont.badgeSmall)
             .foregroundStyle(AppColor.warning)
             .fixedSize()
-            .padding(.horizontal, 5)
-            .padding(.vertical, 1)
+            .padding(.horizontal, Spacing.xs)
+            .padding(.vertical, Spacing.xxs)
             .background { Capsule().fill(AppColor.warning.opacity(0.15)) }
     }
 
@@ -391,7 +391,7 @@ private struct DailyPlanDoseRow: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 14)
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Often researched with \(combo.withAbbreviation)")
                     .font(AppFont.caption2)
                     .fontWeight(.semibold)
@@ -403,7 +403,7 @@ private struct DailyPlanDoseRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 5)
+        .padding(.vertical, Spacing.xs)
         .padding(.horizontal, Spacing.sm)
         .background {
             RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
@@ -417,7 +417,7 @@ private struct DailyPlanDoseRow: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(severityColor(conflict.severity))
                 .frame(width: 14)
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(conflict.title)
                     .font(AppFont.caption2)
                     .fontWeight(.semibold)
@@ -431,7 +431,7 @@ private struct DailyPlanDoseRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 5)
+        .padding(.vertical, Spacing.xs)
         .padding(.horizontal, Spacing.sm)
         .background {
             RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
