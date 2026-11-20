@@ -20,6 +20,11 @@ enum Spacing {
     /// cards sat 4pt inside the title on every tab root.
     static let screenPadding: CGFloat = 16
 
+    /// The gap between chips, across a row and between wrapped rows alike.
+    /// `GlassChip`'s 44pt target overhangs its capsule rather than adding
+    /// to its layout, so this is the gap the eye sees in both directions.
+    static let chipSpacing: CGFloat = 8
+
     // MARK: - Corner radii
     //
     // One named role per radius. Nesting a rounded shape inside another looks
