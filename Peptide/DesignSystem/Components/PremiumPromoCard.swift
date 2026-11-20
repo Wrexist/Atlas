@@ -39,13 +39,13 @@ struct PremiumPromoCard<Trailing: View>: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(alignment: .top, spacing: Spacing.md) {
+            HStack(alignment: .center, spacing: Spacing.md) {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     if let eyebrow {
                         Text(eyebrow)
                             .font(AppFont.scaled(11, weight: .semibold))
                             .tracking(1.0)
-                            .foregroundStyle(AppColor.textPrimary.opacity(0.65))
+                            .foregroundStyle(AppColor.textSecondary)
                     }
                     Text(title)
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -55,7 +55,7 @@ struct PremiumPromoCard<Trailing: View>: View {
                     if let subtitle {
                         Text(subtitle)
                             .font(AppFont.subheadline)
-                            .foregroundStyle(AppColor.textPrimary.opacity(0.75))
+                            .foregroundStyle(AppColor.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 

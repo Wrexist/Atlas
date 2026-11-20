@@ -236,13 +236,19 @@ extension MuscleMapView {
     }
 
     /// The full ramp as a gradient, for legend capsules under heatmaps.
-    /// Each stop carries the strength the figure draws it at, so the low
-    /// end is the faint wash a barely-lit muscle actually gets rather than
-    /// a solid peach no muscle shows.
+    /// It opens on the track grey an unlit muscle shows (a recovered or
+    /// untrained one), then runs the ramp with each stop at the strength
+    /// the figure draws it, so every point on the key is a colour some
+    /// muscle on the figure can actually take.
     static var heatLegendGradient: Gradient {
-        Gradient(stops: heatStops.map {
-            .init(color: $0.color.opacity(heatStrength(for: $0.position)), location: $0.position)
-        })
+        let unlitWidth = 0.15
+        let ramp = heatStops.map {
+            Gradient.Stop(
+                color: $0.color.opacity(heatStrength(for: $0.position)),
+                location: unlitWidth + $0.position * (1 - unlitWidth)
+            )
+        }
+        return Gradient(stops: [Gradient.Stop(color: AppColor.track, location: 0)] + ramp)
     }
 }
 
@@ -289,8 +295,8 @@ extension MuscleMapView {
 // MARK: - Legend
 
 /// Compact legend strip explaining the load ramp under a heatmap
-/// figure: a faint-peach → orange → burnt-orange capsule between two
-/// extreme labels.
+/// figure: an unlit-grey → faint-peach → burnt-orange capsule between two
+/// extreme labels, the same single orange family the figure draws.
 struct MuscleHeatLegend: View {
     var lowLabel: String = String(localized: "Less")
     var highLabel: String = String(localized: "Most")

@@ -188,7 +188,7 @@ struct CelebrationHostView: View {
             return
         }
         toastUnlocks = unlocks
-        AppAnimation.with(AppAnimation.springBouncy) { showAchievementToast = true }
+        AppAnimation.with(AppAnimation.toast) { showAchievementToast = true }
         // The toast carries its own artwork. Avoid replacing an in-flight
         // habit/level-up burst with a second celebration for one tap.
         guard center.current == nil, levelUp == nil, burst == nil else { return }

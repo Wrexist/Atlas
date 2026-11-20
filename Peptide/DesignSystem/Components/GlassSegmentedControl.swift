@@ -70,6 +70,10 @@ struct GlassSegmentedControl<T: Hashable>: View {
                 }
             }
         }
+        // The pill also glides when the selection changes from outside
+        // the control (a swipe between panels, a deep link), not only
+        // when one of its own segments is tapped.
+        .appAnimation(AppAnimation.springSnappy, value: selected)
     }
 
     private func segmentButton(for option: T) -> some View {

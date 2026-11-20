@@ -15,7 +15,8 @@ enum GlassChipStyle {
 
 /// The app's one selectable chip: filter rows, category pickers, tag rows.
 /// A single capsule recipe, press response, haptic, and VoiceOver
-/// "selected" trait, so every chip row behaves the same.
+/// "selected" trait, so every chip row behaves the same. Rows of chips,
+/// scrolling or wrapping, space them by `Spacing.chipSpacing`.
 struct GlassChip: View {
     private let title: LocalizedStringKey
     private let glyph: AppGlyph?
@@ -84,6 +85,9 @@ struct GlassChip: View {
                 }
             }
             .glassControl(.capsule, tint: wash, border: border, interactive: false)
+            // The wash and ink ease over rather than snapping, whether the
+            // caller flips the selection inside an animation or not.
+            .appAnimation(AppAnimation.quick, value: isSelected)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { capsuleHeight = $0 }
             .minimumHitArea()
             // The 44pt target overhangs the capsule instead of adding to
@@ -91,7 +95,7 @@ struct GlassChip: View {
             // beside each other rather than 16pt further apart.
             .padding(.vertical, -max(0, Spacing.minimumHitTarget - capsuleHeight) / 2)
         }
-        .buttonStyle(ScalePressStyle())
+        .buttonStyle(.scalePress)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -118,11 +122,11 @@ struct GlassChip: View {
     ZStack {
         AppColor.background.ignoresSafeArea()
         VStack(spacing: Spacing.md) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.chipSpacing) {
                 GlassChip("All", isSelected: true) {}
                 GlassChip("Growth", icon: "arrow.up.right", isSelected: false) {}
             }
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.chipSpacing) {
                 GlassChip("All", style: .prominent, isSelected: true) {}
                 GlassChip("Chest", icon: "figure.strengthtraining.traditional",
                           style: .prominent, isSelected: false) {}
