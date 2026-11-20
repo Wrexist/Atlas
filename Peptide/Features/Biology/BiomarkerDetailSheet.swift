@@ -404,6 +404,8 @@ struct BiomarkerDetailSheet: View {
             }
         }
         .chartXSelection(value: $selectedDate)
+        // A new range re-scales the line rather than cutting to it.
+        .appAnimation(AppAnimation.settle, value: range)
         .appSensoryFeedback(.selection, trigger: selectedSample?.date)
         .chartXAxis {
             // Stride scales with the window — daily ticks
