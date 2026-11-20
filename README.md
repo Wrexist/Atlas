@@ -77,7 +77,10 @@ there being exactly one primitive to reach for:
   fill is `AppColor.onAccent`; ink on a translucent wash or on the app
   background is `AppColor.textPrimary`. Domain palettes that must stay
   constant (macros, HealthKit metrics, anatomy) are listed in
-  `ColorTheme.swift` and excluded from the lint rule.
+  `ColorTheme.swift` and excluded from the lint rule. The accent is
+  for selection, progress toward a goal, a finished state and the one
+  current point of a chart; history series are ink. The full rule sits
+  above `accentPrimary` in `ColorTheme.swift`.
 - **Type** — use the `AppFont` ramp, or `AppFont.scaled(_:weight:design:)`
   for a size the ramp doesn't cover. `Font.system(size:)` ignores the
   content-size category outright, so anything set that way is invisible to
