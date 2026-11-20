@@ -171,7 +171,13 @@ final class ExerciseStepArtTests: XCTestCase {
             "One-Arm_Flat_Bench_Dumbbell_Flye",
             "One-Arm_Medicine_Ball_Slam",
             "One_Arm_Pronated_Dumbbell_Triceps_Extension",
-            "Otis-Up"
+            "Otis-Up",
+            "One-Arm_Long_Bar_Row",
+            "One-Arm_Side_Laterals",
+            "Pallof_Press",
+            "Physioball_Hip_Bridge",
+            "Platform_Hamstring_Slides",
+            "Power_Partials"
         ]
         for id in illustrated {
             XCTAssertNotNil(ExerciseLibrary.shared.lookup(id: id), "\(id) is not in the library")
