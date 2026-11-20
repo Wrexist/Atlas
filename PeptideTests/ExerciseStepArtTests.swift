@@ -161,7 +161,13 @@ final class ExerciseStepArtTests: XCTestCase {
             "Leg_Lift",
             "Leverage_Incline_Chest_Press",
             "Low_Cable_Triceps_Extension",
-            "Low_Pulley_Row_To_Neck"
+            "Low_Pulley_Row_To_Neck",
+            "Monster_Walk",
+            "Oblique_Crunches",
+            "One-Arm_High-Pulley_Cable_Side_Bends",
+            "One-Arm_Incline_Lateral_Raise",
+            "One_Arm_Dumbbell_Preacher_Curl",
+            "One_Arm_Supinated_Dumbbell_Triceps_Extension"
         ]
         for id in illustrated {
             XCTAssertNotNil(ExerciseLibrary.shared.lookup(id: id), "\(id) is not in the library")
