@@ -133,18 +133,11 @@ struct BioAgeHeroSection: View {
     /// Locked → building → unlocked cross-fade rather than swap.
     private static var stateTransition: AnyTransition { .opacity.combined(with: .scale(scale: 0.96)) }
 
-    /// Where the number will be: the signal it is read from and one line
-    /// naming what unlocks it, in the compact empty-state voice. The Pro
-    /// card below carries the action, so this stays text, not a button.
+    /// Where the number will be: only the signal it is read from. The Pro
+    /// card right below names the unlock, so saying it here too stacked
+    /// two upsells on one screen.
     private var lockedCentre: some View {
-        VStack(spacing: Spacing.sm) {
-            centreGlyph("waveform.path.ecg")
-            Text("Included with Atlas Pro")
-                .font(AppFont.scaled(13, weight: .medium, in: centreTypeSize))
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: Self.centreTextWidth)
+        centreGlyph("waveform.path.ecg")
     }
 
     /// The one glyph size every non-numeric centre uses, so locked, needs
