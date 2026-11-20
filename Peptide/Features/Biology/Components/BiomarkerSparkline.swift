@@ -16,6 +16,10 @@ struct BiomarkerSparkline: View {
     let tint: Color
     var height: CGFloat = 24
 
+    /// How much of the line is drawn. Runs 0 → 1 once on appear so the
+    /// trend traces in left to right; under Reduce Motion it is simply set.
+    @State private var drawn: CGFloat = 0
+
     /// The line is ink and the colour is kept for the latest reading
     /// only: a tinted line plus a tinted fill is two washes of colour
     /// competing with the number above it.
@@ -36,6 +40,7 @@ struct BiomarkerSparkline: View {
                 }
 
                 strokePath(points: normalized)
+                    .trim(from: 0, to: drawn)
                     .stroke(
                         lineColor,
                         style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
@@ -50,10 +55,15 @@ struct BiomarkerSparkline: View {
                         .frame(width: 10, height: 10)
                         .overlay { Circle().fill(tint).frame(width: 5, height: 5) }
                         .position(x: last.x, y: last.y)
+                        .opacity(drawn)
                 }
             }
         }
         .frame(height: height)
+        .onAppear {
+            guard drawn == 0 else { return }
+            AppAnimation.with(AppAnimation.draw) { drawn = 1 }
+        }
         .accessibilityHidden(true)  // value + trend are on the row's text
     }
 
