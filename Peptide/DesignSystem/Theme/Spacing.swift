@@ -13,7 +13,17 @@ enum Spacing {
     static let xxxxl: CGFloat = 40
 
     static let cardPadding: CGFloat = 16
-    static let screenPadding: CGFloat = 20
+    /// The side gutter of every screen. It matches the leading inset UIKit
+    /// gives the navigation bar's large title and toolbar buttons on a
+    /// standard iPhone, so a tab's title, its trailing toolbar button and
+    /// the cards below all share one left and one right edge. At 20pt the
+    /// cards sat 4pt inside the title on every tab root.
+    static let screenPadding: CGFloat = 16
+
+    /// The gap between chips, across a row and between wrapped rows alike.
+    /// `GlassChip`'s 44pt target overhangs its capsule rather than adding
+    /// to its layout, so this is the gap the eye sees in both directions.
+    static let chipSpacing: CGFloat = 8
 
     // MARK: - Corner radii
     //

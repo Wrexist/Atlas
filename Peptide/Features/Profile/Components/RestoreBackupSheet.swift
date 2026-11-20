@@ -430,7 +430,7 @@ private struct SafetyCopyRow: View {
                 Image(systemName: "clock.arrow.circlepath")
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(info.createdAt, format: .dateTime.day().month(.abbreviated).year().hour().minute())
                         .font(AppFont.subheadline.weight(.semibold))
                         .foregroundStyle(AppColor.textPrimary)
@@ -474,7 +474,7 @@ private struct StrategyCard: View {
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(style == .destructive ? AppColor.destructive : AppColor.accentLight)
                     .frame(width: 32)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)

@@ -90,7 +90,7 @@ struct AccountSection: View {
                     .foregroundStyle(state == .active ? AppColor.accentLight : AppColor.textTertiary)
                     .frame(width: settingsIconColumnWidth)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("iCloud Sync")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)

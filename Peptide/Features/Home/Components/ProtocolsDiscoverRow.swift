@@ -18,7 +18,7 @@ struct ProtocolsDiscoverRow: View {
             HStack(spacing: Spacing.md) {
                 IconTile("list.clipboard.fill", size: 32, silhouette: .circle)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Protocols")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
@@ -37,7 +37,7 @@ struct ProtocolsDiscoverRow: View {
             .glassSurface(cornerRadius: Spacing.cardCornerRadius)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Protocols. Track compounds, doses, and cycles.")
         .accessibilityHint("Opens the protocol library")

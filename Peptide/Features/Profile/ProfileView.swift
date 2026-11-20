@@ -117,15 +117,17 @@ struct ProfileView: View {
                 .padding(.bottom, Spacing.xxxxl)
                 .readableContentWidth()
             }
-            .background(AppColor.background)
+            .pageBackground()
             .navigationTitle("Profile")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
                         SettingsView()
                     } label: {
+                        // Ink, like every other bar glyph; the accent is
+                        // kept for the one confirming action.
                         Image(systemName: "gearshape")
-                            .foregroundStyle(AppColor.accentPrimary)
+                            .foregroundStyle(AppColor.textPrimary)
                     }
                     .accessibilityLabel("Settings")
                 }
@@ -155,6 +157,7 @@ struct ProfileView: View {
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()
                     .environment(dataStore)
+                    .liquidGlassPresentation()
             }
         }
         .presentationSizing(.page)

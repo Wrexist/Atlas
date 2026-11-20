@@ -1,5 +1,10 @@
 import SwiftUI
 
+/// The app's card: content on the raised surface at the standard padding.
+/// A card that opens something is a `Button` whose label is the card, with
+/// `.buttonStyle(.cardPress)` so it dips under the finger like every other
+/// tappable surface; a card that appears in place of an empty state or a
+/// placeholder uses `.transition(.contentAppear)`.
 struct GlassCard<Content: View>: View {
     var cornerRadius: CGFloat
     var tinted: Bool

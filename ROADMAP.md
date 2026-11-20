@@ -1,5 +1,12 @@
 # Atlas Roadmap
 
+> **Status 2026-11-20:** this file is a historical record. Almost every
+> phase below has shipped, and since 2026-11-14 Atlas is distributed only
+> to the owner's TestFlight, so the App Store, monetization and growth
+> sections no longer drive work. The live to-do list is kept outside the
+> repo (project notes, `allt-kvar.md`); `HANDOFF.md` has the in-flight
+> state.
+
 ## Current State
 
 Atlas is a native iOS SwiftUI health & fitness app — workout

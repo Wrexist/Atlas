@@ -94,7 +94,7 @@ struct TravelModePromptSheet: View {
                         Image(systemName: "arrow.down")
                             .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.textTertiary)
-                            .padding(.leading, 6)
+                            .padding(.leading, Spacing.xs)
                     }
                     row(
                         eyebrow: String(localized: "To"),
@@ -104,7 +104,7 @@ struct TravelModePromptSheet: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Divider().overlay(AppColor.glassBorder)
-                HStack(spacing: 4) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: "clock.arrow.2.circlepath")
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.accentLight)
@@ -187,7 +187,7 @@ struct TravelModePromptSheet: View {
             Image(systemName: "info.circle")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
-                .padding(.top, 1)
+                .padding(.top, Spacing.xxs)
             Text("Shifting moves every active protocol's reminder times immediately.")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)

@@ -68,7 +68,7 @@ struct EditTodaySheet: View {
             }
             .frame(width: 32, height: 32)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(section.displayName)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)

@@ -367,3 +367,26 @@ jobs:
           MATCH_GIT_URL:  ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
         run: bundle exec fastlane ios beta
+
+      # Crash reports reach Sentry as raw addresses (MetricKit, no SDK).
+      # Uploading the build's dSYMs lets Sentry turn them into function
+      # names. Optional: without SENTRY_AUTH_TOKEN the step only notes it,
+      # and a Sentry outage never fails a build that already uploaded.
+      - name: Upload dSYMs to Sentry
+        continue-on-error: true
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: isac-molin
+          SENTRY_PROJECT: apple-ios
+          SENTRY_URL: https://de.sentry.io/
+        run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "::notice::SENTRY_AUTH_TOKEN not set; crash reports stay unsymbolicated."
+            exit 0
+          fi
+          DSYM_ZIP=build/Peptide.app.dSYM.zip
+          if [ ! -f "$DSYM_ZIP" ]; then
+            echo "::warning::$DSYM_ZIP not found; nothing to upload."
+            exit 0
+          fi
+          npx --yes @sentry/cli@2.39.1 debug-files upload "$DSYM_ZIP"

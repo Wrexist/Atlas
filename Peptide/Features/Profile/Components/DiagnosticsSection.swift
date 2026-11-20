@@ -24,7 +24,7 @@ struct DiagnosticsSection: View {
                     showDetail = true
                 } label: {
                     HStack {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
                             Text("MetricKit reports")
                                 .font(AppFont.subheadline)
                                 .foregroundStyle(AppColor.textPrimary)

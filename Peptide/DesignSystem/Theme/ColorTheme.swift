@@ -94,6 +94,20 @@ enum AppColor {
     static let plateGrey = Color(light: 0x7D848E, dark: 0x8A919B)
 
     // MARK: - Brand accents
+    //
+    // The one accent, in one hue per theme. What it may paint:
+    // - selection and focus (a chosen chip, a link, a toggle's on state);
+    // - progress toward a goal (`MetricRing`, `GlassProgressBar`) and a
+    //   finished state (`success`, a done checkmark);
+    // - the single current or highlighted point of a chart.
+    // What it may not: a history series. Bars, lines and sparklines over
+    // past days are ink (`textPrimary`, or `textSecondary` for context) so
+    // the accent on today's point still stands out, and two series on one
+    // chart take two domain colours, never two steps of the accent ramp,
+    // which share a hue and can't be told apart. Green that means "done"
+    // is `success`, not `positive`: `positive` is a direction (a trend that
+    // improved, a lab value in range), and as a second green beside the
+    // accent it reads as a stray theme colour.
 
     static var accentPrimary: Color { ThemeManager.shared.theme.primary }
     static var accentLight: Color { ThemeManager.shared.theme.light }

@@ -46,7 +46,7 @@ struct ScreenshotModeRow: View {
                         .accessibilityHidden(true)
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     HStack(spacing: Spacing.xs) {
                         Text("Screenshot mode")
                             .font(AppFont.subheadline)
