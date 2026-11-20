@@ -114,7 +114,7 @@ struct RecipeLibraryView: View {
 
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.chipSpacing) {
                 ForEach(RecipeFilter.allCases) { option in
                     GlassChip(option.title, icon: option.icon, isSelected: filter == option) {
                         AppAnimation.with(AppAnimation.springSnappy) { filter = option }

@@ -14,7 +14,7 @@ struct MuscleGroupChipRow: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: Spacing.chipSpacing) {
                     GlassChip(
                         "All",
                         style: .prominent,
