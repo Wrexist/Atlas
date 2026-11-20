@@ -239,14 +239,13 @@ struct TrainOverviewView: View {
         sessionService.startWorkout(routine: built.routine, linksRoutine: built.linksRoutine)
     }
 
-    /// Two quiet starts split the row under the painted one; a lone
-    /// "Empty workout" sits centred at its own width, so it never reads as
-    /// a second full-width primary stacked under the first.
+    /// Quiet starts under the painted one, at its full width so the stack
+    /// shares both edges; the secondary fill keeps one primary.
     @ViewBuilder
     private func otherStarts(showsPlan: Bool) -> some View {
         // A ringed outline: a bare triangle carried less ink than the
         // wand and stars on "Plan a workout" beside it.
-        GlassButton(title: "Empty workout", icon: "play.circle", style: .secondary, isFullWidth: showsPlan) {
+        GlassButton(title: "Empty workout", icon: "play.circle", style: .secondary, isFullWidth: true) {
             Haptics.impact(.medium)
             sessionService.startWorkout()
         }
