@@ -144,7 +144,7 @@ struct PeptideSelector: View {
 
     private var categoryFilters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.chipSpacing) {
                 GlassChip(
                     "All",
                     icon: "square.grid.2x2",

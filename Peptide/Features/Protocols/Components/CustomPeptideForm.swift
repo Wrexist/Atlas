@@ -88,7 +88,7 @@ struct CustomPeptideForm: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Spacing.xs) {
+                    HStack(spacing: Spacing.chipSpacing) {
                         ForEach(PeptideCategory.allCases) { option in
                             GlassChip(
                                 option.localizedTitle,
