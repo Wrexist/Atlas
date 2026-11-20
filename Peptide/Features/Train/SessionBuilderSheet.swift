@@ -48,10 +48,17 @@ struct SessionBuilderSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                if let routine {
-                    preview(routine)
-                } else {
-                    picker
+                // Overlapping, not stacked, while one page hands over to
+                // the other: the built workout slides in from the trailing
+                // edge and Back brings the picker in from the leading one.
+                ZStack(alignment: .top) {
+                    if let routine {
+                        preview(routine)
+                            .transition(.sectionSwap(forward: true))
+                    } else {
+                        picker
+                            .transition(.sectionSwap(forward: false))
+                    }
                 }
             }
             .background(AppColor.background.ignoresSafeArea())
@@ -219,21 +226,37 @@ struct SessionBuilderSheet: View {
 
     private func preview(_ routine: Routine) -> some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("\(routine.exercises.count) exercises · \(RoutineSeedEngine.totalSets(in: routine)) sets · ~\(RoutineSeedEngine.estimatedMinutes(for: routine)) min")
-                .font(AppFont.scaled(13))
-                .foregroundStyle(AppColor.textSecondary)
+            // "0 exercises · 0 sets · ~0 min" over the empty state said
+            // nothing the empty state doesn't.
+            if !routine.exercises.isEmpty {
+                Text("\(routine.exercises.count) exercises · \(RoutineSeedEngine.totalSets(in: routine)) sets · ~\(RoutineSeedEngine.estimatedMinutes(for: routine)) min")
+                    .font(AppFont.scaled(13))
+                    .foregroundStyle(AppColor.textSecondary)
+            }
             if isDeload {
                 Text("Deload week: lighter on purpose so you come back stronger.")
                     .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.textSecondary)
             }
-            GlassCard {
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    ForEach(routine.exercises) { slot in
-                        slotRow(slot)
-                    }
+            if routine.exercises.isEmpty {
+                // In the card the list would fill, so the page keeps its shape.
+                GlassCard {
+                    EmptyStateView(
+                        icon: "dumbbell",
+                        title: "No exercises with this equipment",
+                        message: "Pick another muscle, or add equipment in Profile.",
+                        style: .compact
+                    )
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                GlassCard {
+                    VStack(alignment: .leading, spacing: Spacing.md) {
+                        ForEach(routine.exercises) { slot in
+                            slotRow(slot)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
@@ -315,15 +338,10 @@ struct SessionBuilderSheet: View {
     private var footer: some View {
         Group {
             if let routine {
-                if routine.exercises.isEmpty {
-                    Text("No exercises fit your equipment for this. Pick another muscle, or add equipment in Profile.")
-                        .font(AppFont.scaled(13))
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                } else {
-                    PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
-                }
+                // Disabled rather than swapped for a caption, so the footer
+                // keeps its height and the empty state above says why.
+                PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
+                    .disabled(routine.exercises.isEmpty)
             } else {
                 // The same button as "Start workout", which takes this slot
                 // once the workout is built. Until a muscle is picked it

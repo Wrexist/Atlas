@@ -53748,6 +53748,16 @@
           }
         }
       }
+    },
+    "Pick another muscle, or add equipment in Profile.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en annan muskel eller lägg till utrustning i Profil."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
