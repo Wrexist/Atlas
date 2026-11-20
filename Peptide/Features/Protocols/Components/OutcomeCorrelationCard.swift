@@ -47,7 +47,7 @@ struct OutcomeCorrelationCard: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(dimension.tint)
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Pattern detected")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.6)
@@ -136,7 +136,7 @@ struct OutcomeCorrelationCard: View {
     }
 
     private var footnote: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Spacing.xs) {
             Image(systemName: "info.circle")
                 .font(AppFont.scaled(11))
             Text("Based on \(sampleSize) check-ins. Correlations aren't causation — but they're a useful nudge.")

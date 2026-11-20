@@ -90,7 +90,7 @@ struct ProtocolNotesTimeline: View {
 
     private var header: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Notes")
                     .font(AppFont.eyebrow)
                     .tracking(0.6)
@@ -177,7 +177,7 @@ struct ProtocolNotesTimeline: View {
                         .frame(width: 8, height: 8)
                         .padding(.top, 7)
                 }
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(note.body)
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)

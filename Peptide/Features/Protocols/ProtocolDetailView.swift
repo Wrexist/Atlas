@@ -495,7 +495,7 @@ struct ProtocolDetailView: View {
     }
 
     private func cadenceSummary(_ schedule: ProtocolSchedule, isCustom: Bool, alignment: HorizontalAlignment) -> some View {
-        VStack(alignment: alignment, spacing: 2) {
+        VStack(alignment: alignment, spacing: Spacing.xxs) {
             Text(schedule.compactDaysDescription)
                 .font(AppFont.caption2)
                 .fontWeight(.semibold)
