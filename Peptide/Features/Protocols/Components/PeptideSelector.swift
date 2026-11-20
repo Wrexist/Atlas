@@ -175,7 +175,6 @@ struct PeptideSelector: View {
                     GlassChip(
                         category.localizedTitle,
                         icon: category.iconName,
-                        tint: category.color,
                         isSelected: selectedCategory == category
                     ) {
                         AppAnimation.with(AppAnimation.springSnappy) {

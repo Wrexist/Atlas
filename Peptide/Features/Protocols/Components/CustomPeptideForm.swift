@@ -93,7 +93,6 @@ struct CustomPeptideForm: View {
                             GlassChip(
                                 option.localizedTitle,
                                 icon: option.iconName,
-                                tint: option.color,
                                 isSelected: category == option
                             ) {
                                 category = option
