@@ -859,7 +859,14 @@ struct TabAccessoryView: View {
                 NextDoseAccessoryView(showsChevron: acts)
             }
         }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        // The accessory's own glass already gives press feedback; a
+        // scaling, tilting label inside it slid past the capsule's ends.
+        .buttonStyle(.plain)
+        .contentShape(Capsule())
+        // Bottom chrome is ink like the tab bar. The accessory sits
+        // outside the tab view's ink tint, so without this it took the
+        // app's accent and the glass glowed mint at both ends.
+        .tint(AppColor.textPrimary)
         .allowsHitTesting(acts)
         .accessibilityRemoveTraits(acts ? [] : .isButton)
         .accessibilityHint(acts ? hint(for: destination) : Text(verbatim: ""))

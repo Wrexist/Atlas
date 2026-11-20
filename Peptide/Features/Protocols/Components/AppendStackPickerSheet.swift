@@ -76,7 +76,7 @@ struct AppendStackPickerSheet: View {
 
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "chevron.right")
                         .font(isSelected ? AppFont.scaled(16) : AppFont.scaled(11, weight: .semibold))
-                        .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textTertiary)
+                        .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
                         .contentTransition(.symbolEffect(.replace))
                         .accessibilityHidden(true)
                 }

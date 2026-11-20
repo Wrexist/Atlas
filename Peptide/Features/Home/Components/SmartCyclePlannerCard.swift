@@ -54,7 +54,7 @@ struct SmartCyclePlannerCard: View {
             IconTile(glyph(for: suggestion.kind), size: 28, silhouette: .circle)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(suggestion.title)
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)

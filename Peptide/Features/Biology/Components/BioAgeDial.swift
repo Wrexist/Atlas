@@ -27,7 +27,6 @@ struct BioAgeDial: View {
     var rangeHalfSpan: Int = Int(PerformanceAgeEngine.maxDriftYears)
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The pulse clock stops while the dial is scrolled out of view.
     @State private var isOnScreen = true
 
@@ -175,25 +174,16 @@ struct BioAgeDial: View {
 
     /// A tick at the user's actual age — the dial's centre — so the marker
     /// reads as younger or older against something on the scale itself.
+    /// Uncaptioned: a label here stacked a second caption under the hero's
+    /// eyebrow, and the line under the dial already names the age.
     private var chronologicalTick: some View {
-        ZStack {
-            Capsule()
-                .fill(AppColor.textSecondary)
-                .frame(width: 1.5, height: 12)
-                .offset(y: -(size / 2))
-            Text("Your age")
-                .font(AppFont.scaled(11, weight: .semibold, relativeTo: .caption1, in: captionTypeSize))
-                .foregroundStyle(AppColor.textTertiary)
-                .fixedSize()
-                .offset(y: -(size / 2) + 18)
-        }
-        .rotationEffect(.degrees(angle(for: Double(chronologicalAge))))
-        .accessibilityHidden(true)
+        Capsule()
+            .fill(AppColor.textSecondary)
+            .frame(width: 1.5, height: 12)
+            .offset(y: -(size / 2))
+            .rotationEffect(.degrees(angle(for: Double(chronologicalAge))))
+            .accessibilityHidden(true)
     }
-
-    /// The caption sits between the tick and the dial's centre, a fixed
-    /// band; past this size it grew up through the tick and the arc.
-    private var captionTypeSize: DynamicTypeSize { min(dynamicTypeSize, .xxLarge) }
 
     // MARK: - Bound labels
 

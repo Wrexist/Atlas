@@ -46,7 +46,7 @@ struct AtlasScoreCard: View {
             }
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: momentum.tier.symbol)
                         .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(tint)
@@ -72,15 +72,8 @@ struct AtlasScoreCard: View {
                     .foregroundStyle(AppColor.textTertiary)
             }
         }
-        .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(tint.opacity(0.25), lineWidth: 0.5)
-        )
+        .padding(Spacing.cardPadding)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(String(
             localized: "Atlas Score: level \(momentum.level), \(momentum.tier.name) tier, \(momentum.score) points. \(momentum.pointsToNextLevel) to the next level."

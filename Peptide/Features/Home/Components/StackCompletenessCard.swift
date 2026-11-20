@@ -38,7 +38,7 @@ struct StackCompletenessCard: View {
                             Image(systemName: "lightbulb.fill")
                                 .font(AppFont.scaled(8))
                                 .foregroundStyle(AppColor.accentLight)
-                                .padding(.top, 2)
+                                .padding(.top, Spacing.xxs)
 
                             Text(suggestion)
                                 .font(AppFont.caption2)

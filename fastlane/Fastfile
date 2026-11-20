@@ -152,6 +152,8 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       clean:         true,
+      # A fixed folder so the workflow's Sentry step finds the dSYM zip.
+      output_directory: "build",
       xcargs:        version_xcargs.join(" ")
     )
 

@@ -41,7 +41,7 @@ struct AtlasProgressView: View {
                 .padding(.vertical, Spacing.lg)
                 .readableContentWidth()
             }
-            .background(AppColor.background)
+            .pageBackground()
             .navigationTitle("Your progress")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -292,7 +292,7 @@ private extension View {
     func cardChrome() -> some View {
         self
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(Spacing.md)
+            .padding(Spacing.cardPadding)
             .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 }

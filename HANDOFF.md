@@ -1,5 +1,12 @@
 # Atlas — handoff
 
+**Distribution (decision 2026-11-14):** Atlas ships only to the owner's
+own TestFlight. Nothing goes to the App Store, so App Store Connect work
+(privacy labels, IAP setup, offer codes, screenshots, store copy,
+referrals) is out of scope. `APP_STORE_METADATA.md` and its CI gate stay
+in place in case that changes. The release checklist is
+`docs/UPDATE_RELEASE_READINESS.md`.
+
 ## Current in-flight state
 
 ### Drink water on meal entries (branch `claude/audit3-meals-diary`)
@@ -27,19 +34,13 @@ Settings → "Share crash reports" turns it off.
 Manual steps before this ships:
 - ~~Vercel: set `SENTRY_DSN` on the proxy project.~~ Done — `SENTRY_DSN`
   is set in Vercel, so the route forwards reports instead of answering 204.
-- App Store Connect → App Privacy: add Diagnostics → **Crash Data** and
-  **Performance Data**, each not linked to identity, not used for
-  tracking, purpose App Functionality. `PrivacyInfo.xcprivacy` and
-  `docs/privacy.html` already say so; the label must match before the
-  next submission.
-- Privacy screenshot slot: `PrivacySummaryView` gained a "Crash reports
-  are anonymous." row; re-render that slot if it is in the deck.
+- App Store Connect → App Privacy (Crash Data, Performance Data) only
+  matters for an App Store submission, which is out of scope.
 
-Sentry symbolication needs the build's dSYMs uploaded to the project
-(e.g. `sentry-cli debug-files upload` in the TestFlight lane); without
-them events show addresses and binary names only. **Deferred by the
-owner's choice** — not a release blocker; revisit if unsymbolicated
-reports get in the way.
+Sentry symbolication: the TestFlight workflow's last step uploads the
+build's dSYMs with `sentry-cli` (org `isac-molin`, project `apple-ios`,
+EU region) once the `SENTRY_AUTH_TOKEN` repository secret exists. Without
+the secret the step only prints a notice and reports stay as addresses.
 
 ### Design-system audit (branch `claude/audit-design-system`)
 
@@ -163,11 +164,8 @@ calculator on an iPhone SE and a Pro Max, plus Dynamic Type and VoiceOver.
   to 20 000 units when unset) and that Upstash Redis is configured.
 - GitHub secrets: `APP_ATTEST_ENDPOINT`, `APP_ATTEST_SECRET`; then ship,
   watch for `app-attest ok` in logs, and set `APP_ATTEST_MODE=enforce`.
-- App Store Connect: one-week intro offer on both subscriptions; rank Annual
-  above Monthly in the group; decide on Family Sharing; create win-back
-  offers; review screenshot slot 8 (the privacy screen now shows an AI
-  card). Creator codes were removed from the app: deactivate any creator
-  offer codes or promotional offers set up for them.
+- App Store Connect items from this audit (intro offers, win-back,
+  screenshots, creator codes) are out of scope: TestFlight only.
 
 ## Before merging branch work
 

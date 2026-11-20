@@ -26,7 +26,7 @@ jobs:
     outputs:
       shards: ${{ steps.plan.outputs.shards }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: plan
         working-directory: tools/exercise-anim
         env:
@@ -60,13 +60,13 @@ jobs:
       ATLAS_SAMPLES: 64
       ATLAS_RES: 720x900
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install system packages
         run: |
           sudo apt-get update -q
           sudo apt-get install -yq ffmpeg libxi6 libxkbcommon0 libsm6 libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3
           python3 -m pip install --break-system-packages -q numpy scipy pillow
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/blender
           key: blender-${{ env.BLENDER_VERSION }}
@@ -96,7 +96,7 @@ jobs:
             echo "::endgroup::"
           done
           ls -la "$RUNNER_TEMP/videos"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: clips-${{ matrix.shard.id }}
           path: ${{ runner.temp }}/videos
@@ -112,7 +112,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: clips
           pattern: clips-*

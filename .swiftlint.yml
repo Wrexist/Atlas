@@ -35,8 +35,8 @@ force_cast:
 
 # empty_count is opt-in and defaults to warning in SwiftLint, but recent
 # runner versions have promoted it to error severity. Pin it back to
-# warning so a single legacy `count > 0` doesn't gate every PR while we
-# work through the broader cleanup pass tracked in the lint TODO.
+# warning: every remaining hit is an `Int` field named `count` (workout
+# summaries, recap weeks), not a collection, so `isEmpty` doesn't apply.
 empty_count:
   severity: warning
 

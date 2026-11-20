@@ -79,7 +79,7 @@ struct PeptideSelector: View {
                         Text("Show all (\(filtered.count))")
                             .font(AppFont.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.accentPrimary)
                             .frame(maxWidth: .infinity)
                             .minimumHitArea()
                     }
@@ -144,7 +144,7 @@ struct PeptideSelector: View {
 
     private var categoryFilters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.chipSpacing) {
                 GlassChip(
                     "All",
                     icon: "square.grid.2x2",
@@ -175,7 +175,6 @@ struct PeptideSelector: View {
                     GlassChip(
                         category.localizedTitle,
                         icon: category.iconName,
-                        tint: category.color,
                         isSelected: selectedCategory == category
                     ) {
                         AppAnimation.with(AppAnimation.springSnappy) {

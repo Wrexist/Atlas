@@ -38,7 +38,7 @@ struct CoachingCard: View {
         HStack(alignment: .top, spacing: Spacing.md) {
             iconBadge
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 if showsEyebrow {
                     Text(message.eyebrow)
                         .font(AppFont.scaled(11, weight: .semibold))

@@ -184,7 +184,7 @@ struct StackAdjustmentSheet: View {
                 .font(AppFont.scaled(16))
                 .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(proto.name)
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
@@ -244,7 +244,7 @@ struct StackAdjustmentSheet: View {
                     .foregroundStyle(color)
             }
             .frame(width: 22, height: 22)
-            .padding(.top, 2)
+            .padding(.top, Spacing.xxs)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("\(label) (\(peptides.count))")
@@ -262,7 +262,7 @@ struct StackAdjustmentSheet: View {
     }
 
     private func diffChip(peptide: Peptide, color: Color, removed: Bool) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Spacing.xs) {
             Text(peptide.abbreviation)
                 .font(AppFont.caption2)
                 .fontWeight(.semibold)
@@ -275,7 +275,7 @@ struct StackAdjustmentSheet: View {
         }
         .foregroundStyle(color)
         .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, 5)
+        .padding(.vertical, Spacing.xs)
         .background {
             Capsule()
                 .fill(color.opacity(0.14))
@@ -346,7 +346,7 @@ struct StackAdjustmentSheet: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: isIncluded ? "checkmark" : "xmark")
                     .font(AppFont.scaled(8, weight: .bold))
                     .accessibilityHidden(true)
@@ -357,7 +357,7 @@ struct StackAdjustmentSheet: View {
             }
             .foregroundStyle(color)
             .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 5)
+            .padding(.vertical, Spacing.xs)
             .background {
                 Capsule()
                     .fill(color.opacity(isIncluded ? 0.14 : 0.10))
@@ -385,7 +385,7 @@ struct StackAdjustmentSheet: View {
         return VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
                 IconTile(relocation.peptide.imageSystemName, size: 26)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(relocation.peptide.abbreviation)
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
@@ -415,7 +415,7 @@ struct StackAdjustmentSheet: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: Spacing.xs) {
                         Image(systemName: optionIcon(current))
                             .font(AppFont.scaled(11, weight: .semibold))
                         Text(current.label)
@@ -427,7 +427,7 @@ struct StackAdjustmentSheet: View {
                     }
                     .foregroundStyle(AppColor.accentPrimary)
                     .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, Spacing.xs)
                     .background {
                         Capsule()
                             .fill(AppColor.accentPrimary.opacity(0.12))

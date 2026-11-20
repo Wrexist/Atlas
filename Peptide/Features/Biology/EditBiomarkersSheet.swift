@@ -112,7 +112,7 @@ struct EditBiomarkersSheet: View {
                     .fill(AppColor.surfaceElevated)
                 Image(systemName: biomarker.icon)
                     .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentPrimary)
             }
             .frame(width: 32, height: 32)
 

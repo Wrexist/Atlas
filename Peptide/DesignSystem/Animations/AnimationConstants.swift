@@ -195,6 +195,34 @@ extension AnyTransition {
     }
 }
 
+// MARK: - Content appear
+
+/// Content arriving in place of a placeholder or an empty state, or a row
+/// joining a list: it fades up a few points into place and simply fades on
+/// the way out. Drive the change with `AppAnimation.settle` through
+/// `AppAnimation.with` or `.appAnimation`, so under Reduce Motion it swaps
+/// without moving.
+extension AnyTransition {
+    static var contentAppear: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.combined(with: .offset(y: 8)),
+            removal: .opacity
+        )
+    }
+}
+
+// MARK: - Changing numbers
+
+extension View {
+    /// A number that rolls digit by digit to its new value whenever `value`
+    /// changes, even when the state behind it changed outside an
+    /// animation. Under Reduce Motion it updates in place.
+    func rollingNumber<Value: Equatable>(_ value: Value) -> some View {
+        contentTransition(.numericText())
+            .appAnimation(AppAnimation.springSnappy, value: value)
+    }
+}
+
 private struct SectionSwapModifier: ViewModifier {
     static let travel: CGFloat = 24
 
