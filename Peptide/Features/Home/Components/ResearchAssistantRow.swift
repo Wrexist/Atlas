@@ -17,7 +17,7 @@ struct ResearchAssistantRow: View {
             HStack(spacing: Spacing.md) {
                 IconTile("sparkles", size: 32, silhouette: .circle)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Ask Atlas")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
@@ -36,7 +36,7 @@ struct ResearchAssistantRow: View {
             .glassSurface(cornerRadius: Spacing.cardCornerRadius)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Ask Atlas. Ask about a compound or a study and get answers with citations.")
         .accessibilityHint(isLocked ? "Opens Atlas Pro" : "Opens Ask Atlas")

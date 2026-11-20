@@ -32,7 +32,7 @@ struct ReconstitutionSheet: View {
     }
 
     private var intro: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Calculator")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .tracking(0.6)

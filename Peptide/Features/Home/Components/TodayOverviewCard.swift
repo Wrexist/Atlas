@@ -180,7 +180,7 @@ struct TodayOverviewCard: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(insight.title)
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)

@@ -21,7 +21,7 @@ struct HabitCompletionChip: View {
         Button {
             withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { onTap() }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.xs) {
                 marker
                     .completionPulse(trigger: completionTrigger, isActive: isCompleted)
                 Text(habit.name)
@@ -36,7 +36,7 @@ struct HabitCompletionChip: View {
                         .contentTransition(.numericText())
                 }
                 if currentStreak >= 3 {
-                    HStack(spacing: 2) {
+                    HStack(spacing: Spacing.xxs) {
                         Image(systemName: "flame.fill")
                             .font(AppFont.scaled(8))
                         Text("\(currentStreak)")
@@ -46,7 +46,7 @@ struct HabitCompletionChip: View {
                 }
             }
             .padding(.horizontal, Spacing.md)
-            .padding(.vertical, 8)
+            .padding(.vertical, Spacing.sm)
             .background(
                 Capsule().fill(isCompleted ? habit.tint.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.7))
             )

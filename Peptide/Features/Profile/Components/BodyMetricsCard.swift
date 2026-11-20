@@ -77,7 +77,7 @@ struct BodyMetricsCard: View {
     }
 
     private func metricStat(label: LocalizedStringKey, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(value)
                 .font(AppFont.title3)
                 .fontWeight(.semibold)

@@ -156,7 +156,7 @@ struct GoalCountdownCard: View {
                     .font(AppFont.scaled(20, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Goal reached!")
                     .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)

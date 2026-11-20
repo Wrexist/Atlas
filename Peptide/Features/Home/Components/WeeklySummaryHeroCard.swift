@@ -70,7 +70,7 @@ struct WeeklySummaryHeroCard: View {
                 eyebrowRow()
                 heroRow(title: String(localized: "Reading your week…"), aiBadge: false)
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
                     // Widths trail off like a paragraph without
                     // overflowing a narrow card.
                     SkeletonBlock()
@@ -216,7 +216,7 @@ struct WeeklySummaryHeroCard: View {
                 // displays — users didn't see the offline marker
                 // (audit Biology L19). Foreground on a filled capsule
                 // with an icon makes it unmissable without screaming.
-                HStack(spacing: 3) {
+                HStack(spacing: Spacing.xxs) {
                     Image(systemName: onDevice ? "iphone" : "wifi.slash")
                         .font(AppFont.scaled(8, weight: .semibold))
                     Text(badge)
@@ -224,8 +224,8 @@ struct WeeklySummaryHeroCard: View {
                         .tracking(0.8)
                         .textCase(.uppercase)
                 }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, Spacing.xxs)
                 .foregroundStyle(AppColor.textPrimary)
                 .background {
                     Capsule()
@@ -250,14 +250,14 @@ struct WeeklySummaryHeroCard: View {
                     .foregroundStyle(AppColor.onAccent)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
                     .font(AppFont.scaled(AppFont.Scale.title, weight: .semibold, relativeTo: .title3))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
                 if aiBadge {
-                    HStack(spacing: 4) {
+                    HStack(spacing: Spacing.xs) {
                         Image(systemName: "sparkles")
                             .font(AppFont.scaled(8, weight: .semibold))
                         Text("Personalized by AI")

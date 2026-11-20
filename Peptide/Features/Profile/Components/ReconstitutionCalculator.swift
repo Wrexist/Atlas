@@ -195,7 +195,7 @@ struct ReconstitutionCalculator: View {
     }
 
     private var resultHeadline: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: Spacing.xs) {
             // Declarative equivalence, not an imperative "draw to" —
             // the tool states what the user's inputs convert to, it
             // does not instruct administration.
@@ -204,7 +204,7 @@ struct ReconstitutionCalculator: View {
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.accentLight.opacity(0.85))
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                 Text(unitsHeadline)
                     .font(AppFont.scaled(44, weight: .light, relativeTo: .largeTitle))
                     .monospacedDigit()
@@ -221,7 +221,7 @@ struct ReconstitutionCalculator: View {
                 Label("More than one full 100-unit syringe", systemImage: "exclamationmark.triangle.fill")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.warning)
-                    .padding(.top, 2)
+                    .padding(.top, Spacing.xxs)
             }
         }
     }
@@ -246,7 +246,7 @@ struct ReconstitutionCalculator: View {
     }
 
     private func footnoteCell(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(label)
                 .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.5)
