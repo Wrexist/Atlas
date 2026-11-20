@@ -27,7 +27,7 @@ struct TodayTimelineCard: View {
                     }
                 }
                 .padding(.vertical, Spacing.sm)
-                .padding(.horizontal, Spacing.md)
+                .padding(.horizontal, Spacing.cardPadding)
                 .glassSurface(cornerRadius: Spacing.cardCornerRadius)
             }
         }

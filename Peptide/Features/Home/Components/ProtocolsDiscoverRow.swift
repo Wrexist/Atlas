@@ -37,7 +37,7 @@ struct ProtocolsDiscoverRow: View {
             .glassSurface(cornerRadius: Spacing.cardCornerRadius)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Protocols. Track compounds, doses, and cycles.")
         .accessibilityHint("Opens the protocol library")
