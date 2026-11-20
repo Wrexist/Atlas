@@ -395,7 +395,7 @@ struct PaywallView: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "checkmark.shield.fill")
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.positive)
+                .foregroundStyle(AppColor.success)
                 .accessibilityHidden(true)
             Text(isOneTimePurchaseSelected
                  ? "One payment. Your logs, workouts and photos stay yours."

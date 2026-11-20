@@ -96,7 +96,7 @@ struct SubscriptionSection: View {
         case .restored:
             Label("Purchases restored", systemImage: "checkmark.circle.fill")
                 .font(AppFont.subheadline.weight(.semibold))
-                .foregroundStyle(AppColor.positive)
+                .foregroundStyle(AppColor.success)
                 .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                 .transition(.opacity)
         }
