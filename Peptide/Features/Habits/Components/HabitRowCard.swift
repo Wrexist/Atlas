@@ -20,16 +20,11 @@ struct HabitRowCard: View {
 
     var body: some View {
         Button(action: onTap) {
+            // The app's one card recipe, so a habit row reads as the same
+            // paper as Today's habit card instead of a grey bordered tile.
             header
-                .padding(Spacing.md)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .stroke(AppColor.glassBorder, lineWidth: 0.5)
-                )
+                .padding(Spacing.cardPadding)
+                .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         // A sibling of the card's Button rather than nested in its label,
