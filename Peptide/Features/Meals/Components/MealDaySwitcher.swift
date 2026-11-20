@@ -41,6 +41,7 @@ struct MealDaySwitcher: View {
                         Text("Tap for today")
                             .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.accentLight)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -96,7 +97,7 @@ struct MealDaySwitcher: View {
                 .foregroundStyle(isDisabled ? AppColor.textTertiary : AppColor.accentLight)
                 .minimumHitArea()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.9))
         .disabled(isDisabled)
         .accessibilityLabel(label)
     }

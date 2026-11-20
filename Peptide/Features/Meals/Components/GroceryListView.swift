@@ -182,7 +182,7 @@ private struct GroceryRow: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
                     .font(AppFont.scaled(20, weight: .medium))
-                    .foregroundStyle(isChecked ? AppColor.positive : AppColor.textTertiary)
+                    .foregroundStyle(isChecked ? AppColor.success : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
                     .symbolEffect(.bounce, value: isChecked)
                 Text(item.name)

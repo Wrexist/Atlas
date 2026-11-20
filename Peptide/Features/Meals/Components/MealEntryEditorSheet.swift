@@ -91,7 +91,7 @@ struct MealEntryEditorSheet: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     summaryCard
-                    GlassCard(padding: Spacing.md) {
+                    GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text("Meal name").font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textSecondary)
@@ -188,7 +188,7 @@ struct MealEntryEditorSheet: View {
     }
 
     private var summaryCard: some View {
-        GlassCard(padding: Spacing.md) {
+        GlassCard {
             HStack(spacing: Spacing.md) {
                 Image(systemName: category.icon)
                     .font(AppFont.scaled(16, weight: .semibold))
@@ -205,7 +205,7 @@ struct MealEntryEditorSheet: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(2)
-                    HStack(spacing: 6) {
+                    HStack(spacing: Spacing.xs) {
                         Image(systemName: initial.source.icon)
                             .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
@@ -227,7 +227,7 @@ struct MealEntryEditorSheet: View {
     }
 
     private var macrosCard: some View {
-        GlassCard(tinted: true, padding: Spacing.md) {
+        GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Macros & time")
                     .font(AppFont.caption2)

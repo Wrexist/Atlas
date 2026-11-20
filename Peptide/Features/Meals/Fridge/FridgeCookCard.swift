@@ -89,7 +89,7 @@ struct FridgeCookCard: View {
             Image(systemName: isPlanned ? "checkmark" : "shippingbox.fill")
                 .contentTransition(.symbolEffect(.replace))
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(isPlanned ? AppColor.positive : AppColor.accentLight)
+                .foregroundStyle(isPlanned ? AppColor.success : AppColor.accentLight)
                 .frame(width: 36, height: 36)
                 .glassControl(.circle)
         }

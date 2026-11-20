@@ -46,26 +46,36 @@ struct ExerciseLibraryView: View {
     // MARK: - Filter shelf
 
     private var filterShelf: some View {
-        VStack(spacing: Spacing.xxs) {
+        // Each chip row already carries its own hit-area inset; a stack
+        // gap on top doubled the space between the two rows.
+        VStack(spacing: 0) {
             HStack(spacing: 0) {
+                // The circle, not its wider hit area, sits on the gutter, and
+                // the hit area's margin is the gap to the first chip.
                 bodyPickerButton
-                    .padding(.leading, Spacing.screenPadding)
-                MuscleGroupChipRow(selection: $browsing.muscleFilter)
+                    .padding(.leading, Spacing.screenPadding - Self.bodyPickerHitMargin)
+                MuscleGroupChipRow(selection: $browsing.muscleFilter, leadingInset: 0)
             }
             EquipmentChipRow(selection: $browsing.equipmentFilter)
         }
         .padding(.bottom, Spacing.xs)
     }
 
+    private static let bodyPickerDiameter = Spacing.xxxl
+    private static let bodyPickerHitMargin = (Spacing.minimumHitTarget - bodyPickerDiameter) / 2
+
     private var bodyPickerButton: some View {
         Button { showsBodyPicker = true } label: {
             Image(systemName: "figure.stand")
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+                // Chip height, so the button sits on the row's centre line
+                // as a peer of the chips; the target still reaches 44pt.
+                .frame(width: Self.bodyPickerDiameter, height: Self.bodyPickerDiameter)
                 .background(Circle().fill(AppColor.surfaceSecondary))
+                .minimumHitArea()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel("Pick muscles on body")
         .accessibilityIdentifier("exercise-body-picker")
     }
