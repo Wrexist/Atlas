@@ -95,7 +95,7 @@ struct ProtocolNotesTimeline: View {
                     .font(AppFont.eyebrow)
                     .tracking(0.6)
                     .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentPrimary)
                 Text(notes.isEmpty ? "Capture what's working" : "^[\(notes.count) entry](inflect: true)")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)

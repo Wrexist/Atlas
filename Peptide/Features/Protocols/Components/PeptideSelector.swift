@@ -79,7 +79,7 @@ struct PeptideSelector: View {
                         Text("Show all (\(filtered.count))")
                             .font(AppFont.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.accentPrimary)
                             .frame(maxWidth: .infinity)
                             .minimumHitArea()
                     }

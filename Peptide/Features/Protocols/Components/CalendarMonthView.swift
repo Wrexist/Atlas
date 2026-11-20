@@ -217,7 +217,7 @@ struct CalendarMonthView: View {
     private func dateColor(isCurrentMonth: Bool, isSelected: Bool, isToday: Bool) -> Color {
         if isSelected { return AppColor.onAccent }
         if !isCurrentMonth { return AppColor.textTertiary }
-        if isToday { return AppColor.accentLight }
+        if isToday { return AppColor.accentPrimary }
         return AppColor.textPrimary
     }
 

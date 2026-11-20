@@ -400,7 +400,7 @@ struct LiquidGlassStepper: View {
             // than truncating — it's the one thing the control shows.
             Text(formatter(value))
                 .font(AppFont.headline)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.accentPrimary)
                 .fixedSize()
                 .frame(minWidth: width)
                 .monospacedDigit()

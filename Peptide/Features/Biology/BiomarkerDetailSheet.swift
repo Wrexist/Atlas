@@ -228,7 +228,7 @@ struct BiomarkerDetailSheet: View {
                     Label("Learn more · \(reference.publisher)", systemImage: "arrow.up.right")
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.accentPrimary)
                         .minimumHitArea()
                 }
                 .padding(.top, Spacing.xxs)

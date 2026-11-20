@@ -864,7 +864,7 @@ private struct PeptideScheduleRow: View {
                     HStack(spacing: 4) {
                         Text(schedule.summary)
                             .font(AppFont.caption2)
-                            .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textTertiary)
+                            .foregroundStyle(isCustom ? AppColor.accentPrimary : AppColor.textTertiary)
                         if let dose = schedule.customDose, !dose.isEmpty {
                             Text("·")
                                 .font(AppFont.caption2)
@@ -872,7 +872,7 @@ private struct PeptideScheduleRow: View {
                             Text(dose)
                                 .font(AppFont.caption2)
                                 .fontWeight(.semibold)
-                                .foregroundStyle(AppColor.accentLight)
+                                .foregroundStyle(AppColor.accentPrimary)
                                 .lineLimit(1)
                         }
                     }

@@ -236,7 +236,7 @@ struct TrackCalendarSection: View {
             } label: {
                 Text("Today")
                     .font(AppFont.badgeSmall)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentPrimary)
                     .padding(.horizontal, Spacing.sm)
                     .padding(.vertical, Spacing.xs)
                     .background {

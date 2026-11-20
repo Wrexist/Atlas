@@ -49,7 +49,7 @@ struct ProtocolCard: View {
                                 .font(AppFont.headline)
                                 .monospacedDigit()
                                 .contentTransition(.numericText())
-                                .foregroundStyle(AppColor.accentLight)
+                                .foregroundStyle(AppColor.accentPrimary)
                             Text("of \(protocol_.cycleLengthWeeks)")
                                 .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)

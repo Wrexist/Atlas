@@ -39,7 +39,7 @@ struct BiomarkerListSection: View {
                         Text("Edit")
                             .font(AppFont.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.accentPrimary)
                             .minimumHitArea()
                     }
                     .buttonStyle(.plain)
