@@ -425,7 +425,7 @@ struct FridgeView: View {
                 Image(systemName: "checkmark.circle.fill")
             }
                 .font(AppFont.headline)
-                .foregroundStyle(AppColor.positive)
+                .foregroundStyle(AppColor.success)
                 .padding(.horizontal, Spacing.xl)
                 .frame(minHeight: Spacing.minimumHitTarget)
                 .glassSurfaceCapsule()

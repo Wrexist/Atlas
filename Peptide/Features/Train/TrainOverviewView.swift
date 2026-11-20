@@ -294,7 +294,7 @@ struct TrainOverviewView: View {
                         Spacer(minLength: Spacing.sm)
                         if reached {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(AppColor.positive)
+                                .foregroundStyle(AppColor.success)
                                 .transition(.scale.combined(with: .opacity))
                                 .accessibilityHidden(true)
                         }

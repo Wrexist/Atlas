@@ -290,7 +290,7 @@ struct MacroSummaryRow: View {
                 if goalMet && isRevealed {
                     Image(systemName: "checkmark.circle.fill")
                         .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.positive)
+                        .foregroundStyle(AppColor.success)
                         .transition(.scale.combined(with: .opacity))
                         .accessibilityLabel("Goal reached")
                 }
