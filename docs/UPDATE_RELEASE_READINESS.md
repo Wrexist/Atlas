@@ -1,40 +1,71 @@
-# Atlas update readiness — 2026-10-06
+# Atlas release checklist — TestFlight only
 
-Status: release verification in progress; no release-ready claim. No release or TestFlight upload was performed.
+Updated 2026-11-20. Since 2026-11-14 Atlas is distributed only to the
+owner's own TestFlight; there is no App Store submission. Store copy,
+IAP setup, screenshots, privacy labels and offer codes are out of scope.
+`APP_STORE_METADATA.md` and `scripts/check-store-metadata.py` stay in CI
+so the store copy is ready if that ever changes. (This file replaces the
+2026-10-06 readiness report for 1.3.0.)
 
-## This update
+## Before you dispatch a build
 
-- Recipes require every ingredient and portion to resolve before logging, including Siri. Incomplete drafts remain editable, with a repair route and clearly labeled partial previews.
-- Food-library search deduplicates returned products and promotes exact names, then prefixes and matching words. Source nutrition is unchanged; no fabricated food database was added.
-- Library review and quick logging reuse the latest valid recorded portion. Exact gram entry uses the existing portion editor.
-- Recipe, library, and repeat logging use durable meal persistence. Save failures keep the review available. Success offers persistent Undo, Log another food, and Done.
-- Undo commits the deletion before claiming success. Barcode history writes and reversals are ordered. No schema migration or workout storage changes.
+1. The change is merged to `main` and **PR Checks is green on the merge
+   commit** (about 30 minutes after merging). The workflow's `gate` job
+   refuses anything else.
+2. **Did a SwiftData model change?** (A new `@Model`, a new stored
+   property, or a renamed one.) Then deploy the CloudKit schema to
+   Production first. TestFlight builds talk to the **Production**
+   environment of `iCloud.com.peptidesai.app`, and Production never
+   creates record types or fields on its own, so new data silently
+   stays on the phone until the schema is deployed:
+   1. Run a Debug build from Xcode on a device signed in to iCloud and
+      use the new feature once, so the Development schema gets the new
+      record type or field.
+   2. Open https://icloud.developer.apple.com → CloudKit Database →
+      `iCloud.com.peptidesai.app`.
+   3. Choose **Deploy Schema Changes…**, check that the list shows the
+      new `CD_*` record types and fields, and confirm.
+3. Apple's agreements in App Store Connect → Business are all Active.
+   An expired agreement fails the run in the first minute
+   (`fastlane/auto_version.rb`); only the Account Holder can accept it.
 
-## Evidence
+## Dispatch
 
-- Design lint: 0 errors, 0 warnings; checker self-tests: 44/44 passed.
-- Contrast check: 288 token combinations, 0 below AA. This is not a rendered screen audit.
-- Copy/entitlement claims check: passed.
-- Swift syntax parsing: passed for the nine changed/new Swift files. Parsing does not establish type correctness.
-- Focused XCTest coverage added in `PeptideTests/FoodLibraryLogicTests.swift`: recipe completeness, invalid portions, ranking/deduplication, remembered portions, and failed/successful durable recipe saves. Not executed here.
-- Existing `MealScanRecoveryTests` covers durable commit/retry/reopen/Undo identity and scan draft recovery; must be rerun.
-- Billing is resolved. Native run https://github.com/Wrexist/Atlas/actions/runs/37345367332 compiled the app and passed 71 training tests. Its food UI test failed because the screenshot-mode reminder covered the Meals tab on iPhone SE. The test now dismisses the reminder using its existing control and asserts tab selection.
-- The full unit suite is now included as an independent job in the manual screenshots workflow. Run 37454464619 caught the motion preview compiler error. Candidate ed1b7e8 (run 37455074623) executed 1497 tests with 8 failures, all from three tests that finished a workout with no completed set — which `finishWorkout` deliberately refuses since 80494aa. The tests now complete one set first via `startWorkoutWithOneCompletedSet()`; the app behavior is unchanged. A rerun is required before claiming a full-suite pass.
-- Backend: 65/65 Node tests passed locally with the installed Git OpenSSL added to the process PATH. The initial run lacked OpenSSL and failed three test files; no tests were removed or weakened.
-- Store metadata checker passed for repository copy and legal links. This does not verify live App Store Connect metadata or approval.
-- Repository secret names for signing are present. WEEKLY_SUMMARY_ENDPOINT and WEEKLY_SUMMARY_SECRET are absent and required by ios-testflight.yml; the owner has been given setup instructions. Existing credentials have not been validated. APPLE_REVOKE configuration is also absent, so automated Sign in with Apple revocation is not verified.
-- No signed archive, TestFlight upload, physical-device upgrade, or CloudKit/Health hardware verification has been completed. Windows still has no local Xcode/simulator.
+GitHub → Actions → **iOS TestFlight** → Run workflow on `main`. Leave the
+version blank: `fastlane/auto_version.rb` picks one above every version
+Apple already has, never below `AUTO_VERSION_FLOOR` (1.6). The build
+number is the run number. The build appears in TestFlight about 15 to
+30 minutes after the run finishes.
 
+If the `SENTRY_AUTH_TOKEN` secret exists, the last step uploads the
+build's dSYMs to Sentry (`isac-molin/apple-ios`) so crash reports show
+function names. Without it the step prints a notice and skips.
 
-## Release gates, in order
+## After installing
 
-1. GitHub macOS runners are working again. Generate the project with `xcodegen generate`. Run SwiftLint and the full `PeptideTests` suite using the repository PR-checks workflow. Run training validation and UI tests. Fix failures before proceeding.
-2. Capture and inspect Meals, incomplete recipe repair, exact portions, saved/Undo, scanner recovery, workout recap, and sharing on small/large iPhones, light/dark, large text, VoiceOver, and Reduce Motion. Confirm denied camera/photo/Health permissions and offline lookup behavior. Screenshots must come from the final build.
-3. Verify an upgrade from the currently distributed build on a test account with existing workouts, meals, custom foods, recipes, favorites, and settings. Compare totals before/after; force quit and reopen. Do not reset storage. Test optional CloudKit and Health behavior on hardware using `CLOUDKIT_HARDWARE_TEST_PLAN.md`.
-4. Premium-motion changes are integrated at e152d83. Native compilation exposed a read-only accessibility preview override; ed1b7e8 removes it. Runtime motion/accessibility review remains required.
-5. Version: leave `marketing_version` blank in `ios-testflight.yml`. The workflow then runs `fastlane/auto_version.rb`, which picks a version above the highest one Apple already has (App Store or TestFlight), never below the `AUTO_VERSION_FLOOR` of **1.6**. Only type an explicit version to start a new line on purpose; do not use the stale local `project.yml` version as release authority. Confirm matching app/watch/widget versions, signing, entitlements, privacy declarations, and release-service configuration. Credentials and store status have not been verified here.
-6. Build and distribute an internal TestFlight candidate only after tests pass. Smoke-test install, sign-in, purchase/restore, logging, editing, recovery, share/cancel, account deletion, and offline relaunch. Review crash reports before wider rollout.
-7. Finalize release notes, real-device App Store screenshots, support/privacy links, reviewer instructions, and privacy labels against the actual build. Submit and release through the established process after acceptance; no automatic publishing is part of this work.
+- Smoke test: launch, Today, log a meal (photo, barcode, library), start
+  and finish a workout with the rest timer, check the widgets, open the
+  Watch app, force quit mid-workout and reopen.
+- Crash and hang reports arrive in Sentry within a day (MetricKit
+  delivers them on the next launch).
+
+## Never verified on hardware yet
+
+These have only been built and unit-tested in CI. Check them when a
+build is on the phone:
+
+1. iCloud account switch: sign out of iCloud (or switch account) and
+   open Atlas; the Keep / Delete prompt appears and both choices work.
+2. Live Activity during a workout: lock the phone, tap Complete set /
+   Skip rest; the app shows the change when reopened.
+3. Glass cards on iOS 18–25 (A411), if a device on that OS is around:
+   no content spills past the rounded corners.
+4. Water on Today: tap water, "Added 250 mL · Undo" appears, Undo
+   removes it.
+5. Apple Watch: log sets with the phone reachable and unreachable, run a
+   whole workout on the watch, Digital Crown, haptics, complications on
+   41 mm and 45/46 mm.
+6. Camera features: fridge scan, photo cut-out, LiDAR portion estimate.
 
 ## Reproduction and commands
 
@@ -50,13 +81,3 @@ xcodebuild test -project Peptide.xcodeproj -scheme Peptide \
 For food recovery captures, dispatch `screenshots.yml` on the candidate branch with `test_filter=test_captureFoodReviewRecovery` (method name only; the workflow adds the class prefix).
 
 Manual food regression: create two custom ingredients and a recipe; delete one ingredient; open the recipe and verify logging is blocked with a repair route. Repair it and log on a past date. Verify all calories and date, Undo, then relog. Search a food, set exact grams, log, reopen and verify the remembered amount. Exercise persistence failure using the test-only repository hook; success must never appear and retry must add one entry.
-
-## Customer release notes
-
-Final "What's New" copy lives in `APP_STORE_METADATA.md` (no version number in it — the workflow picks the version at upload). The earlier food-only draft below is superseded.
-
-### Earlier draft
-
-Food logging is easier to review and repeat. Atlas remembers your recent portions, supports exact gram entry in the food library, and keeps Undo available after saving. Improved recipe checks help prevent incomplete ingredients from producing misleading totals, with clearer guidance when a recipe needs attention.
-
-These notes describe implemented behavior; publish only after the release gates pass.

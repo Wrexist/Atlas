@@ -131,7 +131,7 @@ struct TodayHabitsHero: View {
     private var summaryRow: some View {
         HStack(spacing: Spacing.md) {
             ring
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 (isReadOnly ? Text("Habits") : Text("Today's habits"))
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
@@ -175,7 +175,7 @@ struct TodayHabitsHero: View {
     @ViewBuilder
     private var streakLine: some View {
         if snapshot.bestCurrentStreak > 0 {
-            HStack(spacing: 4) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "flame.fill")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.streak)
@@ -264,7 +264,7 @@ struct TodayHabitsHero: View {
                             .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.accentPrimary)
                     }
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("Start a daily habit")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)

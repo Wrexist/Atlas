@@ -121,6 +121,10 @@ struct HabitsView: View {
                     }
                 }
                 .appAnimation(AppAnimation.springSnappy, value: visibleRows.map(\.id))
+                // The freeze banner and the first-habit swap from the
+                // empty state slide in rather than popping.
+                .appAnimation(AppAnimation.toast, value: dataStore.habitStreakAtRisk)
+                .appAnimation(AppAnimation.springSmooth, value: habits.isEmpty)
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxl)
                 .readableContentWidth()
@@ -166,6 +170,7 @@ struct HabitsView: View {
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()
                     .environment(dataStore)
+                    .liquidGlassPresentation()
             }
             .confirmationDialog(
                 "Delete this habit?",
@@ -267,9 +272,9 @@ struct HabitsView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 if best > 0 {
-                    HStack(spacing: 4) {
+                    HStack(spacing: Spacing.xs) {
                         Image(systemName: "flame.fill")
                             .font(AppFont.scaled(13, weight: .semibold))
                             .foregroundStyle(AppColor.streak)
@@ -286,15 +291,8 @@ struct HabitsView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .padding(Spacing.cardPadding)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(summaryAccessibilityLabel(done: done, due: due, best: best))
     }
@@ -315,7 +313,7 @@ struct HabitsView: View {
             Image(systemName: "snowflake")
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Streak at risk")
                     .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
@@ -336,13 +334,13 @@ struct HabitsView: View {
                     .foregroundStyle(AppColor.onAccent)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.sm)
-                    .background(Capsule().fill(AppColor.macroWaterFill))
+                    .background(Capsule().fill(AppColor.accentFill))
                     .minimumHitArea()
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
             .fixedSize()
         }
-        .padding(Spacing.md)
+        .padding(Spacing.cardPadding)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Streak at risk. You missed yesterday. Use your monthly freeze to keep your streak.")

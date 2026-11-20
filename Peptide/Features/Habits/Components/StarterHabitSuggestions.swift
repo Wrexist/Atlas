@@ -66,7 +66,7 @@ struct StarterHabitSuggestions: View {
         Button {
             AppAnimation.with(AppAnimation.springSnappy) { onPick(template) }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: template.iconSymbol)
                     .font(AppFont.scaled(11, weight: .medium))
                     .symbolRenderingMode(.monochrome)
@@ -81,7 +81,7 @@ struct StarterHabitSuggestions: View {
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, Spacing.md)
-            .padding(.vertical, 8)
+            .padding(.vertical, Spacing.sm)
             .glassSurfaceCapsule()
             .minimumHitArea()
         }

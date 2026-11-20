@@ -50,8 +50,8 @@ struct RecommendedPeptidesCard: View {
         Text(text)
             .font(AppFont.badge)
             .foregroundStyle(color)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
+            .padding(.horizontal, Spacing.xs)
+            .padding(.vertical, Spacing.xxs)
             .background { Capsule().fill(color.opacity(bgOpacity)) }
     }
 
@@ -149,8 +149,8 @@ struct RecommendedPeptidesCard: View {
             .font(AppFont.badgeSmall)
             .foregroundStyle(AppColor.accentInkOnWash)
             .lineLimit(1)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
+            .padding(.horizontal, Spacing.xs)
+            .padding(.vertical, Spacing.xxs)
             .glassControl(
                 .capsule,
                 tint: AppColor.accentPrimary.opacity(0.18),
@@ -174,7 +174,7 @@ struct RecommendedPeptidesCard: View {
                 .foregroundStyle(AppColor.accentLight)
         }
         .liquidGlass(.circle)
-        .padding(.top, 4)
+        .padding(.top, Spacing.xs)
     }
 }
 

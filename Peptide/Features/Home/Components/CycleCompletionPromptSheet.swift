@@ -126,7 +126,7 @@ private struct CompletionAction: View {
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(style == .primary ? AppColor.accentPrimary : AppColor.accentLight)
                     .frame(width: 32, alignment: .center)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)

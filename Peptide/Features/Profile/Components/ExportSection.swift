@@ -128,7 +128,7 @@ struct ExportSection: View {
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, Spacing.xxs)
                 if hasWorkouts {
                     sliceButton(title: "Workouts CSV", icon: "dumbbell.fill") {
                         isPro ? exportWorkoutsCSV() : (showPaywall = true)

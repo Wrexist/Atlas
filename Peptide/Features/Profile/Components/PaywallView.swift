@@ -339,7 +339,7 @@ struct PaywallView: View {
             }
             .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
                     .font(AppFont.scaled(13, weight: .bold))
                     .foregroundStyle(AppColor.textPrimary)
@@ -395,7 +395,7 @@ struct PaywallView: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "checkmark.shield.fill")
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.positive)
+                .foregroundStyle(AppColor.success)
                 .accessibilityHidden(true)
             Text(isOneTimePurchaseSelected
                  ? "One payment. Your logs, workouts and photos stay yours."
@@ -438,7 +438,7 @@ struct PaywallView: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.recap)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Waiting for approval")
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
@@ -477,7 +477,7 @@ struct PaywallView: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.destructive)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
@@ -668,7 +668,7 @@ struct PaywallView: View {
                 HStack(spacing: Spacing.md) {
                     radioMark(isSelected: isSelected)
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         HStack(spacing: Spacing.xs) {
                             planTitle(title)
                                 // Without `fixedSize` the badge alongside wins the
@@ -749,7 +749,7 @@ struct PaywallView: View {
     }
 
     private func planPrice(_ price: String, unit: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 2) {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
             Text(price)
                 .font(AppFont.scaled(20, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
@@ -782,7 +782,7 @@ struct PaywallView: View {
             .lineLimit(1)
             .fixedSize()
             .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 2)
+            .padding(.vertical, Spacing.xxs)
         if isEmphasized {
             label
                 .foregroundStyle(AppColor.onAccent)
@@ -933,7 +933,7 @@ struct PaywallView: View {
             guard let product = selectedProduct, !isPurchasing, !isRestoring else { return }
             Task { await purchase(product) }
         } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: Spacing.xxs) {
                 if didPurchase {
                     Label("Welcome to Atlas Pro", systemImage: "checkmark.circle.fill")
                         .font(AppFont.scaled(16, weight: .bold))

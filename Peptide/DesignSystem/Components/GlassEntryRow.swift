@@ -9,7 +9,7 @@ import SwiftUI
 ///
 /// `GlassEntryRow` is the `Button` form. A row that pushes a navigation
 /// destination wraps `GlassEntryRowLabel` in its own `NavigationLink` with
-/// `ScalePressStyle(pressedScale: 0.98)`.
+/// `.buttonStyle(.cardPress)`.
 struct GlassEntryRow: View {
     private let label: GlassEntryRowLabel
     private let action: () -> Void
@@ -28,7 +28,7 @@ struct GlassEntryRow: View {
 
     var body: some View {
         Button(action: action) { label }
-            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .buttonStyle(.cardPress)
     }
 }
 

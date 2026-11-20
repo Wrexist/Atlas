@@ -51,7 +51,7 @@ struct StackWarningCard: View {
                 .font(AppFont.scaled(13))
                 .foregroundStyle(severityColor(warning.severity))
                 .frame(width: 20)
-                .padding(.top, 2)
+                .padding(.top, Spacing.xxs)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
@@ -79,7 +79,7 @@ struct StackWarningCard: View {
                     Image(systemName: "lightbulb.fill")
                         .font(AppFont.scaled(8))
                         .foregroundStyle(AppColor.accentLight)
-                        .padding(.top, 2)
+                        .padding(.top, Spacing.xxs)
 
                     Text(warning.suggestion)
                         .font(AppFont.caption2)

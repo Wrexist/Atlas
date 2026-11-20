@@ -169,7 +169,7 @@ struct HeroMetricDetailSheet: View {
                 gradient: kind.gradient(active: valueForRing.isAvailable),
                 appearAnimated: true
             ) {
-                VStack(spacing: 2) {
+                VStack(spacing: Spacing.xxs) {
                     Image(systemName: kind.icon)
                         .font(AppFont.scaled(20, weight: .semibold))
                         .foregroundStyle(ringTint)
@@ -389,7 +389,7 @@ struct HeroMetricDetailSheet: View {
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(entry.completed ? AppColor.success : AppColor.textTertiary)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(entry.peptide.name)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
@@ -486,7 +486,7 @@ struct HeroMetricDetailSheet: View {
                     .frame(width: 40, height: 40)
                     .background { Circle().fill(driver.tint.opacity(0.18)) }
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(driver.label(sleepTargetHours: context.sleepTargetHours))
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
@@ -559,7 +559,7 @@ struct HeroMetricDetailSheet: View {
                 .frame(width: 40, height: 40)
                 .background { Circle().fill(ringTint.opacity(0.18)) }
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Tip")
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)

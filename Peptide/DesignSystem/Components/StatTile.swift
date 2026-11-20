@@ -58,7 +58,7 @@ struct StatTile: View {
             Text(value)
                 .font(valueFont)
                 .monospacedDigit()
-                .contentTransition(.numericText())
+                .rollingNumber(value)
                 .foregroundStyle(icon == nil ? tint : AppColor.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
