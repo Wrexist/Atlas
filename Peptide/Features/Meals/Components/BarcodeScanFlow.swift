@@ -537,7 +537,7 @@ struct BarcodeScanFlow: View {
     }
 
     private func portionPicker(for product: ScannedProduct) -> some View {
-        GlassCard(padding: Spacing.md) {
+        GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("How much did you have?")
                     .font(AppFont.subheadline)
