@@ -186,13 +186,17 @@ struct WorkoutExerciseCard: View {
                     onDelete: { onRemoveSet(setSnapshot.id) },
                     isPaused: isPaused
                 )
+                .transition(.move(edge: .top).combined(with: .opacity))
                 if setSnapshot.id != entry.sets.last?.id {
                     Divider()
                         .background(AppColor.glassBorder.opacity(0.5))
-                        .padding(.leading, Spacing.xl + Spacing.sm)
+                        // Starts past the 24pt set badge and the row's gap.
+                        .padding(.leading, Spacing.xxl + Spacing.sm)
                 }
             }
         }
+        // Added and deleted sets slide in and out like the focus screen's.
+        .appAnimation(AppAnimation.springSnappy, value: entry.sets.count)
     }
 
     private var addSetButton: some View {
@@ -214,7 +218,7 @@ struct WorkoutExerciseCard: View {
                     .fill(AppColor.accentPrimary.opacity(0.10))
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
     }
 }
 

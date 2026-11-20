@@ -195,7 +195,7 @@ private struct ShoppingRow: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: isAtHome ? "house.fill" : (isBought ? "checkmark.circle.fill" : "circle"))
                     .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(isDone ? AppColor.positive : AppColor.textTertiary)
+                    .foregroundStyle(isDone ? AppColor.success : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
                     .frame(width: 24)
                     .accessibilityHidden(true)
@@ -332,7 +332,7 @@ private struct PrepTaskRow: View {
             HStack(alignment: .firstTextBaseline, spacing: Spacing.md) {
                 Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
                     .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(isDone ? AppColor.positive : AppColor.textTertiary)
+                    .foregroundStyle(isDone ? AppColor.success : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -538,7 +538,7 @@ private struct CardTitle: View {
                 .font(AppFont.subheadline)
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .foregroundStyle(isDone ? AppColor.positive : AppColor.textSecondary)
+                .foregroundStyle(isDone ? AppColor.success : AppColor.textSecondary)
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
@@ -616,7 +616,7 @@ struct PrepDishPicker: View {
                             .foregroundStyle(AppColor.onAccent)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, Spacing.xs)
-                            .background(AppColor.positive, in: Capsule(style: .continuous))
+                            .background(AppColor.accentFill, in: Capsule(style: .continuous))
                             .padding(Spacing.md)
                     }
                 }

@@ -170,7 +170,7 @@ struct WorkoutFinishView: View {
             if celebratesSave {
                 Image(systemName: "checkmark.circle")
                     .font(AppFont.scaled(52, weight: .regular, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.positive).accessibilityHidden(true)
+                    .foregroundStyle(AppColor.success).accessibilityHidden(true)
                     .symbolEffect(.bounce, value: celebrated)
                 Text("Workout saved").font(AppFont.title)
                 Text(summary.name).font(AppFont.headline).multilineTextAlignment(.center)

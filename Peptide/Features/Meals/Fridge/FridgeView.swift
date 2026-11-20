@@ -49,6 +49,10 @@ struct FridgeView: View {
                     cookCard(products: products, now: now)
                 }
             }
+            // Starting a search, and the first item landing in an empty
+            // fridge, swap the page with a fade instead of a cut.
+            .appAnimation(AppAnimation.settle, value: query.isEmpty)
+            .appAnimation(AppAnimation.settle, value: items.isEmpty)
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.top, Spacing.sm)
             .padding(.bottom, Spacing.xxxxl)
@@ -425,7 +429,7 @@ struct FridgeView: View {
                 Image(systemName: "checkmark.circle.fill")
             }
                 .font(AppFont.headline)
-                .foregroundStyle(AppColor.positive)
+                .foregroundStyle(AppColor.success)
                 .padding(.horizontal, Spacing.xl)
                 .frame(minHeight: Spacing.minimumHitTarget)
                 .glassSurfaceCapsule()

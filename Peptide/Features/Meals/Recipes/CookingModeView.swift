@@ -263,7 +263,7 @@ private struct StepTimerCard: View {
 
     private var isRunning: Bool { timers.isRunning(key) }
     private var hasRung: Bool { timers.finished.contains(key) }
-    private var tint: Color { hasRung ? AppColor.positive : AppColor.accentInkOnWash }
+    private var tint: Color { hasRung ? AppColor.success : AppColor.accentInkOnWash }
 
     /// Ticks every second while the timer runs, so the countdown and its
     /// VoiceOver value stay live; idle, it barely ticks at all.

@@ -319,7 +319,7 @@ struct RecipeDetailView: View {
                     .font(AppFont.subheadline)
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                    .foregroundStyle(coverage.have == coverage.total ? AppColor.positive : AppColor.textSecondary)
+                    .foregroundStyle(coverage.have == coverage.total ? AppColor.success : AppColor.textSecondary)
             }
             .accessibilityElement(children: .combine)
             GlassProgressBar(
@@ -382,7 +382,7 @@ struct RecipeDetailView: View {
                     .frame(width: 32, height: 32)
                 Label("Logged to \(loggedSlot.displayName)", systemImage: "checkmark.circle.fill")
                     .font(AppFont.headline)
-                    .foregroundStyle(AppColor.positive)
+                    .foregroundStyle(AppColor.success)
             }
             .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
             .glassSurfaceCapsule()

@@ -271,7 +271,7 @@ struct MacroSummaryRow: View {
                     .textCase(.uppercase)
                     .tracking(0.8)
             }
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
                 let shown = isRevealed ? value : 0
                 Text(String(shown))
                     .font(AppFont.scaled(20, weight: .semibold))
@@ -290,7 +290,7 @@ struct MacroSummaryRow: View {
                 if goalMet && isRevealed {
                     Image(systemName: "checkmark.circle.fill")
                         .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.positive)
+                        .foregroundStyle(AppColor.success)
                         .transition(.scale.combined(with: .opacity))
                         .accessibilityLabel("Goal reached")
                 }
@@ -369,7 +369,7 @@ struct MacroSummaryRow: View {
             }
             .foregroundStyle(AppColor.macroWaterInk)
             .padding(.horizontal, Spacing.md)
-            .padding(.vertical, 8)
+            .padding(.vertical, Spacing.sm)
             .frame(maxWidth: .infinity)
             // ScalePressStyle owns the press; interactive glass would run a
             // second, competing scale on iOS 26.
@@ -392,7 +392,7 @@ struct MacroSummaryRow: View {
                 .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, 8)
+                .padding(.vertical, Spacing.sm)
                 .glassControl(
                     .capsule,
                     tint: AppColor.surfaceElevated.opacity(0.3),
