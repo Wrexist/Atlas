@@ -19,7 +19,7 @@ struct CycleProgressBar: View {
                     .fontWeight(.semibold)
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentPrimary)
 
                 Spacer()
 

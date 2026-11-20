@@ -39,8 +39,15 @@ struct BiomarkerListSection: View {
                         Text("Edit")
                             .font(AppFont.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(AppColor.accentLight)
-                            .minimumHitArea()
+                            .foregroundStyle(AppColor.accentPrimary)
+                            // Trailing, so the word ends on the card edge
+                            // instead of centring inside a 44 pt target.
+                            .frame(
+                                minWidth: Spacing.minimumHitTarget,
+                                minHeight: Spacing.minimumHitTarget,
+                                alignment: .trailing
+                            )
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .fixedSize()

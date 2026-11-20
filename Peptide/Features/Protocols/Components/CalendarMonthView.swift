@@ -81,8 +81,8 @@ struct CalendarMonthView: View {
 
             if displayMode == .cycle {
                 bandStrip(for: bandsPerRow[safe: row] ?? [])
-                    .padding(.horizontal, 4)
-                    .padding(.bottom, 4)
+                    .padding(.horizontal, Spacing.xs)
+                    .padding(.bottom, Spacing.xs)
             }
         }
     }
@@ -115,7 +115,7 @@ struct CalendarMonthView: View {
             }
             Haptics.selection()
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: Spacing.xs) {
                 ZStack {
                     if isSelected {
                         Circle()
@@ -186,7 +186,7 @@ struct CalendarMonthView: View {
     // MARK: - Cycle bands
 
     private func bandStrip(for bands: [CycleBand]) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: Spacing.xxs) {
             let visible = Array(bands.prefix(Self.maxBands))
             ForEach(visible) { band in
                 Capsule()
@@ -217,7 +217,7 @@ struct CalendarMonthView: View {
     private func dateColor(isCurrentMonth: Bool, isSelected: Bool, isToday: Bool) -> Color {
         if isSelected { return AppColor.onAccent }
         if !isCurrentMonth { return AppColor.textTertiary }
-        if isToday { return AppColor.accentLight }
+        if isToday { return AppColor.accentPrimary }
         return AppColor.textPrimary
     }
 

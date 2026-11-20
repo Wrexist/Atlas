@@ -49,7 +49,7 @@ struct ProtocolCard: View {
                                 .font(AppFont.headline)
                                 .monospacedDigit()
                                 .contentTransition(.numericText())
-                                .foregroundStyle(AppColor.accentLight)
+                                .foregroundStyle(AppColor.accentPrimary)
                             Text("of \(protocol_.cycleLengthWeeks)")
                                 .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
@@ -67,22 +67,11 @@ struct ProtocolCard: View {
                     CycleProgressBar(protocol_: protocol_)
                 }
 
-                // Peptide icons row
+                // Peptide keys, overlapped. Ink like every other icon: a
+                // hue per category made each card its own palette.
                 HStack(spacing: -6) {
                     ForEach(protocol_.peptides.prefix(4)) { peptide in
-                        ZStack {
-                            Circle()
-                                .fill(peptide.category.color.opacity(0.2))
-                                .frame(width: 30, height: 30)
-                                .overlay {
-                                    Circle()
-                                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                                }
-
-                            Image(systemName: peptide.imageSystemName)
-                                .font(AppFont.scaled(11))
-                                .foregroundStyle(peptide.category.color)
-                        }
+                        IconTile(peptide.imageSystemName, size: 30, silhouette: .circle)
                     }
 
                     if protocol_.peptides.count > 4 {
