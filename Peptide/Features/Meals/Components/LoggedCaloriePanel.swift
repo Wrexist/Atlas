@@ -141,7 +141,7 @@ struct LoggedCaloriePanel: View {
         case .some(.reached):
             Label("Daily target reached", systemImage: "checkmark.seal.fill")
                 .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.positive)
+                .foregroundStyle(AppColor.success)
         case .some(.over(let over)):
             Text("\(over) kcal over")
                 .font(AppFont.scaled(13, weight: .semibold))

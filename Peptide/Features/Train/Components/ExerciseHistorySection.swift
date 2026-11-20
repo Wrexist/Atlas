@@ -52,14 +52,17 @@ struct ExerciseHistorySection: View {
         .onChange(of: scenePhase) { _, phase in if phase == .active { reload() } }
     }
 
-    private var activityChart: some View {
+    private var latestVisitID: UUID? { visits.first?.id }
+
+        private var activityChart: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Working sets · Latest \(min(visits.count, 8)) workouts")
                 .font(AppFont.subheadline)
             Chart(Array(visits.prefix(8).reversed())) { visit in
                 BarMark(x: .value("Workout", visit.id.uuidString),
                         y: .value("Working sets", barsShown ? visit.sets.count : 0))
-                    .foregroundStyle(AppColor.accentPrimary)
+                    // Ink for the past, the one accent for the latest workout.
+                    .foregroundStyle(visit.id == latestVisitID ? AppColor.accentPrimary : AppColor.textSecondary)
             }
             .chartXAxis(.hidden)
             .chartYAxis { AxisMarks(values: .automatic(desiredCount: 3)) }

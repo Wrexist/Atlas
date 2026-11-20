@@ -52,11 +52,11 @@ struct RecipeMethodCard: View {
                     .font(AppFont.subheadline)
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                    .foregroundStyle(isFinished ? AppColor.positive : AppColor.textSecondary)
+                    .foregroundStyle(isFinished ? AppColor.success : AppColor.textSecondary)
             }
             ProgressView(value: Double(done.count), total: Double(max(steps.count, 1)))
                 .progressViewStyle(.linear)
-                .tint(isFinished ? AppColor.positive : AppColor.accentPrimary)
+                .tint(isFinished ? AppColor.success : AppColor.accentPrimary)
                 .accessibilityHidden(true)
         }
         .accessibilityElement(children: .combine)
@@ -282,7 +282,7 @@ struct StepTimerChip: View {
     private var showsQuiet: Bool { isQuiet && !isRunning && !hasRung }
 
     private var ink: Color {
-        if hasRung { return AppColor.positive }
+        if hasRung { return AppColor.success }
         return showsQuiet ? AppColor.textSecondary : AppColor.accentInkOnWash
     }
 

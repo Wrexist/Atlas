@@ -76,7 +76,9 @@ struct HomeMealsSection: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.xl) {
+        // The Meals tab's one gap between cards: the shelf, fasting and
+        // tools under this section already sit `Spacing.lg` apart.
+        VStack(spacing: Spacing.lg) {
             MealDaySwitcher(offset: $dayOffset)
                 .sectionAppear(index: 0)
 
@@ -402,7 +404,7 @@ struct HomeMealsSection: View {
                     .foregroundStyle(AppColor.accentLight)
                     .minimumHitArea()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle())
         }
     }
 

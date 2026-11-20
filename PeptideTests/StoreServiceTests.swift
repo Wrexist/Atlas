@@ -165,8 +165,16 @@ final class StoreServiceTests: XCTestCase {
         XCTAssertTrue(UserDefaults.standard.bool(forKey: StoreService.lastKnownProKey))
 
         session.clearTransactions()
-        await service.checkProAccess()
-        XCTAssertFalse(UserDefaults.standard.bool(forKey: StoreService.lastKnownProKey))
+        // StoreKitTest clears asynchronously, so one walk can still see
+        // the purchase; the walk must drop Pro once the store reflects it.
+        var stillPro = true
+        for _ in 0..<10 {
+            await service.checkProAccess()
+            stillPro = UserDefaults.standard.bool(forKey: StoreService.lastKnownProKey)
+            if !stillPro { break }
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        XCTAssertFalse(stillPro)
     }
 
     func test_startMonthlyTrial_succeeds_whenProductLoaded() async throws {

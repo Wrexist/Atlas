@@ -103,8 +103,12 @@ struct WorkoutFocusView: View {
                     }
                     GlassIconButton(icon: "plus", accessibilityLabel: "Add exercise", action: onAddExercise)
                 }
-                .padding(Spacing.xs)
+                // Scrolls edge to edge, but rests with the first lift on
+                // the screen gutter, in line with the artwork and the panel.
+                .padding(.vertical, Spacing.xs)
+                .padding(.horizontal, Spacing.screenPadding)
             }
+            .padding(.horizontal, -Spacing.screenPadding)
             .onChange(of: entry?.id, initial: true) { _, id in
                 guard let id else { return }
                 AppAnimation.with(AppAnimation.springSnappy) { proxy.scrollTo(id, anchor: .center) }
@@ -354,6 +358,9 @@ struct WorkoutFocusView: View {
               VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text(Self.progressTitle(entry)).font(AppFont.statValueSmall)
                     .foregroundStyle(AppColor.textPrimary)
+                    // "Set 2 of 4" rolls to "Set 3 of 4" instead of snapping.
+                    .contentTransition(.numericText())
+                    .appAnimation(AppAnimation.quick, value: Self.progressTitle(entry))
                 // Taught once: after the first logged set it's known.
                 if session.completedSetCount == 0 {
                     Text("Check a set when you finish. Tap its check again to undo.")
@@ -536,6 +543,11 @@ private struct WorkoutFocusMetrics: View {
         }
         .font(AppFont.callout.weight(.semibold))
         .frame(maxWidth: .infinity)
+        // Sets and volume roll as each set is checked; the clock ticks
+        // outside any transaction, so it never animates.
+        .contentTransition(.numericText())
+        .appAnimation(AppAnimation.quick, value: session.completedSetCount)
+        .appAnimation(AppAnimation.quick, value: volume)
     }
 
     private var volume: String { Int(unit.weightForDisplay(session.totalVolumeKg).rounded()).formatted() }

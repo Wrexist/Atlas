@@ -130,8 +130,15 @@ struct FoodLibraryFlow: View {
         NavigationStack {
             ZStack {
                 AppColor.background.ignoresSafeArea()
+                // Browse → review → logged settles in the way the photo and
+                // barcode flows' phases do, instead of cutting.
                 content
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .opacity
+                    ))
             }
+            .appAnimation(AppAnimation.springSmooth, value: phase)
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -343,6 +350,8 @@ struct FoodLibraryFlow: View {
                     }
                     listBody
                 }
+                // Switching tabs cross-fades the list under the control.
+                .appAnimation(AppAnimation.quick, value: tab)
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.md)
                 .padding(.bottom, Spacing.xxxxl)
@@ -690,7 +699,7 @@ struct FoodLibraryFlow: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: Spacing.xs) {
                 Image(systemName: icon)
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
@@ -701,16 +710,14 @@ struct FoodLibraryFlow: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.sm)
             .frame(minHeight: 64)
+            // The wash alone marks the tile; an accent ring on top of it
+            // was a second edge saying the same thing.
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(AppColor.accentPrimary.opacity(0.12))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 1)
-                    }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.96))
     }
 
     private var tipCard: some View {
@@ -985,7 +992,7 @@ struct FoodLibraryFlow: View {
             macroLine(calories: calories, protein: protein, carbs: carbs, fat: fat, withIcons: true)
             macroLine(calories: calories, protein: protein, carbs: carbs, fat: fat, withIcons: false)
         }
-        .padding(.top, 2)
+        .padding(.top, Spacing.xxs)
     }
 
     private func macroLine(calories: Int, protein: Int, carbs: Int, fat: Int, withIcons: Bool) -> some View {
@@ -1042,7 +1049,7 @@ struct FoodLibraryFlow: View {
                 }
                 .minimumHitArea()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.88))
         .disabled(product.loggable(for: preferredPortion(for: product)) == nil || !FoodLibraryLogic.hasUsableNutrition(product))
         .accessibilityLabel("Quick log \(product.name)")
         .accessibilityHint("Logs your last valid amount, or the default portion if none is saved. Undo is available after saving.")
@@ -1114,7 +1121,6 @@ struct FoodLibraryFlow: View {
                 .foregroundStyle(AppColor.accentLight)
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 2)
         .padding(.top, Spacing.xs)
     }
 
@@ -1182,7 +1188,7 @@ struct FoodLibraryFlow: View {
                 imageURL: product.imageURL,
                 size: 56
             )
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(product.name)
                     .font(AppFont.title2)
                     .foregroundStyle(AppColor.textPrimary)
@@ -1211,11 +1217,11 @@ struct FoodLibraryFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, Spacing.xs)
     }
 
     private func reviewPortionPicker(_ product: ScannedProduct) -> some View {
-        GlassCard(padding: Spacing.md) {
+        // The default card inset, matching the totals card under it.
+        GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("How much did you have?")
                     .font(AppFont.subheadline)

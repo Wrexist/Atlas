@@ -177,7 +177,7 @@ struct WeeklyPrepView: View {
             Text("Prepped \(preppedAt.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(locale))). Enjoy the week.")
         } icon: {
             Image(systemName: "checkmark.seal.fill")
-                .foregroundStyle(AppColor.positive)
+                .foregroundStyle(AppColor.success)
         }
         .font(AppFont.subheadline)
         .foregroundStyle(AppColor.textSecondary)

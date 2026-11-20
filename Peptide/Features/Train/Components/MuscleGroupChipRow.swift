@@ -7,11 +7,14 @@ import SwiftUI
 /// is the right complexity floor.
 struct MuscleGroupChipRow: View {
     @Binding var selection: MuscleGroup?
+    /// Space before the first chip: the screen gutter on its own, the chip
+    /// gap when a control sits in front of the row.
+    var leadingInset: CGFloat = Spacing.screenPadding
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: Spacing.chipSpacing) {
                     GlassChip(
                         "All",
                         style: .prominent,
@@ -31,7 +34,8 @@ struct MuscleGroupChipRow: View {
                         .id(group)
                     }
                 }
-                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.leading, leadingInset)
+                .padding(.trailing, Spacing.screenPadding)
                 // GlassChip's 44pt target overhangs its capsule; this keeps
                 // that overhang inside the scroll view, which won't hit-test
                 // past its own bounds.

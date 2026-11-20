@@ -330,7 +330,7 @@ private struct FastHistoryRow: View {
         HStack(spacing: Spacing.md) {
             Image(systemName: FastingEngine.metGoal(fast) ? "checkmark.circle.fill" : "circle.dashed")
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(FastingEngine.metGoal(fast) ? AppColor.positive : AppColor.textTertiary)
+                .foregroundStyle(FastingEngine.metGoal(fast) ? AppColor.success : AppColor.textTertiary)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(fast.startedAt, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute())

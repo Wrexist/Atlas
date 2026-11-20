@@ -10,7 +10,7 @@ struct EquipmentChipRow: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: Spacing.chipSpacing) {
                     GlassChip(
                         "Any equipment",
                         style: .prominent,

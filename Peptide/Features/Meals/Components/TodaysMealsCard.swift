@@ -32,16 +32,21 @@ struct TodaysMealsCard: View {
     @State private var pendingDelete: MealEntry?
 
     var body: some View {
-        GlassCard(padding: Spacing.md) {
+        // The default card inset, like every other card on the tab.
+        GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 header
                 if entries.isEmpty {
                     emptyState
+                        .transition(.opacity)
                 }
                 if !entries.isEmpty || !previousDayCategories.isEmpty {
                     rows
                 }
             }
+            // The first log replaces the empty note with a fade instead
+            // of a cut; the rows animate their own inserts.
+            .appAnimation(AppAnimation.springSnappy, value: entries.isEmpty)
         }
         .confirmationDialog(
             "Delete this entry?",
@@ -97,7 +102,6 @@ struct TodaysMealsCard: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.vertical, Spacing.sm)
     }
 
     /// Logged meals in breakfast-to-snack order, with a copy offer in
@@ -155,7 +159,9 @@ struct TodaysMealsCard: View {
             .accessibilityAddTraits(.isHeader)
             copyMenu(for: section.category)
         }
-        .padding(.horizontal, Spacing.xs)
+        // In line with the row content below, which sits `Spacing.sm`
+        // inside each row's wash.
+        .padding(.horizontal, Spacing.sm)
     }
 
     /// An empty meal slot the previous day filled: one tap copies it.
@@ -179,14 +185,16 @@ struct TodaysMealsCard: View {
             .buttonStyle(.plain)
             copyMenu(for: category)
         }
-        .padding(.horizontal, Spacing.xs)
+        .padding(.horizontal, Spacing.sm)
     }
 
     private func categoryLabel(_ category: MealCategory) -> some View {
         HStack(spacing: Spacing.xs) {
+            // Quiet ink, not four meal hues: the name already says which
+            // meal it is, and the diary keeps to one accent.
             Image(systemName: category.icon)
                 .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(category.tint)
+                .foregroundStyle(AppColor.textSecondary)
                 .accessibilityHidden(true)
             Text(category.displayName)
                 .font(AppFont.scaled(13, weight: .semibold))
@@ -307,7 +315,7 @@ struct MealEntryRow: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .contextMenu {
             // `.swipeActions` is list-only; a context menu works in
             // any container and matches the long-press pattern users
