@@ -113,7 +113,11 @@ there being exactly one primitive to reach for:
   (`breathe`, `ripple`, `loadingSweep`). A number
   with `.contentTransition(.numericText())` only rolls if the state that
   feeds it changes inside one of those. Loading placeholders are
-  `SkeletonBlock`; button press feedback is `ScalePressStyle`.
+  `SkeletonBlock`; button press feedback is `ScalePressStyle`, as
+  `.buttonStyle(.scalePress)` on a control or `.cardPress` on a whole
+  card or row. A changing number takes `.rollingNumber(value)`, which
+  rolls even when the change wasn't animated; content that replaces an
+  empty state or placeholder arrives with `.transition(.contentAppear)`.
 
 `.claude/skills/` carries two design skills that load automatically:
 `dna-transplant` (pick the donor idiom before laying out a screen) and
