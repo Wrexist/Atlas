@@ -49,8 +49,10 @@ struct SetEditorRow: View {
                 completionToggle
             }
             if focusStyle && (previousSet != nil || set.isWarmup) {
+                // Under the weight field's leading edge: the index menu's
+                // 44pt target plus the row's gap.
                 previousReference
-                    .padding(.leading, Spacing.xxxl)
+                    .padding(.leading, dynamicTypeSize.isAccessibilitySize ? 0 : Spacing.minimumHitTarget + Spacing.sm)
             }
             if let load = set.measurement?.load, load != .recorded {
                 Text(load == .eachPair ? String(localized: "Load per hand · both counted") :
@@ -243,7 +245,8 @@ struct SetEditorRow: View {
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(
                     set.completed ? AppColor.onAccent : AppColor.textTertiary,
-                    set.completed ? (focusStyle ? AppColor.trainingComplete : AppColor.positive) : AppColor.textTertiary
+                    // The same green as the row's done wash behind it.
+                    set.completed ? AppColor.trainingComplete : AppColor.textTertiary
                 )
                 .frame(width: 32, height: 32)
                 .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
