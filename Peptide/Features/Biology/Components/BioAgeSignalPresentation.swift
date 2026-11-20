@@ -35,21 +35,6 @@ extension PerformanceAgeEngine.Driver.Kind {
         }
     }
 
-    /// The metric palette where one exists, so a signal wears the same
-    /// colour here as on the rest of the app's health surfaces.
-    var tint: Color {
-        switch self {
-        case .vo2Max, .steps:        AppColor.metricActivity
-        case .hrv:                   AppColor.metricHRV
-        case .rhr:                   AppColor.metricHeartRate
-        case .sleep:                 AppColor.metricSleep
-        case .bodyMassIndex, .weight: AppColor.accentLight
-        case .hba1c:                 AppColor.labMetabolic
-        case .ldl:                   AppColor.labLipids
-        case .crp:                   AppColor.labOrganHealth
-        }
-    }
-
     /// What the signal measures and why it moves the estimate. Used by the
     /// explainer sheet.
     var explanation: String {

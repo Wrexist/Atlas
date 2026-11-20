@@ -88,15 +88,10 @@ struct BioAgeCoverageCard: View {
     private func signalRow(_ kind: PerformanceAgeEngine.Driver.Kind, index: Int) -> some View {
         let present = presentKinds.contains(kind)
         return HStack(alignment: .top, spacing: Spacing.md) {
-            Image(systemName: kind.icon)
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(present ? kind.tint : AppColor.textTertiary)
-                .frame(width: 28, height: 28)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                        .fill(present ? kind.tint.opacity(0.15) : AppColor.surfaceSecondary)
-                }
-                .accessibilityHidden(true)
+            // The drivers card's key, so a signal looks the same in both;
+            // a missing one recedes instead of changing colour.
+            IconTile(kind.icon, size: 32)
+                .opacity(present ? 1 : 0.4)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(kind.displayName)
