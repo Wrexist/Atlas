@@ -124,7 +124,7 @@ struct StackAlertDetailSheet: View {
                 .foregroundStyle(severityColor)
         }
         .padding(.horizontal, Spacing.md)
-        .padding(.vertical, 6)
+        .padding(.vertical, Spacing.xs)
         .glassControl(
             .capsule,
             tint: severityColor.opacity(0.12),

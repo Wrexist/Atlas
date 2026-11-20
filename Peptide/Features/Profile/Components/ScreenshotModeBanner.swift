@@ -53,7 +53,7 @@ struct ScreenshotModeBanner: View {
                             .tracking(0.5)
                             .textCase(.uppercase)
                             .padding(.horizontal, Spacing.md)
-                            .padding(.vertical, 5)
+                            .padding(.vertical, Spacing.xs)
                             .foregroundStyle(AppColor.onAccent)
                             .background {
                                 Capsule().fill(accent)

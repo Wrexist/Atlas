@@ -32,7 +32,7 @@ struct BiometricCard: View {
     private var content: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                HStack(spacing: 4) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: icon)
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
@@ -41,7 +41,7 @@ struct BiometricCard: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
 
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
                     Text(value)
                         .font(AppFont.scaled(20, weight: .medium))
                         .foregroundStyle(AppColor.textPrimary)
@@ -88,7 +88,7 @@ struct BiometricCard: View {
     // MARK: - Status pill
 
     private var statusPill: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Spacing.xs) {
             if let sample {
                 Image(systemName: statusIcon(for: sample))
                     .font(AppFont.scaled(11, weight: .semibold))

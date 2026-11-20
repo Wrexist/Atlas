@@ -150,7 +150,7 @@ struct HealthConnectionCard: View {
         onChange: @escaping (Bool) -> Void
     ) -> some View {
         Toggle(isOn: Binding(get: { isOn }, set: onChange)) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)

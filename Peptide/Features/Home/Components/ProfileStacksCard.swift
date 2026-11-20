@@ -171,7 +171,7 @@ struct ProfileStacksCard: View {
                         .foregroundStyle(color(for: stack.status))
                         .fixedSize()
                         .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, 4)
+                        .padding(.vertical, Spacing.xs)
                         .background {
                             Capsule().fill(color(for: stack.status).opacity(0.15))
                         }
@@ -210,7 +210,7 @@ struct ProfileStacksCard: View {
 
     private func cycleProgressBar(for stack: PeptideProtocol) -> some View {
         let progress = stack.cycleProgress
-        return VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: Spacing.xs) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()

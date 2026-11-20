@@ -17,10 +17,7 @@ struct HomeView: View {
     @State private var showTargetsEditor = false
     @State private var showResearchAssistant = false
     @State private var showEditToday = false
-    // Profile is opened via the shared `appState.showProfile` flag now
-    // (a single app-level sheet), so the Today avatar and every other
-    // tab's avatar button route through the same presentation.
-    /// 0…1 fade progress for the sticky compressing header. Driven
+    /// 0…1 fade progress for the inline navigation title. Driven
     /// by `.onScrollGeometryChange` so the bar materialises in lock-
     /// step with the user's finger. Handed down as a binding and never
     /// read here, so scroll frames re-render only the header.
@@ -405,14 +402,6 @@ struct HomeView: View {
                         greeting: greeting,
                         name: dataStore.profile.name,
                         date: dateString,
-                        avatarImageData: dataStore.profile.avatarImageData,
-                        onAvatarTap: {
-                            Haptics.impact(.light)
-                            // Profile lost its tab slot in the training
-                            // pivot; the shared flag opens the app-level
-                            // sheet from here and every other tab alike.
-                            appState.showProfile = true
-                        },
                         logButton: shows(.quickActions) ? TodayLogButton(
                             isOpen: showQuickLogSheet,
                             includesDose: dataStore.nextDose != nil,
@@ -493,16 +482,14 @@ struct HomeView: View {
             .pageBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .safeAreaInset(edge: .top, spacing: 0) {
-                HomeStickyHeader(
-                    firstName: firstNameForSticky,
-                    avatarImageData: dataStore.profile.avatarImageData,
-                    onAvatarTap: {
-                        Haptics.impact(.light)
-                        appState.showProfile = true
-                    },
-                    progress: $stickyProgress
-                )
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    HomeStickyHeader(firstName: firstNameForSticky, progress: $stickyProgress)
+                }
+                // The same 30pt entry, in the same place, as Train,
+                // Meals, Biology and Habits, so Profile doesn't jump in
+                // size and position as the user switches tabs.
+                ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
             }
             .sheet(item: $selectedEntry) { entry in
                 DoseLoggingSheet(

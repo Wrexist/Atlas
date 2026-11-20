@@ -706,7 +706,7 @@ struct ProfileCustomizationSheet: View {
     }
 
     private func bodyStat(_ label: LocalizedStringKey, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(value)
                 .font(AppFont.title3)
                 .fontWeight(.semibold)

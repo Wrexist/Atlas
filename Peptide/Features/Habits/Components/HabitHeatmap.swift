@@ -44,7 +44,7 @@ struct HabitHeatmap: View {
                 .frame(height: 0)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 if showsMonthLabels {
                     monthRow
                         .foregroundStyle(AppColor.textTertiary)

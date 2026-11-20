@@ -44,7 +44,7 @@ struct SettingsView: View {
             .padding(.bottom, Spacing.xxxxl)
             .readableContentWidth()
         }
-        .background(AppColor.background)
+        .pageBackground()
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showRestoreBackup) {
