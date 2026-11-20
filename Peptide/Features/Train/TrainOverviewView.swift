@@ -239,11 +239,14 @@ struct TrainOverviewView: View {
         sessionService.startWorkout(routine: built.routine, linksRoutine: built.linksRoutine)
     }
 
+    /// Two quiet starts split the row under the painted one; a lone
+    /// "Empty workout" sits centred at its own width, so it never reads as
+    /// a second full-width primary stacked under the first.
     @ViewBuilder
     private func otherStarts(showsPlan: Bool) -> some View {
         // A ringed outline: a bare triangle carried less ink than the
         // wand and stars on "Plan a workout" beside it.
-        GlassButton(title: "Empty workout", icon: "play.circle", style: .secondary, isFullWidth: true) {
+        GlassButton(title: "Empty workout", icon: "play.circle", style: .secondary, isFullWidth: showsPlan) {
             Haptics.impact(.medium)
             sessionService.startWorkout()
         }
@@ -292,6 +295,7 @@ struct TrainOverviewView: View {
                         if reached {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(AppColor.positive)
+                                .transition(.scale.combined(with: .opacity))
                                 .accessibilityHidden(true)
                         }
                         Text("\(done) of \(target)")
@@ -309,13 +313,17 @@ struct TrainOverviewView: View {
                                 .frame(height: Spacing.sm)
                         }
                     }
-                    .appAnimation(AppAnimation.springSnappy, value: done)
                     if reached {
                         Text("Goal reached")
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
+                            .transition(.opacity)
                     }
                 }
+                // One transaction for the count, the track and the goal
+                // line, so a finished workout rolls the number and fills
+                // its segment together instead of only the track moving.
+                .appAnimation(AppAnimation.springSnappy, value: done)
             }
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("train-weekly-goal")
@@ -413,7 +421,7 @@ struct TrainOverviewView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack(alignment: .top, spacing: Spacing.md) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         // Same weight as the other card titles on this tab; a
                         // display-size title here out-shouted the CTA above.
                         Text("Muscles trained")
@@ -450,7 +458,6 @@ struct TrainOverviewView: View {
                     onIdentify: { inspectRecentMuscle($0) }
                 )
                 .frame(maxWidth: .infinity)
-
 
                 if selectedPeriod == .week, let trainingContextCaption {
                     Text(trainingContextCaption)
@@ -562,7 +569,7 @@ struct TrainOverviewView: View {
     private func recentWorkoutRow(_ session: WorkoutSession) -> some View {
         NavigationLink(value: TrainNavigation.workoutDetail(session.id)) {
             HStack(spacing: Spacing.md) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(session.displayName)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
@@ -571,7 +578,7 @@ struct TrainOverviewView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: Spacing.xxs) {
                     Text("^[\(session.completedSetCount) set](inflect: true)")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
@@ -588,10 +595,13 @@ struct TrainOverviewView: View {
                     .foregroundStyle(AppColor.textTertiary)
                     .accessibilityHidden(true)
             }
-            .padding(.vertical, Spacing.sm)
+            // A full tap target without padding: vertical padding here sat
+            // on top of the card's own, leaving 24pt under the row and 16pt
+            // above the title.
+            .frame(minHeight: Spacing.minimumHitTarget)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
     }
 
