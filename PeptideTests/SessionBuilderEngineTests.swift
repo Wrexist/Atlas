@@ -85,13 +85,35 @@ final class SessionBuilderEngineTests: XCTestCase {
 
     // MARK: - Building
 
-    func test_build_focusLeadsAndCompoundsComeBeforeIsolation() {
+    func test_build_focusExercisesLeadWithCompoundsFirst() {
         let routine = build(focus: .chest, companions: [.shoulders, .triceps])
-        let patterns = routine.exercises.compactMap { pattern(of: $0.exerciseID) }
+        let chest = routine.exercises.prefix { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.chest) == true }
+        XCTAssertGreaterThanOrEqual(chest.count, 2, "chest should open the session")
+        XCTAssertFalse(routine.exercises.dropFirst(chest.count).contains {
+            byID[$0.exerciseID].map(Engine.targets(of:)) == [.chest]
+        }, "no chest-only exercise after the companions start")
+        let patterns = chest.compactMap { pattern(of: $0.exerciseID) }
         XCTAssertEqual(patterns.first, .horizontalPush)
         let firstIsolation = patterns.firstIndex { !$0.isCompound } ?? patterns.count
         XCTAssertTrue(patterns[firstIsolation...].allSatisfy { !$0.isCompound })
         XCTAssertEqual(routine.name, Engine.Target.chest.displayName)
+    }
+
+    func test_build_absFocus_closesTheSessionAfterLegs() {
+        let routine = build(focus: .abs, companions: [.quads])
+        let core = routine.exercises.drop { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.abs) != true }
+        XCTAssertFalse(core.isEmpty, "abs focus should include core work")
+        XCTAssertLessThan(core.count, routine.exercises.count, "legs should come first")
+        XCTAssertTrue(core.allSatisfy { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.abs) == true },
+                      "nothing but core after the core block starts")
+    }
+
+    func test_build_everyExerciseGetsAtLeastThreeSets() {
+        for focus in Engine.Target.allCases {
+            let routine = build(focus: focus, companions: [], minutes: 60)
+            XCTAssertTrue(routine.exercises.allSatisfy { $0.targetSets >= Engine.minSetsPerExercise },
+                          "\(focus): \(routine.exercises.map(\.targetSets))")
+        }
     }
 
     func test_build_validUniqueExercisesWithinEquipmentAndTime() {
@@ -134,7 +156,106 @@ final class SessionBuilderEngineTests: XCTestCase {
 
     func test_build_companionsThatFit_areNamedInTheSubtitle() {
         let routine = build(focus: .chest, companions: [.triceps])
-        XCTAssertEqual(routine.subtitle, "Triceps")
+        XCTAssertEqual(routine.subtitle?.components(separatedBy: " · ").first, "Triceps")
+    }
+
+    // MARK: - Filling the time
+
+    /// Abs alone made a 10-minute "60-minute" session: two exercises of
+    /// four sets. The builder now grows the volume and brings in companions
+    /// until the time is used.
+    func test_build_singleSmallMuscle_fillsTheChosenTime() {
+        let plan = Engine.build(request(focus: .abs, companions: [], minutes: 60), catalog: catalog)
+        let seconds = ProgramGeneratorEngine.plannedSeconds(for: plan.routine)
+        XCTAssertGreaterThanOrEqual(seconds, 45 * 60, "\(seconds / 60) min")
+        XCTAssertLessThanOrEqual(seconds, 60 * 60)
+        XCTAssertFalse(plan.added.isEmpty)
+        XCTAssertFalse(plan.added.contains(.abs))
+    }
+
+    func test_build_everyDurationLandsCloseToItsBudget() {
+        for minutes in [30, 45, 60, 75] {
+            let seconds = ProgramGeneratorEngine.plannedSeconds(for: build(focus: .chest, companions: [.triceps], minutes: minutes))
+            XCTAssertGreaterThanOrEqual(Double(seconds), Double(minutes * 60) * 0.85, "\(minutes) min")
+            XCTAssertLessThanOrEqual(seconds, minutes * 60, "\(minutes) min")
+        }
+    }
+
+    func test_build_noExerciseGetsMoreThanFiveSets() {
+        for focus in Engine.Target.allCases {
+            let routine = build(focus: focus, companions: [], minutes: 75)
+            XCTAssertTrue(routine.exercises.allSatisfy { $0.targetSets <= Engine.maxSetsPerExercise }, "\(focus)")
+        }
+    }
+
+    func test_build_restingMuscleIsNeverAddedToFill() {
+        var session = request(focus: .abs, companions: [], minutes: 75)
+        session.states[.quads] = state(fraction: 0.3)
+        let plan = Engine.build(session, catalog: catalog)
+        XCTAssertFalse(plan.added.contains(.quads))
+        XCTAssertFalse(Engine.fillCandidates(for: session).contains(.quads))
+    }
+
+    func test_build_pickedCompanionsAreNotReportedAsAdded() {
+        let plan = Engine.build(request(focus: .back, companions: [.biceps], minutes: 75), catalog: catalog)
+        XCTAssertFalse(plan.added.contains(.biceps))
+    }
+
+    // MARK: - Equipment profile
+
+    func test_build_homeProfile_usesOnlyItsKit() {
+        let home = EquipmentProfile.standard(for: .home)
+        for focus in Engine.Target.allCases {
+            let plan = Engine.build(request(focus: focus, companions: [], profile: home), catalog: catalog)
+            for slot in plan.routine.exercises {
+                let exercise = byID[slot.exerciseID]
+                XCTAssertTrue(exercise.map(home.allows) == true, "\(slot.exerciseID) at home")
+                XCTAssertTrue(exercise.map { [.bodyweight, .dumbbell, .band].contains($0.equipmentKind) } == true, slot.exerciseID)
+            }
+        }
+    }
+
+    func test_build_untickedMachineIsNeverPicked() {
+        var gym = EquipmentProfile.standard(for: .gym)
+        gym.machines.subtract([.legPress, .hackSquat, .legExtension])
+        let plan = Engine.build(request(focus: .quads, companions: [.glutes], profile: gym), catalog: catalog)
+        let ids = Set(plan.routine.exercises.map(\.exerciseID))
+        XCTAssertTrue(ids.isDisjoint(with: ["Leg_Press", "Hack_Squat", "Leg_Extensions", "Single-Leg_Leg_Extension"]), "\(ids)")
+        XCTAssertFalse(ids.isEmpty)
+    }
+
+    func test_build_withoutPullUpBar_noHangingWork() {
+        var gym = EquipmentProfile.standard(for: .gym)
+        gym.accessories.remove(.pullUpBar)
+        let plan = Engine.build(request(focus: .back, companions: [], profile: gym), catalog: catalog)
+        for slot in plan.routine.exercises {
+            XCTAssertFalse(byID[slot.exerciseID]?.equipmentAccessories.contains(.pullUpBar) ?? true, slot.exerciseID)
+        }
+    }
+
+    func test_gymMachine_everyShortlistedMachineExerciseNamesItsMachine() {
+        let shortlist = Set(MovementPattern.allCases.flatMap(ProgramGeneratorEngine.candidates(for:)))
+        for id in shortlist where byID[id]?.equipmentKind == .machine {
+            XCTAssertNotNil(GymMachine.required(for: id), id)
+        }
+    }
+
+    func test_equipmentProfileStore_remembersPlaceAndKit() throws {
+        let suite = "EquipmentProfileStoreTests"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        let store = EquipmentProfileStore(defaults: defaults)
+        XCTAssertEqual(store.location, .gym)
+        var home = store.profile(for: .home)
+        home.kinds.insert(.kettlebell)
+        store.set(home, for: .home)
+        store.select(.home)
+
+        let reopened = EquipmentProfileStore(defaults: defaults)
+        XCTAssertEqual(reopened.location, .home)
+        XCTAssertEqual(reopened.current, home)
+        XCTAssertEqual(reopened.profile(for: .gym), .standard(for: .gym))
+        defaults.removePersistentDomain(forName: suite)
     }
 
     func test_build_shortSessionTrimsACompanion_subtitleDropsIt() {
@@ -172,11 +293,13 @@ final class SessionBuilderEngineTests: XCTestCase {
         companions: [Engine.Target],
         minutes: Int = 60,
         equipment: Set<EquipmentKind> = SessionBuilderEngineTests.fullGym,
+        profile: EquipmentProfile? = nil,
         familiar: Set<String> = [],
         deload: Bool = false
     ) -> Engine.Request {
         Engine.Request(focus: focus, companions: companions, minutes: minutes, experience: .intermediate,
-                       equipment: equipment, states: fresh(), familiarExerciseIDs: familiar, isDeload: deload)
+                       equipment: profile ?? EquipmentProfile(access: equipment), states: fresh(),
+                       familiarExerciseIDs: familiar, isDeload: deload)
     }
 
     private func build(
@@ -188,7 +311,7 @@ final class SessionBuilderEngineTests: XCTestCase {
         deload: Bool = false
     ) -> Routine {
         Engine.build(request(focus: focus, companions: companions, minutes: minutes, equipment: equipment,
-                             familiar: familiar, deload: deload), catalog: catalog)
+                             familiar: familiar, deload: deload), catalog: catalog).routine
     }
 
     private func pattern(of id: String) -> MovementPattern? {
