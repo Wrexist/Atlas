@@ -29,6 +29,7 @@ struct SessionBuilderSheet: View {
     @State private var companions: [Target] = []
     @State private var resting: [Target] = []
     @State private var built: Built?
+    @State private var scroll = ScrollPosition(edge: .top)
     @State private var isSaved = false
     @State private var showsEquipment = false
     @State private var detailExercise: Exercise?
@@ -78,6 +79,9 @@ struct SessionBuilderSheet: View {
                 }
                 .readableContentWidth()
             }
+            // Each page opens at its top, not where the other was left.
+            .scrollPosition($scroll)
+            .onChange(of: built == nil) { scroll.scrollTo(edge: .top) }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle(built == nil ? "Plan a workout" : "Your workout")
             .navigationBarTitleDisplayMode(.inline)
