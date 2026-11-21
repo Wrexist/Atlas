@@ -14,20 +14,26 @@ enum SessionBuilderEngine {
     enum Target: String, CaseIterable, Sendable {
         case chest, back, shoulders, rearDelts, biceps, triceps
         case quads, hamstrings, glutes, calves, abs
+        case traps, lowerBack, forearms, adductors, obliques
 
         init(_ muscle: AnatomicalMuscle) {
             switch muscle {
             case .pecSternal, .pecClavicular: self = .chest
-            case .lats, .rhomboids, .trapsUpper, .trapsLower, .neck: self = .back
+            case .lats, .rhomboids: self = .back
+            case .trapsUpper, .trapsLower, .neck: self = .traps
             case .deltAnterior, .deltLateralFront, .deltLateralBack: self = .shoulders
             case .deltPosterior: self = .rearDelts
-            case .biceps, .forearmFront, .forearmBack: self = .biceps
+            case .biceps: self = .biceps
+            case .forearmFront, .forearmBack: self = .forearms
             case .tricepsLong, .tricepsLateral: self = .triceps
-            case .quadRectus, .quadLateralis, .quadMedialis, .adductors: self = .quads
-            case .hamstringLateral, .hamstringMedial, .lowerBack: self = .hamstrings
+            case .quadRectus, .quadLateralis, .quadMedialis: self = .quads
+            case .adductors: self = .adductors
+            case .hamstringLateral, .hamstringMedial: self = .hamstrings
+            case .lowerBack: self = .lowerBack
             case .glutes, .gluteMedius: self = .glutes
             case .gastrocnemius, .soleus, .tibialis: self = .calves
-            case .abdominals, .obliques: self = .abs
+            case .abdominals: self = .abs
+            case .obliques: self = .obliques
             }
         }
 
@@ -44,6 +50,11 @@ enum SessionBuilderEngine {
             case .glutes: String(localized: "Glutes")
             case .calves: String(localized: "Calves")
             case .abs: String(localized: "Abs")
+            case .traps: String(localized: "Traps")
+            case .lowerBack: String(localized: "Lower back")
+            case .forearms: String(localized: "Forearms")
+            case .adductors: String(localized: "Adductors")
+            case .obliques: String(localized: "Obliques")
             }
         }
 
@@ -66,6 +77,11 @@ enum SessionBuilderEngine {
             case .glutes: [.lunge, .hinge]
             case .calves: [.calves]
             case .abs: [.core]
+            case .traps: [.shrug]
+            case .lowerBack: [.backExtension]
+            case .forearms: [.forearm]
+            case .adductors: [.adductor]
+            case .obliques: [.oblique]
             }
         }
 
@@ -73,16 +89,65 @@ enum SessionBuilderEngine {
         var companions: [Target] {
             switch self {
             case .chest: [.shoulders, .triceps, .back]
-            case .back: [.biceps, .rearDelts, .chest]
-            case .shoulders: [.triceps, .chest, .rearDelts]
+            case .back: [.biceps, .rearDelts, .chest, .traps]
+            case .shoulders: [.triceps, .chest, .rearDelts, .traps]
             case .rearDelts: [.back, .biceps, .shoulders]
-            case .biceps: [.triceps, .back, .rearDelts]
+            case .biceps: [.triceps, .back, .rearDelts, .forearms]
             case .triceps: [.biceps, .chest, .shoulders]
-            case .quads: [.glutes, .hamstrings, .calves, .abs]
-            case .hamstrings: [.glutes, .quads, .calves]
-            case .glutes: [.hamstrings, .quads, .calves]
+            case .quads: [.glutes, .hamstrings, .calves, .abs, .adductors]
+            case .hamstrings: [.glutes, .quads, .calves, .lowerBack]
+            case .glutes: [.hamstrings, .quads, .calves, .adductors]
             case .calves: [.quads, .hamstrings, .abs]
-            case .abs: [.quads, .calves, .glutes]
+            case .abs: [.quads, .calves, .glutes, .obliques]
+            case .traps: [.back, .rearDelts, .shoulders]
+            case .lowerBack: [.hamstrings, .glutes, .abs]
+            case .forearms: [.biceps, .back, .triceps]
+            case .adductors: [.quads, .glutes, .hamstrings]
+            case .obliques: [.abs, .glutes, .quads]
+            }
+        }
+
+        /// Small muscles you train on purpose; the builder never brings
+        /// them in on its own to fill time.
+        var isMinor: Bool {
+            switch self {
+            case .traps, .lowerBack, .forearms, .adductors, .obliques: true
+            default: false
+            }
+        }
+
+        /// Trunk work closes the session, so it never tires the core
+        /// that braces the heavy lifts.
+        var closesSession: Bool {
+            switch self {
+            case .abs, .obliques, .lowerBack: true
+            default: false
+            }
+        }
+
+        /// How the picker groups the muscles.
+        enum Category: CaseIterable, Sendable {
+            case chestAndShoulders, back, arms, legs, core
+
+            var displayName: String {
+                switch self {
+                case .chestAndShoulders:
+                    String(localized: "muscle.category.chestShoulders", defaultValue: "Chest & shoulders")
+                case .back: String(localized: "muscle.back", defaultValue: "Back")
+                case .arms: String(localized: "Arms")
+                case .legs: String(localized: "Legs")
+                case .core: String(localized: "Core")
+                }
+            }
+
+            var targets: [Target] {
+                switch self {
+                case .chestAndShoulders: [.chest, .shoulders, .rearDelts]
+                case .back: [.back, .traps, .lowerBack]
+                case .arms: [.biceps, .triceps, .forearms]
+                case .legs: [.quads, .hamstrings, .glutes, .adductors, .calves]
+                case .core: [.abs, .obliques]
+                }
             }
         }
     }
@@ -254,7 +319,7 @@ enum SessionBuilderEngine {
         // Ties keep the declaration order, so the same request always
         // builds the same session.
         let others = Target.allCases
-            .filter { !request.focus.companions.contains($0) && $0 != request.focus }
+            .filter { !request.focus.companions.contains($0) && $0 != request.focus && !$0.isMinor }
             .enumerated()
             .sorted { lhs, rhs in
                 let left = score(lhs.element), right = score(rhs.element)
@@ -301,9 +366,9 @@ enum SessionBuilderEngine {
         }
         // Muscle by muscle in the order they were picked, so the focus
         // gets the fresh start and fill-ins come last; within a muscle,
-        // compounds before isolations. Core work always closes the session,
+        // compounds before isolations. Trunk work always closes the session,
         // even as the focus, so it never tires the trunk before heavy lifts.
-        let sequence = targets.filter { $0 != .abs } + targets.filter { $0 == .abs }
+        let sequence = targets.filter { !$0.closesSession } + targets.filter(\.closesSession)
         let ordered = sequence.flatMap { target in
             let own = picks.filter { $0.target == target }
             return own.filter(\.pattern.isCompound) + own.filter { !$0.pattern.isCompound }
@@ -436,7 +501,7 @@ enum SessionBuilderEngine {
         switch pattern {
         case _ where pattern.isCompound && isFirst: base = Scheme(reps: 8, rpe: 7.5, rest: 150)
         case _ where pattern.isCompound: base = Scheme(reps: 10, rpe: 8, rest: 120)
-        case .lateralDelt, .rearDelt, .calves, .core: base = Scheme(reps: 15, rpe: 9, rest: 60)
+        case .lateralDelt, .rearDelt, .calves, .core, .forearm, .oblique: base = Scheme(reps: 15, rpe: 9, rest: 60)
         default: base = Scheme(reps: 12, rpe: 9, rest: 75)
         }
         return isDeload ? Scheme(reps: base.reps, rpe: 6.5, rest: base.rest) : base
@@ -467,7 +532,7 @@ private extension AnatomicalMuscle {
     /// speak for its recovery (forearms don't stop a biceps day).
     var isAccessoryHead: Bool {
         switch self {
-        case .forearmFront, .forearmBack, .neck, .tibialis, .adductors, .trapsUpper: true
+        case .neck, .tibialis: true
         default: false
         }
     }

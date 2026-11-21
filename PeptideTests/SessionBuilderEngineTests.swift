@@ -30,7 +30,15 @@ final class SessionBuilderEngineTests: XCTestCase {
             XCTAssertFalse(target.companions.contains(target), "\(target)")
         }
         XCTAssertEqual(Engine.Target(.pecClavicular), .chest)
-        XCTAssertEqual(Engine.Target(.lowerBack), .hamstrings)
+        XCTAssertEqual(Engine.Target(.lowerBack), .lowerBack)
+        XCTAssertEqual(Engine.Target(.trapsUpper), .traps)
+        XCTAssertEqual(Engine.Target(.forearmFront), .forearms)
+    }
+
+    func test_categories_listEveryMuscleExactlyOnce() {
+        let listed = Engine.Target.Category.allCases.flatMap(\.targets)
+        XCTAssertEqual(listed.count, Set(listed).count, "a muscle sits in two categories")
+        XCTAssertEqual(Set(listed), Set(Engine.Target.allCases))
     }
 
     func test_targetsOfExercise_namesOnlyTheMainMuscles() throws {
@@ -106,6 +114,27 @@ final class SessionBuilderEngineTests: XCTestCase {
         XCTAssertLessThan(core.count, routine.exercises.count, "legs should come first")
         XCTAssertTrue(core.allSatisfy { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.abs) == true },
                       "nothing but core after the core block starts")
+    }
+
+    func test_build_smallMuscleFocus_trainsItAndKeepsTrunkWorkLast() {
+        for focus in [Engine.Target.traps, .forearms, .adductors, .lowerBack, .obliques] {
+            let routine = build(focus: focus, companions: focus.companions.prefix(1).map { $0 })
+            let patterns = Set(routine.exercises.compactMap { pattern(of: $0.exerciseID) })
+            XCTAssertFalse(patterns.isDisjoint(with: focus.patterns), "\(focus): \(routine.exercises.map(\.exerciseID))")
+        }
+        let lowerBack = build(focus: .lowerBack, companions: [.hamstrings]).exercises
+            .compactMap { pattern(of: $0.exerciseID) }
+        let trunk: Set<MovementPattern> = [.backExtension, .core, .oblique]
+        let start = lowerBack.firstIndex(of: .backExtension)
+        XCTAssertTrue(lowerBack[(start ?? lowerBack.count)...].allSatisfy(trunk.contains), "\(lowerBack)")
+        XCTAssertNotNil(start, "lower back focus should include back extensions")
+    }
+
+    func test_build_neverAddsASmallMuscleToFillTime() {
+        for focus in [Engine.Target.chest, .quads, .shoulders] {
+            let plan = Engine.build(request(focus: focus, companions: [], minutes: 90), catalog: catalog)
+            XCTAssertFalse(plan.added.contains { $0.isMinor && !focus.companions.contains($0) }, "\(focus): \(plan.added)")
+        }
     }
 
     func test_build_everyExerciseGetsAtLeastThreeSets() {

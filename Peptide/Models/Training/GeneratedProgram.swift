@@ -58,6 +58,7 @@ enum MovementPattern: String, CaseIterable, Sendable {
     case horizontalPush, horizontalPull, verticalPush, verticalPull
     case chestIsolation, lateralDelt, rearDelt, biceps, triceps
     case quadIsolation, hamstringIsolation, calves, core
+    case shrug, forearm, backExtension, adductor, oblique
 
     var displayName: String {
         switch self {
@@ -77,6 +78,11 @@ enum MovementPattern: String, CaseIterable, Sendable {
         case .hamstringIsolation: return String(localized: "Hamstrings")
         case .calves:             return String(localized: "Calves")
         case .core:               return String(localized: "Core")
+        case .shrug:              return String(localized: "Traps")
+        case .forearm:            return String(localized: "Forearms")
+        case .backExtension:      return String(localized: "Lower back")
+        case .adductor:           return String(localized: "Adductors")
+        case .oblique:            return String(localized: "Obliques")
         }
     }
 

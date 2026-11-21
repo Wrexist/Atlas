@@ -54102,6 +54102,22 @@
           }
         }
       }
+    },
+    "muscle.category.chestShoulders": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chest & shoulders"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bröst och axlar"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

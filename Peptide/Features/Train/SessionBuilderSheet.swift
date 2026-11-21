@@ -135,8 +135,11 @@ struct SessionBuilderSheet: View {
             bodyPicker(mapHighlights)
 
             section("MUSCLE") {
-                chips(Target.allCases, tint: Self.focusChipColor,
-                      isSelected: { $0 == focus }, action: select)
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    ForEach(Target.Category.allCases, id: \.self) { category in
+                        categoryGroup(category)
+                    }
+                }
             }
 
             if let focus {
@@ -533,6 +536,18 @@ struct SessionBuilderSheet: View {
             Text(title).foregroundStyle(AppColor.textSecondary)
         } icon: {
             Image(systemName: "circle.fill").foregroundStyle(color)
+        }
+    }
+
+    /// One body region: its name, then its muscles as chips.
+    private func categoryGroup(_ category: Target.Category) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text(category.displayName)
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityAddTraits(.isHeader)
+            chips(category.targets, tint: Self.focusChipColor,
+                  isSelected: { $0 == focus }, action: select)
         }
     }
 
