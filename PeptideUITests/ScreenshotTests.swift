@@ -718,18 +718,20 @@ final class ScreenshotTests: XCTestCase {
             equipment.tap()
             XCTAssertTrue(app.navigationBars["Equipment"].waitForExistence(timeout: 5))
             capture(named: "builder-\(appearance)-06-equipment-gym")
+            // Snapshots of this sheet take about two seconds each, so
+            // short waits time out before the first one returns.
             let home = app.buttons["Home"].firstMatch
-            if home.waitForExistence(timeout: 3) {
+            if home.waitForExistence(timeout: 10) {
                 home.tap()
                 Thread.sleep(forTimeInterval: 0.6)
                 capture(named: "builder-\(appearance)-07-equipment-home")
             }
             let done = app.buttons["Done"].firstMatch
-            XCTAssertTrue(done.waitForExistence(timeout: 3))
+            XCTAssertTrue(done.waitForExistence(timeout: 10))
             done.tap()
             Thread.sleep(forTimeInterval: 0.6)
             let place = app.buttons["Home"].firstMatch
-            if place.waitForExistence(timeout: 3) { place.tap() }
+            if place.waitForExistence(timeout: 10) { place.tap() }
 
             let abs = app.buttons["Abs"].firstMatch
             if findByScrolling(abs) {
