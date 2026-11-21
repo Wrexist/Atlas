@@ -718,13 +718,18 @@ final class ScreenshotTests: XCTestCase {
             equipment.tap()
             XCTAssertTrue(app.navigationBars["Equipment"].waitForExistence(timeout: 5))
             capture(named: "builder-\(appearance)-06-equipment-gym")
-            let home = app.scrollViews.buttons["Home"].firstMatch
+            let home = app.buttons["Home"].firstMatch
             if home.waitForExistence(timeout: 3) {
                 home.tap()
                 Thread.sleep(forTimeInterval: 0.6)
                 capture(named: "builder-\(appearance)-07-equipment-home")
             }
-            app.navigationBars["Equipment"].buttons["Done"].tap()
+            let done = app.buttons["Done"].firstMatch
+            XCTAssertTrue(done.waitForExistence(timeout: 3))
+            done.tap()
+            Thread.sleep(forTimeInterval: 0.6)
+            let place = app.buttons["Home"].firstMatch
+            if place.waitForExistence(timeout: 3) { place.tap() }
 
             let abs = app.buttons["Abs"].firstMatch
             if findByScrolling(abs) {

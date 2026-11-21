@@ -373,7 +373,7 @@ struct SessionBuilderSheet: View {
                     statDivider
                     stat(RoutineSeedEngine.totalSets(in: routine), label: "Sets")
                     statDivider
-                    stat(RoutineSeedEngine.estimatedMinutes(for: routine), label: "Minutes")
+                    stat(Int((Double(ProgramGeneratorEngine.plannedSeconds(for: routine)) / 60).rounded()), label: "Minutes")
                 }
                 .accessibilityElement(children: .combine)
             }
