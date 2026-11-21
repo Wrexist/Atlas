@@ -116,7 +116,8 @@ struct SessionBuilderSheet: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             if let built {
-                Button(isSaved ? LocalizedStringKey("routine.saved") : "Save as routine") { save(built.routine) }
+                Button(isSaved ? LocalizedStringKey("routine.saved") : "Save") { save(built.routine) }
+                    .accessibilityLabel(isSaved ? Text("routine.saved") : Text("Save as routine"))
                     .disabled(isSaved || built.routine.exercises.isEmpty)
             } else {
                 // Dice, not the wand: the wand is Create workout's, below.
@@ -249,9 +250,15 @@ struct SessionBuilderSheet: View {
         guard let focus else {
             return recovery.compactMapValues { $0.fraction < 1 ? .intensity(1 - $0.fraction) : nil }
         }
+        return Self.roleHighlights(focus: focus, others: companions)
+    }
+
+    /// Orange for the focus, blue for every other muscle in the session:
+    /// the same meaning on the picker and on the built workout.
+    private static func roleHighlights(focus: Target, others: [Target]) -> [AnatomicalMuscle: MuscleHighlight] {
         var map: [AnatomicalMuscle: MuscleHighlight] = [:]
-        for companion in companions {
-            for head in companion.heads { map[head] = .secondary }
+        for other in others {
+            for head in other.heads { map[head] = .secondary }
         }
         for head in focus.heads { map[head] = .primary }
         return map
@@ -649,7 +656,7 @@ struct SessionBuilderSheet: View {
             plan: plan,
             exercises: exercises,
             steps: Dictionary(ids.map { ($0, ExerciseStepArt.assetNames(for: $0)) }, uniquingKeysWith: { first, _ in first }),
-            highlights: MuscleMapView.highlights(forExercises: ids.compactMap { exercises[$0] })
+            highlights: Self.roleHighlights(focus: focus, others: plan.others)
         )
         Haptics.impact(.light)
         isSaved = false

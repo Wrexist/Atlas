@@ -183,12 +183,14 @@ enum SessionBuilderEngine {
     /// fill the time the picked ones couldn't.
     struct Plan: Sendable {
         var routine: Routine
+        /// The muscles besides the focus that made it into the session.
+        var others: [Target]
+        /// The ones the builder brought in to fill the time.
         var added: [Target]
     }
 
-    /// A session counts as filled once its estimate reaches this share of
-    /// the budget; the last few minutes go to warming up and moving kit.
-    static let fillShare = 0.9
+    /// Fewest sets an exercise gets: fewer isn't worth setting up for.
+    static let minSetsPerExercise = 3
     /// Most sets one exercise gets before volume moves to another.
     static let maxSetsPerExercise = 5
 
@@ -201,24 +203,31 @@ enum SessionBuilderEngine {
         var assembled = assemble(targets: targets, sets: sets, request: request, pool: pool)
 
         // Grow the picked muscles to a full session's volume first, then
-        // bring in the next-best companion, until the time is used.
-        while ProgramGeneratorEngine.plannedSeconds(for: assembled.routine) < Int(Double(budget) * fillShare) {
+        // bring in the next-best companion, until nothing more fits.
+        while true {
             var grown = sets
             var grownTargets = targets
+            let joining: Bool
             if let target = targets.first(where: { (sets[$0] ?? 0) < ceiling(for: $0, in: request, pool: pool) }) {
                 grown[target, default: 0] += 1
+                joining = false
             } else if !extras.isEmpty {
                 let next = extras.removeFirst()
                 guard !pool.exercises(for: next, used: [], familiar: []).isEmpty else { continue }
-                // Joins small and grows a set at a time, so the last
-                // minutes fill in steps of one set, not one muscle.
+                // Joins with one exercise's worth and grows a set at a time,
+                // so the last minutes fill in steps of one set.
                 grownTargets.append(next)
-                grown[next] = ProgramGeneratorEngine.minimumSets
+                grown[next] = minSetsPerExercise
+                joining = true
             } else {
                 break
             }
             let candidate = assemble(targets: grownTargets, sets: grown, request: request, pool: pool)
-            guard ProgramGeneratorEngine.plannedSeconds(for: candidate.routine) <= budget else { break }
+            guard ProgramGeneratorEngine.plannedSeconds(for: candidate.routine) <= budget else {
+                // A muscle too big for what's left may be followed by one
+                // that fits; a set too many means the session is full.
+                if joining { continue } else { break }
+            }
             (sets, targets, assembled) = (grown, grownTargets, candidate)
         }
 
@@ -229,7 +238,7 @@ enum SessionBuilderEngine {
         let others = targets.dropFirst().filter(kept.contains)
         routine.subtitle = others.map(\.displayName).joined(separator: " · ")
         let added = others.filter { !request.companions.contains($0) }
-        return Plan(routine: routine, added: Array(added))
+        return Plan(routine: routine, others: Array(others), added: Array(added))
     }
 
     /// Muscles that may join to fill the time: the focus's own companions
@@ -281,7 +290,7 @@ enum SessionBuilderEngine {
         var used: Set<String> = []
         for target in targets {
             let total = sets[target] ?? 0
-            let wanted = max(1, total / ProgramGeneratorEngine.minimumSets,
+            let wanted = max(1, total / minSetsPerExercise,
                              Int((Double(total) / Double(maxSetsPerExercise)).rounded(.up)))
             let chosen = pool.exercises(for: target, used: used, familiar: request.familiarExerciseIDs).prefix(wanted)
             for (choice, count) in zip(chosen, split(total, over: chosen.count)) {
@@ -290,8 +299,13 @@ enum SessionBuilderEngine {
                 used.insert(choice.id)
             }
         }
-        // Every compound before any isolation; the focus leads each group.
-        let ordered = picks.filter(\.pattern.isCompound) + picks.filter { !$0.pattern.isCompound }
+        // Muscle by muscle in the order they were picked, so the focus
+        // gets the fresh start and fill-ins come last; within a muscle,
+        // compounds before isolations.
+        let ordered = targets.flatMap { target in
+            let own = picks.filter { $0.target == target }
+            return own.filter(\.pattern.isCompound) + own.filter { !$0.pattern.isCompound }
+        }
 
         var patterns: [UUID: MovementPattern] = [:]
         var owners: [UUID: Target] = [:]

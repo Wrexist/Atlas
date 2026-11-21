@@ -85,13 +85,26 @@ final class SessionBuilderEngineTests: XCTestCase {
 
     // MARK: - Building
 
-    func test_build_focusLeadsAndCompoundsComeBeforeIsolation() {
+    func test_build_focusExercisesLeadWithCompoundsFirst() {
         let routine = build(focus: .chest, companions: [.shoulders, .triceps])
-        let patterns = routine.exercises.compactMap { pattern(of: $0.exerciseID) }
+        let chest = routine.exercises.prefix { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.chest) == true }
+        XCTAssertGreaterThanOrEqual(chest.count, 2, "chest should open the session")
+        XCTAssertFalse(routine.exercises.dropFirst(chest.count).contains {
+            byID[$0.exerciseID].map(Engine.targets(of:)) == [.chest]
+        }, "no chest-only exercise after the companions start")
+        let patterns = chest.compactMap { pattern(of: $0.exerciseID) }
         XCTAssertEqual(patterns.first, .horizontalPush)
         let firstIsolation = patterns.firstIndex { !$0.isCompound } ?? patterns.count
         XCTAssertTrue(patterns[firstIsolation...].allSatisfy { !$0.isCompound })
         XCTAssertEqual(routine.name, Engine.Target.chest.displayName)
+    }
+
+    func test_build_everyExerciseGetsAtLeastThreeSets() {
+        for focus in Engine.Target.allCases {
+            let routine = build(focus: focus, companions: [], minutes: 60)
+            XCTAssertTrue(routine.exercises.allSatisfy { $0.targetSets >= Engine.minSetsPerExercise },
+                          "\(focus): \(routine.exercises.map(\.targetSets))")
+        }
     }
 
     func test_build_validUniqueExercisesWithinEquipmentAndTime() {
@@ -154,7 +167,7 @@ final class SessionBuilderEngineTests: XCTestCase {
     func test_build_everyDurationLandsCloseToItsBudget() {
         for minutes in [30, 45, 60, 75] {
             let seconds = ProgramGeneratorEngine.plannedSeconds(for: build(focus: .chest, companions: [.triceps], minutes: minutes))
-            XCTAssertGreaterThanOrEqual(Double(seconds), Double(minutes * 60) * 0.75, "\(minutes) min")
+            XCTAssertGreaterThanOrEqual(Double(seconds), Double(minutes * 60) * 0.85, "\(minutes) min")
             XCTAssertLessThanOrEqual(seconds, minutes * 60, "\(minutes) min")
         }
     }
