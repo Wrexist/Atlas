@@ -85,6 +85,9 @@ struct SessionBuilderSheet: View {
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle(built == nil ? "Plan a workout" : "Your workout")
             .navigationBarTitleDisplayMode(.inline)
+            // A solid bar, so chips and pictures scrolling up never run
+            // under the title and its buttons.
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar { toolbar }
             // The fade is drawn above the footer instead (see `footer`).
             .pinnedFooter(fadeHeight: 0) { footer }

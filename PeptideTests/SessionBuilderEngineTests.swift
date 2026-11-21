@@ -107,11 +107,15 @@ final class SessionBuilderEngineTests: XCTestCase {
         XCTAssertEqual(routine.name, Engine.Target.chest.displayName)
     }
 
-    func test_build_absFocus_closesTheSessionAfterLegs() {
-        let routine = build(focus: .abs, companions: [.quads])
-        let core = routine.exercises.drop { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.abs) != true }
-        XCTAssertFalse(core.isEmpty, "abs focus should include core work")
-        XCTAssertLessThan(core.count, routine.exercises.count, "legs should come first")
+    func test_build_coreFocus_leadsWithCore_otherwiseCoreCloses() {
+        let coreDay = build(focus: .abs, companions: [.quads])
+        let first = coreDay.exercises.first.flatMap { byID[$0.exerciseID] }
+        XCTAssertTrue(first.map(Engine.targets(of:))?.contains(.abs) == true, "abs day should open with abs")
+
+        let legDay = build(focus: .quads, companions: [.abs])
+        let core = legDay.exercises.drop { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.abs) != true }
+        XCTAssertFalse(core.isEmpty, "leg day with abs should include core work")
+        XCTAssertLessThan(core.count, legDay.exercises.count, "legs should come first")
         XCTAssertTrue(core.allSatisfy { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.abs) == true },
                       "nothing but core after the core block starts")
     }

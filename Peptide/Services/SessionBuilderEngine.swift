@@ -98,12 +98,12 @@ enum SessionBuilderEngine {
             case .hamstrings: [.glutes, .quads, .calves, .lowerBack]
             case .glutes: [.hamstrings, .quads, .calves, .adductors]
             case .calves: [.quads, .hamstrings, .abs]
-            case .abs: [.quads, .calves, .glutes, .obliques]
+            case .abs: [.obliques, .lowerBack, .glutes]
             case .traps: [.back, .rearDelts, .shoulders]
             case .lowerBack: [.hamstrings, .glutes, .abs]
             case .forearms: [.biceps, .back, .triceps]
             case .adductors: [.quads, .glutes, .hamstrings]
-            case .obliques: [.abs, .glutes, .quads]
+            case .obliques: [.abs, .lowerBack, .glutes]
             }
         }
 
@@ -366,9 +366,13 @@ enum SessionBuilderEngine {
         }
         // Muscle by muscle in the order they were picked, so the focus
         // gets the fresh start and fill-ins come last; within a muscle,
-        // compounds before isolations. Trunk work always closes the session,
-        // even as the focus, so it never tires the trunk before heavy lifts.
-        let sequence = targets.filter { !$0.closesSession } + targets.filter(\.closesSession)
+        // compounds before isolations. Trunk work closes the session, so it
+        // never tires the trunk before heavy lifts, unless abs or obliques
+        // are the focus: on a core day the core keeps the fresh start.
+        let trunkLast = !(request.focus == .abs || request.focus == .obliques)
+        let sequence = trunkLast
+            ? targets.filter { !$0.closesSession } + targets.filter(\.closesSession)
+            : targets
         let ordered = sequence.flatMap { target in
             let own = picks.filter { $0.target == target }
             return own.filter(\.pattern.isCompound) + own.filter { !$0.pattern.isCompound }
