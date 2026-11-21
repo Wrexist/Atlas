@@ -52,6 +52,7 @@ extension ProgramGeneratorEngine {
         case .verticalPush:
             return [
                 "Standing_Military_Press", "Seated_Dumbbell_Press", "Dumbbell_Shoulder_Press",
+                "Standing_Dumbbell_Press",
                 "Machine_Shoulder_Military_Press", "Leverage_Shoulder_Press",
                 "Cable_Shoulder_Press", "Two-Arm_Kettlebell_Military_Press",
                 "Shoulder_Press_-_With_Bands", "Push-Ups_With_Feet_Elevated", "Decline_Push-Up",
