@@ -99,6 +99,15 @@ final class SessionBuilderEngineTests: XCTestCase {
         XCTAssertEqual(routine.name, Engine.Target.chest.displayName)
     }
 
+    func test_build_absFocus_closesTheSessionAfterLegs() {
+        let routine = build(focus: .abs, companions: [.quads])
+        let core = routine.exercises.drop { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.abs) != true }
+        XCTAssertFalse(core.isEmpty, "abs focus should include core work")
+        XCTAssertLessThan(core.count, routine.exercises.count, "legs should come first")
+        XCTAssertTrue(core.allSatisfy { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.abs) == true },
+                      "nothing but core after the core block starts")
+    }
+
     func test_build_everyExerciseGetsAtLeastThreeSets() {
         for focus in Engine.Target.allCases {
             let routine = build(focus: focus, companions: [], minutes: 60)

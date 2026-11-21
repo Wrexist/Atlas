@@ -301,8 +301,10 @@ enum SessionBuilderEngine {
         }
         // Muscle by muscle in the order they were picked, so the focus
         // gets the fresh start and fill-ins come last; within a muscle,
-        // compounds before isolations.
-        let ordered = targets.flatMap { target in
+        // compounds before isolations. Core work always closes the session,
+        // even as the focus, so it never tires the trunk before heavy lifts.
+        let sequence = targets.filter { $0 != .abs } + targets.filter { $0 == .abs }
+        let ordered = sequence.flatMap { target in
             let own = picks.filter { $0.target == target }
             return own.filter(\.pattern.isCompound) + own.filter { !$0.pattern.isCompound }
         }

@@ -94,7 +94,7 @@ enum EquipmentClassificationEngine {
         if name.containsAny("incline", "decline", "skullcrusher", "skull crusher", "preacher") { return true }
         let freeWeight: Set<EquipmentKind> = [.barbell, .dumbbell, .ezBar]
         guard freeWeight.contains(kind) else { return false }
-        if name.hasPrefix("seated") { return true }
+        if name.contains("seated") { return true }
         if kind == .dumbbell, name.containsAny("flye", "flyes", "fly "), !name.containsAny("bent over", "standing") {
             return true
         }
@@ -126,6 +126,9 @@ enum EquipmentClassificationEngine {
         "Bodyweight_Mid_Row": [.pullUpBar],
         "Chain_Press": [.bench],
         "Chain_Handle_Extension": [.bench],
+        "Barbell_Seated_Calf_Raise": [.box],
+        "Dumbbell_Seated_One-Leg_Calf_Raise": [.box],
+        "Standing_Dumbbell_Calf_Raise": [.box],
     ]
 }
 
