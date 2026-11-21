@@ -171,7 +171,7 @@ enum SessionBuilderEngine {
         var companions: [Target]
         var minutes: Int
         var experience: Exercise.Level
-        var equipment: Set<EquipmentKind>
+        var equipment: EquipmentProfile
         var states: [Target: State]
         /// Exercises the user has logged before — they have a weight to
         /// progress from, so they win ties.
@@ -179,21 +179,114 @@ enum SessionBuilderEngine {
         var isDeload = false
     }
 
-    static func build(_ request: Request, catalog: [Exercise]) -> Routine {
-        let pool = ProgramGeneratorEngine.Pool(
-            request: ProgramRequest(goal: .hypertrophy, experience: request.experience, equipment: request.equipment),
-            catalog: catalog
-        )
-        let bodyweight = Set(catalog.filter { $0.equipmentKind == .bodyweight }.map(\.id))
+    /// The built session and the muscles the engine added on its own to
+    /// fill the time the picked ones couldn't.
+    struct Plan: Sendable {
+        var routine: Routine
+        var added: [Target]
+    }
+
+    /// A session counts as filled once its estimate reaches this share of
+    /// the budget; the last few minutes go to warming up and moving kit.
+    static let fillShare = 0.9
+    /// Most sets one exercise gets before volume moves to another.
+    static let maxSetsPerExercise = 5
+
+    static func build(_ request: Request, catalog: [Exercise]) -> Plan {
+        let pool = Pool(profile: request.equipment, experience: request.experience, catalog: catalog)
+        let budget = request.minutes * 60
+        var targets = [request.focus] + request.companions
+        var sets = Dictionary(uniqueKeysWithValues: targets.map { ($0, plannedSets(for: $0, in: request)) })
+        var extras = fillCandidates(for: request).filter { !targets.contains($0) }
+        var assembled = assemble(targets: targets, sets: sets, request: request, pool: pool)
+
+        // Grow the picked muscles to a full session's volume first, then
+        // bring in the next-best companion, until the time is used.
+        while ProgramGeneratorEngine.plannedSeconds(for: assembled.routine) < Int(Double(budget) * fillShare) {
+            var grown = sets
+            var grownTargets = targets
+            if let target = targets.first(where: { (sets[$0] ?? 0) < ceiling(for: $0, in: request, pool: pool) }) {
+                grown[target, default: 0] += 1
+            } else if !extras.isEmpty {
+                let next = extras.removeFirst()
+                guard !pool.exercises(for: next, used: [], familiar: []).isEmpty else { continue }
+                // Joins small and grows a set at a time, so the last
+                // minutes fill in steps of one set, not one muscle.
+                grownTargets.append(next)
+                grown[next] = ProgramGeneratorEngine.minimumSets
+            } else {
+                break
+            }
+            let candidate = assemble(targets: grownTargets, sets: grown, request: request, pool: pool)
+            guard ProgramGeneratorEngine.plannedSeconds(for: candidate.routine) <= budget else { break }
+            (sets, targets, assembled) = (grown, grownTargets, candidate)
+        }
+
+        var routine = fitted(assembled.routine, minutes: request.minutes)
+        // Named after fitting, so a companion trimmed out of a short session
+        // isn't promised in the subtitle.
+        let kept = Set(routine.exercises.compactMap { assembled.owners[$0.id] })
+        let others = targets.dropFirst().filter(kept.contains)
+        routine.subtitle = others.map(\.displayName).joined(separator: " · ")
+        let added = others.filter { !request.companions.contains($0) }
+        return Plan(routine: routine, added: Array(added))
+    }
+
+    /// Muscles that may join to fill the time: the focus's own companions
+    /// first, then everything else, most recovered and furthest from its
+    /// weekly target first. Muscles that should rest never join.
+    static func fillCandidates(for request: Request) -> [Target] {
+        let target = MuscleVolumeTargets.weeklySets(for: request.experience).lowerBound
+        func score(_ candidate: Target) -> Double {
+            guard let state = request.states[candidate] else { return 1 }
+            let gap = MuscleVolumeTargets.remainingSets(done: state.weeklySets, experience: request.experience) / target
+            return 0.5 * state.recovery.fraction + 0.5 * gap
+        }
+        // Ties keep the declaration order, so the same request always
+        // builds the same session.
+        let others = Target.allCases
+            .filter { !request.focus.companions.contains($0) && $0 != request.focus }
+            .enumerated()
+            .sorted { lhs, rhs in
+                let left = score(lhs.element), right = score(rhs.element)
+                return left != right ? left > right : lhs.offset < rhs.offset
+            }
+            .map(\.element)
+        return (request.focus.companions + others)
+            .filter { request.states[$0]?.recovery.status != .rest }
+    }
+
+    /// Most sets a muscle takes in one session: a little past the cap for
+    /// the focus, the cap for the rest, and never more than its available
+    /// exercises can carry.
+    private static func ceiling(for target: Target, in request: Request, pool: Pool) -> Int {
+        let cap = MuscleVolumeTargets.sessionCap(for: request.experience)
+        let volume = target == request.focus ? cap + 2 : cap
+        let available = pool.exercises(for: target, used: [], familiar: []).count
+        return min(volume, available * maxSetsPerExercise)
+    }
+
+    private struct Assembled {
+        var routine: Routine
+        var owners: [UUID: Target]
+    }
+
+    private static func assemble(
+        targets: [Target],
+        sets: [Target: Int],
+        request: Request,
+        pool: Pool
+    ) -> Assembled {
         var picks: [Pick] = []
         var used: Set<String> = []
-        for target in [request.focus] + request.companions {
-            let total = plannedSets(for: target, in: request)
-            let chosen = exercises(for: target, pool: pool, used: used, familiar: request.familiarExerciseIDs)
-                .prefix(max(1, total / ProgramGeneratorEngine.minimumSets))
-            let sets = split(total, over: chosen.count)
-            for (choice, count) in zip(chosen, sets) {
-                picks.append(Pick(target: target, pattern: choice.pattern, exerciseID: choice.id, sets: count))
+        for target in targets {
+            let total = sets[target] ?? 0
+            let wanted = max(1, total / ProgramGeneratorEngine.minimumSets,
+                             Int((Double(total) / Double(maxSetsPerExercise)).rounded(.up)))
+            let chosen = pool.exercises(for: target, used: used, familiar: request.familiarExerciseIDs).prefix(wanted)
+            for (choice, count) in zip(chosen, split(total, over: chosen.count)) {
+                picks.append(Pick(target: target, pattern: choice.pattern, exerciseID: choice.id,
+                                  sets: min(count, maxSetsPerExercise)))
                 used.insert(choice.id)
             }
         }
@@ -209,7 +302,7 @@ enum SessionBuilderEngine {
                 exerciseID: pick.exerciseID,
                 index: index,
                 targetSets: pick.sets,
-                targetReps: bodyweight.contains(pick.exerciseID)
+                targetReps: pool.isBodyweight(pick.exerciseID)
                     ? max(scheme.reps, ProgramGeneratorEngine.bodyweightMinimumReps) : scheme.reps,
                 targetRPE: scheme.rpe,
                 restSeconds: scheme.rest
@@ -221,12 +314,7 @@ enum SessionBuilderEngine {
         if request.minutes <= 45 {
             slots = ProgramGeneratorEngine.pairingAntagonists(slots, patterns: patterns)
         }
-        var routine = fitted(Routine(name: request.focus.displayName, exercises: slots), minutes: request.minutes)
-        // Named after fitting, so a companion trimmed out of a short session
-        // isn't promised in the subtitle.
-        let kept = Set(routine.exercises.compactMap { owners[$0.id] })
-        routine.subtitle = request.companions.filter(kept.contains).map(\.displayName).joined(separator: " · ")
-        return routine
+        return Assembled(routine: Routine(name: request.focus.displayName, exercises: slots), owners: owners)
     }
 
     /// Hypertrophy favourites that load the muscle at long length or keep
@@ -248,29 +336,54 @@ enum SessionBuilderEngine {
         let sets: Int
     }
 
-    /// One exercise per pattern; a single-pattern muscle gets a second
-    /// variation so its volume spreads over two angles.
-    private static func exercises(
-        for target: Target,
-        pool: ProgramGeneratorEngine.Pool,
-        used: Set<String>,
-        familiar: Set<String>
-    ) -> [(id: String, pattern: MovementPattern)] {
-        var chosen: [(id: String, pattern: MovementPattern)] = []
-        var taken = used
-        for pattern in target.patterns {
-            let ranked = ranked(pool.eligible(for: pattern).filter { !taken.contains($0) }, familiar: familiar)
-            let count = target.patterns.count == 1 ? 2 : 1
-            for id in ranked.prefix(count) {
-                chosen.append((id, pattern))
-                taken.insert(id)
+    /// The shortlist narrowed to what the user's equipment profile and
+    /// experience allow.
+    struct Pool {
+        let byID: [String: Exercise]
+        let profile: EquipmentProfile
+        let maxLevel: Int
+
+        init(profile: EquipmentProfile, experience: Exercise.Level, catalog: [Exercise]) {
+            byID = Dictionary(catalog.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            self.profile = profile
+            maxLevel = ProgramGeneratorEngine.rank(experience)
+        }
+
+        func isBodyweight(_ id: String) -> Bool {
+            byID[id]?.equipmentKind == .bodyweight
+        }
+
+        func eligible(for pattern: MovementPattern) -> [String] {
+            ProgramGeneratorEngine.candidates(for: pattern).filter { id in
+                guard let exercise = byID[id] else { return false }
+                return profile.allows(exercise) && ProgramGeneratorEngine.rank(exercise.level) <= maxLevel
             }
         }
-        return chosen
+
+        /// One exercise per pattern; a single-pattern muscle gets a second
+        /// variation so its volume spreads over two angles.
+        func exercises(
+            for target: Target,
+            used: Set<String>,
+            familiar: Set<String>
+        ) -> [(id: String, pattern: MovementPattern)] {
+            var chosen: [(id: String, pattern: MovementPattern)] = []
+            var taken = used
+            for pattern in target.patterns {
+                let ranked = SessionBuilderEngine.ranked(eligible(for: pattern).filter { !taken.contains($0) },
+                                                         familiar: familiar)
+                let count = target.patterns.count == 1 ? 2 : 1
+                for id in ranked.prefix(count) {
+                    chosen.append((id, pattern))
+                    taken.insert(id)
+                }
+            }
+            return chosen
+        }
     }
 
     /// Logged-before first, then lengthened favourites, then shortlist order.
-    private static func ranked(_ ids: [String], familiar: Set<String>) -> [String] {
+    fileprivate static func ranked(_ ids: [String], familiar: Set<String>) -> [String] {
         ids.enumerated().sorted { lhs, rhs in
             let left = (familiar.contains(lhs.element) ? 2 : 0) + (lengthenedFavourites.contains(lhs.element) ? 1 : 0)
             let right = (familiar.contains(rhs.element) ? 2 : 0) + (lengthenedFavourites.contains(rhs.element) ? 1 : 0)

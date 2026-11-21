@@ -671,6 +671,75 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// Plan a workout end to end: the picker, a picked muscle, the built
+    /// session with its step pictures, the equipment profile for the gym
+    /// and for home, and a home session built from that kit.
+    func test_captureSessionBuilder() {
+        for appearance in ["dark", "light"] {
+            // Each run starts at the gym: the argument domain shadows the
+            // place the previous run left selected.
+            launch(appearance: appearance, extraArguments: ["-equipmentProfile.location.v1", "gym"])
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+            let train = app.tabBars.buttons["Train"]
+            XCTAssertTrue(train.waitForExistence(timeout: 10))
+            train.tap()
+            app.dismissOverlaysIfNeeded()
+            discardLeftoverWorkout()
+            let plan = app.buttons["Plan a workout"].firstMatch
+            XCTAssertTrue(findByScrolling(plan))
+            plan.tap()
+            XCTAssertTrue(app.navigationBars["Plan a workout"].waitForExistence(timeout: 10))
+            Thread.sleep(forTimeInterval: 1)
+            capture(named: "builder-\(appearance)-01-picker")
+
+            let chest = app.buttons["Chest"].firstMatch
+            XCTAssertTrue(chest.waitForExistence(timeout: 5))
+            chest.tap()
+            Thread.sleep(forTimeInterval: 0.8)
+            capture(named: "builder-\(appearance)-02-picked")
+            app.swipeUp()
+            capture(named: "builder-\(appearance)-03-picked-bottom")
+
+            let create = app.buttons["Create workout"].firstMatch
+            XCTAssertTrue(create.waitForExistence(timeout: 5))
+            create.tap()
+            XCTAssertTrue(app.navigationBars["Your workout"].waitForExistence(timeout: 5))
+            Thread.sleep(forTimeInterval: 1)
+            capture(named: "builder-\(appearance)-04-plan")
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.6)
+            capture(named: "builder-\(appearance)-05-plan-scrolled")
+
+            app.buttons["Back"].firstMatch.tap()
+            app.swipeDown()
+            let equipment = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Equipment'")).firstMatch
+            XCTAssertTrue(equipment.waitForExistence(timeout: 5))
+            equipment.tap()
+            XCTAssertTrue(app.navigationBars["Equipment"].waitForExistence(timeout: 5))
+            capture(named: "builder-\(appearance)-06-equipment-gym")
+            let home = app.scrollViews.buttons["Home"].firstMatch
+            if home.waitForExistence(timeout: 3) {
+                home.tap()
+                Thread.sleep(forTimeInterval: 0.6)
+                capture(named: "builder-\(appearance)-07-equipment-home")
+            }
+            app.navigationBars["Equipment"].buttons["Done"].tap()
+
+            let abs = app.buttons["Abs"].firstMatch
+            if findByScrolling(abs) {
+                abs.tap()
+                create.tap()
+                XCTAssertTrue(app.navigationBars["Your workout"].waitForExistence(timeout: 5))
+                Thread.sleep(forTimeInterval: 1)
+                capture(named: "builder-\(appearance)-08-plan-home-abs")
+                app.swipeUp()
+                capture(named: "builder-\(appearance)-09-plan-home-abs-scrolled")
+            }
+            app.terminate()
+        }
+    }
+
     /// A recipe's method list and cooking mode, for before/after shots of
     /// the step layout: the list untouched, then with step 1 ticked, then
     /// cooking mode on a step with a timer (idle and running) and on a

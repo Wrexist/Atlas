@@ -53749,12 +53749,346 @@
         }
       }
     },
-    "Pick another muscle, or add equipment in Profile.": {
+    "Atlas only plans exercises you can do with what's ticked here. Bodyweight work is always included.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Välj en annan muskel eller lägg till utrustning i Profil."
+            "value": "Atlas planerar bara övningar du kan göra med det som är ibockat här. Kroppsviktsövningar finns alltid med."
+          }
+        }
+      }
+    },
+    "FREE WEIGHTS": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FRIA VIKTER"
+          }
+        }
+      }
+    },
+    "STATIONS": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "STATIONER"
+          }
+        }
+      }
+    },
+    "MACHINES": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MASKINER"
+          }
+        }
+      }
+    },
+    "SMALL KIT": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ÖVRIGT"
+          }
+        }
+      }
+    },
+    "Select all": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj alla"
+          }
+        }
+      }
+    },
+    "Clear all": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avmarkera alla"
+          }
+        }
+      }
+    },
+    "Tap a muscle on the body": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på en muskel på kroppen"
+          }
+        }
+      }
+    },
+    "Choose the equipment you have": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj utrustningen du har"
+          }
+        }
+      }
+    },
+    "Pick another muscle, or tick more equipment.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en annan muskel eller bocka i mer utrustning."
+          }
+        }
+      }
+    },
+    "Added %@ to fill your %lld minutes.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La till %@ för att fylla dina %lld minuter."
+          }
+        }
+      }
+    },
+    "Shows how to do it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar hur du gör"
+          }
+        }
+      }
+    },
+    "location.gym": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gym"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gym"
+          }
+        }
+      }
+    },
+    "location.home": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hemma"
+          }
+        }
+      }
+    },
+    "machine.legPress": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leg press"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benpress"
+          }
+        }
+      }
+    },
+    "machine.hackSquat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hack squat"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hacksquat"
+          }
+        }
+      }
+    },
+    "machine.legExtension": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leg extension"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benspark"
+          }
+        }
+      }
+    },
+    "machine.legCurl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leg curl"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lårcurl"
+          }
+        }
+      }
+    },
+    "machine.calfRaise": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calf raise"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vadpress"
+          }
+        }
+      }
+    },
+    "machine.chestPress": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chest press"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bröstpress"
+          }
+        }
+      }
+    },
+    "machine.shoulderPress": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shoulder press"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Axelpress"
+          }
+        }
+      }
+    },
+    "machine.seatedRow": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Row machine"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roddmaskin"
+          }
+        }
+      }
+    },
+    "machine.pecDeck": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pec deck"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Butterfly"
+          }
+        }
+      }
+    },
+    "machine.armMachine": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arm curl / extension"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bicepscurl / tricepspress"
+          }
+        }
+      }
+    },
+    "machine.hipMachine": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hip abduction / adduction"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abduktor / adduktor"
+          }
+        }
+      }
+    },
+    "machine.abMachine": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ab crunch"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Magmaskin"
           }
         }
       }
