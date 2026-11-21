@@ -711,8 +711,10 @@ final class ScreenshotTests: XCTestCase {
             Thread.sleep(forTimeInterval: 0.6)
             capture(named: "builder-\(appearance)-05-plan-scrolled")
 
+            // Back opens the picker at its top; a swipe down here would
+            // pull the sheet closed.
             app.buttons["Back"].firstMatch.tap()
-            app.swipeDown()
+            Thread.sleep(forTimeInterval: 0.6)
             let equipment = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Equipment'")).firstMatch
             XCTAssertTrue(equipment.waitForExistence(timeout: 5))
             equipment.tap()
