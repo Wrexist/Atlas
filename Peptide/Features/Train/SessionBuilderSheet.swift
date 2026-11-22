@@ -177,7 +177,14 @@ struct SessionBuilderSheet: View {
                     }
                 }
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
-                .id(Self.focusAnchor)
+                // The anchor sits a gap above the card, so scrolling to it
+                // leaves air under the title bar instead of a touching edge.
+                .background(alignment: .top) {
+                    Color.clear
+                        .frame(height: Spacing.md)
+                        .padding(.top, -Spacing.md)
+                        .id(Self.focusAnchor)
+                }
             }
 
             section("MINUTES") {
