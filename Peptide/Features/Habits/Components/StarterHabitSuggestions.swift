@@ -52,7 +52,7 @@ struct StarterHabitSuggestions: View {
                 .foregroundStyle(AppColor.textTertiary)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: Spacing.chipSpacing) {
                     ForEach(templates) { template in
                         chip(template)
                     }

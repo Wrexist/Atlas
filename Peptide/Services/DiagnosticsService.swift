@@ -93,12 +93,6 @@ final class DiagnosticsService: NSObject, MXMetricManagerSubscriber {
         AppLog.diagnostics.info("MetricKit subscription registered")
     }
 
-    /// Symmetric stop. Tests use it to keep the global subscriber
-    /// list clean across runs.
-    func stopCollecting() {
-        MXMetricManager.shared.remove(self)
-    }
-
     // MARK: - MXMetricManagerSubscriber
 
     nonisolated func didReceive(_ payloads: [MXMetricPayload]) {

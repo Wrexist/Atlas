@@ -68,15 +68,6 @@ final class ReviewPromptService {
         Self.paywallViewed(in: OnboardingFunnelTracker.snapshot.events, since: sessionStart)
     }
 
-    /// Used when the user explicitly taps a "Rate the app" CTA (e.g. the
-    /// onboarding review screen). Skips engagement gates — the user just
-    /// opted in — but still honours the 90-day / per-version cooldown so the
-    /// system sheet doesn't burn one of iOS's three annual prompts.
-    func requestReviewOnUserAction(using request: RequestReviewAction) {
-        guard isWithinCooldownWindow else { return }
-        fire(request)
-    }
-
     /// Internal (not private) so tests can validate the gating rules without
     /// having to construct a SwiftUI `RequestReviewAction`.
     var isEligible: Bool {

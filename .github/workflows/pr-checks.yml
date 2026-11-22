@@ -80,7 +80,7 @@ jobs:
             # Single grep against one regex — no bash case loops, no
             # backslash continuations. Any iOS-relevant prefix flips
             # ios to true; otherwise we skip the macOS runner.
-            if echo "$FILES" | grep -qE '^(Peptide(Tests|UITests|Widgets|Watch|WatchWidgets)?/|Shared/|WatchShared/|fastlane/|project\.yml$|Gemfile(\.lock)?$|\.swiftlint\.yml$|\.github/workflows/(pr-checks|ios-testflight|release|binary-size)\.yml$)'; then
+            if echo "$FILES" | grep -qE '^(Peptide(Tests|UITests|Widgets|Watch|WatchWidgets)?/|Shared/|WatchShared/|fastlane/|project\.yml$|Gemfile(\.lock)?$|\.swiftlint\.yml$|\.github/workflows/(pr-checks|ios-testflight|binary-size)\.yml$|\.github/actions/|scripts/(check-extracted-strings|pick-simulator|ratchet)\.py$|scripts/ci-baselines\.json$)'; then
               IOS=true
               echo "→ iOS-relevant changes detected; build-check will run."
             else
@@ -287,7 +287,9 @@ jobs:
         # forms it does not know, so it can pass while English ships.
         # The Debug build above wrote a .stringsdata per Swift file with
         # every key the compiler will look up; each must be translated.
-        run: python3 scripts/check-extracted-strings.py ~/Library/Developer/Xcode/DerivedData
+        # Read from that build's own DerivedData, not the restored cache,
+        # which holds main's strings and would miss this PR's new keys.
+        run: python3 scripts/check-extracted-strings.py "$RUNNER_TEMP/build-warnings"
 
       - name: Build app (Release)
         # Debug alone never sees a symbol referenced outside its

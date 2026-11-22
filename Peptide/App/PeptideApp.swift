@@ -903,6 +903,10 @@ struct WorkoutAccessoryView: View {
     @State private var sessionService = WorkoutSessionService.shared
     @State private var loggedToday = 0
 
+    private func reloadLoggedToday() {
+        loggedToday = dataStore.workoutSummary().count
+    }
+
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
@@ -922,8 +926,11 @@ struct WorkoutAccessoryView: View {
         .padding(.vertical, Spacing.xs)
         .appAnimation(AppAnimation.springSnappy, value: loggedToday)
         .accessibilityElement(children: .combine)
-        .task(id: dataStore.revision) {
-            loggedToday = dataStore.workoutSummary().count
+        // Keyed on workout history only: `revision` also bumps on every
+        // water tap and dose, and each bump re-ran this SwiftData fetch.
+        .task(id: dataStore.trainingRevision) { reloadLoggedToday() }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            reloadLoggedToday()
         }
     }
 

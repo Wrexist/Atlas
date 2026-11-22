@@ -30,22 +30,6 @@ struct GlassCard<Content: View>: View {
     }
 }
 
-struct GlassCardCompact<Content: View>: View {
-    var tinted: Bool
-    @ViewBuilder var content: () -> Content
-
-    init(tinted: Bool = false, @ViewBuilder content: @escaping () -> Content) {
-        self.tinted = tinted
-        self.content = content
-    }
-
-    var body: some View {
-        GlassCard(cornerRadius: Spacing.smallCornerRadius, tinted: tinted, padding: Spacing.md) {
-            content()
-        }
-    }
-}
-
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()

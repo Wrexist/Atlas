@@ -125,31 +125,4 @@ final class TrainingPatternEngineTests: XCTestCase {
             0
         )
     }
-
-    // MARK: - preferredWeekdays
-
-    func test_preferredWeekdays_singleMostTrainedDay() {
-        // Jan 1, 8, 15 2024 are all Mondays — ISO weekday 1.
-        let sessions = [date(2024, 1, 1), date(2024, 1, 8), date(2024, 1, 15)]
-        XCTAssertEqual(
-            TrainingPatternEngine.preferredWeekdays(sessionDates: sessions, calendar: utcCalendar),
-            [1]
-        )
-    }
-
-    func test_preferredWeekdays_tiesAreAllReturned_sortedAscending() {
-        let sessions = [
-            date(2024, 1, 1),                        // Monday (1) — 1 session
-            date(2024, 1, 3), date(2024, 1, 10),      // Wednesday (3) — 2 sessions
-            date(2024, 1, 7), date(2024, 1, 14),      // Sunday (7) — 2 sessions
-        ]
-        XCTAssertEqual(
-            TrainingPatternEngine.preferredWeekdays(sessionDates: sessions, calendar: utcCalendar),
-            [3, 7]
-        )
-    }
-
-    func test_preferredWeekdays_emptyInput_returnsEmpty() {
-        XCTAssertEqual(TrainingPatternEngine.preferredWeekdays(sessionDates: [], calendar: utcCalendar), [])
-    }
 }

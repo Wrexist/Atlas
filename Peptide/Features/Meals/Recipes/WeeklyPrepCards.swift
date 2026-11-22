@@ -208,7 +208,7 @@ private struct ShoppingRow: View {
                 if isAtHome {
                     Text("At home")
                         .font(AppFont.caption2.weight(.semibold))
-                        .foregroundStyle(AppColor.positive)
+                        .foregroundStyle(AppColor.success)
                         .fixedSize()
                 } else {
                     Text("\(grams) g")

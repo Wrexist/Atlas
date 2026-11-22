@@ -63,8 +63,8 @@ struct WorkoutHistoryView: View {
             }
         }
         .onAppear(perform: reload)
-        // A workout finished or edited elsewhere bumps the revision.
-        .onChange(of: dataStore.revision) { _, _ in reload() }
+        // A workout finished or edited elsewhere bumps the training revision.
+        .onChange(of: dataStore.trainingRevision) { _, _ in reload() }
         .task(id: dataStore.profile.healthConnected) { await loadCardio() }
         .sheet(item: $inspectedCardio) { workout in
             CardioWorkoutDetailSheet(

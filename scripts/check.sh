@@ -90,16 +90,6 @@ else
   printf '\n\033[1m── Proxy tests\033[0m\n\033[33m   skipped\033[0m\n'
 fi
 
-# ------------------------------------------------------------- Marketing side
-if [ "$QUICK" = "0" ] && [ -d marketing/app-store ] && command -v node >/dev/null 2>&1; then
-  for set in phone watch watchframe ipad; do
-    run "App Store screens — $set" bash -c \
-      "cd marketing/app-store && node measure.mjs $set 2>&1 | tail -1 | grep -qE '^\[.*\] 0 contrast'"
-  done
-else
-  printf '\n\033[1m── App Store screens\033[0m\n\033[33m   skipped\033[0m\n'
-fi
-
 # ---------------------------------------------------------------------- Result
 printf '\n'
 if [ ${#FAILED[@]} -eq 0 ]; then

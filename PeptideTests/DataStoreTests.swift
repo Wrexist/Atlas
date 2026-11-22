@@ -302,17 +302,6 @@ final class DataStoreTests: XCTestCase {
         XCTAssertLessThanOrEqual(avg, 1)
     }
 
-    func test_complianceTrend_returnsValueInRange() {
-        let trend = store.complianceTrend(for: 7)
-        XCTAssertGreaterThanOrEqual(trend, -1)
-        XCTAssertLessThanOrEqual(trend, 1)
-    }
-
-    func test_complianceTrend_zeroForSingleDay() {
-        let trend = store.complianceTrend(for: 1)
-        XCTAssertEqual(trend, 0)
-    }
-
     // MARK: - Profile
 
     func test_updateGoals_setsGoalsSorted() {

@@ -702,7 +702,7 @@ struct MealScanFlow: View {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(AppFont.scaled(13, weight: .bold))
-                    .foregroundStyle(AppColor.positive)
+                    .foregroundStyle(AppColor.success)
                 Text("^[\(items.count) item](inflect: true) detected")
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
@@ -1596,7 +1596,7 @@ private struct FoodItemEditCard: View {
                 if let verified = item.activeVerification {
                     Label(verified.displayName, systemImage: "checkmark.circle.fill")
                         .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.positive)
+                        .foregroundStyle(AppColor.success)
                         .lineLimit(1)
                 } else if item.isUncertain {
                     uncertaintyHint
@@ -1793,7 +1793,7 @@ private struct FoodItemEditCard: View {
 
     private var presetChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.chipSpacing) {
                 ForEach(item.activePortionOptions) { option in
                     chip(label: option.label, grams: option.grams)
                 }

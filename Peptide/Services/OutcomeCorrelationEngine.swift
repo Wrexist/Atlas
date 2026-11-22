@@ -7,14 +7,10 @@ import Foundation
 /// so we run it locally on every render and let the cache layer in
 /// the view memoise results if needed.
 ///
-/// Two output shapes:
-///
-///   • `DimensionCorrelation` — per-dimension delta between days the
-///     user took at least one dose and days they didn't. Surfaces
-///     the most striking numbers ("sleep is 0.6 points higher on
-///     dosing days") as headline insights.
-///   • `TrendPoint` — daily composite score with overlaid dose-day
-///     marker. Drives the timeline visualisation.
+/// Output: `DimensionCorrelation` — per-dimension delta between days the
+/// user took at least one dose and days they didn't. Surfaces the most
+/// striking numbers ("sleep is 0.6 points higher on dosing days") as
+/// headline insights.
 ///
 /// Sample-size guards throughout: a single dosing day's worth of
 /// data isn't enough to draw any conclusion. Callers get nil from
@@ -111,42 +107,6 @@ enum OutcomeCorrelationEngine {
         // Sort by delta descending so the strongest positive
         // correlation wins. Ties broken arbitrarily but stably.
         return candidates.max { ($0.delta ?? 0) < ($1.delta ?? 0) }
-    }
-
-    // MARK: - Timeline points
-
-    struct TrendPoint: Equatable, Sendable {
-        let date: Date
-        let composite: Double
-        let onDoseDay: Bool
-    }
-
-    /// Daily composite-score points for the last `days` days. Days
-    /// without a check-in are skipped (rather than zero-filled) so
-    /// the chart shows real data, not a misleading gap-as-zero.
-    static func trendPoints(
-        outcomes: [OutcomeEntry],
-        entries: [ProtocolEntry],
-        days: Int
-    ) -> [TrendPoint] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        guard let cutoff = calendar.date(byAdding: .day, value: -days + 1, to: today) else { return [] }
-        let dosedDays: Set<Date> = Set(
-            entries
-                .filter(\.completed)
-                .map { calendar.startOfDay(for: $0.date) }
-        )
-        return outcomes
-            .filter { $0.date >= cutoff }
-            .sorted { $0.date < $1.date }
-            .map { entry in
-                TrendPoint(
-                    date: entry.date,
-                    composite: entry.composite,
-                    onDoseDay: dosedDays.contains(calendar.startOfDay(for: entry.date))
-                )
-            }
     }
 
     // MARK: - Helpers

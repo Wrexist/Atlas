@@ -109,7 +109,7 @@ struct BioAgeCoverageCard: View {
 
             Image(systemName: present ? "checkmark.circle.fill" : "circle.dashed")
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(present ? AppColor.positive : AppColor.textTertiary)
+                .foregroundStyle(present ? AppColor.success : AppColor.textTertiary)
                 .scaleEffect(appeared || reduceMotion ? 1 : 0.4)
                 .opacity(appeared ? 1 : 0)
                 .animation(reduceMotion ? nil : AppAnimation.staggered(index: index), value: appeared)
