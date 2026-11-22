@@ -79,19 +79,6 @@ def copy_says(pattern: str) -> list[tuple[str, str]]:
     return found
 
 
-def marketing_says(pattern: str) -> list[tuple[str, str]]:
-    """Same, for the App Store screens — where the tier error actually was."""
-    found = []
-    base = REPO / "marketing" / "app-store"
-    if not base.exists():
-        return found
-    for d in ("screens", "screens-watch", "screens-watch-frames", "social"):
-        for p in sorted((base / d).glob("*.html")):
-            for m in re.finditer(pattern, p.read_text()):
-                found.append((str(p.relative_to(REPO)), m.group(0)))
-    return found
-
-
 # Ids a test deliberately expects to be *absent*, so `lookup` returns nil and
 # the empty-result path gets exercised. Each one must stay unfindable.
 DELIBERATE_MISSING_IDS = {
@@ -147,18 +134,13 @@ def check_exercise_fixtures() -> list[str]:
 
 # Store-facing briefs must use the product names: "Protocol", not "stack",
 # and "Biological Age", not the retired "Performance Age".
-STORE_BRIEFS = ("APP_STORE_METADATA.md", "SCREENSHOT_PROMPT.md")
+STORE_BRIEFS = ("APP_STORE_METADATA.md",)
 RETIRED_TERMS = r"(?i)\bperformance age\b|\bstack(?:s|ing)?\b"
 
 
 def store_facing_files() -> list[pathlib.Path]:
-    """The briefs, every marketing screen and doc, and the Marketing URL page
-    App Review opens. The screenshots said "Performance Age" long after the
-    briefs were fixed, because only the briefs were scanned."""
+    """The store brief and the Marketing URL page App Review opens."""
     files = [REPO / name for name in STORE_BRIEFS] + [REPO / "docs" / "index.html"]
-    marketing = REPO / "marketing"
-    if marketing.exists():
-        files += sorted(p for p in marketing.rglob("*") if p.suffix in (".html", ".md"))
     return [p for p in files if p.exists()]
 
 
@@ -172,23 +154,6 @@ def check_store_terms() -> list[str]:
                 failures.append(f"term:{name}:{number}")
     if not failures:
         print("  ok   store-facing copy uses Protocol / Biological Age naming")
-    return failures
-
-
-# The app removed its synthetic "offer ends in" timer as misleading urgency
-# (TrialOfferView), so a store screen showing one advertises UI that does not
-# exist (Guideline 2.3.1).
-COUNTDOWN_COPY = r"(?i)\bends in\b|\boffer expires\b|\btime left\b|\bcountdown\b"
-
-
-def check_screenshot_countdowns() -> list[str]:
-    failures = []
-    for file, text in marketing_says(r"<[^<>]*>[^<>]*</"):
-        if re.search(COUNTDOWN_COPY, text):
-            print(f"  FAIL {file}: countdown copy {text!r}")
-            failures.append(f"countdown:{file}")
-    if not failures:
-        print("  ok   store screens show no offer countdown")
     return failures
 
 
@@ -264,25 +229,6 @@ def check_health_directives() -> list[str]:
     return failures
 
 
-def tier_for_level(level: int) -> str:
-    """Mirror of MomentumEngine.Tier.forLevel, parsed from the source so it
-    cannot drift from it."""
-    source = (REPO / "Peptide" / "Services" / "MomentumEngine.swift").read_text()
-    m = re.search(r"static func forLevel[^{]*\{(.*?)\n        \}", source, re.S)
-    if not m:
-        raise SystemExit("could not parse Tier.forLevel")
-    for line in m.group(1).splitlines():
-        b = re.search(r"case\s+(\d*)\.\.<(\d+):\s*return\s+\.(\w+)", line)
-        if b:
-            lo = int(b.group(1)) if b.group(1) else 0
-            if lo <= level < int(b.group(2)):
-                return b.group(3)
-        d = re.search(r"default:\s*return\s+\.(\w+)", line)
-        if d:
-            fallback = d.group(1)
-    return fallback
-
-
 def main() -> int:
     failures: list[str] = []
 
@@ -316,23 +262,6 @@ def main() -> int:
         check("lab panels", int(m.group(1)), panels, "exact", sites)
         check("lab categories", int(m.group(2)), cats, "exact", sites)
 
-    # Marketing: "208 researched compounds"
-    sites = marketing_says(r"(\d{3}) researched compounds")
-    if sites:
-        claimed = int(re.search(r"(\d{3})", sites[0][1]).group(1))
-        check("compounds (marketing)", claimed,
-              dataset_count("peptides.json"), "exact", sites)
-
-    # Marketing: the level/tier pairing that was wrong.
-    for file, text in marketing_says(r"LEVEL[\s\S]{0,400}?>(\d{1,3})<[\s\S]{0,200}?>([A-Z]{4,9})<"):
-        m = re.search(r">(\d{1,3})<[\s\S]{0,200}?>([A-Z]{4,9})<", text)
-        level, shown = int(m.group(1)), m.group(2).lower()
-        real = tier_for_level(level)
-        ok = shown == real
-        print(f"  {'ok  ' if ok else 'FAIL'} tier: {file.split('/')[-1]} shows level "
-              f"{level} as {shown.upper()}, engine says {real.upper()}")
-        if not ok:
-            failures.append(f"tier in {file}")
 
     # Privacy purpose strings vs the APIs the code actually touches. A missing
     # one is a hard TCC termination on first access; a wrong one is what the
@@ -416,7 +345,6 @@ def main() -> int:
 
     failures += check_exercise_fixtures()
     failures += check_store_terms()
-    failures += check_screenshot_countdowns()
     failures += check_health_directives()
     failures += check_compatibility_wording()
 

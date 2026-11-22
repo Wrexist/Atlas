@@ -119,9 +119,6 @@ Still owed, none of it possible without hardware:
   on device that it doesn't double up with the phone's notification.
 - **Sleep Score weights** (duration 60, deep + REM 25, continuity 15) are
   a product call nobody has signed off on yet.
-- **Store screenshots** in `marketing/app-store/screenshots-watch-*` are
-  renders of `screens-watch/`. Check them against the device before
-  uploading; update the HTML if the build differs.
 - **Vercel `peptide-ai`** (the docs site) refuses deployments whose commit
   author has no linked Vercel account, so Claude-authored commits show it
   red. Allow unlinked authors in that project's Git settings, or ignore it.
