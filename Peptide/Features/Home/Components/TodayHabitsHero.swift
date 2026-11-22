@@ -201,7 +201,7 @@ struct TodayHabitsHero: View {
 
     private var chipsRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.chipSpacing) {
                 ForEach(snapshot.items) { item in
                     HabitCompletionChip(
                         habit: item.habit,

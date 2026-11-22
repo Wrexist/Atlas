@@ -292,7 +292,7 @@ struct StackAdjustmentSheet: View {
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
 
-                FlowLayout(spacing: Spacing.xs) {
+                FlowLayout(spacing: Spacing.chipSpacing) {
                     ForEach(originalPeptides) { peptide in
                         toggleablePeptideChip(peptide)
                     }

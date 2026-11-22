@@ -144,7 +144,8 @@ struct BiometricCard: View {
         case (.higherIsBetter, .lower), (.lowerIsBetter, .higher):
             return AppColor.belowRange             // soft blue — cautionary, not danger
         case (.neutral, _):
-            return AppColor.accentLight
+            // No better direction, so no verdict colour: ink, not accent.
+            return AppColor.textSecondary
         }
     }
 }

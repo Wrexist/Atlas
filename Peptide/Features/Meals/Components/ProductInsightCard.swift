@@ -76,7 +76,7 @@ struct ProductInsightCard: View {
 
     private func portionChips(_ options: [FoodPortionOption]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.chipSpacing) {
                 ForEach(options) { option in
                     let isActive = portionGrams.map { abs($0 - option.grams) < 0.5 } ?? false
                     Button {

@@ -70,7 +70,7 @@ struct WorkoutSocialCanvas: View {
             Image("AtlasLogo").resizable().scaledToFit().frame(width: 22, height: 22)
             Text("ATLAS").font(.subheadline.weight(.semibold)).tracking(3)
             Spacer()
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(AppColor.positive)
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(AppColor.success)
         }
     }
 
