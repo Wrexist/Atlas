@@ -49,10 +49,10 @@ enum DailyReminderScheduler {
         }
 
         let trainingWeekdays = Set((profile.trainingPreferences?.preferredDays ?? []).map(\.calendarWeekdayValue))
+        // Only today can already hold a finished workout; checking the
+        // whole horizon ran one SwiftData fetch per future day.
         let today = calendar.startOfDay(for: Date())
-        let trainedDays = (0..<ReminderTriggerEngine.horizonDays)
-            .compactMap { calendar.date(byAdding: .day, value: $0, to: today) }
-            .filter { dataStore.workoutSummary(for: $0).count > 0 }
+        let trainedDays = dataStore.workoutSummary(for: today).count > 0 ? [today] : []
         let planned = DailyReminderEngine.plan(
             settings: settings,
             trainingWeekdays: trainingWeekdays,
