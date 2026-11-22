@@ -54118,6 +54118,26 @@
           }
         }
       }
+    },
+    "Equipment · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utrustning · %@"
+          }
+        }
+      }
+    },
+    "Exercise %lld, %@, %lld sets of %lld reps, RPE %@, %@ rest": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Övning %lld, %@, %lld set à %lld reps, RPE %@, %@ vila"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

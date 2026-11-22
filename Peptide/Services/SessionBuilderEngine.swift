@@ -125,6 +125,22 @@ enum SessionBuilderEngine {
             }
         }
 
+        /// The body region the picker lists it under.
+        var category: Category {
+            Category.allCases.first { $0.targets.contains(self) } ?? .core
+        }
+
+        /// Exercises that lead this muscle's pattern even over ones the
+        /// user has logged: the glutes' hinge slot is a hip thrust or a
+        /// bridge, so a glute day next to hamstrings never stacks a second
+        /// heavy deadlift on the hamstrings' RDL.
+        var preferred: Set<String> {
+            switch self {
+            case .glutes: ["Barbell_Hip_Thrust", "Single_Leg_Glute_Bridge", "Butt_Lift_Bridge"]
+            default: []
+            }
+        }
+
         /// How the picker groups the muscles.
         enum Category: CaseIterable, Sendable {
             case chestAndShoulders, back, arms, legs, core
@@ -261,6 +277,11 @@ enum SessionBuilderEngine {
 
     static func build(_ request: Request, catalog: [Exercise]) -> Plan {
         let pool = Pool(profile: request.equipment, experience: request.experience, catalog: catalog)
+        // A focus the kit can't train gets no session at all, rather than a
+        // full one of companions under its name.
+        guard !pool.exercises(for: request.focus, used: [], familiar: []).isEmpty else {
+            return Plan(routine: Routine(name: request.focus.displayName, exercises: []), others: [], added: [])
+        }
         let budget = request.minutes * 60
         var targets = [request.focus] + request.companions
         var sets = Dictionary(uniqueKeysWithValues: targets.map { ($0, plannedSets(for: $0, in: request)) })
@@ -307,8 +328,9 @@ enum SessionBuilderEngine {
     }
 
     /// Muscles that may join to fill the time: the focus's own companions
-    /// first, then everything else, most recovered and furthest from its
-    /// weekly target first. Muscles that should rest never join.
+    /// first, then the rest of its body region, then everything else, most
+    /// recovered and furthest from its weekly target first. Muscles that
+    /// should rest never join, and small ones only when picked.
     static func fillCandidates(for request: Request) -> [Target] {
         let target = MuscleVolumeTargets.weeklySets(for: request.experience).lowerBound
         func score(_ candidate: Target) -> Double {
@@ -318,24 +340,30 @@ enum SessionBuilderEngine {
         }
         // Ties keep the declaration order, so the same request always
         // builds the same session.
+        let region = request.focus.category
         let others = Target.allCases
-            .filter { !request.focus.companions.contains($0) && $0 != request.focus && !$0.isMinor }
+            .filter { !request.focus.companions.contains($0) && $0 != request.focus }
             .enumerated()
             .sorted { lhs, rhs in
+                let leftNear = lhs.element.category == region, rightNear = rhs.element.category == region
+                if leftNear != rightNear { return leftNear }
                 let left = score(lhs.element), right = score(rhs.element)
                 return left != right ? left > right : lhs.offset < rhs.offset
             }
             .map(\.element)
         return (request.focus.companions + others)
-            .filter { request.states[$0]?.recovery.status != .rest }
+            .filter { !$0.isMinor && request.states[$0]?.recovery.status != .rest }
     }
 
     /// Most sets a muscle takes in one session: a little past the cap for
     /// the focus, the cap for the rest, and never more than its available
-    /// exercises can carry.
+    /// exercises can carry. A muscle that should rest keeps its lighter
+    /// planned volume: filling time never grows it back.
     private static func ceiling(for target: Target, in request: Request, pool: Pool) -> Int {
         let cap = MuscleVolumeTargets.sessionCap(for: request.experience)
-        let volume = target == request.focus ? cap + 2 : cap
+        let volume = request.states[target]?.recovery.status == .rest
+            ? plannedSets(for: target, in: request)
+            : target == request.focus ? cap + 2 : cap
         let available = pool.exercises(for: target, used: [], familiar: []).count
         return min(volume, available * maxSetsPerExercise)
     }
@@ -409,7 +437,7 @@ enum SessionBuilderEngine {
         "Incline_Dumbbell_Flyes", "Cable_Seated_Lateral_Raise", "Incline_Dumbbell_Curl",
         "Standing_Dumbbell_Triceps_Extension", "EZ-Bar_Skullcrusher", "Seated_Leg_Curl",
         "Romanian_Deadlift", "Hack_Squat", "Split_Squat_with_Dumbbells", "Standing_Calf_Raises",
-        "Straight-Arm_Dumbbell_Pullover", "Seated_Cable_Rows", "Cable_Crunch",
+        "Seated_Cable_Rows", "Cable_Crunch",
     ]
 
     // MARK: - Pieces
@@ -420,6 +448,13 @@ enum SessionBuilderEngine {
         let exerciseID: String
         let sets: Int
     }
+
+    /// Shortlist entries the builder leaves out: holds and drills it would
+    /// have to prescribe in reps, a power throw, and a Nordic curl, which
+    /// nobody should do for 12 reps near failure.
+    static let excluded: Set<String> = [
+        "Dead_Bug", "Side_Bridge", "One-Arm_Medicine_Ball_Slam", "Natural_Glute_Ham_Raise",
+    ]
 
     /// The shortlist narrowed to what the user's equipment profile and
     /// experience allow.
@@ -440,7 +475,7 @@ enum SessionBuilderEngine {
 
         func eligible(for pattern: MovementPattern) -> [String] {
             ProgramGeneratorEngine.candidates(for: pattern).filter { id in
-                guard let exercise = byID[id] else { return false }
+                guard !SessionBuilderEngine.excluded.contains(id), let exercise = byID[id] else { return false }
                 return profile.allows(exercise) && ProgramGeneratorEngine.rank(exercise.level) <= maxLevel
             }
         }
@@ -456,7 +491,7 @@ enum SessionBuilderEngine {
             var taken = used
             for pattern in target.patterns {
                 let ranked = SessionBuilderEngine.ranked(eligible(for: pattern).filter { !taken.contains($0) },
-                                                         familiar: familiar)
+                                                         familiar: familiar, preferred: target.preferred)
                 let count = target.patterns.count == 1 ? 2 : 1
                 for id in ranked.prefix(count) {
                     chosen.append((id, pattern))
@@ -467,23 +502,31 @@ enum SessionBuilderEngine {
         }
     }
 
-    /// Logged-before first, then lengthened favourites, then shortlist order.
-    fileprivate static func ranked(_ ids: [String], familiar: Set<String>) -> [String] {
-        ids.enumerated().sorted { lhs, rhs in
-            let left = (familiar.contains(lhs.element) ? 2 : 0) + (lengthenedFavourites.contains(lhs.element) ? 1 : 0)
-            let right = (familiar.contains(rhs.element) ? 2 : 0) + (lengthenedFavourites.contains(rhs.element) ? 1 : 0)
+    /// The muscle's own preferred lifts first, then logged-before, then
+    /// lengthened favourites, then shortlist order.
+    fileprivate static func ranked(_ ids: [String], familiar: Set<String>, preferred: Set<String> = []) -> [String] {
+        func weight(_ id: String) -> Int {
+            (preferred.contains(id) ? 4 : 0) + (familiar.contains(id) ? 2 : 0) + (lengthenedFavourites.contains(id) ? 1 : 0)
+        }
+        return ids.enumerated().sorted { lhs, rhs in
+            let left = weight(lhs.element), right = weight(rhs.element)
             return left != right ? left > right : lhs.offset < rhs.offset
         }.map(\.element)
     }
 
     /// The focus gets a full session's volume; companions half. A muscle
-    /// still recovering gets three quarters. A deload keeps the sets: the
+    /// still recovering gets three quarters, one that should rest half:
+    /// the picker promises it can still be trained, lighter. A deload keeps the sets: the
     /// workout's suggestions lighten the load and reps when it starts, so
     /// cutting sets here too would deload it twice.
     static func plannedSets(for target: Target, in request: Request) -> Int {
         let cap = Double(MuscleVolumeTargets.sessionCap(for: request.experience))
         var sets = target == request.focus ? cap : (cap / 2).rounded(.up)
-        if request.states[target]?.recovery.status == .recovering { sets *= 0.75 }
+        switch request.states[target]?.recovery.status {
+        case .recovering?: sets *= 0.75
+        case .rest?: sets *= 0.5
+        default: break
+        }
         return max(ProgramGeneratorEngine.minimumSets, Int(sets.rounded()))
     }
 

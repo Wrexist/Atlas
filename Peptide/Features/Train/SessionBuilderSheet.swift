@@ -33,9 +33,12 @@ struct SessionBuilderSheet: View {
     @State private var isSaved = false
     @State private var showsEquipment = false
     @State private var detailExercise: Exercise?
+    /// Bumped by each pick from the muscle list, to scroll its next step in.
+    @State private var listPicks = 0
 
     private typealias Target = SessionBuilderEngine.Target
     private static let minuteOptions = [30, 45, 60, 75]
+    private static let focusAnchor = "focus"
     /// The map's two fills, shared with its key so the dots match the
     /// muscles they label in both modes.
     private static let focusColor = AppColor.trainingPrimaryMuscleTint
@@ -46,6 +49,8 @@ struct SessionBuilderSheet: View {
     private static let focusChipColor = AppColor.trainingPrimaryMuscle
     private static let companionChipColor = AppColor.trainingSecondaryMuscle
     private static let pictureHeight: CGFloat = 132
+    /// The exercise number's circle grows with the number's text size.
+    @ScaledMetric(relativeTo: .footnote) private var badgeSize: CGFloat = 30
 
     /// The built session with what its page draws, worked out once when it
     /// is built rather than on every render: step pictures are a bundle
@@ -65,19 +70,29 @@ struct SessionBuilderSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                // Overlapping, not stacked, while one page hands over to
-                // the other: the built workout slides in from the trailing
-                // edge and Back brings the picker in from the leading one.
-                ZStack(alignment: .top) {
-                    if let built {
-                        preview(built)
-                            .transition(.sectionSwap(forward: true))
-                    } else {
-                        picker
-                            .transition(.sectionSwap(forward: false))
+                ScrollViewReader { proxy in
+                    // Overlapping, not stacked, while one page hands over to
+                    // the other: the built workout slides in from the trailing
+                    // edge and Back brings the picker in from the leading one.
+                    ZStack(alignment: .top) {
+                        if let built {
+                            preview(built)
+                                .transition(.sectionSwap(forward: true))
+                        } else {
+                            picker
+                                .transition(.sectionSwap(forward: false))
+                        }
+                    }
+                    .readableContentWidth()
+                    // A muscle picked by name, low on the page, brings its
+                    // next step into view; one tapped on the body already
+                    // sits right above it.
+                    .onChange(of: listPicks) {
+                        AppAnimation.with(AppAnimation.springSnappy) {
+                            proxy.scrollTo(Self.focusAnchor, anchor: .top)
+                        }
                     }
                 }
-                .readableContentWidth()
             }
             // Each page opens at its top, not where the other was left.
             .scrollPosition($scroll)
@@ -93,6 +108,9 @@ struct SessionBuilderSheet: View {
             // The fade is drawn above the footer instead (see `footer`).
             .pinnedFooter(fadeHeight: 0) { footer }
             .task { await load() }
+            // A muscle tapped before recovery loaded gets its companions
+            // again once it has, so resting ones drop out.
+            .onChange(of: states) { if let focus { suggestCompanions(for: focus) } }
             .sheet(isPresented: $showsEquipment) {
                 EquipmentProfileSheet(location: equipmentStore.location)
             }
@@ -138,14 +156,9 @@ struct SessionBuilderSheet: View {
             placeCard
             bodyPicker(mapHighlights)
 
-            section("MUSCLE") {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
-                    ForEach(Target.Category.allCases, id: \.self) { category in
-                        categoryGroup(category)
-                    }
-                }
-            }
-
+            // What a pick decides sits right under the body, so tapping a
+            // muscle shows its next step without a scroll; the full list of
+            // muscles follows for picking by name.
             if let focus {
                 VStack(alignment: .leading, spacing: Spacing.xxl) {
                     statusCard(for: focus)
@@ -164,11 +177,25 @@ struct SessionBuilderSheet: View {
                     }
                 }
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
+                // The anchor sits a gap above the card, so scrolling to it
+                // leaves air under the title bar instead of a touching edge.
+                .background(alignment: .top) {
+                    Color.clear
+                        .frame(height: Spacing.md)
+                        .padding(.top, -Spacing.md)
+                        .id(Self.focusAnchor)
+                }
             }
 
             section("MINUTES") {
                 GlassSegmentedControl(options: Self.minuteOptions, selected: $minutes,
                                       label: { LocalizedStringKey("\($0)") })
+            }
+
+            VStack(alignment: .leading, spacing: Spacing.lg) {
+                ForEach(Target.Category.allCases, id: \.self) { category in
+                    categoryGroup(category)
+                }
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
@@ -194,7 +221,7 @@ struct SessionBuilderSheet: View {
                 Button { showsEquipment = true } label: {
                     HStack(spacing: Spacing.md) {
                         GlyphImage(glyph: EquipmentKind.dumbbell.glyph, size: 15)
-                            .foregroundStyle(AppColor.accentPrimary)
+                            .foregroundStyle(AppColor.textSecondary)
                             .frame(width: 28, height: 28)
                         Text("Equipment")
                             .font(AppFont.scaled(16, weight: .semibold))
@@ -303,15 +330,18 @@ struct SessionBuilderSheet: View {
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
-                Capsule()
-                    .fill(AppColor.track)
-                    .overlay(alignment: .leading) {
-                        Capsule()
-                            .fill(AppColor.accentPrimary)
-                            .scaleEffect(x: fraction, anchor: .leading)
-                    }
-                    .frame(height: 6)
-                    .appAnimation(AppAnimation.settle, value: fraction)
+                // An empty bar says nothing the "0 / 10" doesn't.
+                if done > 0 {
+                    Capsule()
+                        .fill(AppColor.track)
+                        .overlay(alignment: .leading) {
+                            Capsule()
+                                .fill(AppColor.accentPrimary)
+                                .scaleEffect(x: fraction, anchor: .leading)
+                        }
+                        .frame(height: 6)
+                        .appAnimation(AppAnimation.settle, value: fraction)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .ignore)
@@ -341,6 +371,7 @@ struct SessionBuilderSheet: View {
                         icon: "dumbbell",
                         title: "No exercises with this equipment",
                         message: "Pick another muscle, or tick more equipment.",
+                        action: .init(title: "Equipment") { showsEquipment = true },
                         style: .compact
                     )
                 }
@@ -432,7 +463,6 @@ struct SessionBuilderSheet: View {
                     note("leaf", Text("Deload week: lighter on purpose so you come back stronger."))
                 }
             }
-            .padding(.horizontal, Spacing.xs)
         }
     }
 
@@ -471,7 +501,7 @@ struct SessionBuilderSheet: View {
                             .font(AppFont.scaled(13, weight: .bold, design: .rounded))
                             .foregroundStyle(AppColor.accentPrimary)
                             .monospacedDigit()
-                            .frame(width: 30, height: 30)
+                            .frame(width: badgeSize, height: badgeSize)
                             .background(Circle().fill(AppColor.accentPrimary.opacity(0.15)))
                         VStack(alignment: .leading, spacing: Spacing.xxs) {
                             Text(library.displayName(for: slot.exerciseID))
@@ -494,8 +524,18 @@ struct SessionBuilderSheet: View {
         }
         .buttonStyle(.cardPress)
         .disabled(exercise == nil)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spokenLabel(for: slot, number: number))
+        .accessibilityAddTraits(.isButton)
         .accessibilityHint(Text("Shows how to do it"))
+    }
+
+    /// The row as a sentence: "×" and a clock-style rest read badly aloud.
+    private func spokenLabel(for slot: RoutineExercise, number: Int) -> Text {
+        let rest = Duration.seconds(slot.restSeconds ?? 0).formatted(.units(allowed: [.minutes, .seconds], width: .wide))
+        let effort = (slot.targetRPE ?? 0).formatted()
+        let name = library.displayName(for: slot.exerciseID)
+        return Text("Exercise \(number), \(name), \(slot.targetSets) sets of \(slot.targetReps) reps, RPE \(effort), \(rest) rest")
     }
 
     private func detail(for slot: RoutineExercise) -> LocalizedStringKey {
@@ -551,7 +591,10 @@ struct SessionBuilderSheet: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .accessibilityAddTraits(.isHeader)
             chips(category.targets, tint: Self.focusChipColor,
-                  isSelected: { $0 == focus }, action: select)
+                  isSelected: { $0 == focus }) { target in
+                select(target)
+                listPicks += 1
+            }
         }
     }
 
@@ -585,8 +628,10 @@ struct SessionBuilderSheet: View {
                 PrimaryCTAButton(title: "Pick a muscle to start") {}
                     .disabled(true)
             } else {
+                // Waits for recovery too: built before it, the session
+                // would ignore which muscles should rest.
                 PrimaryCTAButton(title: "Create workout", icon: "wand.and.stars") { build() }
-                    .disabled(!library.isLoaded)
+                    .disabled(!library.isLoaded || states.isEmpty)
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
@@ -609,7 +654,8 @@ struct SessionBuilderSheet: View {
             .accessibilityHidden(true)
     }
 
-    private static let footerFadeHeight = Spacing.xxl
+    /// Deep enough that a chip row passing under it fades out whole.
+    private static let footerFadeHeight = Spacing.xxxl
 
     // MARK: - Actions
 
@@ -628,6 +674,10 @@ struct SessionBuilderSheet: View {
 
     private func select(_ target: Target) {
         Haptics.selection()
+        suggestCompanions(for: target)
+    }
+
+    private func suggestCompanions(for target: Target) {
         let suggestion = SessionBuilderEngine.companions(
             for: target, states: states, experience: profileRequest.experience
         )

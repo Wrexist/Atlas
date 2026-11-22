@@ -6,11 +6,9 @@ import SwiftUI
 struct EquipmentProfileSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var store = EquipmentProfileStore.shared
-    @State private var location: TrainingLocation
-
-    init(location: TrainingLocation) {
-        _location = State(initialValue: location)
-    }
+    /// The place picked on the builder. The sheet edits that place's kit
+    /// only, so its title can't disagree with where the session is built.
+    let location: TrainingLocation
 
     private var profile: EquipmentProfile { store.profile(for: location) }
 
@@ -22,12 +20,6 @@ struct EquipmentProfileSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xxl) {
-                    GlassSegmentedControl(
-                        options: TrainingLocation.allCases,
-                        selected: $location,
-                        label: { LocalizedStringKey($0.displayName) },
-                        icon: { $0.symbol }
-                    )
                     Text("Atlas only plans exercises you can do with what's ticked here. Bodyweight work is always included.")
                         .font(AppFont.footnote)
                         .foregroundStyle(AppColor.textSecondary)
@@ -43,7 +35,7 @@ struct EquipmentProfileSheet: View {
                 .readableContentWidth()
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle("Equipment")
+            .navigationTitle(Text("Equipment · \(location.displayName)"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -85,12 +77,15 @@ struct EquipmentProfileSheet: View {
         }
     }
 
-    private func set(_ item: Item, on: Bool) {
+    /// One write for any number of items, so "Select all" saves once.
+    private func set(_ items: [Item], on: Bool) {
         var updated = profile
-        switch item {
-        case .kind(let kind): updated.kinds.toggle(kind, on: on)
-        case .accessory(let accessory): updated.accessories.toggle(accessory, on: on)
-        case .machine(let machine): updated.machines.toggle(machine, on: on)
+        for item in items {
+            switch item {
+            case .kind(let kind): updated.kinds.toggle(kind, on: on)
+            case .accessory(let accessory): updated.accessories.toggle(accessory, on: on)
+            case .machine(let machine): updated.machines.toggle(machine, on: on)
+            }
         }
         store.set(updated, for: location)
     }
@@ -110,7 +105,7 @@ struct EquipmentProfileSheet: View {
                 Button(allOn ? LocalizedStringKey("Clear all") : LocalizedStringKey("Select all")) {
                     Haptics.selection()
                     AppAnimation.with(AppAnimation.springSnappy) {
-                        items.forEach { set($0, on: !allOn) }
+                        set(items, on: !allOn)
                     }
                 }
                 .font(AppFont.footnote.weight(.semibold))
@@ -122,7 +117,7 @@ struct EquipmentProfileSheet: View {
                 ForEach(items, id: \.self) { item in
                     EquipmentTile(title: item.title, glyph: item.glyph, isOn: isOn(item)) {
                         Haptics.selection()
-                        AppAnimation.with(AppAnimation.springSnappy) { set(item, on: !isOn(item)) }
+                        AppAnimation.with(AppAnimation.springSnappy) { set([item], on: !isOn(item)) }
                     }
                 }
             }
@@ -156,10 +151,11 @@ private struct EquipmentTile: View {
             }
             .padding(.horizontal, Spacing.md)
             .frame(maxWidth: .infinity, minHeight: 56)
+            // The check and the glyph carry "on"; a tinted, outlined tile
+            // as well turns a fully stocked gym into a wall of accent.
             .glassControl(
                 .rect(cornerRadius: Spacing.smallCornerRadius),
-                tint: isOn ? AppColor.accentPrimary.opacity(0.15) : nil,
-                border: isOn ? AppColor.accentPrimary : AppColor.glassBorder,
+                border: AppColor.glassBorder,
                 interactive: false
             )
         }

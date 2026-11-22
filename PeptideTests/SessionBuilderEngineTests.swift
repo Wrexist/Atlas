@@ -135,9 +135,60 @@ final class SessionBuilderEngineTests: XCTestCase {
     }
 
     func test_build_neverAddsASmallMuscleToFillTime() {
-        for focus in [Engine.Target.chest, .quads, .shoulders] {
-            let plan = Engine.build(request(focus: focus, companions: [], minutes: 90), catalog: catalog)
-            XCTAssertFalse(plan.added.contains { $0.isMinor && !focus.companions.contains($0) }, "\(focus): \(plan.added)")
+        for focus in Engine.Target.allCases where !focus.isMinor {
+            let plan = Engine.build(request(focus: focus, companions: [], minutes: 75), catalog: catalog)
+            XCTAssertFalse(plan.added.contains(where: \.isMinor), "\(focus): \(plan.added)")
+        }
+    }
+
+    func test_fillCandidates_staySameRegionBeforeTheRestOfTheBody() {
+        let candidates = Engine.fillCandidates(for: request(focus: .chest, companions: []))
+        let afterCompanions = candidates.filter { !Engine.Target.chest.companions.contains($0) }
+        XCTAssertEqual(afterCompanions.first, .rearDelts, "\(candidates)")
+    }
+
+    func test_build_focusTheKitCantTrain_buildsNothing() {
+        let home = EquipmentProfile.standard(for: .home)
+        let plan = Engine.build(request(focus: .adductors, companions: [.quads], profile: EquipmentProfile(
+            kinds: home.kinds.subtracting([.band]), accessories: home.accessories, machines: home.machines
+        )), catalog: catalog)
+        XCTAssertTrue(plan.routine.exercises.isEmpty, "\(plan.routine.exercises.map(\.exerciseID))")
+    }
+
+    func test_build_restingFocus_isLighterAndNeverGrown() {
+        var states = fresh()
+        states[.chest] = state(fraction: 0.2)
+        var resting = request(focus: .chest, companions: [], minutes: 75)
+        resting.states = states
+        let rested = Engine.build(resting, catalog: catalog).routine
+        let normal = build(focus: .chest, companions: [], minutes: 75)
+        func chestSets(_ routine: Routine) -> Int {
+            routine.exercises.filter { byID[$0.exerciseID].map(Engine.targets(of:))?.contains(.chest) == true }
+                .reduce(0) { $0 + $1.targetSets }
+        }
+        XCTAssertLessThan(chestSets(rested), chestSets(normal))
+        XCTAssertLessThanOrEqual(chestSets(rested), Engine.plannedSets(for: .chest, in: resting))
+    }
+
+    func test_build_gluteAndHamstringDay_hasOneHeavyHinge() {
+        let ids = build(focus: .glutes, companions: [.hamstrings], minutes: 75).exercises.map(\.exerciseID)
+        let heavy: Set<String> = ["Romanian_Deadlift", "Barbell_Deadlift", "Trap_Bar_Deadlift"]
+        XCTAssertLessThanOrEqual(ids.filter(heavy.contains).count, 1, "\(ids)")
+        XCTAssertTrue(ids.contains("Barbell_Hip_Thrust"), "\(ids)")
+    }
+
+    func test_build_backDay_opensWithAPullNotAPullover() {
+        let first = build(focus: .back, companions: [], minutes: 45).exercises.first?.exerciseID
+        XCTAssertNotEqual(first, "Straight-Arm_Dumbbell_Pullover")
+        XCTAssertEqual(first.flatMap(pattern(of:)), .verticalPull)
+    }
+
+    func test_build_neverPicksExcludedDrills() {
+        for focus in Engine.Target.allCases {
+            for equipment in [Self.fullGym, [.dumbbell, .band]] as [Set<EquipmentKind>] {
+                let ids = Set(build(focus: focus, companions: [], minutes: 75, equipment: equipment).exercises.map(\.exerciseID))
+                XCTAssertTrue(ids.isDisjoint(with: Engine.excluded), "\(focus): \(ids.intersection(Engine.excluded))")
+            }
         }
     }
 
@@ -268,7 +319,10 @@ final class SessionBuilderEngineTests: XCTestCase {
 
     func test_gymMachine_everyShortlistedMachineExerciseNamesItsMachine() {
         let shortlist = Set(MovementPattern.allCases.flatMap(ProgramGeneratorEngine.candidates(for:)))
-        for id in shortlist where byID[id]?.equipmentKind == .machine {
+        // A back-extension bench stands in every gym with machines; it
+        // counts as there whenever any machine is.
+        let anyMachine: Set<String> = ["Hyperextensions_Back_Extensions"]
+        for id in shortlist where byID[id]?.equipmentKind == .machine && !anyMachine.contains(id) {
             XCTAssertNotNil(GymMachine.required(for: id), id)
         }
     }
