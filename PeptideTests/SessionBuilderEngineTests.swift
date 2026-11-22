@@ -85,7 +85,7 @@ final class SessionBuilderEngineTests: XCTestCase {
     func test_states_leastRecoveredHeadDecides() {
         let recovery: [AnatomicalMuscle: MuscleRecoveryEngine.Recovery] = [
             .hamstringLateral: .init(fraction: 1, lastTrained: nil),
-            .lowerBack: .init(fraction: 0.3, lastTrained: nil),
+            .hamstringMedial: .init(fraction: 0.3, lastTrained: nil),
         ]
         let states = Engine.states(recovery: recovery, weekly: [.hamstringLateral: 4, .hamstringMedial: 4])
         XCTAssertEqual(states[.hamstrings]?.recovery.status, .rest)
