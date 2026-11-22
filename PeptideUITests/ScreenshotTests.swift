@@ -749,7 +749,9 @@ final class ScreenshotTests: XCTestCase {
         let equipment = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Equipment'")).firstMatch
         XCTAssertTrue(equipment.waitForExistence(timeout: 5))
         equipment.tap()
-        XCTAssertTrue(app.navigationBars["Equipment"].waitForExistence(timeout: 5))
+        // Titled "Equipment · Gym" / "Equipment · Home".
+        let sheet = app.navigationBars.matching(NSPredicate(format: "identifier BEGINSWITH 'Equipment'")).firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.6)
     }
 
