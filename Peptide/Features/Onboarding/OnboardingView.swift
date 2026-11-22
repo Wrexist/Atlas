@@ -1724,7 +1724,7 @@ struct OnboardingView: View {
                     ProgressView()
                 } else {
                     Image(systemName: isOn ? "checkmark.circle.fill" : "chevron.right")
-                        .foregroundStyle(isOn ? AppColor.positive : AppColor.textTertiary)
+                        .foregroundStyle(isOn ? AppColor.success : AppColor.textTertiary)
                         .contentTransition(.symbolEffect(.replace))
                         .accessibilityHidden(true)
                 }
@@ -2012,7 +2012,7 @@ private struct ThemePickerCover: View {
         ScrollView {
             VStack(spacing: Spacing.xl) {
                 VStack(spacing: Spacing.md) {
-                    HeroIcon(symbol: "checkmark.seal.fill", color: AppColor.positive, size: 72, bounceTrigger: arrival)
+                    HeroIcon(symbol: "checkmark.seal.fill", color: AppColor.success, size: 72, bounceTrigger: arrival)
                     OnboardingHeader(title: finishTitle, subtitle: "Your plan, targets and schedule are saved.")
                 }
                 ThemeChoicePage(theme: themeManager)

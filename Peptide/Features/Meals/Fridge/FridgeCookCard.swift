@@ -44,7 +44,7 @@ struct FridgeCookCard: View {
                         Text("You have \(suggestion.have) of \(suggestion.total) ingredients")
                             .font(AppFont.footnote)
                             .monospacedDigit()
-                            .foregroundStyle(suggestion.missing.isEmpty ? AppColor.positive : AppColor.textSecondary)
+                            .foregroundStyle(suggestion.missing.isEmpty ? AppColor.success : AppColor.textSecondary)
                         if suggestion.rescuesExpiring {
                             Label("Uses food about to go off", systemImage: "leaf.fill")
                                 .font(AppFont.caption2.weight(.semibold))

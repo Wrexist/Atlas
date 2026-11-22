@@ -453,7 +453,7 @@ private struct IngredientRow: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
                     .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(isAtHome ? AppColor.positive : AppColor.textTertiary)
+                    .foregroundStyle(isAtHome ? AppColor.success : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
                     .accessibilityHidden(true)
                 Text(name)

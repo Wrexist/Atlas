@@ -663,7 +663,7 @@ struct BarcodeScanFlow: View {
         VStack(spacing: Spacing.md) {
             Image(systemName: identity == nil ? "questionmark.app.dashed" : "checkmark.seal.fill")
                 .font(AppFont.scaled(48, weight: .light, relativeTo: .largeTitle))
-                .foregroundStyle(identity == nil ? AppColor.accentLight : AppColor.positive)
+                .foregroundStyle(identity == nil ? AppColor.accentLight : AppColor.success)
             Text(notFoundHeadline)
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)

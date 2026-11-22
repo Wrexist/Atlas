@@ -211,7 +211,7 @@ private struct RecapNavigationRow<Title: View>: View {
         RecapCard {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .foregroundStyle(AppColor.positive)
+                    .foregroundStyle(AppColor.success)
                     .accessibilityHidden(true)
                 title.font(AppFont.subheadline)
                 Spacer(minLength: Spacing.sm)

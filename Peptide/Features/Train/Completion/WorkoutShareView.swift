@@ -92,7 +92,7 @@ struct WorkoutShareView: View {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }.minimumHitArea()
             }
-            if let notice = model.notice { Text(notice).foregroundStyle(AppColor.positive) }
+            if let notice = model.notice { Text(notice).foregroundStyle(AppColor.success) }
             if model.busy {
                 ProgressView(value: options.format.isVideo && !model.savingToPhotos ? model.progress : nil)
                 Text(model.savingToPhotos ? "Saving to Photos…" : "Preparing share file…").font(AppFont.subheadline)

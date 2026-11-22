@@ -29,7 +29,7 @@ struct RecapWeeklyVolume: View {
                                 Text(row.target.displayName)
                                 Spacer()
                                 Text("\(row.sets) of \(goal) sets")
-                                    .foregroundStyle(row.sets >= goal ? AppColor.positive : AppColor.textSecondary)
+                                    .foregroundStyle(row.sets >= goal ? AppColor.success : AppColor.textSecondary)
                                     .fixedSize()
                             }
                             .font(AppFont.subheadline)
