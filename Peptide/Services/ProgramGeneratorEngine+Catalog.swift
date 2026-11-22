@@ -108,6 +108,28 @@ extension ProgramGeneratorEngine {
                 "Exercise_Ball_Crunch", "Dead_Bug", "Reverse_Crunch",
                 "Flat_Bench_Lying_Leg_Raise", "Crunches",
             ]
+        case .shrug:
+            return [
+                "Dumbbell_Shrug", "Barbell_Shrug", "Cable_Shrugs", "Smith_Machine_Behind_the_Back_Shrug",
+                "Standing_Dumbbell_Upright_Row", "Upright_Row_-_With_Bands",
+            ]
+        case .forearm:
+            return [
+                "Seated_Dumbbell_Palms-Up_Wrist_Curl", "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+                "Cable_Wrist_Curl", "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+                "Hammer_Curls",
+            ]
+        case .backExtension:
+            return [
+                "Stiff_Leg_Barbell_Good_Morning", "Hyperextensions_With_No_Hyperextension_Bench", "Superman",
+            ]
+        case .adductor:
+            return ["Thigh_Adductor", "Band_Hip_Adductions", "Plie_Dumbbell_Squat"]
+        case .oblique:
+            return [
+                "Pallof_Press", "Cable_Russian_Twists", "Dumbbell_Side_Bend", "Side_Bridge",
+                "Oblique_Crunches_-_On_The_Floor", "Russian_Twist",
+            ]
         }
     }
 

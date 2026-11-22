@@ -81,10 +81,14 @@ struct SessionBuilderSheet: View {
             }
             // Each page opens at its top, not where the other was left.
             .scrollPosition($scroll)
+            .modifier(SolidTopEdge())
             .onChange(of: built == nil) { scroll.scrollTo(edge: .top) }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle(built == nil ? "Plan a workout" : "Your workout")
             .navigationBarTitleDisplayMode(.inline)
+            // A solid bar, so chips and pictures scrolling up never run
+            // under the title and its buttons.
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar { toolbar }
             // The fade is drawn above the footer instead (see `footer`).
             .pinnedFooter(fadeHeight: 0) { footer }
@@ -135,8 +139,11 @@ struct SessionBuilderSheet: View {
             bodyPicker(mapHighlights)
 
             section("MUSCLE") {
-                chips(Target.allCases, tint: Self.focusChipColor,
-                      isSelected: { $0 == focus }, action: select)
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    ForEach(Target.Category.allCases, id: \.self) { category in
+                        categoryGroup(category)
+                    }
+                }
             }
 
             if let focus {
@@ -536,6 +543,18 @@ struct SessionBuilderSheet: View {
         }
     }
 
+    /// One body region: its name, then its muscles as chips.
+    private func categoryGroup(_ category: Target.Category) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text(category.displayName)
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityAddTraits(.isHeader)
+            chips(category.targets, tint: Self.focusChipColor,
+                  isSelected: { $0 == focus }, action: select)
+        }
+    }
+
     private func chips(
         _ targets: [Target],
         tint: Color,
@@ -673,6 +692,20 @@ struct SessionBuilderSheet: View {
         Haptics.impact(.medium)
         onStart(routine, isSaved)
         dismiss()
+    }
+}
+
+/// iOS 26 lets content slide under the glass toolbar with only a soft
+/// fade, so chips and pictures read through the title and its buttons.
+/// The hard edge gives the bar a defined backdrop; earlier systems get
+/// the solid bar from `toolbarBackground`.
+private struct SolidTopEdge: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.scrollEdgeEffectStyle(.hard, for: .top)
+        } else {
+            content
+        }
     }
 }
 
