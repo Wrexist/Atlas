@@ -492,6 +492,9 @@ final class SwiftDataRepository {
     /// (quota, network, CloudKit outage) — audit 3.1.
     func refinedCloudSyncState() async -> CloudSyncState {
         guard cloudSyncState != .active else { return .active }
+        // Same unsigned-build trap as `refreshCloudAccount`: opening
+        // Settings in screenshot mode killed the app here.
+        guard !ScreenshotMode.shared.isEnabled else { return cloudSyncState }
         let status = try? await cloudAccount.accountStatus()
         return Self.syncState(refining: cloudSyncState, with: status)
     }
