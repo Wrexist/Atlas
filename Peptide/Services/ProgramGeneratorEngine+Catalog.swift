@@ -40,7 +40,7 @@ extension ProgramGeneratorEngine {
                 "Barbell_Bench_Press_-_Medium_Grip", "Dumbbell_Bench_Press",
                 "Barbell_Incline_Bench_Press_-_Medium_Grip", "Incline_Dumbbell_Press",
                 "Machine_Bench_Press", "Leverage_Chest_Press", "Cable_Chest_Press",
-                "Alternating_Floor_Press", "Bench_Press_-_With_Bands",
+                "Alternating_Floor_Press", "Dumbbell_Floor_Press", "Bench_Press_-_With_Bands",
                 "Pushups", "Incline_Push-Up", "Push-Up_Wide",
             ]
         case .horizontalPull:
@@ -95,7 +95,7 @@ extension ProgramGeneratorEngine {
         case .hamstringIsolation:
             return [
                 "Lying_Leg_Curls", "Seated_Leg_Curl", "Standing_Leg_Curl",
-                "Ball_Leg_Curl", "Natural_Glute_Ham_Raise",
+                "Ball_Leg_Curl", "Seated_Band_Hamstring_Curl", "Natural_Glute_Ham_Raise",
             ]
         case .calves:
             return [
@@ -111,7 +111,6 @@ extension ProgramGeneratorEngine {
         case .shrug:
             return [
                 "Dumbbell_Shrug", "Barbell_Shrug", "Cable_Shrugs", "Smith_Machine_Behind_the_Back_Shrug",
-                "Standing_Dumbbell_Upright_Row", "Upright_Row_-_With_Bands",
             ]
         case .forearm:
             return [
@@ -121,13 +120,14 @@ extension ProgramGeneratorEngine {
             ]
         case .backExtension:
             return [
-                "Stiff_Leg_Barbell_Good_Morning", "Hyperextensions_With_No_Hyperextension_Bench", "Superman",
+                "Hyperextensions_Back_Extensions", "Hyperextensions_With_No_Hyperextension_Bench",
+                "Weighted_Ball_Hyperextension",
             ]
         case .adductor:
-            return ["Thigh_Adductor", "Band_Hip_Adductions", "Plie_Dumbbell_Squat"]
+            return ["Thigh_Adductor", "Band_Hip_Adductions"]
         case .oblique:
             return [
-                "Pallof_Press", "Cable_Russian_Twists", "Dumbbell_Side_Bend", "Side_Bridge",
+                "Pallof_Press", "Cable_Russian_Twists", "Dumbbell_Side_Bend",
                 "Oblique_Crunches_-_On_The_Floor", "Russian_Twist",
             ]
         }

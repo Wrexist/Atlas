@@ -65,6 +65,8 @@ enum EquipmentClassificationEngine {
         "Weighted_Bench_Dip": .plate,
         "Donkey_Calf_Raises": .machine,
         "Hyperextensions_Back_Extensions": .machine,
+        // Tagged kettlebell, but most people goblet squat a dumbbell.
+        "Goblet_Squat": .dumbbell,
         // Chain loads on cable handles, rings and slings: no kind fits.
         "Chain_Press": .other,
         "Chain_Handle_Extension": .other,
