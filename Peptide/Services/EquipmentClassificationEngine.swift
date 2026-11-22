@@ -94,7 +94,7 @@ enum EquipmentClassificationEngine {
         if name.containsAny("incline", "decline", "skullcrusher", "skull crusher", "preacher") { return true }
         let freeWeight: Set<EquipmentKind> = [.barbell, .dumbbell, .ezBar]
         guard freeWeight.contains(kind) else { return false }
-        if name.hasPrefix("seated") { return true }
+        if name.contains("seated") { return true }
         if kind == .dumbbell, name.containsAny("flye", "flyes", "fly "), !name.containsAny("bent over", "standing") {
             return true
         }
@@ -126,6 +126,29 @@ enum EquipmentClassificationEngine {
         "Bodyweight_Mid_Row": [.pullUpBar],
         "Chain_Press": [.bench],
         "Chain_Handle_Extension": [.bench],
+        "Arnold_Dumbbell_Press": [.bench],
+        "Around_The_Worlds": [.bench],
+        "Bent-Arm_Dumbbell_Pullover": [.bench],
+        "Close-Grip_Dumbbell_Press": [.bench],
+        "Concentration_Curls": [.bench],
+        "Dumbbell_One-Arm_Shoulder_Press": [.bench],
+        "Dumbbell_One-Arm_Triceps_Extension": [.bench],
+        "Dumbbell_Shoulder_Press": [.bench],
+        "Dumbbell_Tricep_Extension_-Pronated_Grip": [.bench],
+        "External_Rotation": [.bench],
+        "Flutter_Kicks": [.bench],
+        "Middle_Back_Shrug": [.bench],
+        "One-Arm_Dumbbell_Row": [.bench],
+        "One_Arm_Pronated_Dumbbell_Triceps_Extension": [.bench],
+        "One_Arm_Supinated_Dumbbell_Triceps_Extension": [.bench],
+        "Push-Ups_With_Feet_Elevated": [.bench],
+        "Speed_Band_Overhead_Triceps": [.bench],
+        "Split_Squat_with_Dumbbells": [.bench],
+        "Straight-Arm_Dumbbell_Pullover": [.bench],
+        "Tate_Press": [.bench],
+        "Barbell_Seated_Calf_Raise": [.box],
+        "Dumbbell_Seated_One-Leg_Calf_Raise": [.box],
+        "Standing_Dumbbell_Calf_Raise": [.box],
     ]
 }
 

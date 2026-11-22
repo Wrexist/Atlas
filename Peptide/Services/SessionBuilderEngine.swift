@@ -14,20 +14,26 @@ enum SessionBuilderEngine {
     enum Target: String, CaseIterable, Sendable {
         case chest, back, shoulders, rearDelts, biceps, triceps
         case quads, hamstrings, glutes, calves, abs
+        case traps, lowerBack, forearms, adductors, obliques
 
         init(_ muscle: AnatomicalMuscle) {
             switch muscle {
             case .pecSternal, .pecClavicular: self = .chest
-            case .lats, .rhomboids, .trapsUpper, .trapsLower, .neck: self = .back
+            case .lats, .rhomboids: self = .back
+            case .trapsUpper, .trapsLower, .neck: self = .traps
             case .deltAnterior, .deltLateralFront, .deltLateralBack: self = .shoulders
             case .deltPosterior: self = .rearDelts
-            case .biceps, .forearmFront, .forearmBack: self = .biceps
+            case .biceps: self = .biceps
+            case .forearmFront, .forearmBack: self = .forearms
             case .tricepsLong, .tricepsLateral: self = .triceps
-            case .quadRectus, .quadLateralis, .quadMedialis, .adductors: self = .quads
-            case .hamstringLateral, .hamstringMedial, .lowerBack: self = .hamstrings
+            case .quadRectus, .quadLateralis, .quadMedialis: self = .quads
+            case .adductors: self = .adductors
+            case .hamstringLateral, .hamstringMedial: self = .hamstrings
+            case .lowerBack: self = .lowerBack
             case .glutes, .gluteMedius: self = .glutes
             case .gastrocnemius, .soleus, .tibialis: self = .calves
-            case .abdominals, .obliques: self = .abs
+            case .abdominals: self = .abs
+            case .obliques: self = .obliques
             }
         }
 
@@ -44,6 +50,11 @@ enum SessionBuilderEngine {
             case .glutes: String(localized: "Glutes")
             case .calves: String(localized: "Calves")
             case .abs: String(localized: "Abs")
+            case .traps: String(localized: "Traps")
+            case .lowerBack: String(localized: "Lower back")
+            case .forearms: String(localized: "Forearms")
+            case .adductors: String(localized: "Adductors")
+            case .obliques: String(localized: "Obliques")
             }
         }
 
@@ -66,6 +77,11 @@ enum SessionBuilderEngine {
             case .glutes: [.lunge, .hinge]
             case .calves: [.calves]
             case .abs: [.core]
+            case .traps: [.shrug]
+            case .lowerBack: [.backExtension]
+            case .forearms: [.forearm]
+            case .adductors: [.adductor]
+            case .obliques: [.oblique]
             }
         }
 
@@ -73,16 +89,65 @@ enum SessionBuilderEngine {
         var companions: [Target] {
             switch self {
             case .chest: [.shoulders, .triceps, .back]
-            case .back: [.biceps, .rearDelts, .chest]
-            case .shoulders: [.triceps, .chest, .rearDelts]
+            case .back: [.biceps, .rearDelts, .chest, .traps]
+            case .shoulders: [.triceps, .chest, .rearDelts, .traps]
             case .rearDelts: [.back, .biceps, .shoulders]
-            case .biceps: [.triceps, .back, .rearDelts]
+            case .biceps: [.triceps, .back, .rearDelts, .forearms]
             case .triceps: [.biceps, .chest, .shoulders]
-            case .quads: [.glutes, .hamstrings, .calves, .abs]
-            case .hamstrings: [.glutes, .quads, .calves]
-            case .glutes: [.hamstrings, .quads, .calves]
+            case .quads: [.glutes, .hamstrings, .calves, .abs, .adductors]
+            case .hamstrings: [.glutes, .quads, .calves, .lowerBack]
+            case .glutes: [.hamstrings, .quads, .calves, .adductors]
             case .calves: [.quads, .hamstrings, .abs]
-            case .abs: [.quads, .calves, .glutes]
+            case .abs: [.obliques, .lowerBack, .glutes]
+            case .traps: [.back, .rearDelts, .shoulders]
+            case .lowerBack: [.hamstrings, .glutes, .abs]
+            case .forearms: [.biceps, .back, .triceps]
+            case .adductors: [.quads, .glutes, .hamstrings]
+            case .obliques: [.abs, .lowerBack, .glutes]
+            }
+        }
+
+        /// Small muscles you train on purpose; the builder never brings
+        /// them in on its own to fill time.
+        var isMinor: Bool {
+            switch self {
+            case .traps, .lowerBack, .forearms, .adductors, .obliques: true
+            default: false
+            }
+        }
+
+        /// Trunk work closes the session, so it never tires the core
+        /// that braces the heavy lifts.
+        var closesSession: Bool {
+            switch self {
+            case .abs, .obliques, .lowerBack: true
+            default: false
+            }
+        }
+
+        /// How the picker groups the muscles.
+        enum Category: CaseIterable, Sendable {
+            case chestAndShoulders, back, arms, legs, core
+
+            var displayName: String {
+                switch self {
+                case .chestAndShoulders:
+                    String(localized: "muscle.category.chestShoulders", defaultValue: "Chest & shoulders")
+                case .back: String(localized: "muscle.back", defaultValue: "Back")
+                case .arms: String(localized: "Arms")
+                case .legs: String(localized: "Legs")
+                case .core: String(localized: "Core")
+                }
+            }
+
+            var targets: [Target] {
+                switch self {
+                case .chestAndShoulders: [.chest, .shoulders, .rearDelts]
+                case .back: [.back, .traps, .lowerBack]
+                case .arms: [.biceps, .triceps, .forearms]
+                case .legs: [.quads, .hamstrings, .glutes, .adductors, .calves]
+                case .core: [.abs, .obliques]
+                }
             }
         }
     }
@@ -171,7 +236,7 @@ enum SessionBuilderEngine {
         var companions: [Target]
         var minutes: Int
         var experience: Exercise.Level
-        var equipment: Set<EquipmentKind>
+        var equipment: EquipmentProfile
         var states: [Target: State]
         /// Exercises the user has logged before — they have a weight to
         /// progress from, so they win ties.
@@ -179,26 +244,139 @@ enum SessionBuilderEngine {
         var isDeload = false
     }
 
-    static func build(_ request: Request, catalog: [Exercise]) -> Routine {
-        let pool = ProgramGeneratorEngine.Pool(
-            request: ProgramRequest(goal: .hypertrophy, experience: request.experience, equipment: request.equipment),
-            catalog: catalog
-        )
-        let bodyweight = Set(catalog.filter { $0.equipmentKind == .bodyweight }.map(\.id))
+    /// The built session and the muscles the engine added on its own to
+    /// fill the time the picked ones couldn't.
+    struct Plan: Sendable {
+        var routine: Routine
+        /// The muscles besides the focus that made it into the session.
+        var others: [Target]
+        /// The ones the builder brought in to fill the time.
+        var added: [Target]
+    }
+
+    /// Fewest sets an exercise gets: fewer isn't worth setting up for.
+    static let minSetsPerExercise = 3
+    /// Most sets one exercise gets before volume moves to another.
+    static let maxSetsPerExercise = 5
+
+    static func build(_ request: Request, catalog: [Exercise]) -> Plan {
+        let pool = Pool(profile: request.equipment, experience: request.experience, catalog: catalog)
+        let budget = request.minutes * 60
+        var targets = [request.focus] + request.companions
+        var sets = Dictionary(uniqueKeysWithValues: targets.map { ($0, plannedSets(for: $0, in: request)) })
+        var extras = fillCandidates(for: request).filter { !targets.contains($0) }
+        var assembled = assemble(targets: targets, sets: sets, request: request, pool: pool)
+
+        // Grow the picked muscles to a full session's volume first, then
+        // bring in the next-best companion, until nothing more fits.
+        while true {
+            var grown = sets
+            var grownTargets = targets
+            let joining: Bool
+            if let target = targets.first(where: { (sets[$0] ?? 0) < ceiling(for: $0, in: request, pool: pool) }) {
+                grown[target, default: 0] += 1
+                joining = false
+            } else if !extras.isEmpty {
+                let next = extras.removeFirst()
+                guard !pool.exercises(for: next, used: [], familiar: []).isEmpty else { continue }
+                // Joins with one exercise's worth and grows a set at a time,
+                // so the last minutes fill in steps of one set.
+                grownTargets.append(next)
+                grown[next] = minSetsPerExercise
+                joining = true
+            } else {
+                break
+            }
+            let candidate = assemble(targets: grownTargets, sets: grown, request: request, pool: pool)
+            guard ProgramGeneratorEngine.plannedSeconds(for: candidate.routine) <= budget else {
+                // A muscle too big for what's left may be followed by one
+                // that fits; a set too many means the session is full.
+                if joining { continue } else { break }
+            }
+            (sets, targets, assembled) = (grown, grownTargets, candidate)
+        }
+
+        var routine = fitted(assembled.routine, minutes: request.minutes)
+        // Named after fitting, so a companion trimmed out of a short session
+        // isn't promised in the subtitle.
+        let kept = Set(routine.exercises.compactMap { assembled.owners[$0.id] })
+        let others = targets.dropFirst().filter(kept.contains)
+        routine.subtitle = others.map(\.displayName).joined(separator: " · ")
+        let added = others.filter { !request.companions.contains($0) }
+        return Plan(routine: routine, others: Array(others), added: Array(added))
+    }
+
+    /// Muscles that may join to fill the time: the focus's own companions
+    /// first, then everything else, most recovered and furthest from its
+    /// weekly target first. Muscles that should rest never join.
+    static func fillCandidates(for request: Request) -> [Target] {
+        let target = MuscleVolumeTargets.weeklySets(for: request.experience).lowerBound
+        func score(_ candidate: Target) -> Double {
+            guard let state = request.states[candidate] else { return 1 }
+            let gap = MuscleVolumeTargets.remainingSets(done: state.weeklySets, experience: request.experience) / target
+            return 0.5 * state.recovery.fraction + 0.5 * gap
+        }
+        // Ties keep the declaration order, so the same request always
+        // builds the same session.
+        let others = Target.allCases
+            .filter { !request.focus.companions.contains($0) && $0 != request.focus && !$0.isMinor }
+            .enumerated()
+            .sorted { lhs, rhs in
+                let left = score(lhs.element), right = score(rhs.element)
+                return left != right ? left > right : lhs.offset < rhs.offset
+            }
+            .map(\.element)
+        return (request.focus.companions + others)
+            .filter { request.states[$0]?.recovery.status != .rest }
+    }
+
+    /// Most sets a muscle takes in one session: a little past the cap for
+    /// the focus, the cap for the rest, and never more than its available
+    /// exercises can carry.
+    private static func ceiling(for target: Target, in request: Request, pool: Pool) -> Int {
+        let cap = MuscleVolumeTargets.sessionCap(for: request.experience)
+        let volume = target == request.focus ? cap + 2 : cap
+        let available = pool.exercises(for: target, used: [], familiar: []).count
+        return min(volume, available * maxSetsPerExercise)
+    }
+
+    private struct Assembled {
+        var routine: Routine
+        var owners: [UUID: Target]
+    }
+
+    private static func assemble(
+        targets: [Target],
+        sets: [Target: Int],
+        request: Request,
+        pool: Pool
+    ) -> Assembled {
         var picks: [Pick] = []
         var used: Set<String> = []
-        for target in [request.focus] + request.companions {
-            let total = plannedSets(for: target, in: request)
-            let chosen = exercises(for: target, pool: pool, used: used, familiar: request.familiarExerciseIDs)
-                .prefix(max(1, total / ProgramGeneratorEngine.minimumSets))
-            let sets = split(total, over: chosen.count)
-            for (choice, count) in zip(chosen, sets) {
-                picks.append(Pick(target: target, pattern: choice.pattern, exerciseID: choice.id, sets: count))
+        for target in targets {
+            let total = sets[target] ?? 0
+            let wanted = max(1, total / minSetsPerExercise,
+                             Int((Double(total) / Double(maxSetsPerExercise)).rounded(.up)))
+            let chosen = pool.exercises(for: target, used: used, familiar: request.familiarExerciseIDs).prefix(wanted)
+            for (choice, count) in zip(chosen, split(total, over: chosen.count)) {
+                picks.append(Pick(target: target, pattern: choice.pattern, exerciseID: choice.id,
+                                  sets: min(count, maxSetsPerExercise)))
                 used.insert(choice.id)
             }
         }
-        // Every compound before any isolation; the focus leads each group.
-        let ordered = picks.filter(\.pattern.isCompound) + picks.filter { !$0.pattern.isCompound }
+        // Muscle by muscle in the order they were picked, so the focus
+        // gets the fresh start and fill-ins come last; within a muscle,
+        // compounds before isolations. Trunk work closes the session, so it
+        // never tires the trunk before heavy lifts, unless abs or obliques
+        // are the focus: on a core day the core keeps the fresh start.
+        let trunkLast = !(request.focus == .abs || request.focus == .obliques)
+        let sequence = trunkLast
+            ? targets.filter { !$0.closesSession } + targets.filter(\.closesSession)
+            : targets
+        let ordered = sequence.flatMap { target in
+            let own = picks.filter { $0.target == target }
+            return own.filter(\.pattern.isCompound) + own.filter { !$0.pattern.isCompound }
+        }
 
         var patterns: [UUID: MovementPattern] = [:]
         var owners: [UUID: Target] = [:]
@@ -209,7 +387,7 @@ enum SessionBuilderEngine {
                 exerciseID: pick.exerciseID,
                 index: index,
                 targetSets: pick.sets,
-                targetReps: bodyweight.contains(pick.exerciseID)
+                targetReps: pool.isBodyweight(pick.exerciseID)
                     ? max(scheme.reps, ProgramGeneratorEngine.bodyweightMinimumReps) : scheme.reps,
                 targetRPE: scheme.rpe,
                 restSeconds: scheme.rest
@@ -221,12 +399,7 @@ enum SessionBuilderEngine {
         if request.minutes <= 45 {
             slots = ProgramGeneratorEngine.pairingAntagonists(slots, patterns: patterns)
         }
-        var routine = fitted(Routine(name: request.focus.displayName, exercises: slots), minutes: request.minutes)
-        // Named after fitting, so a companion trimmed out of a short session
-        // isn't promised in the subtitle.
-        let kept = Set(routine.exercises.compactMap { owners[$0.id] })
-        routine.subtitle = request.companions.filter(kept.contains).map(\.displayName).joined(separator: " · ")
-        return routine
+        return Assembled(routine: Routine(name: request.focus.displayName, exercises: slots), owners: owners)
     }
 
     /// Hypertrophy favourites that load the muscle at long length or keep
@@ -248,29 +421,54 @@ enum SessionBuilderEngine {
         let sets: Int
     }
 
-    /// One exercise per pattern; a single-pattern muscle gets a second
-    /// variation so its volume spreads over two angles.
-    private static func exercises(
-        for target: Target,
-        pool: ProgramGeneratorEngine.Pool,
-        used: Set<String>,
-        familiar: Set<String>
-    ) -> [(id: String, pattern: MovementPattern)] {
-        var chosen: [(id: String, pattern: MovementPattern)] = []
-        var taken = used
-        for pattern in target.patterns {
-            let ranked = ranked(pool.eligible(for: pattern).filter { !taken.contains($0) }, familiar: familiar)
-            let count = target.patterns.count == 1 ? 2 : 1
-            for id in ranked.prefix(count) {
-                chosen.append((id, pattern))
-                taken.insert(id)
+    /// The shortlist narrowed to what the user's equipment profile and
+    /// experience allow.
+    struct Pool {
+        let byID: [String: Exercise]
+        let profile: EquipmentProfile
+        let maxLevel: Int
+
+        init(profile: EquipmentProfile, experience: Exercise.Level, catalog: [Exercise]) {
+            byID = Dictionary(catalog.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            self.profile = profile
+            maxLevel = ProgramGeneratorEngine.rank(experience)
+        }
+
+        func isBodyweight(_ id: String) -> Bool {
+            byID[id]?.equipmentKind == .bodyweight
+        }
+
+        func eligible(for pattern: MovementPattern) -> [String] {
+            ProgramGeneratorEngine.candidates(for: pattern).filter { id in
+                guard let exercise = byID[id] else { return false }
+                return profile.allows(exercise) && ProgramGeneratorEngine.rank(exercise.level) <= maxLevel
             }
         }
-        return chosen
+
+        /// One exercise per pattern; a single-pattern muscle gets a second
+        /// variation so its volume spreads over two angles.
+        func exercises(
+            for target: Target,
+            used: Set<String>,
+            familiar: Set<String>
+        ) -> [(id: String, pattern: MovementPattern)] {
+            var chosen: [(id: String, pattern: MovementPattern)] = []
+            var taken = used
+            for pattern in target.patterns {
+                let ranked = SessionBuilderEngine.ranked(eligible(for: pattern).filter { !taken.contains($0) },
+                                                         familiar: familiar)
+                let count = target.patterns.count == 1 ? 2 : 1
+                for id in ranked.prefix(count) {
+                    chosen.append((id, pattern))
+                    taken.insert(id)
+                }
+            }
+            return chosen
+        }
     }
 
     /// Logged-before first, then lengthened favourites, then shortlist order.
-    private static func ranked(_ ids: [String], familiar: Set<String>) -> [String] {
+    fileprivate static func ranked(_ ids: [String], familiar: Set<String>) -> [String] {
         ids.enumerated().sorted { lhs, rhs in
             let left = (familiar.contains(lhs.element) ? 2 : 0) + (lengthenedFavourites.contains(lhs.element) ? 1 : 0)
             let right = (familiar.contains(rhs.element) ? 2 : 0) + (lengthenedFavourites.contains(rhs.element) ? 1 : 0)
@@ -307,7 +505,7 @@ enum SessionBuilderEngine {
         switch pattern {
         case _ where pattern.isCompound && isFirst: base = Scheme(reps: 8, rpe: 7.5, rest: 150)
         case _ where pattern.isCompound: base = Scheme(reps: 10, rpe: 8, rest: 120)
-        case .lateralDelt, .rearDelt, .calves, .core: base = Scheme(reps: 15, rpe: 9, rest: 60)
+        case .lateralDelt, .rearDelt, .calves, .core, .forearm, .oblique: base = Scheme(reps: 15, rpe: 9, rest: 60)
         default: base = Scheme(reps: 12, rpe: 9, rest: 75)
         }
         return isDeload ? Scheme(reps: base.reps, rpe: 6.5, rest: base.rest) : base
@@ -338,7 +536,7 @@ private extension AnatomicalMuscle {
     /// speak for its recovery (forearms don't stop a biceps day).
     var isAccessoryHead: Bool {
         switch self {
-        case .forearmFront, .forearmBack, .neck, .tibialis, .adductors, .trapsUpper: true
+        case .neck, .tibialis: true
         default: false
         }
     }

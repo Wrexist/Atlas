@@ -93,6 +93,18 @@ final class EquipmentClassificationEngineTests: XCTestCase {
 
     // MARK: - Accessories
 
+    func test_seatedFreeWeightCalfRaises_needBenchAndBlock() throws {
+        XCTAssertEqual(try exercise("Dumbbell_Seated_One-Leg_Calf_Raise").equipmentAccessories, [.bench, .box])
+        XCTAssertEqual(try exercise("Barbell_Seated_Calf_Raise").equipmentAccessories, [.bench, .box])
+        XCTAssertEqual(try exercise("Standing_Dumbbell_Calf_Raise").equipmentAccessories, [.box])
+    }
+
+    func test_benchOnlyInTheInstructions_stillNeedsABench() throws {
+        for id in ["Split_Squat_with_Dumbbells", "Dumbbell_Shoulder_Press", "One-Arm_Dumbbell_Row", "Concentration_Curls"] {
+            XCTAssertTrue(try exercise(id).equipmentAccessories.contains(.bench), id)
+        }
+    }
+
     func test_benchAndRackNeeds() throws {
         XCTAssertEqual(try exercise("Barbell_Bench_Press_-_Medium_Grip").equipmentAccessories, [.bench, .rack])
         XCTAssertEqual(try exercise("Barbell_Squat").equipmentAccessories, [.rack])

@@ -1,9 +1,10 @@
 import SwiftUI
+import UIKit
 
-/// "Plan a workout": tap a muscle on the body, keep the companions the
-/// engine suggests, and get a hypertrophy session sized to your time.
-/// The map shows fatigue until a muscle is picked, then the session's
-/// primary and supporting muscles.
+/// "Plan a workout": say where you train, tap a muscle on the body, keep
+/// the companions the engine suggests, and get a hypertrophy session sized
+/// to your time and built only from the kit you have. The built workout
+/// shows how each exercise is done before you start.
 struct SessionBuilderSheet: View {
     /// Called with the built routine and whether the session should count
     /// toward it (the user saved it as a routine). The presenter starts the
@@ -17,6 +18,7 @@ struct SessionBuilderSheet: View {
     @AppStorage("sessionBuilder.minutes") private var minutes = 60
     @State private var library = ExerciseLibrary.shared
     @State private var sessionService = WorkoutSessionService.shared
+    @State private var equipmentStore = EquipmentProfileStore.shared
     @State private var history: [WorkoutSession] = []
     /// Worked out once in `load()`: `DeloadEngine` walks the whole history,
     /// and `preview` reads this on every render.
@@ -26,8 +28,11 @@ struct SessionBuilderSheet: View {
     @State private var focus: Target?
     @State private var companions: [Target] = []
     @State private var resting: [Target] = []
-    @State private var routine: Routine?
+    @State private var built: Built?
+    @State private var scroll = ScrollPosition(edge: .top)
     @State private var isSaved = false
+    @State private var showsEquipment = false
+    @State private var detailExercise: Exercise?
 
     private typealias Target = SessionBuilderEngine.Target
     private static let minuteOptions = [30, 45, 60, 75]
@@ -40,6 +45,18 @@ struct SessionBuilderSheet: View {
     /// `AppColor.background` ink in light mode.
     private static let focusChipColor = AppColor.trainingPrimaryMuscle
     private static let companionChipColor = AppColor.trainingSecondaryMuscle
+    private static let pictureHeight: CGFloat = 132
+
+    /// The built session with what its page draws, worked out once when it
+    /// is built rather than on every render: step pictures are a bundle
+    /// lookup per exercise, the session map a pass over every lift.
+    private struct Built {
+        var plan: SessionBuilderEngine.Plan
+        var exercises: [String: Exercise]
+        var steps: [String: [String]]
+        var highlights: [AnatomicalMuscle: MuscleHighlight]
+        var routine: Routine { plan.routine }
+    }
 
     private var profileRequest: ProgramRequest {
         ProgramRequest(profile: dataStore.profile, experienceRaw: storedExperience)
@@ -52,38 +69,60 @@ struct SessionBuilderSheet: View {
                 // the other: the built workout slides in from the trailing
                 // edge and Back brings the picker in from the leading one.
                 ZStack(alignment: .top) {
-                    if let routine {
-                        preview(routine)
+                    if let built {
+                        preview(built)
                             .transition(.sectionSwap(forward: true))
                     } else {
                         picker
                             .transition(.sectionSwap(forward: false))
                     }
                 }
+                .readableContentWidth()
             }
+            // Each page opens at its top, not where the other was left.
+            .scrollPosition($scroll)
+            .modifier(SolidTopEdge())
+            .onChange(of: built == nil) { scroll.scrollTo(edge: .top) }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle(routine == nil ? "Plan a workout" : "Your workout")
+            .navigationTitle(built == nil ? "Plan a workout" : "Your workout")
             .navigationBarTitleDisplayMode(.inline)
+            // A solid bar, so chips and pictures scrolling up never run
+            // under the title and its buttons.
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar { toolbar }
             // The fade is drawn above the footer instead (see `footer`).
             .pinnedFooter(fadeHeight: 0) { footer }
             .task { await load() }
+            .sheet(isPresented: $showsEquipment) {
+                EquipmentProfileSheet(location: equipmentStore.location)
+            }
+            .sheet(item: $detailExercise) { exercise in
+                NavigationStack {
+                    ExerciseDetailView(exerciseID: exercise.id)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { detailExercise = nil }
+                            }
+                        }
+                }
+            }
         }
     }
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            if routine == nil {
+            if built == nil {
                 Button("Cancel") { dismiss() }
             } else {
-                Button("Back") { AppAnimation.with(AppAnimation.springSnappy) { routine = nil } }
+                Button("Back") { AppAnimation.with(AppAnimation.springSnappy) { built = nil } }
             }
         }
         ToolbarItem(placement: .topBarTrailing) {
-            if let routine {
-                Button(isSaved ? LocalizedStringKey("routine.saved") : "Save as routine") { save(routine) }
-                    .disabled(isSaved || routine.exercises.isEmpty)
+            if let built {
+                Button(isSaved ? LocalizedStringKey("routine.saved") : "Save") { save(built.routine) }
+                    .accessibilityLabel(isSaved ? Text("routine.saved") : Text("Save as routine"))
+                    .disabled(isSaved || built.routine.exercises.isEmpty)
             } else {
                 // Dice, not the wand: the wand is Create workout's, below.
                 Button("Pick for me", systemImage: "dice") { pickForMe() }
@@ -92,53 +131,39 @@ struct SessionBuilderSheet: View {
         }
     }
 
-    // MARK: - Picking muscles
+    // MARK: - Picking
 
     private var picker: some View {
-        VStack(alignment: .leading, spacing: Spacing.xl) {
-            VStack(spacing: Spacing.sm) {
-                MuscleMapView(
-                    highlights: mapHighlights,
-                    primaryColor: Self.focusColor,
-                    secondaryColor: Self.companionColor,
-                    onIdentify: { select(Target($0)) }
-                )
-                .frame(maxWidth: .infinity)
-                .appAnimation(AppAnimation.quick, value: focus)
-                // Recovery heat before a pick, the focus and companion
-                // colours after. A key only takes room when it has
-                // something to explain, so an untinted map sits right on
-                // the chips instead of over a blank slot.
-                if focus != nil {
-                    roleKey
-                        .transition(.opacity)
-                } else if showsHeatKey {
-                    MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
-                                     highLabel: String(localized: "Needs rest"))
-                        .transition(.opacity)
-                }
-            }
+        VStack(alignment: .leading, spacing: Spacing.xxl) {
+            placeCard
+            bodyPicker(mapHighlights)
 
             section("MUSCLE") {
-                chips(Target.allCases, tint: Self.focusChipColor,
-                      isSelected: { $0 == focus }, action: select)
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    ForEach(Target.Category.allCases, id: \.self) { category in
+                        categoryGroup(category)
+                    }
+                }
             }
 
             if let focus {
-                statusCard(for: focus)
-                section("TRAIN WITH IT") {
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        chips(focus.companions.filter { !resting.contains($0) },
-                              tint: Self.companionChipColor,
-                              isSelected: { companions.contains($0) },
-                              action: toggleCompanion)
-                        if !resting.isEmpty {
-                            Text("Resting today: \(resting.map(\.displayName).formatted(.list(type: .and)))")
-                                .font(AppFont.scaled(13))
-                                .foregroundStyle(AppColor.textSecondary)
+                VStack(alignment: .leading, spacing: Spacing.xxl) {
+                    statusCard(for: focus)
+                    section("TRAIN WITH IT") {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
+                            chips(focus.companions.filter { !resting.contains($0) },
+                                  tint: Self.companionChipColor,
+                                  isSelected: { companions.contains($0) },
+                                  action: toggleCompanion)
+                            if !resting.isEmpty {
+                                Text("Resting today: \(resting.map(\.displayName).formatted(.list(type: .and)))")
+                                    .font(AppFont.scaled(13))
+                                    .foregroundStyle(AppColor.textSecondary)
+                            }
                         }
                     }
                 }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
             section("MINUTES") {
@@ -151,16 +176,96 @@ struct SessionBuilderSheet: View {
         .padding(.bottom, Self.footerFadeHeight)
     }
 
-    private var showsHeatKey: Bool { !mapHighlights.isEmpty }
+    /// Where you train, and the kit that place has. The place decides
+    /// which exercises the session may use.
+    private var placeCard: some View {
+        GlassCard {
+            VStack(spacing: Spacing.md) {
+                GlassSegmentedControl(
+                    options: TrainingLocation.allCases,
+                    selected: Binding(get: { equipmentStore.location },
+                                      set: { place in
+                                          Haptics.selection()
+                                          equipmentStore.select(place)
+                                      }),
+                    label: { LocalizedStringKey($0.displayName) },
+                    icon: { $0.symbol }
+                )
+                Button { showsEquipment = true } label: {
+                    HStack(spacing: Spacing.md) {
+                        GlyphImage(glyph: EquipmentKind.dumbbell.glyph, size: 15)
+                            .foregroundStyle(AppColor.accentPrimary)
+                            .frame(width: 28, height: 28)
+                        Text("Equipment")
+                            .font(AppFont.scaled(16, weight: .semibold))
+                            .foregroundStyle(AppColor.textPrimary)
+                        Spacer(minLength: Spacing.sm)
+                        Text("\(equipmentStore.current.itemCount) selected")
+                            .font(AppFont.scaled(13))
+                            .foregroundStyle(AppColor.textSecondary)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                        Image(systemName: "chevron.right")
+                            .font(AppFont.scaled(13, weight: .semibold))
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+                    .frame(minHeight: Spacing.minimumHitTarget)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.cardPress)
+                .accessibilityElement(children: .combine)
+                .accessibilityHint(Text("Choose the equipment you have"))
+            }
+        }
+        .appAnimation(AppAnimation.quick, value: equipmentStore.location)
+    }
+
+    /// The body is the picker: a tapped muscle becomes the focus and the
+    /// figure lights it orange, its companions blue.
+    private func bodyPicker(_ highlights: [AnatomicalMuscle: MuscleHighlight]) -> some View {
+        VStack(spacing: Spacing.md) {
+            MuscleMapView(
+                highlights: highlights,
+                primaryColor: Self.focusColor,
+                secondaryColor: Self.companionColor,
+                onIdentify: { select(Target($0)) }
+            )
+            .frame(maxWidth: .infinity)
+            .appAnimation(AppAnimation.settle, value: highlights)
+            // One line under the figure that always says something: how to
+            // pick before a pick, then what the two colours mean.
+            Group {
+                if focus != nil {
+                    roleKey
+                } else if !highlights.isEmpty {
+                    MuscleHeatLegend(lowLabel: String(localized: "Recovered"),
+                                     highLabel: String(localized: "Needs rest"))
+                } else {
+                    Text("Tap a muscle on the body")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .transition(.opacity)
+        }
+        .appAnimation(AppAnimation.quick, value: focus)
+    }
 
     /// Fatigue heat before a pick; the session's muscles after.
     private var mapHighlights: [AnatomicalMuscle: MuscleHighlight] {
         guard let focus else {
             return recovery.compactMapValues { $0.fraction < 1 ? .intensity(1 - $0.fraction) : nil }
         }
+        return Self.roleHighlights(focus: focus, others: companions)
+    }
+
+    /// Orange for the focus, blue for every other muscle in the session:
+    /// the same meaning on the picker and on the built workout.
+    private static func roleHighlights(focus: Target, others: [Target]) -> [AnatomicalMuscle: MuscleHighlight] {
         var map: [AnatomicalMuscle: MuscleHighlight] = [:]
-        for companion in companions {
-            for head in companion.heads { map[head] = .secondary }
+        for other in others {
+            for head in other.heads { map[head] = .secondary }
         }
         for head in focus.heads { map[head] = .primary }
         return map
@@ -180,6 +285,7 @@ struct SessionBuilderSheet: View {
                         Text(target.displayName)
                             .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.textPrimary)
+                            .contentTransition(.opacity)
                         Text(statusText(state?.recovery))
                             .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.textSecondary)
@@ -191,6 +297,7 @@ struct SessionBuilderSheet: View {
                             .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
+                            .contentTransition(.numericText())
                         Text("sets this week")
                             .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.textSecondary)
@@ -204,6 +311,7 @@ struct SessionBuilderSheet: View {
                             .scaleEffect(x: fraction, anchor: .leading)
                     }
                     .frame(height: 6)
+                    .appAnimation(AppAnimation.settle, value: fraction)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .ignore)
@@ -222,40 +330,26 @@ struct SessionBuilderSheet: View {
         }
     }
 
-    // MARK: - Preview
+    // MARK: - The built workout
 
-    private func preview(_ routine: Routine) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            // "0 exercises · 0 sets · ~0 min" over the empty state said
-            // nothing the empty state doesn't.
-            if !routine.exercises.isEmpty {
-                Text("\(routine.exercises.count) exercises · \(RoutineSeedEngine.totalSets(in: routine)) sets · ~\(RoutineSeedEngine.estimatedMinutes(for: routine)) min")
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-            if isDeload {
-                Text("Deload week: lighter on purpose so you come back stronger.")
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-            if routine.exercises.isEmpty {
+    private func preview(_ built: Built) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            if built.routine.exercises.isEmpty {
                 // In the card the list would fill, so the page keeps its shape.
                 GlassCard {
                     EmptyStateView(
                         icon: "dumbbell",
                         title: "No exercises with this equipment",
-                        message: "Pick another muscle, or add equipment in Profile.",
+                        message: "Pick another muscle, or tick more equipment.",
                         style: .compact
                     )
                 }
             } else {
-                GlassCard {
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        ForEach(routine.exercises) { slot in
-                            slotRow(slot)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                summaryCard(built)
+                notes(built)
+                ForEach(Array(built.routine.exercises.enumerated()), id: \.element.id) { index, slot in
+                    exerciseCard(slot, number: index + 1, in: built)
+                        .scrollReveal()
                 }
             }
         }
@@ -264,22 +358,152 @@ struct SessionBuilderSheet: View {
         .padding(.bottom, Self.footerFadeHeight)
     }
 
-    private func slotRow(_ slot: RoutineExercise) -> some View {
-        let rest = Duration.seconds(slot.restSeconds ?? 0).formatted(.time(pattern: .minuteSecond))
-        let effort = (slot.targetRPE ?? 0).formatted()
-        let detail: LocalizedStringKey = slot.supersetGroup == nil
-            ? "\(slot.targetSets) × \(slot.targetReps) · RPE \(effort) · \(rest) rest"
-            : "\(slot.targetSets) × \(slot.targetReps) · RPE \(effort) · \(rest) rest · Superset"
-        return VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text(library.displayName(for: slot.exerciseID))
-                .font(AppFont.scaled(16))
+    /// The session at a glance: its name, the whole body with every muscle
+    /// it trains, and three equal columns for exercises, sets and minutes.
+    private func summaryCard(_ built: Built) -> some View {
+        let routine = built.routine
+        return GlassCard {
+            VStack(spacing: Spacing.lg) {
+                VStack(spacing: Spacing.xxs) {
+                    Text(routine.name)
+                        .font(AppFont.scaled(24, weight: .bold))
+                        .foregroundStyle(AppColor.textPrimary)
+                    if let subtitle = routine.subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(AppFont.scaled(13))
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                }
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+
+                MuscleMapView(
+                    highlights: built.highlights,
+                    primaryColor: Self.focusColor,
+                    secondaryColor: Self.companionColor,
+                    identifiesOnTap: false
+                )
+                .frame(height: 190)
+                .frame(maxWidth: .infinity)
+
+                HStack(spacing: 0) {
+                    stat(routine.exercises.count, label: "Exercises")
+                    statDivider
+                    stat(RoutineSeedEngine.totalSets(in: routine), label: "Sets")
+                    statDivider
+                    stat(Int((Double(ProgramGeneratorEngine.plannedSeconds(for: routine)) / 60).rounded()), label: "Minutes")
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
+    private func stat(_ value: Int, label: LocalizedStringKey) -> some View {
+        VStack(spacing: Spacing.xxs) {
+            Text("\(value)")
+                .font(AppFont.scaled(20, weight: .semibold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
-                .lineLimit(2)
-            Text(detail)
-                .font(AppFont.scaled(11))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            Text(label)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var statDivider: some View {
+        Rectangle()
+            .fill(AppColor.glassBorder)
+            .frame(width: 1, height: 32)
+            .accessibilityHidden(true)
+    }
+
+    /// Why the session holds more than was picked, and the deload note.
+    @ViewBuilder
+    private func notes(_ built: Built) -> some View {
+        let added = built.plan.added.map(\.displayName).formatted(.list(type: .and))
+        if !built.plan.added.isEmpty || isDeload {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                if !built.plan.added.isEmpty {
+                    note("plus.circle", Text("Added \(added) to fill your \(minutes) minutes."))
+                }
+                if isDeload {
+                    note("leaf", Text("Deload week: lighter on purpose so you come back stronger."))
+                }
+            }
+            .padding(.horizontal, Spacing.xs)
+        }
+    }
+
+    private func note(_ icon: String, _ text: Text) -> some View {
+        Label {
+            text.fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: icon).foregroundStyle(AppColor.accentPrimary)
+        }
+        .font(AppFont.scaled(13))
+        .foregroundStyle(AppColor.textSecondary)
+    }
+
+    /// One exercise: how it's done on top (step pictures, or the muscle
+    /// map where there are none yet), then its number, name and targets.
+    /// Tapping opens the full exercise page.
+    private func exerciseCard(_ slot: RoutineExercise, number: Int, in built: Built) -> some View {
+        let exercise = built.exercises[slot.exerciseID]
+        let steps = built.steps[slot.exerciseID] ?? []
+        return Button { detailExercise = exercise } label: {
+            GlassCard {
+                VStack(spacing: Spacing.lg) {
+                    Group {
+                        if steps.isEmpty {
+                            ExerciseHeroView(exercise: exercise, interactive: false)
+                        } else {
+                            ExerciseStepStrip(assetNames: steps, height: Self.pictureHeight)
+                        }
+                    }
+                    .frame(height: Self.pictureHeight)
+                    .frame(maxWidth: .infinity)
+                    .allowsHitTesting(false)
+
+                    HStack(spacing: Spacing.md) {
+                        Text("\(number)")
+                            .font(AppFont.scaled(13, weight: .bold, design: .rounded))
+                            .foregroundStyle(AppColor.accentPrimary)
+                            .monospacedDigit()
+                            .frame(width: 30, height: 30)
+                            .background(Circle().fill(AppColor.accentPrimary.opacity(0.15)))
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text(library.displayName(for: slot.exerciseID))
+                                .font(AppFont.scaled(16, weight: .semibold))
+                                .foregroundStyle(AppColor.textPrimary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                            Text(detail(for: slot))
+                                .font(AppFont.scaled(13))
+                                .foregroundStyle(AppColor.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "chevron.right")
+                            .font(AppFont.scaled(13, weight: .semibold))
+                            .foregroundStyle(AppColor.textTertiary)
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+        }
+        .buttonStyle(.cardPress)
+        .disabled(exercise == nil)
         .accessibilityElement(children: .combine)
+        .accessibilityHint(Text("Shows how to do it"))
+    }
+
+    private func detail(for slot: RoutineExercise) -> LocalizedStringKey {
+        let rest = Duration.seconds(slot.restSeconds ?? 0).formatted(.time(pattern: .minuteSecond))
+        let effort = (slot.targetRPE ?? 0).formatted()
+        return slot.supersetGroup == nil
+            ? "\(slot.targetSets) × \(slot.targetReps) · RPE \(effort) · \(rest) rest"
+            : "\(slot.targetSets) × \(slot.targetReps) · RPE \(effort) · \(rest) rest · Superset"
     }
 
     // MARK: - Pieces
@@ -319,13 +543,25 @@ struct SessionBuilderSheet: View {
         }
     }
 
+    /// One body region: its name, then its muscles as chips.
+    private func categoryGroup(_ category: Target.Category) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text(category.displayName)
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityAddTraits(.isHeader)
+            chips(category.targets, tint: Self.focusChipColor,
+                  isSelected: { $0 == focus }, action: select)
+        }
+    }
+
     private func chips(
         _ targets: [Target],
         tint: Color,
         isSelected: @escaping (Target) -> Bool,
         action: @escaping (Target) -> Void
     ) -> some View {
-        FlowLayout(spacing: Spacing.sm) {
+        FlowLayout(spacing: Spacing.chipSpacing) {
             ForEach(targets, id: \.self) { target in
                 GlassChip(LocalizedStringKey(target.displayName), tint: tint, style: .prominent,
                           isSelected: isSelected(target)) {
@@ -337,22 +573,20 @@ struct SessionBuilderSheet: View {
 
     private var footer: some View {
         Group {
-            if let routine {
+            if let built {
                 // Disabled rather than swapped for a caption, so the footer
                 // keeps its height and the empty state above says why.
-                PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
-                    .disabled(routine.exercises.isEmpty)
-            } else {
+                PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(built.routine) }
+                    .disabled(built.routine.exercises.isEmpty)
+            } else if focus == nil {
                 // The same button as "Start workout", which takes this slot
                 // once the workout is built. Until a muscle is picked it
                 // names what it's waiting for, so no hint line repeats it.
-                if focus == nil {
-                    PrimaryCTAButton(title: "Pick a muscle to start") {}
-                        .disabled(true)
-                } else {
-                    PrimaryCTAButton(title: "Create workout", icon: "wand.and.stars") { build() }
-                        .disabled(!library.isLoaded)
-                }
+                PrimaryCTAButton(title: "Pick a muscle to start") {}
+                    .disabled(true)
+            } else {
+                PrimaryCTAButton(title: "Create workout", icon: "wand.and.stars") { build() }
+                    .disabled(!library.isLoaded)
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
@@ -428,14 +662,24 @@ struct SessionBuilderSheet: View {
             companions: companions,
             minutes: minutes,
             experience: profileRequest.experience,
-            equipment: profileRequest.equipment,
+            equipment: equipmentStore.current,
             states: states,
             familiarExerciseIDs: Set(history.flatMap { $0.exercises.map(\.exerciseID) }),
             isDeload: isDeload
         )
-        let built = SessionBuilderEngine.build(request, catalog: library.bundled)
+        let plan = SessionBuilderEngine.build(request, catalog: library.bundled)
+        let ids = plan.routine.exercises.map(\.exerciseID)
+        let exercises = Dictionary(ids.compactMap { id in library.lookup(id: id).map { (id, $0) } },
+                                   uniquingKeysWith: { first, _ in first })
+        let result = Built(
+            plan: plan,
+            exercises: exercises,
+            steps: Dictionary(ids.map { ($0, ExerciseStepArt.assetNames(for: $0)) }, uniquingKeysWith: { first, _ in first }),
+            highlights: Self.roleHighlights(focus: focus, others: plan.others)
+        )
+        Haptics.impact(.light)
         isSaved = false
-        AppAnimation.with(AppAnimation.springSnappy) { routine = built }
+        AppAnimation.with(AppAnimation.springSnappy) { built = result }
     }
 
     private func save(_ routine: Routine) {
@@ -448,6 +692,20 @@ struct SessionBuilderSheet: View {
         Haptics.impact(.medium)
         onStart(routine, isSaved)
         dismiss()
+    }
+}
+
+/// iOS 26 lets content slide under the glass toolbar with only a soft
+/// fade, so chips and pictures read through the title and its buttons.
+/// The hard edge gives the bar a defined backdrop; earlier systems get
+/// the solid bar from `toolbarBackground`.
+private struct SolidTopEdge: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.scrollEdgeEffectStyle(.hard, for: .top)
+        } else {
+            content
+        }
     }
 }
 
