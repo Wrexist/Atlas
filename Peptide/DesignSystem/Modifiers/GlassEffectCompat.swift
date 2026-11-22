@@ -216,23 +216,3 @@ struct GlassBarBackground: View {
         .opacity(opacity)
     }
 }
-
-/// Wraps content in a `GlassEffectContainer` on iOS 26+ so neighbouring glass
-/// shapes render and blend as one group. No-op on earlier OSes.
-struct LiquidGlassContainer<Content: View>: View {
-    var spacing: CGFloat?
-    @ViewBuilder var content: () -> Content
-
-    init(spacing: CGFloat? = nil, @ViewBuilder content: @escaping () -> Content) {
-        self.spacing = spacing
-        self.content = content
-    }
-
-    var body: some View {
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer(spacing: spacing) { content() }
-        } else {
-            content()
-        }
-    }
-}

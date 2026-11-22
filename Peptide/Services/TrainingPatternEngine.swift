@@ -68,22 +68,6 @@ enum TrainingPatternEngine {
         return sessionDates.filter { $0 >= windowStart && $0 < windowEnd }.count
     }
 
-    /// Most-trained ISO weekdays (1=Mon...7=Sun) across all provided
-    /// session dates, sorted ascending, ties included. Empty when there's
-    /// no data. Purely descriptive — no claim about *why* those days.
-    static func preferredWeekdays(sessionDates: [Date], calendar: Calendar = .current) -> [Int] {
-        guard !sessionDates.isEmpty else { return [] }
-        var counts: [Int: Int] = [:]
-        for date in sessionDates {
-            let weekday = calendar.component(.weekday, from: date)
-            let isoDay = weekday == 1 ? 7 : weekday - 1
-            counts[isoDay, default: 0] += 1
-        }
-        let maxCount = counts.values.max() ?? 0
-        guard maxCount > 0 else { return [] }
-        return counts.filter { $0.value == maxCount }.map(\.key).sorted()
-    }
-
     /// Start of the trailing-7-day rolling window ending on
     /// `referenceDate` — i.e. `referenceDate`'s day minus 6 days.
     private static func currentRollingWeekStart(asOf referenceDate: Date, calendar: Calendar) -> Date {

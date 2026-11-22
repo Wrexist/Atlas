@@ -40,13 +40,4 @@ enum IntentDataStore {
         return store
     }
 
-    /// Run a synchronous mutation, then force a save so the change
-    /// is durable before the intent's `perform()` returns. Without
-    /// the flush, the debounced auto-save can lose data when iOS
-    /// terminates the app a few hundred ms after the intent finishes.
-    static func performAndFlush(_ mutate: (DataStore) -> Void) {
-        let store = resolve()
-        mutate(store)
-        store.flushPendingSave()
-    }
 }

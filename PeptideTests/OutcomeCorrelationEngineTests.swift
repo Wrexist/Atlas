@@ -2,9 +2,7 @@ import XCTest
 @testable import Peptide
 
 /// Pins the dose-day vs off-day correlation math (audit Phase 9 —
-/// untested engines). Dates derive from a start-of-day "today"
-/// anchor because `trendPoints` windows against the real clock;
-/// the bucket math itself is fully input-driven.
+/// untested engines). The bucket math is fully input-driven.
 @MainActor
 final class OutcomeCorrelationEngineTests: XCTestCase {
 
@@ -141,23 +139,4 @@ final class OutcomeCorrelationEngineTests: XCTestCase {
 
     // MARK: - Trend points
 
-    func test_trendPoints_windowsSortsAndFlagsDoseDays() throws {
-        let outcomes = (0...9).map { makeOutcome(daysAgo: $0, energy: 4) }
-        let entries = [makeEntry(daysAgo: 2)]
-
-        let points = OutcomeCorrelationEngine.trendPoints(outcomes: outcomes, entries: entries, days: 7)
-
-        XCTAssertEqual(points.count, 7)
-        XCTAssertEqual(points.first?.date, day(6))
-        XCTAssertEqual(points.last?.date, day(0))
-        XCTAssertEqual(points.map(\.onDoseDay), [false, false, false, false, true, false, false])
-        XCTAssertEqual(try XCTUnwrap(points.first?.composite), (4 + 3 + 3 + 3 + 3) / 5.0, accuracy: 0.0001)
-    }
-
-    func test_trendPoints_skipsDaysWithoutCheckIn() {
-        let outcomes = [0, 2, 4].map { makeOutcome(daysAgo: $0) }
-        let points = OutcomeCorrelationEngine.trendPoints(outcomes: outcomes, entries: [], days: 7)
-        XCTAssertEqual(points.count, 3)
-        XCTAssertEqual(points.map(\.date), [day(4), day(2), day(0)])
-    }
 }

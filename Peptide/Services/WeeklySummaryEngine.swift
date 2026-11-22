@@ -331,13 +331,6 @@ enum WeeklySummaryEngine {
         isoDateFormatter(timeZone: calendar.timeZone).string(from: date)
     }
 
-    /// Parses a summary's `weekStart` key back to the user's local
-    /// midnight. The key is written in local time (`isoDateString`), so
-    /// parsing it as UTC showed the previous day west of UTC.
-    static func weekStartDate(from isoWeekStart: String, calendar: Calendar = .current) -> Date? {
-        isoDateFormatter(timeZone: calendar.timeZone).date(from: isoWeekStart)
-    }
-
     private static func isoDateFormatter(timeZone: TimeZone) -> ISO8601DateFormatter {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
