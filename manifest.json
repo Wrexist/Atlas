@@ -1,0 +1,26 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "E23041E5-1A67-416D-821F-B774E8788CA3.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "rings-light-01-under_0_83D02793-1003-4225-A1F5-147BAD9D6D28.png",
+        "timestamp" : 1795377386.524
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "D5AE1926-2D11-4E9A-A06D-D053B4ADE8E6.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "rings-dark-01-under_0_E1EFCA17-1628-4C06-B459-49E8D8CA144F.png",
+        "timestamp" : 1795377356.675
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureNutritionRings()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureNutritionRings"
+  }
+]
