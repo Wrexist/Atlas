@@ -96,23 +96,6 @@ final class StoreService {
         products.first { $0.id == Self.lifetimeID }
     }
 
-    #if DEBUG
-    /// Test-only: drops the loaded catalogue so a test can reach the
-    /// "products never loaded" guards.
-    ///
-    /// `StoreService` is a process-lifetime singleton, so once any test
-    /// calls `loadProducts()` the catalogue stays loaded for every test
-    /// that follows — which made the not-loaded branch unreachable and
-    /// its test order-dependent. Behind `#if DEBUG` so it cannot exist
-    /// in a Release build, and it touches only the cached catalogue:
-    /// no purchase, entitlement, or transaction state moves.
-    func resetLoadedProductsForTesting() {
-        products = []
-        isEligibleForMonthlyTrial = false
-        isEligibleForAnnualTrial = false
-    }
-    #endif
-
     /// Display string for the monthly intro offer ("7 days free"). `nil` when
     /// there is no intro offer or the product hasn't loaded yet.
     var monthlyTrialDisplay: String? { trialDisplay(for: monthlyProduct) }
@@ -237,15 +220,6 @@ final class StoreService {
     @discardableResult
     func purchase(_ product: Product) async throws -> Bool {
         try await purchaseWithOutcome(product) == .success
-    }
-
-    /// Starts the monthly subscription, which auto-applies the configured
-    /// free trial intro offer when the user is eligible. After the
-    /// trial Apple auto-renews monthly until the user cancels.
-    @discardableResult
-    func startMonthlyTrial() async throws -> Bool {
-        guard let monthly = monthlyProduct else { return false }
-        return try await purchase(monthly)
     }
 
     enum RestoreOutcome: Equatable, Sendable {
