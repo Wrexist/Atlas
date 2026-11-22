@@ -48,7 +48,7 @@ struct ExerciseHistorySection: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityIdentifier("exercise-history")
-        .task(id: dataStore.revision) { reload() }
+        .task(id: dataStore.trainingRevision) { reload() }
         .onChange(of: scenePhase) { _, phase in if phase == .active { reload() } }
     }
 
