@@ -89,7 +89,6 @@ targets:
         excludes:
           - "**/.DS_Store"
           - "Resources/Info.plist"
-          - "Resources/AppStoreCovers/**"
           # Local StoreKit config — referenced by the scheme as
           # `storeKitConfiguration` for `xcodebuild test` /
           # SKTestSession only. EXCLUDING from the app bundle so a
