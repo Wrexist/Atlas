@@ -351,6 +351,19 @@ final class ScreenshotTests: XCTestCase {
         captureAllTabs(prefix: "light")
     }
 
+    /// Every tab scrolled top to bottom, plus Profile and Settings, so a
+    /// whole-app density review sees what sits below the fold — the
+    /// all-tabs passes only grab each tab's first screen.
+    func test_captureFullPages() {
+        launch(appearance: "dark")
+        captureFullPages(prefix: "full-dark")
+    }
+
+    func test_captureFullPages_lightMode() {
+        launch(appearance: "light")
+        captureFullPages(prefix: "full-light")
+    }
+
     /// Largest accessibility content-size category. Anything that truncates,
     /// clips, or overlaps at this size is a layout bug, not a preference.
     func test_captureAllTabs_accessibilityTextSize() {
@@ -1207,6 +1220,43 @@ final class ScreenshotTests: XCTestCase {
             if tab == "Biology" {
                 capturePaywall(prefix: prefix, slot: offset + 3)
             }
+        }
+    }
+
+    private func captureFullPages(prefix: String) {
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+        app.dismissOverlaysIfNeeded()
+        captureScrolled(prefix: "\(prefix)-01-Today")
+
+        for (offset, tab) in Self.secondaryTabs.enumerated() {
+            let button = app.tabBars.buttons[tab]
+            guard button.waitForExistence(timeout: 5) else { continue }
+            button.tap()
+            app.dismissOverlaysIfNeeded()
+            captureScrolled(prefix: String(format: "%@-%02d-%@", prefix, offset + 2, tab))
+        }
+
+        let profile = app.buttons["Open profile"].firstMatch
+        guard profile.waitForExistence(timeout: 5) else { return }
+        profile.tap()
+        captureScrolled(prefix: "\(prefix)-06-Profile")
+        scrollToTop()
+        let settings = app.buttons["Settings"].firstMatch
+        if settings.waitForExistence(timeout: 5) {
+            settings.tap()
+            captureScrolled(prefix: "\(prefix)-07-Settings")
+        }
+    }
+
+    /// Captures one screen per swipe until the content stops moving, so a
+    /// short screen yields one image and a long one its full length.
+    private func captureScrolled(prefix: String, maxPages: Int = 8) {
+        for page in 1...maxPages {
+            capture(named: String(format: "%@-p%02d", prefix, page))
+            let before = app.screenshot().pngRepresentation
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.8)
+            if app.screenshot().pngRepresentation == before { return }
         }
     }
 
