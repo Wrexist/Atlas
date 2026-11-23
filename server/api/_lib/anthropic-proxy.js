@@ -14,7 +14,7 @@
  *   PROXY_SHARED_SECRET  — random 32+ byte string the iOS client
  *                          echoes as `X-Peptide-Proxy`.
  *   ALLOWED_MODELS       — comma-separated Anthropic model IDs.
- *                          Default: claude-sonnet-5,claude-sonnet-4-6.
+ *                          Default: claude-sonnet-5.
  *                          A deployment that sets this explicitly must
  *                          list every model the app sends, or the
  *                          sanitiser rewrites the missing ones to the
@@ -85,12 +85,10 @@ import {
   withinDeviceQuota,
 } from './rate-limit.js';
 
-// The app sends Sonnet 5 on every route. 4.6 stays allowed for older
-// app builds whose ai-research still asks for it; without it the
-// sanitiser would silently rewrite their model. Index 0 is also the
-// fallback for an unrecognised model, which is why the stronger one
-// leads.
-const DEFAULT_ALLOWED_MODELS = ['claude-sonnet-5', 'claude-sonnet-4-6'];
+// The app sends Sonnet 5 on every route. Index 0 is also the fallback
+// for an unrecognised model, so an old build that still asks for 4.6
+// is served Sonnet 5.
+const DEFAULT_ALLOWED_MODELS = ['claude-sonnet-5'];
 const MAX_TOKENS_HARDCAP = 800;
 // Cap large enough for the AI research multi-turn chat flow (history +
 // new turn). 4 was too small — the third user turn already produced 5

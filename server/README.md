@@ -56,15 +56,13 @@ server-side from a small app payload.
      `openssl rand -hex 32` is fine.
    - Optional:
      - `ALLOWED_MODELS` — comma-separated Anthropic model IDs.
-       Defaults to `claude-sonnet-5,claude-sonnet-4-6`.
+       Defaults to `claude-sonnet-5`.
        **If you set this, list every model the app sends.** The meal
-       scanner and ai-research ask for `claude-sonnet-5`; older app
-       builds' ai-research still asks for `claude-sonnet-4-6`.
-       (weekly-summary picks its own model server-side.) A model that
+       scanner and ai-research ask for `claude-sonnet-5`
+       (weekly-summary picks its own model server-side). A model that
        isn't on the list is rewritten to the first entry rather than
        rejected, so an incomplete list looks like it works and just
-       quietly serves the wrong model. Existing deployments pinned to
-       `claude-sonnet-4-6` keep scanning on 4.6 until this is updated.
+       quietly serves the wrong model.
      - `FOOD_SCAN_MODEL` — model for `/api/food-scan`. Default
        `claude-opus-5-5`. Not subject to `ALLOWED_MODELS`: the app
        never names a model on this route, the server picks it.
