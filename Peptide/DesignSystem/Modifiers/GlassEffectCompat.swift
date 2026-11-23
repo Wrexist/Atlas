@@ -216,3 +216,19 @@ struct GlassBarBackground: View {
         .opacity(opacity)
     }
 }
+
+extension View {
+    /// iOS 26 lets content slide under the glass toolbar with only a soft
+    /// fade, so text scrolling up reads through the title and its buttons.
+    /// The hard edge gives the bar a defined backdrop; earlier systems get
+    /// the solid bar from `toolbarBackground(.visible, …)`. Pass `false`
+    /// while the bar should stay clear, e.g. over a hero photo.
+    @ViewBuilder
+    func solidTopScrollEdge(_ isSolid: Bool = true) -> some View {
+        if #available(iOS 26.0, *) {
+            scrollEdgeEffectStyle(isSolid ? ScrollEdgeEffectStyle.hard : .automatic, for: .top)
+        } else {
+            self
+        }
+    }
+}

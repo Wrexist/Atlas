@@ -96,7 +96,7 @@ struct SessionBuilderSheet: View {
             }
             // Each page opens at its top, not where the other was left.
             .scrollPosition($scroll)
-            .modifier(SolidTopEdge())
+            .solidTopScrollEdge()
             .onChange(of: built == nil) { scroll.scrollTo(edge: .top) }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle(built == nil ? "Plan a workout" : "Your workout")
@@ -743,20 +743,6 @@ struct SessionBuilderSheet: View {
         Haptics.impact(.medium)
         onStart(routine, isSaved)
         dismiss()
-    }
-}
-
-/// iOS 26 lets content slide under the glass toolbar with only a soft
-/// fade, so chips and pictures read through the title and its buttons.
-/// The hard edge gives the bar a defined backdrop; earlier systems get
-/// the solid bar from `toolbarBackground`.
-private struct SolidTopEdge: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.scrollEdgeEffectStyle(.hard, for: .top)
-        } else {
-            content
-        }
     }
 }
 

@@ -309,6 +309,7 @@ struct PeptideDetailView: View {
         }
         .navigationTitle(peptide.abbreviation)
         .navigationBarTitleDisplayMode(.inline)
+        .solidTopScrollEdge(heroScrolledAway)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(peptide.abbreviation)
