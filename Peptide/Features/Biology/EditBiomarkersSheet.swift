@@ -121,7 +121,7 @@ struct EditBiomarkersSheet: View {
                     Text(biomarker.displayName)
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
-                    if biomarker.requiresPro {
+                    if biomarker.requiresPro && StoreService.paywallEnabled {
                         ProBadge()
                     }
                 }

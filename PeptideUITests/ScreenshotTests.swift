@@ -28,6 +28,10 @@ final class ScreenshotTests: XCTestCase {
     /// captured before any tap.
     private static let secondaryTabs = ["Train", "Meals", "Biology", "Habits"]
 
+    /// Mirrors `StoreService.paywallEnabled` in the app, which this UI
+    /// test target cannot read. Flip both together.
+    private static let paywallEnabled = false
+
     override func tearDown() {
         app = nil
         super.tearDown()
@@ -389,7 +393,8 @@ final class ScreenshotTests: XCTestCase {
     /// TrialOfferView is a Guideline 3.1.2 purchase surface. Onboarding
     /// resumes from its saved page, so this starts on the plan page
     /// (`OnboardingStep.plan`, raw value 8) and opens the offer from there.
-    func test_captureTrialOffer() {
+    func test_captureTrialOffer() throws {
+        try XCTSkipUnless(Self.paywallEnabled, "The paywall is switched off, so onboarding skips the trial offer")
         launchFreshInstall(onboardingPage: 8)
         let startPlan = app.buttons["Start my plan"]
         XCTAssertTrue(startPlan.waitForExistence(timeout: 15), "Onboarding plan page missing")
