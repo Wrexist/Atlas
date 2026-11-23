@@ -279,21 +279,20 @@ struct WeeklySummaryHeroCard: View {
             spacing: Spacing.sm
         ) {
             // Fitness-only weeks have no doses; "0%" or a 0-day dose
-            // streak would read as failure.
+            // streak would read as failure. Figures stay in neutral ink:
+            // violet and orange tiles beside each other read as competing
+            // highlights. Only the HRV delta keeps a colour, because its
+            // sign is the news.
             if stats.dosesTotal > 0 {
                 StatTile(
                     label: "Adherence",
-                    value: stats.compliancePct.formatted(.percent.precision(.fractionLength(0))),
-                    tint: accent
+                    value: stats.compliancePct.formatted(.percent.precision(.fractionLength(0)))
                 )
                 StatTile(
                     label: "Dose streak",
-                    value: stats.currentStreak == 1 ? String(localized: "1 day") : String(localized: "\(stats.currentStreak) days"),
-                    tint: AppColor.streak
+                    value: stats.currentStreak == 1 ? String(localized: "1 day") : String(localized: "\(stats.currentStreak) days")
                 )
             }
-            // Neutral ink: violet and orange figures beside the accent
-            // adherence read as four competing highlights.
             if let composite = stats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
