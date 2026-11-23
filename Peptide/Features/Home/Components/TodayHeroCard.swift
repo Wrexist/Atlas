@@ -71,7 +71,7 @@ struct TodayHeroCard: View {
             }
             .onDisappear { isShown = false }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text("Your day"))
+            .accessibilityLabel(Text("Daily goals"))
             .accessibilityValue(accessibilityValue)
     }
 
@@ -95,7 +95,7 @@ struct TodayHeroCard: View {
     }
 
     private var heading: some View {
-        Text("Your day")
+        Text("Daily goals")
             .font(AppFont.eyebrow)
             .textCase(.uppercase)
             .tracking(0.8)

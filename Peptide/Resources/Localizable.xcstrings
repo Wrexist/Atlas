@@ -6779,6 +6779,16 @@
         }
       }
     },
+    "Daily goals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagens mål"
+          }
+        }
+      }
+    },
     "Daily injection. Morning dosing may help with daytime appetite control": {
       "localizations": {
         "sv": {
