@@ -12,7 +12,7 @@ enum AppShadow {
     /// lift. Dark mode needs more alpha for the same lift, since the drop
     /// lands on a near-black page.
     static let paperContact = Shadow(color: ink(light: 0.04, dark: 0.5), radius: 1.5, x: 0, y: 1)
-    static let paperAmbient = Shadow(color: ink(light: 0.07, dark: 0.45), radius: 28, x: 0, y: 14)
+    static let paperAmbient = Shadow(color: ink(light: 0.09, dark: 0.45), radius: 24, x: 0, y: 12)
     /// An `IconTile`'s drop: the key's edge on the card, then a short lift.
     static let tileContact = Shadow(color: ink(light: 0.08, dark: 0.6), radius: 0.5, x: 0, y: 0.5)
     static let tileDrop = Shadow(color: ink(light: 0.06, dark: 0.35), radius: 4, x: 0, y: 2)
@@ -23,7 +23,10 @@ enum AppShadow {
     /// An accent hero card's lift: a tinted drop, so the card reads as a
     /// lit object over the page rather than a sticker on it.
     static var heroLift: Shadow {
-        Shadow(color: AppColor.accentFill.opacity(0.42), radius: 28, x: 0, y: 16)
+        Shadow(
+            color: .adaptive(light: AppColor.accentFill.opacity(0.2), dark: AppColor.accentFill.opacity(0.4)),
+            radius: 24, x: 0, y: 12
+        )
     }
 
     private static func ink(light: Double, dark: Double) -> Color {

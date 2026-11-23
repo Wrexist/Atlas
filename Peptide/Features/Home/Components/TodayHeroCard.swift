@@ -71,23 +71,16 @@ struct TodayHeroCard: View {
     }
 
     private var heading: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text("Your day")
-                .font(AppFont.eyebrow)
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(AppColor.onAccent.opacity(0.78))
-            Text("\(done) of \(total) done")
-                .font(AppFont.title3)
-                .foregroundStyle(AppColor.onAccent)
-                .contentTransition(.numericText())
-                .appAnimation(AppAnimation.springSmooth, value: done)
-        }
+        Text("Your day")
+            .font(AppFont.eyebrow)
+            .textCase(.uppercase)
+            .tracking(0.8)
+            .foregroundStyle(AppColor.onAccent.opacity(0.78))
     }
 
     private var ring: some View {
         TodayHeroRing(progress: drawn ? progress : 0)
-            .frame(width: 104, height: 104)
+            .frame(width: 96, height: 96)
     }
 
     private var bars: some View {
@@ -126,11 +119,13 @@ private extension TodayHeroCard.Part {
 
 // MARK: - Surface
 
-/// The card's body: a four-corner light (deep bottom-left, a sheen top
-/// right) that drifts slowly, a gloss over the top half, a lit rim, and
+/// The card's body: one key light from the top left falling off to a
+/// shaded bottom right, drifting slowly, a gloss over the top half, a lit rim, and
 /// a tinted drop under it all.
 private struct TodayHeroSurface: View {
     let isLive: Bool
+
+    @Environment(\.colorScheme) private var colorScheme
 
     /// Seconds for one full drift of the light.
     private static let driftPeriod: TimeInterval = 18
@@ -174,9 +169,12 @@ private struct TodayHeroSurface: View {
         let drift = Float(0.06)
         let s = Float(sin(phase))
         let c = Float(cos(phase * 0.8))
-        let deep = AppColor.accentDeep
+        // Light mode keeps the falloff shallow: a near-black corner on a
+        // cream page outweighs everything else on screen.
+        let light = colorScheme == .light
+        let deep = AppColor.accentFill.mix(with: AppColor.accentDeep, by: light ? 0.35 : 1)
         let fill = AppColor.accentFill
-        let sheen = AppColor.accentSheen
+        let sheen = AppColor.accentFill.mix(with: AppColor.accentSheen, by: light ? 0.6 : 0.8)
         return MeshGradient(
             width: 3,
             height: 3,
@@ -186,9 +184,9 @@ private struct TodayHeroSurface: View {
                 [0, 1], [0.5 - drift * c, 1], [1, 1],
             ],
             colors: [
-                fill, fill, sheen,
-                deep, fill, fill,
-                deep, deep, fill,
+                sheen, sheen, fill,
+                sheen, fill, fill,
+                fill, fill, deep,
             ]
         )
     }
@@ -254,12 +252,12 @@ private struct TodayHeroTilt: ViewModifier {
 private struct TodayHeroRing: View {
     let progress: Double
 
-    private static let stroke: CGFloat = 11
+    private static let stroke: CGFloat = 12
 
     var body: some View {
         ZStack {
             Circle()
-                .stroke(AppColor.onAccent.opacity(0.16), lineWidth: Self.stroke)
+                .stroke(AppColor.onAccent.opacity(0.25), lineWidth: Self.stroke)
             Circle()
                 .trim(from: 0, to: max(progress, 0.001))
                 .stroke(
@@ -275,7 +273,7 @@ private struct TodayHeroRing: View {
                 .appShadow(AppShadow.ringLap)
             knob
             Text(progress, format: .percent.precision(.fractionLength(0)))
-                .font(AppFont.scaled(24, weight: .medium, relativeTo: .title3))
+                .font(AppFont.scaled(24, weight: .semibold, relativeTo: .title3))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.onAccent)
                 .contentTransition(.numericText())
@@ -328,13 +326,13 @@ private struct TodayHeroBar: View {
             }
             .foregroundStyle(AppColor.onAccent)
             Capsule()
-                .fill(AppColor.onAccent.opacity(0.16))
-                .frame(height: 5)
+                .fill(AppColor.onAccent.opacity(0.25))
+                .frame(height: 6)
                 .overlay(alignment: .leading) {
                     GeometryReader { geo in
                         Capsule()
                             .fill(AppColor.onAccent)
-                            .frame(width: max(5, geo.size.width * (drawn ? part.fraction : 0)))
+                            .frame(width: max(6, geo.size.width * (drawn ? part.fraction : 0)))
                             .opacity(part.fraction > 0 && drawn ? 1 : 0)
                     }
                 }
@@ -345,9 +343,9 @@ private struct TodayHeroBar: View {
 
 // MARK: - Backdrop
 
-/// Today's page: the shared backdrop plus a pool of accent light behind
-/// the hero, which dims as the page scrolls so the list below sits on
-/// the plain page.
+/// Today's page: the shared backdrop plus, in dark mode, a pool of
+/// accent light behind the hero that dims as the page scrolls. Light
+/// mode keeps the plain warm page; green over cream turned it grey.
 struct TodayBackdrop: View {
     /// 0 at rest, 1 once the header has scrolled away.
     let fade: Double
@@ -358,10 +356,10 @@ struct TodayBackdrop: View {
         PageBackdrop()
             .overlay {
                 RadialGradient(
-                    colors: [AppColor.accentPrimary.opacity(colorScheme == .dark ? 0.22 : 0.12), AppColor.accentPrimary.opacity(0)],
-                    center: UnitPoint(x: 0.3, y: 0.14),
+                    colors: [AppColor.accentPrimary.opacity(colorScheme == .dark ? 0.13 : 0), AppColor.accentPrimary.opacity(0)],
+                    center: UnitPoint(x: 0.3, y: 0.08),
                     startRadius: 0,
-                    endRadius: 420
+                    endRadius: 300
                 )
                 .opacity(1 - fade * 0.7)
             }
