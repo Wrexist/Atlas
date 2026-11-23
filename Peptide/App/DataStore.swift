@@ -3117,6 +3117,10 @@ final class DataStore {
         // scheduled entries before the status change lands.
         performCycleAutoCompletion()
         regenerateTodayEntries()
+        // A rest day generates nothing to save, so nothing else would
+        // restamp the widget and it keeps saying "Open Atlas" after the
+        // user has. A no-op within the same day (`isRedundant`).
+        updateWidgetData()
         refreshHealthIfDue()
         turnOffDeniedHealthWrites()
         // The unlock notification isn't delivered to a suspended app.

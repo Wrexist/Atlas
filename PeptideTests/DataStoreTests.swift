@@ -456,6 +456,16 @@ final class DataStoreTests: XCTestCase {
                              "Strips keyed on revision must redraw after midnight")
     }
 
+    func test_handleAppActivation_withNothingToSave_stillPushesWidget() {
+        store.handleAppActivation()
+        let baseline = store.widgetUpdateCountForTesting
+
+        store.handleAppActivation()
+
+        XCTAssertGreaterThan(store.widgetUpdateCountForTesting, baseline,
+                             "A rest-day activation must restamp the widget or it keeps asking to open Atlas")
+    }
+
     // MARK: - Meal reminder "Same as yesterday"
 
     /// Yesterday's dinner reminder, tapped today, fills yesterday from the
