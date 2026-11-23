@@ -132,6 +132,7 @@ struct TodayChecklistCard: View {
                 supplementRow(row)
             }
         } else if let onManageSupplements {
+            rowDivider
             Button {
                 Haptics.impact(.light)
                 onManageSupplements()
@@ -150,14 +151,31 @@ struct TodayChecklistCard: View {
             .padding(.leading, Spacing.minimumHitTarget + Spacing.md)
     }
 
-    /// A quiet link, not a row: dressed as another item with its own
-    /// icon disc, it read as part of the checklist the counter skips.
     private var addSupplementsRow: some View {
-        Label("Add supplements", systemImage: "plus")
-            .font(AppFont.chipText)
-            .foregroundStyle(AppColor.accentLight)
-            .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget, alignment: .leading)
-            .contentShape(Rectangle())
+        HStack(spacing: Spacing.md) {
+            Image(systemName: "plus")
+                .font(AppFont.scaled(13, weight: .bold))
+                .foregroundStyle(AppColor.accentLight)
+                .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+                .background(Circle().fill(AppColor.surfaceSecondary.opacity(0.6)))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text("Supplements")
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Creatine, vitamin D, omega-3 — one check a day")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            Spacer(minLength: Spacing.sm)
+            Image(systemName: "chevron.right")
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.textTertiary)
+                .accessibilityHidden(true)
+        }
+        .padding(.vertical, Spacing.sm)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder

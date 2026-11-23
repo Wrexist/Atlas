@@ -6769,6 +6769,16 @@
         }
       }
     },
+    "Creatine, vitamin D, omega-3 — one check a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kreatin, D-vitamin, omega-3 – en bock om dagen"
+          }
+        }
+      }
+    },
     "Daily injection. Morning dosing may help with daytime appetite control": {
       "localizations": {
         "sv": {
@@ -7864,6 +7874,16 @@
         }
       }
     },
+    "Read full recap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läs hela sammanfattningen"
+          }
+        }
+      }
+    },
     "Redundant GHS-R1a activation. Both have unfavorable side effect profiles (cortisol, prolactin). Combining them worsens these without proportional efficacy gain.": {
       "localizations": {
         "sv": {
@@ -8001,6 +8021,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Liknande tidpunkt som BPC-157 vid vävnadsreparation"
+          }
+        }
+      }
+    },
+    "Small wins, every day. Watch your streak — and your Atlas Score — climb.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Små vinster, varje dag. Se din svit – och din Atlas-poäng – klättra."
           }
         }
       }

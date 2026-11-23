@@ -22,14 +22,6 @@ struct HomeView: View {
     /// step with the user's finger. Handed down as a binding and never
     /// read here, so scroll frames re-render only the header.
     @State private var stickyProgress: Double = 0
-    /// Device-local on purpose: the "Add Steps, Your day and more" hint is for
-    /// whoever is holding this phone, and nothing synced can bring it back.
-    @AppStorage("today.hasOpenedEditToday") private var hasOpenedEditToday = false
-    /// The build that started most Today sections off. Only members from
-    /// before it had the longer Today, so only they need the hint.
-    private static let todaySimplifiedOn = DateComponents(
-        calendar: Calendar(identifier: .gregorian), timeZone: .gmt, year: 2026, month: 11, day: 15
-    ).date ?? .distantPast
     /// State of the Sunday-recap card on Today. Loads on the first
     /// appear of each weekend; cached entries pre-fill the .ready
     /// branch so re-appears don't refire the network call.
@@ -67,7 +59,6 @@ struct HomeView: View {
     @State private var showSupplements = false
     /// The check-in sheet, for a tap whose Wellness section is hidden.
     @State private var showCheckIn = false
-    @State private var showWeeklyCheckIn = false
     /// Bevel-style hero metric trio snapshot. Loaded async on first
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
@@ -199,17 +190,23 @@ struct HomeView: View {
         return stats.total > 0 ? stats.score : nil
     }
 
-    /// The hero card's sources, each only when the day has something in
-    /// it, so the ring never counts an empty row as undone.
+    /// The hero card's goals: the day's food, movement and water first,
+    /// then doses when a protocol runs, else habits. Each shows only when
+    /// it has a target, so the ring never counts a goal the user hasn't set.
     private var heroParts: [TodayHeroCard.Part] {
         var parts: [TodayHeroCard.Part] = []
+        if let overview = derived.overview, let target = overview.calorieTarget, target > 0 {
+            parts.append(.init(kind: .calories, amount: Double(overview.caloriesToday), goal: Double(target)))
+        }
+        if let checklist = derived.checklist {
+            if let steps = checklist.steps {
+                parts.append(.init(kind: .steps, amount: steps, goal: Double(checklist.stepGoal)))
+            }
+            parts.append(.init(kind: .water, fraction: checklist.waterProgress, value: checklist.waterProgress.formatted(.percent.precision(.fractionLength(0)))))
+        }
         if showsDoseSection, derived.doseCount.total > 0 {
             parts.append(.init(kind: .doses, done: derived.doseCount.done, total: derived.doseCount.total))
-        }
-        if let checklist = derived.checklist, !checklist.items.isEmpty {
-            parts.append(.init(kind: .checklist, done: checklist.completedCount, total: checklist.items.count))
-        }
-        if derived.habits.dueCount > 0 {
+        } else if derived.habits.dueCount > 0 {
             parts.append(.init(kind: .habits, done: derived.habits.doneCount, total: derived.habits.dueCount))
         }
         return parts
@@ -514,7 +511,7 @@ struct HomeView: View {
                 stickyProgress = newValue
             }
             .background {
-                TodayBackdrop(fade: stickyProgress)
+                TodayBackdrop(fade: $stickyProgress)
                     .ignoresSafeArea()
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -792,15 +789,6 @@ struct HomeView: View {
                 .liquidGlassPresentation()
             }
             .dailyCheckInSheet(isPresented: $showCheckIn)
-            .sheet(isPresented: $showWeeklyCheckIn) {
-                if let weeklyCheckIn {
-                    ScrollView {
-                        WeeklyCheckInCard(checkIn: weeklyCheckIn, unit: dataStore.profile.bodyMetrics.unit)
-                            .padding(Spacing.screenPadding)
-                    }
-                    .liquidGlassPresentation(detents: [.medium, .large])
-                }
-            }
             .sheet(isPresented: $showWeightSheet) {
                 LogWeightSheet()
                     .environment(dataStore)
@@ -937,19 +925,12 @@ struct HomeView: View {
             )
             .sectionAppear(index: appearIndex)
         }
-        // One row, not the week's weight curve, calories and protein at
-        // full size: those already live on Meals and Biology. The row
-        // opens the full check-in.
-        if weeklyCheckIn != nil, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
-            GlassEntryRow(
-                icon: "list.bullet.clipboard.fill",
-                title: "Weekly check-in",
-                subtitle: Text("Last 7 days"),
-                surface: .card
-            ) {
-                Haptics.impact(.light)
-                showWeeklyCheckIn = true
-            }
+        if let weeklyCheckIn, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
+            WeeklyCheckInCard(
+                checkIn: weeklyCheckIn,
+                unit: dataStore.profile.bodyMetrics.unit,
+                onLogWeight: { showWeightSheet = true }
+            )
             .transition(.opacity.combined(with: .scale(0.98)))
             .sectionAppear(index: appearIndex)
         }
@@ -1200,15 +1181,8 @@ struct HomeView: View {
     /// start off went, so a returning user isn't left hunting for them.
     private var customizeTodayButton: some View {
         VStack(spacing: Spacing.sm) {
-            if !hasOpenedEditToday && dataStore.profile.memberSince < Self.todaySimplifiedOn {
-                Text("Add Steps, Your day and more with Edit Today.")
-                    .font(AppFont.footnote)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
             Button {
                 Haptics.impact(.light)
-                hasOpenedEditToday = true
                 showEditToday = true
             } label: {
                 Label("Edit Today", systemImage: "slider.horizontal.3")

@@ -1,18 +1,40 @@
 import SwiftUI
 
-/// Today's lit summary card: one ring for how much of the day is done,
-/// and a bar per source (doses, checklist, habits) beside it. Accent fill
+/// Today's lit summary card: one ring for how far the whole day has come,
+/// and a bar per health goal (calories, steps, water, then doses or
+/// habits) beside it. Accent fill
 /// with a slow-moving light, a tinted lift, and a few degrees of tilt as
 /// the phone moves or the card scrolls away, so the first thing on Today
 /// is an object with weight rather than another flat list.
 struct TodayHeroCard: View {
     struct Part: Identifiable, Equatable {
-        enum Kind: String { case doses, checklist, habits }
+        enum Kind: String { case calories, steps, water, doses, habits }
         let kind: Kind
-        let done: Int
-        let total: Int
+        /// 0…1 toward the day's goal.
+        let fraction: Double
+        /// What the bar's trailing figure reads, already formatted.
+        let value: String
         var id: Kind { kind }
-        var fraction: Double { total > 0 ? min(1, Double(done) / Double(total)) : 0 }
+
+        init(kind: Kind, fraction: Double, value: String) {
+            self.kind = kind
+            self.fraction = min(max(fraction, 0), 1)
+            self.value = value
+        }
+
+        /// A goal read as a share of its target.
+        init(kind: Kind, amount: Double, goal: Double) {
+            self.init(
+                kind: kind,
+                fraction: goal > 0 ? amount / goal : 0,
+                value: (goal > 0 ? amount / goal : 0).formatted(.percent.precision(.fractionLength(0)))
+            )
+        }
+
+        /// A count of things to tick off.
+        init(kind: Kind, done: Int, total: Int) {
+            self.init(kind: kind, fraction: total > 0 ? Double(done) / Double(total) : 0, value: "\(done)/\(total)")
+        }
     }
 
     let parts: [Part]
@@ -23,9 +45,11 @@ struct TodayHeroCard: View {
     @State private var isOnScreen = true
     @State private var isShown = false
 
-    private var done: Int { parts.reduce(0) { $0 + min($1.done, $1.total) } }
-    private var total: Int { parts.reduce(0) { $0 + $1.total } }
-    private var progress: Double { total > 0 ? Double(done) / Double(total) : 0 }
+    /// Every goal weighs the same, so a full water bottle counts as
+    /// much as a full plate.
+    private var progress: Double {
+        parts.isEmpty ? 0 : parts.reduce(0) { $0 + $1.fraction } / Double(parts.count)
+    }
 
     /// Ambient light and tilt run only while the card is on screen, and
     /// never for reduce motion or screenshot captures, which need still
@@ -94,7 +118,7 @@ struct TodayHeroCard: View {
 
     private var accessibilityValue: String {
         let percent = progress.formatted(.percent.precision(.fractionLength(0)))
-        let lines = parts.map { "\(String(localized: $0.title)) \($0.done)/\($0.total)" }
+        let lines = parts.map { "\(String(localized: $0.title)) \($0.value)" }
         return ([percent] + lines).joined(separator: ", ")
     }
 }
@@ -102,17 +126,21 @@ struct TodayHeroCard: View {
 private extension TodayHeroCard.Part {
     var title: LocalizedStringResource {
         switch kind {
+        case .calories: "Calories"
+        case .steps: "Steps"
+        case .water: "Water"
         case .doses: "Doses"
-        case .checklist: "Checklist"
         case .habits: "Habits"
         }
     }
 
     var symbol: String {
         switch kind {
+        case .calories: "flame"
+        case .steps: "figure.walk"
+        case .water: "drop"
         case .doses: "syringe"
-        case .checklist: "checklist"
-        case .habits: "flame"
+        case .habits: "checkmark.seal"
         }
     }
 }
@@ -291,7 +319,7 @@ private struct TodayHeroBar: View {
                 Text(part.title)
                     .font(AppFont.chipText)
                 Spacer(minLength: Spacing.xs)
-                Text(verbatim: "\(part.done)/\(part.total)")
+                Text(verbatim: part.value)
                     .font(AppFont.chipText)
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -309,7 +337,7 @@ private struct TodayHeroBar: View {
                     }
                 }
         }
-        .appAnimation(AppAnimation.springSmooth, value: part.done)
+        .appAnimation(AppAnimation.springSmooth, value: part.fraction)
     }
 }
 
@@ -319,8 +347,9 @@ private struct TodayHeroBar: View {
 /// accent light behind the hero that dims as the page scrolls. Light
 /// mode keeps the plain warm page; green over cream turned it grey.
 struct TodayBackdrop: View {
-    /// 0 at rest, 1 once the header has scrolled away.
-    let fade: Double
+    /// 0 at rest, 1 once the header has scrolled away. A binding, so a
+    /// scroll frame re-renders the backdrop and not the whole page.
+    @Binding var fade: Double
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -340,9 +369,10 @@ struct TodayBackdrop: View {
 
 #Preview {
     TodayHeroCard(parts: [
-        .init(kind: .doses, done: 3, total: 8),
-        .init(kind: .checklist, done: 1, total: 4),
-        .init(kind: .habits, done: 2, total: 3),
+        .init(kind: .calories, amount: 1620, goal: 2400),
+        .init(kind: .steps, amount: 6210, goal: 8000),
+        .init(kind: .water, amount: 48, goal: 100),
+        .init(kind: .doses, done: 5, total: 8),
     ])
     .padding()
     .pageBackground()
