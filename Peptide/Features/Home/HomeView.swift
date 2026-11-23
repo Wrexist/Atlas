@@ -370,6 +370,15 @@ struct HomeView: View {
         !dataStore.protocols.isEmpty && derived.plan != nil
     }
 
+    /// Today shows the dose state once, in the doses card; a coaching line
+    /// that only repeats it ("1 dose left today") goes while that card is
+    /// on screen.
+    private func restatesDoseCard(_ reason: PrimaryReasonEngine.Reason) -> Bool {
+        showsDoseSection
+            && dataStore.profile.todayLayout.visibleSections.contains(.doses)
+            && reason.restatesDosePlan(hasProtocols: !dataStore.activeProtocols.isEmpty)
+    }
+
     /// The "At a glance" trio only has meaning once there's a data
     /// source — an active protocol, a Health connection, or a workout
     /// logged this week. Hidden otherwise so a day-0 user isn't met with
@@ -857,7 +866,7 @@ struct HomeView: View {
     /// than coaching alone used to see.
     @ViewBuilder
     private func coachingSection(appearIndex: Int, proxy: ScrollViewProxy) -> some View {
-        if let reason = derived.primaryReason {
+        if let reason = derived.primaryReason, !restatesDoseCard(reason) {
             // Keyed on the title so a new recommendation
             // cross-fades in rather than swapping text in place.
             CoachingCard(

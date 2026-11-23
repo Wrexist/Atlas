@@ -18,30 +18,9 @@ struct DailyPlanCard: View {
     /// user to add a protocol, and it should not ask without offering.
     var onAddProtocol: (() -> Void)?
 
-    /// Collapsed by default so the card stays scannable even when the
-    /// user has 4+ time-of-day slots. The current slot shows in full
-    /// (the next thing they need to do) and the rest reveal via the
-    /// "Show more" button.
-    @State private var isExpanded = false
-
     /// A browsed past day: no callbacks, so the card is a record of what
     /// was taken rather than a plan to act on.
     private var isReadOnly: Bool { onToggleDose == nil && onTapDose == nil }
-
-    /// Slots rendered now. When collapsed we keep the first window that
-    /// still has a dose to take — or the last one once everything is
-    /// logged — so the open doses are never hidden behind the toggle.
-    private var visibleSlots: [DailyScheduleEngine.ScheduledSlot] {
-        guard !isExpanded else { return plan.slots }
-        let current = plan.slots.first { slot in
-            slot.doses.contains { !$0.entry.completed }
-        } ?? plan.slots.last
-        return current.map { [$0] } ?? []
-    }
-
-    private var hiddenSlotCount: Int {
-        max(0, plan.slots.count - visibleSlots.count)
-    }
 
     var body: some View {
         GlassCard(tinted: true) {
@@ -51,42 +30,13 @@ struct DailyPlanCard: View {
                 } else {
                     header
 
-                    ForEach(visibleSlots) { scheduledSlot in
+                    ForEach(plan.slots) { scheduledSlot in
                         slotSection(scheduledSlot)
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-
-                    if hiddenSlotCount > 0 || (plan.slots.count > 1 && isExpanded) {
-                        expandToggle
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-
-    private var expandToggle: some View {
-        Button {
-            AppAnimation.with(AppAnimation.settle) {
-                isExpanded.toggle()
-            }
-        } label: {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "chevron.down")
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                Text(isExpanded
-                     ? "Show less"
-                     : "Show \(hiddenSlotCount) more time slots")
-                    .font(AppFont.caption2)
-                    .fontWeight(.semibold)
-            }
-            .foregroundStyle(AppColor.accentLight)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .minimumHitArea()
-        }
-        .buttonStyle(ScalePressStyle())
-        .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
     }
 
     // MARK: - Header
@@ -146,7 +96,7 @@ struct DailyPlanCard: View {
                 .fontWeight(.semibold)
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .foregroundStyle(takenCount == allDoses.count ? AppColor.accentLight : AppColor.textSecondary)
+                .foregroundStyle(takenCount == allDoses.count ? AppColor.success : AppColor.textSecondary)
         }
         .padding(.top, Spacing.xxs)
         .accessibilityElement(children: .ignore)
@@ -206,44 +156,33 @@ struct DailyPlanCard: View {
 
     // MARK: - Slot section
 
+    /// Every window, flat on the card: a one-line label over its rows, no
+    /// inner panels, so the whole day reads at one level.
     private func slotSection(_ scheduled: DailyScheduleEngine.ScheduledSlot) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            slotHeader(scheduled.slot, count: scheduled.doses.count)
-            VStack(spacing: Spacing.sm) {
-                ForEach(scheduled.doses) { dose in
-                    DailyPlanDoseRow(dose: dose, onTap: onTapDose, onToggle: onToggleDose)
-                }
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            slotHeader(scheduled.slot)
+            ForEach(scheduled.doses) { dose in
+                DailyPlanDoseRow(dose: dose, onTap: onTapDose, onToggle: onToggleDose)
             }
-            .padding(.leading, Spacing.xs)
         }
     }
 
-    private func slotHeader(_ slot: DailyScheduleEngine.DaySlot, count: Int) -> some View {
-        HStack(spacing: Spacing.sm) {
+    private func slotHeader(_ slot: DailyScheduleEngine.DaySlot) -> some View {
+        HStack(spacing: Spacing.xs) {
             Image(systemName: slot.iconName)
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
-                .frame(width: 22, height: 22)
-                .background { Circle().fill(AppColor.accentPrimary.opacity(0.15)) }
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(slot.title)
-                    .font(AppFont.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(slot.caption)
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-            Spacer()
-            Text("\(count)")
-                .font(AppFont.scaled(11, weight: .bold))
+                .accessibilityHidden(true)
+            Text(slot.title)
+                .font(AppFont.caption2)
+                .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textSecondary)
-                .fixedSize()
-                .padding(.horizontal, Spacing.sm)
-                .padding(.vertical, Spacing.xxs)
-                .background { Capsule().fill(AppColor.surfaceElevated) }
-                .accessibilityLabel("\(count) doses")
+            Text(slot.caption)
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textTertiary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -261,16 +200,8 @@ private struct DailyPlanDoseRow: View {
             }
             detailsButton
         }
-        .padding(Spacing.md)
+        .padding(.vertical, Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceElevated.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
     }
 
     /// One tap to mark the dose taken without opening the sheet.
@@ -278,7 +209,7 @@ private struct DailyPlanDoseRow: View {
         Button(action: action) {
             Image(systemName: dose.entry.completed ? "checkmark.circle.fill" : "circle")
                 .font(AppFont.scaled(20))
-                .foregroundStyle(dose.entry.completed ? AppColor.accentPrimary : AppColor.textTertiary)
+                .foregroundStyle(dose.entry.completed ? AppColor.success : AppColor.textTertiary)
                 .contentTransition(.symbolEffect(.replace))
                 .minimumHitArea()
         }

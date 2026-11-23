@@ -7734,16 +7734,6 @@
         }
       }
     },
-    "Opens the dose log": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öppnar dosloggen"
-          }
-        }
-      }
-    },
     "Oral or intranasal. Morning for cognitive enhancement throughout the day": {
       "localizations": {
         "sv": {
@@ -10439,16 +10429,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Alla prestationer upplåsta"
-          }
-        }
-      }
-    },
-    "All doses completed for today": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alla doser tagna för idag"
           }
         }
       }
@@ -34053,46 +34033,6 @@
         }
       }
     },
-    "Show %lld more time slots": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Visa %lld tidsfönster till"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Visa %lld tidsfönster till"
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Show %lld more time slot"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Show %lld more time slots"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "Show ^[%lld exercise](inflect: true)": {
       "localizations": {
         "sv": {
@@ -49856,46 +49796,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spara %lld"
-          }
-        }
-      }
-    },
-    "%lld doses": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld dose"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld doses"
-                }
-              }
-            }
-          }
-        },
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld dos"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld doser"
-                }
-              }
-            }
           }
         }
       }
