@@ -6168,6 +6168,16 @@
         }
       }
     },
+    "Add supplements": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till tillskott"
+          }
+        }
+      }
+    },
     "Adds GHK-Cu's collagen synthesis (up to 70% increase in Type I/III collagen) to the Wolverine combination. GHK-Cu provides the copper cofactor for lysyl oxidase cross-linking that neither BPC-157 nor TB-500 directly addresses.": {
       "localizations": {
         "sv": {
@@ -46134,16 +46144,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Öppnar din lista med tillskott"
-          }
-        }
-      }
-    },
-    "Creatine, vitamin D, omega-3 — one check a day": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kreatin, D-vitamin, omega-3 – en bock om dagen"
           }
         }
       }
