@@ -523,25 +523,11 @@ struct TrainOverviewView: View {
 
     private var recentWorkoutsCard: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                // Title and link share a row while both fit whole; at the
-                // largest text sizes the link moves under the title rather
-                // than hyphenating it into three lines.
-                ViewThatFits(in: .horizontal) {
-                    HStack {
-                        latestWorkoutTitle
-                        Spacer()
-                        viewAllWorkoutsLink
-                    }
-                    VStack(alignment: .leading, spacing: Spacing.xs) {
-                        latestWorkoutTitle
-                        viewAllWorkoutsLink
-                    }
-                }
-
-                if sessions.isEmpty {
-                    emptyRecentWorkouts
-                } else {
+            if sessions.isEmpty {
+                emptyRecentWorkouts
+            } else {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    latestWorkoutHeader
                     VStack(spacing: 0) {
                         ForEach(Array(sessions.prefix(1))) { session in
                             recentWorkoutRow(session)
@@ -552,14 +538,47 @@ struct TrainOverviewView: View {
         }
     }
 
+    /// Title and link share a row while both fit whole; at the largest
+    /// text sizes the link moves under the title rather than hyphenating
+    /// it into three lines.
+    private var latestWorkoutHeader: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                latestWorkoutTitle
+                Spacer()
+                viewAllWorkoutsLink
+            }
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                latestWorkoutTitle
+                viewAllWorkoutsLink
+            }
+        }
+    }
+
+    /// One row, not a full empty state: Start workout sits directly above,
+    /// so a centred icon and pitch only pushed Trends below the fold.
     private var emptyRecentWorkouts: some View {
-        // No action button: Start workout sits directly above this card.
-        EmptyStateView(
-            icon: "dumbbell",
-            title: "No sessions yet",
-            message: "Start a workout or pick a routine — it'll land here.",
-            style: .compact
-        )
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.md) {
+                emptyRecentWorkoutsLabel
+                Spacer()
+                viewAllWorkoutsLink
+            }
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                emptyRecentWorkoutsLabel
+                viewAllWorkoutsLink
+            }
+        }
+    }
+
+    private var emptyRecentWorkoutsLabel: some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            latestWorkoutTitle
+            Text("No sessions yet")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// A recent-session row, now a real NavigationLink into

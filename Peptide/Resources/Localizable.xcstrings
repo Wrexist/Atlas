@@ -34739,16 +34739,6 @@
         }
       }
     },
-    "Start a workout or pick a routine — it'll land here.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Starta ett pass eller välj en rutin – det hamnar här."
-          }
-        }
-      }
-    },
     "Start each exercise at the weight and reps to beat": {
       "localizations": {
         "sv": {
