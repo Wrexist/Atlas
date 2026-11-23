@@ -32,7 +32,7 @@ import Foundation
 /// associations, not a fitted clinical model. The per-signal swings are
 /// deliberately small, and the largest goes to VO2 max because it is the
 /// fitness marker most consistently associated with ageing.
-enum PerformanceAgeEngine {
+enum BiologicalAgeEngine {
 
     // MARK: - Public types
 
@@ -162,16 +162,16 @@ enum PerformanceAgeEngine {
             /// Largest pull, in years, this signal can exert either way.
             var maxSwingYears: Double {
                 switch self {
-                case .vo2Max:        return PerformanceAgeEngine.vo2SwingYears
-                case .hrv:           return PerformanceAgeEngine.hrvSwingYears
-                case .rhr:           return PerformanceAgeEngine.rhrSwingYears
-                case .sleep:         return PerformanceAgeEngine.sleepPenaltyYears
-                case .steps:         return PerformanceAgeEngine.stepsSwingYears
-                case .bodyMassIndex: return PerformanceAgeEngine.bmiHighPenaltyYears
-                case .weight:        return PerformanceAgeEngine.weightTrendPenaltyYears
-                case .hba1c:         return PerformanceAgeEngine.hba1cCurve.penaltyYears
-                case .ldl:           return PerformanceAgeEngine.ldlCurve.penaltyYears
-                case .crp:           return PerformanceAgeEngine.crpCurve.penaltyYears
+                case .vo2Max:        return BiologicalAgeEngine.vo2SwingYears
+                case .hrv:           return BiologicalAgeEngine.hrvSwingYears
+                case .rhr:           return BiologicalAgeEngine.rhrSwingYears
+                case .sleep:         return BiologicalAgeEngine.sleepPenaltyYears
+                case .steps:         return BiologicalAgeEngine.stepsSwingYears
+                case .bodyMassIndex: return BiologicalAgeEngine.bmiHighPenaltyYears
+                case .weight:        return BiologicalAgeEngine.weightTrendPenaltyYears
+                case .hba1c:         return BiologicalAgeEngine.hba1cCurve.penaltyYears
+                case .ldl:           return BiologicalAgeEngine.ldlCurve.penaltyYears
+                case .crp:           return BiologicalAgeEngine.crpCurve.penaltyYears
                 }
             }
         }

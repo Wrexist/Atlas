@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct StackLibraryView: View {
+struct ProtocolLibraryView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var searchText = ""
@@ -157,7 +157,7 @@ struct StackLibraryView: View {
 
 #Preview {
     NavigationStack {
-        StackLibraryView()
+        ProtocolLibraryView()
     }
     .environment(DataStore(seedSampleData: true))
     .preferredColorScheme(.dark)

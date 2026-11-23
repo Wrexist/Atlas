@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct StackAlertDetailSheet: View {
-    let warning: StackRecommendationEngine.Warning
+struct ProtocolAlertDetailSheet: View {
+    let warning: ProtocolRecommendationEngine.Warning
     let peptideDatabase: [Peptide]
     /// Opens the protocol editor. Nil when no protocol can be adjusted for
     /// this warning — the sheet then only offers "Got it".
@@ -288,7 +288,7 @@ struct StackAlertDetailSheet: View {
 }
 
 #Preview {
-    StackAlertDetailSheet(
+    ProtocolAlertDetailSheet(
         warning: .init(
             severity: .danger,
             title: "Potential interaction",

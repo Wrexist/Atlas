@@ -250,7 +250,7 @@ struct PeptideDetailView: View {
                                     .foregroundStyle(AppColor.textPrimary)
                             }
 
-                            StackTagFlow(
+                            ProtocolTagFlow(
                                 stacks: peptide.commonStacks,
                                 fallbackColor: AppColor.accentPrimary,
                                 excludingPeptideID: peptide.id

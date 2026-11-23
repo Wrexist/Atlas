@@ -7,8 +7,6 @@
  * Env vars:
  *   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
  *       — set automatically by the Vercel Upstash integration.
- *         `KV_REST_API_URL` / `KV_REST_API_TOKEN` (legacy Vercel KV
- *         naming) are honoured as fallbacks.
  *   RATE_LIMIT_RPM
  *       — per-principal requests per minute per route. Default 20.
  *   DEVICE_DAILY_QUOTA

@@ -32,8 +32,7 @@ struct HealthJournalEntry: Codable, Equatable, Identifiable, Sendable {
     /// Year, month and day of `date` in `calendar`, zone-independent once
     /// written.
     static func dayKey(for date: Date, calendar: Calendar) -> String {
-        let parts = calendar.dateComponents([.year, .month, .day], from: date)
-        return "\(parts.year ?? 0)-\(parts.month ?? 0)-\(parts.day ?? 0)"
+        DayKey.unpadded(date, calendar: calendar)
     }
 
     private enum CodingKeys: String, CodingKey {

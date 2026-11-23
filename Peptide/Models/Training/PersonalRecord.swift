@@ -3,7 +3,7 @@ import Foundation
 /// Best-ever record per exercise, computed from the user's workout
 /// history. Cached separately from session storage so PR lookups
 /// don't require a full history scan on every render.
-/// Refreshed by `PRDetectionEngine` on workout finish.
+/// Refreshed by `PRDetectionService` on workout finish.
 ///
 /// `exerciseID` is the natural primary key — exactly one record per
 /// exercise — so we use it for `Identifiable`. There is no separate

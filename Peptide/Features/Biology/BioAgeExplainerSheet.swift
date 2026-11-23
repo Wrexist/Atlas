@@ -11,7 +11,7 @@ import SwiftUI
 struct BioAgeExplainerSheet<Personal: View>: View {
     @Environment(\.dismiss) private var dismiss
 
-    private let signals = PerformanceAgeEngine.Driver.Kind.allCases
+    private let signals = BiologicalAgeEngine.Driver.Kind.allCases
     private let personal: Personal
 
     init(@ViewBuilder personal: () -> Personal) {
@@ -38,7 +38,7 @@ struct BioAgeExplainerSheet<Personal: View>: View {
                         Text("Confidence")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("Cardio fitness, HRV and resting heart rate count most toward confidence, because they track aging most closely. Confidence also grows with each day of heart and sleep data, up to \(PerformanceAgeEngine.windowDays) days.")
+                        Text("Cardio fitness, HRV and resting heart rate count most toward confidence, because they track aging most closely. Confidence also grows with each day of heart and sleep data, up to \(BiologicalAgeEngine.windowDays) days.")
                             .font(AppFont.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -47,7 +47,7 @@ struct BioAgeExplainerSheet<Personal: View>: View {
                         Text("What it won't do")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("The estimate never drifts more than \(Int(PerformanceAgeEngine.maxDriftYears)) years from your chronological age, and Atlas won't show a number at all until it has at least \(PerformanceAgeEngine.minimumDays(forCoverage: 1) ?? PerformanceAgeEngine.windowDays) days of data and enough signals behind it. One good week shouldn't be able to claim a decade.")
+                        Text("The estimate never drifts more than \(Int(BiologicalAgeEngine.maxDriftYears)) years from your chronological age, and Atlas won't show a number at all until it has at least \(BiologicalAgeEngine.minimumDays(forCoverage: 1) ?? BiologicalAgeEngine.windowDays) days of data and enough signals behind it. One good week shouldn't be able to claim a decade.")
                             .font(AppFont.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -71,7 +71,7 @@ struct BioAgeExplainerSheet<Personal: View>: View {
         }
     }
 
-    private func signalRow(_ kind: PerformanceAgeEngine.Driver.Kind) -> some View {
+    private func signalRow(_ kind: BiologicalAgeEngine.Driver.Kind) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             IconTile(kind.icon, size: 32)
                 .accessibilityHidden(true)

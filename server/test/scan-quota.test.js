@@ -13,8 +13,6 @@ const BASE_ENV = {
   PROXY_SHARED_SECRET: 'test-secret',
   ANTHROPIC_API_KEY: 'test-key',
   ...REDIS_ENV,
-  KV_REST_API_URL: undefined,
-  KV_REST_API_TOKEN: undefined,
   ANTHROPIC_DAILY_REQUEST_BUDGET: '0',
   DEVICE_DAILY_QUOTA: '0',
   RATE_LIMIT_RPM: '1000',

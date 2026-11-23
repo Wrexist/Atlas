@@ -1,7 +1,7 @@
 import XCTest
 @testable import Peptide
 
-final class StackAdjustmentEngineTests: XCTestCase {
+final class ProtocolAdjustmentEngineTests: XCTestCase {
 
     // MARK: - Test peptide factory
 
@@ -49,22 +49,22 @@ final class StackAdjustmentEngineTests: XCTestCase {
 
     func test_sideEffectKey_parsesCompoundingWarningTitle() {
         XCTAssertEqual(
-            StackAdjustmentEngine.sideEffectKey(from: #"Compounding "headache" risk"#),
+            ProtocolAdjustmentEngine.sideEffectKey(from: #"Compounding "headache" risk"#),
             "headache"
         )
         XCTAssertEqual(
-            StackAdjustmentEngine.sideEffectKey(from: #"Compounding "joint pain" risk"#),
+            ProtocolAdjustmentEngine.sideEffectKey(from: #"Compounding "joint pain" risk"#),
             "joint pain"
         )
     }
 
     func test_sideEffectKey_returnsNilForNonCompoundingTitle() {
-        XCTAssertNil(StackAdjustmentEngine.sideEffectKey(from: "Heavy Recovery focus"))
-        XCTAssertNil(StackAdjustmentEngine.sideEffectKey(from: ""))
+        XCTAssertNil(ProtocolAdjustmentEngine.sideEffectKey(from: "Heavy Recovery focus"))
+        XCTAssertNil(ProtocolAdjustmentEngine.sideEffectKey(from: ""))
     }
 
     func test_sideEffectKey_returnsNilForEmptyQuotedKey() {
-        XCTAssertNil(StackAdjustmentEngine.sideEffectKey(from: #"Compounding "" risk"#))
+        XCTAssertNil(ProtocolAdjustmentEngine.sideEffectKey(from: #"Compounding "" risk"#))
     }
 
     // MARK: - candidateProtocols ordering
@@ -78,7 +78,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
         let twoHits = makeProtocol(name: "Two", peptides: [bpc, tb])
         let zeroHits = makeProtocol(name: "Other", peptides: [cjc])
 
-        let ordered = StackAdjustmentEngine.candidateProtocols(
+        let ordered = ProtocolAdjustmentEngine.candidateProtocols(
             affectedAbbreviations: ["BPC-157", "TB-500"],
             in: [oneHit, twoHits, zeroHits]
         )
@@ -92,7 +92,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
 
         let unrelated = makeProtocol(name: "Unrelated", peptides: [cjc])
 
-        let ordered = StackAdjustmentEngine.candidateProtocols(
+        let ordered = ProtocolAdjustmentEngine.candidateProtocols(
             affectedAbbreviations: [bpc.abbreviation],
             in: [unrelated]
         )
@@ -105,7 +105,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
     func test_diff_emptyChange_returnsAllUnchanged() {
         let bpc = peptide(abbr: "BPC-157")
         let tb = peptide(abbr: "TB-500")
-        let diff = StackAdjustmentEngine.diff(original: [bpc, tb], proposed: [bpc, tb])
+        let diff = ProtocolAdjustmentEngine.diff(original: [bpc, tb], proposed: [bpc, tb])
         XCTAssertTrue(diff.added.isEmpty)
         XCTAssertTrue(diff.removed.isEmpty)
         XCTAssertEqual(diff.unchanged.map(\.abbreviation), ["BPC-157", "TB-500"])
@@ -116,7 +116,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
     func test_diff_addOnly_summaryReflectsAddCount() {
         let bpc = peptide(abbr: "BPC-157")
         let tb = peptide(abbr: "TB-500")
-        let diff = StackAdjustmentEngine.diff(original: [bpc], proposed: [bpc, tb])
+        let diff = ProtocolAdjustmentEngine.diff(original: [bpc], proposed: [bpc, tb])
         XCTAssertEqual(diff.added.map(\.abbreviation), ["TB-500"])
         XCTAssertTrue(diff.removed.isEmpty)
         XCTAssertEqual(diff.summary, "Adding 1")
@@ -125,7 +125,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
     func test_diff_removeOnly_summaryReflectsRemoveCount() {
         let bpc = peptide(abbr: "BPC-157")
         let tb = peptide(abbr: "TB-500")
-        let diff = StackAdjustmentEngine.diff(original: [bpc, tb], proposed: [bpc])
+        let diff = ProtocolAdjustmentEngine.diff(original: [bpc, tb], proposed: [bpc])
         XCTAssertTrue(diff.added.isEmpty)
         XCTAssertEqual(diff.removed.map(\.abbreviation), ["TB-500"])
         XCTAssertEqual(diff.summary, "Removing 1")
@@ -135,7 +135,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
         let bpc = peptide(abbr: "BPC-157")
         let tb = peptide(abbr: "TB-500")
         let cjc = peptide(abbr: "CJC-1295")
-        let diff = StackAdjustmentEngine.diff(original: [bpc, tb], proposed: [bpc, cjc])
+        let diff = ProtocolAdjustmentEngine.diff(original: [bpc, tb], proposed: [bpc, cjc])
         XCTAssertEqual(diff.added.map(\.abbreviation), ["CJC-1295"])
         XCTAssertEqual(diff.removed.map(\.abbreviation), ["TB-500"])
         XCTAssertTrue(diff.hasChanges)
@@ -145,7 +145,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
     // MARK: - relocations
 
     func test_relocations_emptyRemoved_returnsEmpty() {
-        let result = StackAdjustmentEngine.relocations(
+        let result = ProtocolAdjustmentEngine.relocations(
             for: [],
             sourceProtocolId: UUID(),
             sideEffectKey: nil,
@@ -158,7 +158,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
     /// regardless of what other targets exist.
     func test_relocations_alwaysIncludesCreateStackAndDiscard() {
         let dropped = peptide(abbr: "BPC-157")
-        let result = StackAdjustmentEngine.relocations(
+        let result = ProtocolAdjustmentEngine.relocations(
             for: [dropped],
             sourceProtocolId: UUID(),
             sideEffectKey: nil,
@@ -178,7 +178,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
         let clean = peptide(abbr: "Clean", sideEffects: ["fatigue"])
         let cleanProtocol = makeProtocol(name: "CleanStack", peptides: [clean])
 
-        let result = StackAdjustmentEngine.relocations(
+        let result = ProtocolAdjustmentEngine.relocations(
             for: [dropped],
             sourceProtocolId: UUID(),
             sideEffectKey: "headache",
@@ -194,7 +194,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
         let other = peptide(abbr: "Other")
         let paused = makeProtocol(name: "Paused", peptides: [other], status: .paused)
 
-        let result = StackAdjustmentEngine.relocations(
+        let result = ProtocolAdjustmentEngine.relocations(
             for: [dropped],
             sourceProtocolId: UUID(),
             sideEffectKey: nil,
@@ -211,7 +211,7 @@ final class StackAdjustmentEngineTests: XCTestCase {
     /// `recommended` is the first non-discard option.
     func test_relocation_recommended_prefersFirstNonDiscardOption() {
         let dropped = peptide(abbr: "DropMe")
-        let result = StackAdjustmentEngine.relocations(
+        let result = ProtocolAdjustmentEngine.relocations(
             for: [dropped],
             sourceProtocolId: UUID(),
             sideEffectKey: nil,
@@ -229,20 +229,20 @@ final class StackAdjustmentEngineTests: XCTestCase {
         let custom = peptide(abbr: "Custom-1")
         let bpc = peptide(abbr: "BPC")
         let original = [custom, bpc]
-        let proposed = StackAdjustmentEngine.proposedPeptides(
+        let proposed = ProtocolAdjustmentEngine.proposedPeptides(
             original: original,
             selectedIds: Set(original.map(\.id)),
             database: [bpc]
         )
         XCTAssertEqual(proposed.map(\.id), [custom.id, bpc.id])
-        XCTAssertTrue(StackAdjustmentEngine.diff(original: original, proposed: proposed).removed.isEmpty)
+        XCTAssertTrue(ProtocolAdjustmentEngine.diff(original: original, proposed: proposed).removed.isEmpty)
     }
 
     func test_proposedPeptides_keepsUserOrderAndAppendsAdditions() {
         let tb = peptide(abbr: "TB")
         let bpc = peptide(abbr: "BPC")
         let ghk = peptide(abbr: "GHK")
-        let proposed = StackAdjustmentEngine.proposedPeptides(
+        let proposed = ProtocolAdjustmentEngine.proposedPeptides(
             original: [tb, bpc],
             selectedIds: [tb.id, bpc.id, ghk.id],
             database: [bpc, ghk, tb]

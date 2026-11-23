@@ -4,13 +4,13 @@ import XCTest
 @MainActor
 final class BiologyBriefEngineTests: XCTestCase {
 
-    private let inputs = PerformanceAgeEngine.Inputs(
+    private let inputs = BiologicalAgeEngine.Inputs(
         chronologicalAge: 40, hrvMedian30d: 60, rhrMedian30d: 52,
         sleepHoursMedian30d: 7.8, healthDataDays: 30
     )
 
     func test_brief_unlocked_carriesEstimateDriversAndMissing() throws {
-        let estimate = try XCTUnwrap(PerformanceAgeEngine.estimate(inputs: inputs))
+        let estimate = try XCTUnwrap(BiologicalAgeEngine.estimate(inputs: inputs))
         let resolved = BioAgeStateResolver.Resolved(
             state: .unlocked(estimate: estimate), chronologicalAge: 40, inputs: inputs
         )
@@ -36,7 +36,7 @@ final class BiologyBriefEngineTests: XCTestCase {
     }
 
     func test_brief_trend_namesFirstAndLastPoints() throws {
-        let estimate = try XCTUnwrap(PerformanceAgeEngine.estimate(inputs: inputs))
+        let estimate = try XCTUnwrap(BiologicalAgeEngine.estimate(inputs: inputs))
         let start = Date(timeIntervalSince1970: 1_760_000_000)
         let resolved = BioAgeStateResolver.Resolved(
             state: .unlocked(estimate: estimate), chronologicalAge: 40, inputs: inputs,

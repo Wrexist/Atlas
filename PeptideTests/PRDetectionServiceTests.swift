@@ -11,7 +11,7 @@ import XCTest
 /// engine reads equipment from. Records for the exercises used here are
 /// scrubbed in both setUp and tearDown so tests don't see each other's.
 @MainActor
-final class PRDetectionEngineTests: XCTestCase {
+final class PRDetectionServiceTests: XCTestCase {
 
     private let testExerciseIDs: Set<String> = [
         "Pushups", "Barbell_Bench_Press_-_Medium_Grip", "Barbell_Squat",
@@ -70,14 +70,14 @@ final class PRDetectionEngineTests: XCTestCase {
     // MARK: - Bodyweight reps (Train H3 regression)
 
     func test_bodyweightPushUps_recordRepsPR_evenAtWeightZero() {
-        _ = PRDetectionEngine.shared.ingest(session: session(
+        _ = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 20)]
         ))
         let pushUps25 = completedSet(weightKg: 0, reps: 25)
         let s = session(exerciseID: "Pushups", sets: [pushUps25])
 
-        let detections = PRDetectionEngine.shared.ingest(session: s)
+        let detections = PRDetectionService.shared.ingest(session: s)
 
         XCTAssertTrue(
             detections.contains { $0.kind == .bodyweightReps && $0.value == 25 },
@@ -86,7 +86,7 @@ final class PRDetectionEngineTests: XCTestCase {
     }
 
     func test_firstEverLog_storesBaselineWithoutDetectingPRs() {
-        let detections = PRDetectionEngine.shared.ingest(session: session(
+        let detections = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
             sets: [completedSet(weightKg: 60, reps: 8)]
         ))
@@ -98,12 +98,12 @@ final class PRDetectionEngineTests: XCTestCase {
 
     func test_bodyweightPushUps_betterSecondSession_firesAgain() {
         // 25 reps today
-        _ = PRDetectionEngine.shared.ingest(session: session(
+        _ = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 25)]
         ))
         // 30 reps next session
-        let detections = PRDetectionEngine.shared.ingest(session: session(
+        let detections = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 30)]
         ))
@@ -114,11 +114,11 @@ final class PRDetectionEngineTests: XCTestCase {
     }
 
     func test_bodyweightPushUps_sameReps_doesNotFireAgain() {
-        _ = PRDetectionEngine.shared.ingest(session: session(
+        _ = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 25)]
         ))
-        let detections = PRDetectionEngine.shared.ingest(session: session(
+        let detections = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 25)]
         ))
@@ -129,11 +129,11 @@ final class PRDetectionEngineTests: XCTestCase {
     }
 
     func test_loadedLiftAtZeroKg_doesNotRecordRepsPR() {
-        _ = PRDetectionEngine.shared.ingest(session: session(
+        _ = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
             sets: [completedSet(weightKg: 0, reps: 3)]
         ))
-        let detections = PRDetectionEngine.shared.ingest(session: session(
+        let detections = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
             sets: [completedSet(weightKg: 0, reps: 8)]
         ))
@@ -158,11 +158,11 @@ final class PRDetectionEngineTests: XCTestCase {
         ExerciseLibrary.shared.reset()
         await ExerciseLibrary.shared.load()
 
-        _ = PRDetectionEngine.shared.ingest(session: session(
+        _ = PRDetectionService.shared.ingest(session: session(
             exerciseID: custom.id,
             sets: [completedSet(weightKg: 0, reps: 3)]
         ))
-        let detections = PRDetectionEngine.shared.ingest(session: session(
+        let detections = PRDetectionService.shared.ingest(session: session(
             exerciseID: custom.id,
             sets: [completedSet(weightKg: 0, reps: 8)]
         ))
@@ -176,12 +176,12 @@ final class PRDetectionEngineTests: XCTestCase {
     // MARK: - Weighted PRs (smoke test for the existing tracks)
 
     func test_weightedSquat_recordsAllThreeWeightedKinds() {
-        _ = PRDetectionEngine.shared.ingest(session: session(
+        _ = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Barbell_Squat",
             sets: [completedSet(weightKg: 90, reps: 5)]
         ))
         let topSet = completedSet(weightKg: 100, reps: 5)
-        let detections = PRDetectionEngine.shared.ingest(session: session(
+        let detections = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Barbell_Squat",
             sets: [topSet]
         ))
@@ -194,11 +194,11 @@ final class PRDetectionEngineTests: XCTestCase {
     }
 
     func test_completedZeroRepSet_doesNotSetHeaviestPR() {
-        _ = PRDetectionEngine.shared.ingest(session: session(
+        _ = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Barbell_Squat",
             sets: [completedSet(weightKg: 90, reps: 5)]
         ))
-        let detections = PRDetectionEngine.shared.ingest(session: session(
+        let detections = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Barbell_Squat",
             sets: [completedSet(weightKg: 120, reps: 0), completedSet(weightKg: 90, reps: 5)]
         ))
@@ -216,7 +216,7 @@ final class PRDetectionEngineTests: XCTestCase {
             completed: true,
             isWarmup: true
         )
-        let detections = PRDetectionEngine.shared.ingest(session: session(
+        let detections = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Pushups",
             sets: [warmup]
         ))
@@ -230,7 +230,7 @@ final class PRDetectionEngineTests: XCTestCase {
             reps: 100,
             completed: false
         )
-        let detections = PRDetectionEngine.shared.ingest(session: session(
+        let detections = PRDetectionService.shared.ingest(session: session(
             exerciseID: "Pushups",
             sets: [incomplete]
         ))

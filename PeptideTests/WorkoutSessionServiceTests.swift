@@ -922,13 +922,13 @@ final class WorkoutSessionServiceTests: XCTestCase {
     }
 }
 
-// Renamed from `PRDetectionEngineTests` — that name is already taken
-// by the dedicated `PRDetectionEngineTests.swift` (bodyweight-rep PR
+// Renamed from `PRDetectionServiceTests` — that name is already taken
+// by the dedicated `PRDetectionServiceTests.swift` (bodyweight-rep PR
 // coverage). Two classes with the same name failed the test build with
 // "invalid redeclaration". These ingest-focused tests keep a distinct
 // name so both suites compile and run.
 @MainActor
-final class PRDetectionEngineIngestTests: XCTestCase {
+final class PRDetectionServiceIngestTests: XCTestCase {
 
     private var repo: SwiftDataRepository!
 
@@ -956,7 +956,7 @@ final class PRDetectionEngineIngestTests: XCTestCase {
             SetEntry(index: 1, weightKg: 100, reps: 5, completed: true),
             SetEntry(index: 2, weightKg: 100, reps: 5, completed: true),
         ])
-        let detected = PRDetectionEngine.shared.ingest(session: s)
+        let detected = PRDetectionService.shared.ingest(session: s)
         XCTAssertTrue(detected.isEmpty,
                       "The first log of an exercise is a baseline, not a PR")
         let stored = repo.loadPersonalRecords()
@@ -969,12 +969,12 @@ final class PRDetectionEngineIngestTests: XCTestCase {
         let big = session(exerciseID: "Bench", sets: [
             SetEntry(index: 1, weightKg: 120, reps: 5, completed: true),
         ])
-        PRDetectionEngine.shared.ingest(session: big)
+        PRDetectionService.shared.ingest(session: big)
 
         let small = session(exerciseID: "Bench", sets: [
             SetEntry(index: 1, weightKg: 80, reps: 5, completed: true),
         ])
-        let detected = PRDetectionEngine.shared.ingest(session: small)
+        let detected = PRDetectionService.shared.ingest(session: small)
         XCTAssertTrue(detected.isEmpty,
                       "A weaker session should not detect new PRs")
         let stored = repo.loadPersonalRecords().first
@@ -987,7 +987,7 @@ final class PRDetectionEngineIngestTests: XCTestCase {
             SetEntry(index: 2, weightKg: 150, reps: 1, completed: false),
             SetEntry(index: 3, weightKg: 100, reps: 5, completed: true),
         ])
-        PRDetectionEngine.shared.ingest(session: s)
+        PRDetectionService.shared.ingest(session: s)
         let stored = repo.loadPersonalRecords().first
         XCTAssertEqual(stored?.bestAbsoluteWeightKg, 100,
                        "Warmup + incomplete sets should not contribute to PRs")
@@ -1000,7 +1000,7 @@ final class PRDetectionEngineIngestTests: XCTestCase {
             exercises: [WorkoutExerciseEntry(exerciseID: "Bench", index: 0,
                 sets: [SetEntry(index: 1, weightKg: 999, reps: 1, completed: true)])]
         )
-        let detected = PRDetectionEngine.shared.ingest(session: s)
+        let detected = PRDetectionService.shared.ingest(session: s)
         XCTAssertTrue(detected.isEmpty,
                       "Only finished sessions should produce PRs")
         XCTAssertTrue(repo.loadPersonalRecords().isEmpty)
