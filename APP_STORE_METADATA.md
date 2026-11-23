@@ -325,9 +325,8 @@ photos sent to the AI meal scanner are handled the same way.
 ### Before adding any upload of user data
 
 The app's only upload outside user-invoked AI features is the crash
-report above: onboarding funnel events and the referral survey answer
-stay on-device. A build that starts sending anything new off
-the device MUST first:
+report above: onboarding funnel events stay on-device. A build that
+starts sending anything new off the device MUST first:
 
 1. Update this nutrition label.
 2. Update the `PrivacyInfo.xcprivacy` collected-data-types arrays.

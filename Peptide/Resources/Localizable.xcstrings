@@ -9043,16 +9043,6 @@
         }
       }
     },
-    "A friend": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En vän"
-          }
-        }
-      }
-    },
     "A heads-up when today's streak is at risk": {
       "localizations": {
         "sv": {
@@ -10769,16 +10759,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "När som helst"
-          }
-        }
-      }
-    },
-    "App Store": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App Store"
           }
         }
       }
@@ -28205,16 +28185,6 @@
         }
       }
     },
-    "Optional.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Valfritt."
-          }
-        }
-      }
-    },
     "Optional. Add your weight, height, and age so Atlas can calculate your calorie and macro targets and your Biological Age.": {
       "localizations": {
         "sv": {
@@ -29335,16 +29305,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plus allt från 2.0"
-          }
-        }
-      }
-    },
-    "Podcast": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Podd"
           }
         }
       }
@@ -31177,16 +31137,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Röd"
-          }
-        }
-      }
-    },
-    "Reddit": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reddit"
           }
         }
       }
@@ -47946,16 +47896,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hur tränar du?"
-          }
-        }
-      }
-    },
-    "How did you find Atlas?": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hur hittade du Atlas?"
           }
         }
       }

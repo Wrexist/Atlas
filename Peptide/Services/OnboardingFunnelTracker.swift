@@ -71,8 +71,8 @@ enum OnboardingFunnelTracker {
         UserDefaults.standard.bool(forKey: completedKey)
     }
 
-    /// Forgets the recorded run — step timestamps, events (attribution
-    /// channel included) and the session ID — for "Delete All Data".
+    /// Forgets the recorded run — step timestamps, events and the
+    /// session ID — for "Delete All Data".
     static func eraseAll() {
         for key in [snapshotKey, sessionIDKey, completedKey] {
             UserDefaults.standard.removeObject(forKey: key)

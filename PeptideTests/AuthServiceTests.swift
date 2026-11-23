@@ -188,7 +188,7 @@ final class AuthServiceTests: XCTestCase {
     func test_deleteAllData_clearsOnboardingAnswersButKeepsDisclaimerRecord() {
         SwiftDataRepository.shared.configureForTesting()
         _ = DataStore(seedSampleData: true)
-        OnboardingFunnelTracker.recordEvent("attribution_friend")
+        OnboardingFunnelTracker.recordEvent("disclaimer_acknowledged")
         UserDefaults.standard.set("advanced", forKey: "experienceLevel")
         UserDefaults.standard.set(1_800_000_000.0, forKey: "disclaimerAcknowledgedAt")
         defer { UserDefaults.standard.removeObject(forKey: "disclaimerAcknowledgedAt") }
