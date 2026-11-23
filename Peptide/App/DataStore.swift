@@ -1288,6 +1288,7 @@ final class DataStore {
     func logWeight(kg: Double, date: Date = Date()) {
         LifestyleDataLogic.logWeight(into: &profile, kg: kg, date: date)
         save()
+        refreshAdaptiveTargets()
         guard HealthSyncSettings.isEnabled else { return }
         enqueueBodyMassHealthWrite { await HealthKitService.shared.writeBodyMass(kg: kg, date: date) }
     }
@@ -1580,6 +1581,7 @@ final class DataStore {
         guard !additions.isEmpty, repo.recordHealthWeightImports(additions) else { return }
         profile.weightHistory = (profile.weightHistory + additions).sorted { $0.date < $1.date }
         save()
+        refreshAdaptiveTargets()
     }
 
     /// Individual meal entries logged on a specific day, newest first.
@@ -3124,6 +3126,9 @@ final class DataStore {
         // scheduled entries before the status change lands.
         performCycleAutoCompletion()
         regenerateTodayEntries()
+        // Today, the widget and the Watch read the saved targets, so they
+        // follow the estimate without waiting for the Meals view to appear.
+        refreshAdaptiveTargets(asOf: now)
         refreshHealthIfDue()
         turnOffDeniedHealthWrites()
         // The unlock notification isn't delivered to a suspended app.
