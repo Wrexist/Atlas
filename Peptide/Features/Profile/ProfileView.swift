@@ -50,18 +50,20 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 0)
 
-                    Group {
-                        if storeService.isProUser || storeService.isInBillingRetry {
-                            SubscriptionSection()
-                        } else {
-                            UpgradePromptCard()
+                    if StoreService.paywallEnabled {
+                        Group {
+                            if storeService.isProUser || storeService.isInBillingRetry {
+                                SubscriptionSection()
+                            } else {
+                                UpgradePromptCard()
+                            }
                         }
+                        // A purchase made from inside this sheet swaps the
+                        // card; cross-fade it rather than cut.
+                        .transition(.opacity.combined(with: .scale(0.98)))
+                        .appAnimation(AppAnimation.springSmooth, value: storeService.isProUser)
+                        .sectionAppear(index: 1)
                     }
-                    // A purchase made from inside this sheet swaps the
-                    // card; cross-fade it rather than cut.
-                    .transition(.opacity.combined(with: .scale(0.98)))
-                    .appAnimation(AppAnimation.springSmooth, value: storeService.isProUser)
-                    .sectionAppear(index: 1)
 
                     // Earned Atlas Score — the rewards identity. Taps open
                     // the full progress view, where the achievement badges
