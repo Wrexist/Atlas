@@ -81,7 +81,7 @@ enum OnDeviceSummaryEngine {
         if let weekCount, weekCount > 0 {
             lines.append("Workouts completed this week, including this one: \(weekCount)")
         }
-        return Facts(kind: .workout, day: dayKey(now, calendar), statements: lines, fallback: nil)
+        return Facts(kind: .workout, day: DayKey.unpadded(now, calendar: calendar), statements: lines, fallback: nil)
     }
 
     static func week(_ week: WorkoutRecapEngine.Week, unit: MeasurementUnit,
@@ -97,7 +97,7 @@ enum OnDeviceSummaryEngine {
         if let volume = week.volumeKg {
             lines.append("Recorded training volume \(span): \(RecapFormat.volume(volume, unit: unit))")
         }
-        return Facts(kind: .week, day: dayKey(now, calendar), statements: lines, fallback: nil)
+        return Facts(kind: .week, day: DayKey.unpadded(now, calendar: calendar), statements: lines, fallback: nil)
     }
 
     static func coaching(_ message: CoachingMessageEngine.CoachingMessage,
@@ -111,7 +111,7 @@ enum OnDeviceSummaryEngine {
         if let sleep = context.sleepHours, sleep > 0 {
             lines.append("Sleep last night: \(String(format: "%.1f", sleep)) hours")
         }
-        return Facts(kind: .coaching, day: dayKey(now, calendar), statements: lines, fallback: body)
+        return Facts(kind: .coaching, day: DayKey.unpadded(now, calendar: calendar), statements: lines, fallback: body)
     }
 
     // MARK: - Prompt
@@ -194,10 +194,5 @@ enum OnDeviceSummaryEngine {
         let integer = groups.dropLast().joined()
         let trimmed = String(fraction.reversed().drop(while: { $0 == "0" }).reversed())
         return trimmed.isEmpty ? integer : integer + "." + trimmed
-    }
-
-    static func dayKey(_ date: Date, _ calendar: Calendar) -> String {
-        let parts = calendar.dateComponents([.year, .month, .day], from: date)
-        return "\(parts.year ?? 0)-\(parts.month ?? 0)-\(parts.day ?? 0)"
     }
 }

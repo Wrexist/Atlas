@@ -52,8 +52,7 @@ enum StreakFreezeService {
     /// "20261023". Built from the calendar's own year/month/day so it
     /// names the day the user saw, in any time zone.
     static func dayKey(for date: Date, calendar: Calendar = .current) -> String {
-        let parts = calendar.dateComponents([.year, .month, .day], from: date)
-        return String(format: "%04d%02d%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+        DayKey.compact(date, calendar: calendar)
     }
 
     /// True when the given date has a freeze applied. Streak

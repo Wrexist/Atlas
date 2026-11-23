@@ -2448,8 +2448,7 @@ final class DataStore {
         let nowCompleted = HabitsService.summary(for: habit, entries: profile.habitEntries, on: date).isCompletedToday
         guard !wasCompleted, nowCompleted else { return }
 
-        let comps = Calendar.current.dateComponents([.year, .month, .day], from: date)
-        let dayKey = "\(comps.year ?? 0)-\(comps.month ?? 0)-\(comps.day ?? 0)"
+        let dayKey = DayKey.unpadded(date, calendar: .current)
         let isFreshPerfectDay = allHabitsDoneToday(on: date) && lastPerfectDayCelebratedKey != dayKey
         if isFreshPerfectDay { lastPerfectDayCelebratedKey = dayKey }
 
