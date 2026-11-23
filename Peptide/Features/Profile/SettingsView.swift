@@ -46,6 +46,7 @@ struct SettingsView: View {
         .pageBackground()
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .solidTopScrollEdge()
         .sheet(isPresented: $showRestoreBackup) {
             RestoreBackupSheet()
                 .environment(dataStore)

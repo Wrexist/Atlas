@@ -490,6 +490,7 @@ struct HomeView: View {
             .pageBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .solidTopScrollEdge()
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     HomeStickyHeader(firstName: firstNameForSticky, progress: $stickyProgress)

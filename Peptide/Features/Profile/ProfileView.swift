@@ -121,6 +121,7 @@ struct ProfileView: View {
             }
             .pageBackground()
             .navigationTitle("Profile")
+            .solidTopScrollEdge()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {

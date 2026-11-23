@@ -113,6 +113,7 @@ struct BiologyView: View {
             .navigationTitle("Biology")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .solidTopScrollEdge()
             .toolbar {
                 // In the bar, not floating over the page: a floating pill
                 // covered card values ("-1,") wherever the list stopped.
