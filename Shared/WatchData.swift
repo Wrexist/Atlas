@@ -426,6 +426,7 @@ struct WatchData: Codable, Equatable, Sendable {
         case workout, training
         case hapticsEnabled
         case trainingCatalog, syncedWorkoutIDs
+        case accent
     }
 
     static let empty = WatchData(
