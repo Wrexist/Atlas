@@ -7231,6 +7231,16 @@
         }
       }
     },
+    "How to get your biological age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Så får du din biologiska ålder"
+          }
+        }
+      }
+    },
     "IGF-1 Receptor": {
       "localizations": {
         "sv": {
@@ -8742,6 +8752,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppvakning"
+          }
+        }
+      }
+    },
+    "Wear Apple Watch overnight. Atlas reads your heart rate, HRV and sleep.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bär Apple Watch över natten. Atlas läser av din puls, HRV och sömn."
           }
         }
       }
