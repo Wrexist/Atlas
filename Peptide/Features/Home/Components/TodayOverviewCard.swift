@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Today's lifestyle overview: the 2×2 stat grid (Calories / Meal
-/// streak / Check-in / Water) and the rotating daily insight. Doses
+/// Today's lifestyle overview: meal streak and check-in tiles, plus a
+/// calorie tile only while no target is set (with one, calories and
+/// water live in the hero card's bars), and the rotating daily insight. Doses
 /// are deliberately absent — they have one home on Today, the
 /// "Today's doses" section.
 ///
@@ -10,9 +11,6 @@ import SwiftUI
 /// destination via `onTapInsight`.
 struct TodayOverviewCard: View {
     let snapshot: TodayOverviewSnapshot
-    /// Water is stored in fluid ounces. Defaulted so previews stay
-    /// two-line; the one live call site passes the profile's setting.
-    var unit: MeasurementUnit = .metric
     /// Called when the user taps the bottom insight row. Lets the
     /// host route a "latest lab" insight to the labs view or just
     /// dismiss the nudge.
@@ -20,12 +18,12 @@ struct TodayOverviewCard: View {
     /// Called when a stat tile is tapped. Nil keeps the tiles
     /// display-only (previews).
     var onTapTile: ((Tile) -> Void)?
-    /// False while Today browses a past day, so the water footnote
-    /// doesn't claim the day's total is today's.
+    /// False while Today browses a past day, so a footnote doesn't
+    /// invite logging into a day that's over.
     var isToday = true
 
     enum Tile {
-        case calories, mealStreak, checkIn, water
+        case calories, mealStreak, checkIn
     }
 
     var body: some View {
@@ -44,7 +42,7 @@ struct TodayOverviewCard: View {
         .accessibilityElement(children: .contain)
     }
 
-    // MARK: - Stats grid (2×2)
+    // MARK: - Stats grid
 
     private var statsGrid: some View {
         LazyVGrid(
@@ -54,10 +52,11 @@ struct TodayOverviewCard: View {
             ],
             spacing: Spacing.sm
         ) {
-            tileButton(.calories, hint: "Opens your calorie target or Meals") { caloriesTile }
+            if snapshot.calorieTarget == nil {
+                tileButton(.calories, hint: "Opens your calorie target or Meals") { caloriesTile }
+            }
             tileButton(.mealStreak, hint: "Opens Meals") { mealStreakTile }
             tileButton(.checkIn, hint: "Goes to today's check-in") { checkInTile }
-            tileButton(.water, hint: "Adds a glass of water") { waterTile }
         }
     }
 
@@ -83,7 +82,7 @@ struct TodayOverviewCard: View {
                 ? snapshot.caloriesToday.formatted()
                 : "—",
             icon: "fork.knife",
-            tint: AppColor.macroProtein,
+            tint: AppColor.accentPrimary,
             footnote: caloriesFootnote,
             progress: caloriesProgress
         )
@@ -109,7 +108,7 @@ struct TodayOverviewCard: View {
             label: "Meal streak",
             value: snapshot.mealStreak > 0 ? "\(snapshot.mealStreak)" : "—",
             icon: "flame.fill",
-            tint: AppColor.streak,
+            tint: AppColor.accentPrimary,
             footnote: snapshot.mealStreak == 1
                 ? String(localized: "day")
                 : (snapshot.mealStreak > 1
@@ -123,28 +122,11 @@ struct TodayOverviewCard: View {
             label: "Check-in",
             value: snapshot.checkInScore.map { $0.formatted(.number.precision(.fractionLength(1))) } ?? "—",
             icon: "heart.text.square.fill",
-            tint: AppColor.metricHRV,
+            tint: AppColor.accentPrimary,
             footnote: snapshot.checkInScore != nil
                 ? String(localized: "of 5.0")
                 : (isToday ? String(localized: "30-sec check-in") : String(localized: "No check-in")),
             progress: snapshot.checkInScore.map { $0 / 5.0 }
-        )
-    }
-
-    /// Fills toward the same daily goal the checklist's water row counts
-    /// to, so the two read as one target.
-    private var waterTile: some View {
-        let target = Double(TodayChecklistEngine.waterTargetOz)
-        return StatTile(
-            label: "Water",
-            // Same label as the checklist row ("1.4 L", not "1420").
-            value: snapshot.waterToday > 0 ? unit.volumeLabel(snapshot.waterToday) : "—",
-            icon: "drop.fill",
-            tint: AppColor.macroWater,
-            footnote: snapshot.waterToday > 0
-                ? String(localized: "of \(unit.volumeLabel(target)) goal")
-                : (isToday ? String(localized: "Tap to add") : String(localized: "None logged")),
-            progress: snapshot.waterToday > 0 ? min(snapshot.waterToday / target, 1.0) : nil
         )
     }
 

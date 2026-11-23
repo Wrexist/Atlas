@@ -13,15 +13,12 @@ struct HomeWellnessSection: View {
 
     @State private var showOutcomeCheckIn = false
 
+    /// No section header: the card titles itself "Today's check-in".
     var body: some View {
-        VStack(spacing: Spacing.sm) {
-            HomeSectionHeader(title: "How you're feeling")
-
-            DailyCheckInCard(
-                todayEntry: dataStore.outcome(),
-                onTap: { showOutcomeCheckIn = true }
-            )
-        }
+        DailyCheckInCard(
+            todayEntry: dataStore.outcome(),
+            onTap: { showOutcomeCheckIn = true }
+        )
         .dailyCheckInSheet(isPresented: $showOutcomeCheckIn)
     }
 }

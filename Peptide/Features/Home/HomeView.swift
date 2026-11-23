@@ -1053,7 +1053,6 @@ struct HomeView: View {
     private func overviewCard(_ overview: TodayOverviewSnapshot, proxy: ScrollViewProxy) -> some View {
         TodayOverviewCard(
             snapshot: overview,
-            unit: dataStore.profile.bodyMetrics.unit,
             onTapInsight: { insight in
                 switch insight {
                 case .latestLab:
@@ -1095,8 +1094,10 @@ struct HomeView: View {
             .scrollReveal()
         }
 
-        AtlasScoreCard(onTap: { showProgress = true })
-            .scrollReveal()
+        if dataStore.momentum.score > 0 {
+            AtlasScoreCard(onTap: { showProgress = true })
+                .scrollReveal()
+        }
     }
 
     /// The AI research chat's only other entry is an icon in the Library
@@ -1293,8 +1294,6 @@ struct HomeView: View {
             appState.selectedTab = .meals
         case .checkIn:
             show(.wellness, proxy: proxy)
-        case .water:
-            logWaterGlass()
         }
     }
 

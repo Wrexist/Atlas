@@ -33,11 +33,9 @@ struct WeeklySummaryHeroCard: View {
     }
 
     private var accent: Color {
-        // Cool blue → purple. Pairs with the Insights tab tinting
-        // so the card visually signals "review surface", and
-        // distinguishes itself from the warm-orange Today
-        // Overview Card directly beneath.
-        AppColor.recap
+        // Today speaks in one accent; data colours stay on the
+        // detail screens where they tell series apart.
+        AppColor.accentPrimary
     }
 
     var body: some View {
@@ -181,13 +179,13 @@ struct WeeklySummaryHeroCard: View {
 
     // MARK: - Shared chrome
 
-    /// Soft corner glow drawn over the card so the cool-blue
-    /// tint reads even on devices with a warm display profile.
+    /// Faint accent glow in the top corner, enough to set the recap
+    /// apart from the plain cards around it without a second hue.
     /// `allowsHitTesting(false)` so the tap target stays the
     /// whole card area underneath.
     private var accentBackdrop: some View {
         RadialGradient(
-            colors: [accent.opacity(0.22), Color.clear],
+            colors: [accent.opacity(0.14), Color.clear],
             center: .init(x: 0.92, y: -0.10),
             startRadius: 0,
             endRadius: 240
@@ -289,21 +287,21 @@ struct WeeklySummaryHeroCard: View {
                 StatTile(
                     label: "Dose streak",
                     value: stats.currentStreak == 1 ? String(localized: "1 day") : String(localized: "\(stats.currentStreak) days"),
-                    tint: AppColor.streak
+                    tint: accent
                 )
             }
             if let composite = stats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
                     value: composite.formatted(.number.precision(.fractionLength(1))),
-                    tint: AppColor.metricHRV
+                    tint: accent
                 )
             }
             if let calories = stats.avgCalories {
                 StatTile(
                     label: "Avg kcal",
                     value: calories.formatted(),
-                    tint: AppColor.macroProtein
+                    tint: accent
                 )
             }
             if let delta = stats.hrvDelta {

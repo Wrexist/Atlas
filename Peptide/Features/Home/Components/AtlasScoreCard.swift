@@ -60,7 +60,7 @@ struct AtlasScoreCard: View {
                     .contentTransition(.numericText())
                 Text(progressLine(momentum))
                     .font(AppFont.caption2)
-                    .foregroundStyle(momentum.todayEarned > 0 ? AppColor.streak : AppColor.textTertiary)
+                    .foregroundStyle(momentum.todayEarned > 0 ? AppColor.accentPrimary : AppColor.textTertiary)
                     .contentTransition(.numericText())
             }
 

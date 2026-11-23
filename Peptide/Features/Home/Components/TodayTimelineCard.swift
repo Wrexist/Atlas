@@ -102,9 +102,7 @@ struct TodayTimelineCard: View {
 
     private func color(for tint: TodayTimelineEvent.TimelineTint) -> Color {
         switch tint {
-        case .meal:    AppColor.macroProtein
-        case .checkIn: AppColor.metricHRV
-        case .workout: AppColor.metricActivity
+        case .meal, .checkIn, .workout: AppColor.accentPrimary
         }
     }
 }

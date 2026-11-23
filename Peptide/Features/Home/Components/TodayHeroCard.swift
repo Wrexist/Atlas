@@ -31,9 +31,10 @@ struct TodayHeroCard: View {
             )
         }
 
-        /// A count of things to tick off.
+        /// A count of things to tick off, read as a share like the rest
+        /// so every bar's figure scans the same way.
         init(kind: Kind, done: Int, total: Int) {
-            self.init(kind: kind, fraction: total > 0 ? Double(done) / Double(total) : 0, value: "\(done)/\(total)")
+            self.init(kind: kind, amount: Double(done), goal: Double(total))
         }
     }
 
