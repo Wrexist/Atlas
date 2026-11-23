@@ -50,7 +50,7 @@ struct ProtocolBuilderView: View {
     @State private var isConfirmingDiscard = false
     /// Recomputed when the selection changes, not on every keystroke in
     /// the name field.
-    @State private var inlineWarnings: [StackRecommendationEngine.Warning] = []
+    @State private var inlineWarnings: [ProtocolRecommendationEngine.Warning] = []
 
     private let dayNames = ScheduleEditor.isoWeekdayNames
     private let totalSteps = 2
@@ -232,7 +232,7 @@ struct ProtocolBuilderView: View {
     }
 
     private func refreshInlineWarnings() {
-        inlineWarnings = StackRecommendationEngine.warnings(
+        inlineWarnings = ProtocolRecommendationEngine.warnings(
             for: orderedSelectedPeptides,
             activeProtocols: dataStore.activeProtocols
         )
@@ -268,8 +268,8 @@ struct ProtocolBuilderView: View {
             }
             .navigationTitle(builderTitle)
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: StackLibraryRoute.self) { _ in
-                StackLibraryView()
+            .navigationDestination(for: ProtocolLibraryRoute.self) { _ in
+                ProtocolLibraryView()
             }
             .navigationDestination(for: CommunityStack.self) { stack in
                 CommunityStackDetailView(stack: stack, onUseTemplate: applyTemplate)
@@ -502,7 +502,7 @@ struct ProtocolBuilderView: View {
                         }
                     }
                 } else {
-                    NavigationLink(value: StackLibraryRoute()) {
+                    NavigationLink(value: ProtocolLibraryRoute()) {
                         startFromPill("Template")
                     }
                     .buttonStyle(ScalePressStyle())
@@ -561,7 +561,7 @@ struct ProtocolBuilderView: View {
         return "A ready-made template, or a protocol you've already built."
     }
 
-    private func warningsCard(_ warnings: [StackRecommendationEngine.Warning]) -> some View {
+    private func warningsCard(_ warnings: [ProtocolRecommendationEngine.Warning]) -> some View {
         let topWarnings = Array(warnings.prefix(3))
         let hiddenCount = warnings.count - topWarnings.count
         return GlassCard {

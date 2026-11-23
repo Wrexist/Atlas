@@ -2,7 +2,7 @@ import Foundation
 
 /// Pure logic that powers the "Adjust Stack" preview surfaced from compounding alerts.
 /// Computes peptide diffs and finds where dropped peptides could land instead of being discarded.
-enum StackAdjustmentEngine {
+enum ProtocolAdjustmentEngine {
 
     // MARK: - Title parsing
 

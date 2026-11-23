@@ -1,10 +1,10 @@
 import Foundation
 
 // Compatibility-warning logic. Lives in its own file so the main
-// StackRecommendationEngine.swift stays focused on the recommendation
+// ProtocolRecommendationEngine.swift stays focused on the recommendation
 // algorithm and stack-completeness/cycle-transition computations.
 
-extension StackRecommendationEngine {
+extension ProtocolRecommendationEngine {
 
     /// Backward-compatible entry point.
     static func warnings(for currentPeptides: [Peptide]) -> [Warning] {

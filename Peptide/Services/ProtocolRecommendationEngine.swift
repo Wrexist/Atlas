@@ -1,8 +1,8 @@
 import Foundation
 
-enum StackRecommendationEngine {
+enum ProtocolRecommendationEngine {
 
-    // Model types live in StackRecommendationTypes.swift.
+    // Model types live in ProtocolRecommendationTypes.swift.
 
     // MARK: - Category Synergies
 
@@ -240,7 +240,7 @@ enum StackRecommendationEngine {
             }
     }
 
-    // Compatibility-warning logic lives in StackRecommendationEngine+Warnings.swift.
+    // Compatibility-warning logic lives in ProtocolRecommendationEngine+Warnings.swift.
 
     // MARK: - Stack Completeness
 
@@ -250,7 +250,7 @@ enum StackRecommendationEngine {
         for currentPeptides: [Peptide],
         goals: [String],
         from database: [Peptide]
-    ) -> StackCompleteness? {
+    ) -> ProtocolCompleteness? {
         let resolved = resolveGoals(goals)
         guard !resolved.isEmpty else { return nil }
 
@@ -294,7 +294,7 @@ enum StackRecommendationEngine {
         }
 
         let score = totalDimensions > 0 ? Double(coveredDimensions) / Double(totalDimensions) : 0
-        return StackCompleteness(
+        return ProtocolCompleteness(
             score: score,
             coveredGoals: coveredGoals,
             missingCategories: missingCategories,
@@ -394,6 +394,6 @@ enum StackRecommendationEngine {
         }
     }
 
-    // normalizedSideEffect lives in StackRecommendationEngine+Warnings.swift since
+    // normalizedSideEffect lives in ProtocolRecommendationEngine+Warnings.swift since
     // it's only used by warnings logic.
 }

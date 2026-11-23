@@ -137,7 +137,7 @@ final class AchievementService {
     /// (`WorkoutSessionService.finishWorkout` + `DataStore.logWorkout`) via
     /// `DataStore.recordWorkoutFinished`, not the generic save hook —
     /// workout data lives in SwiftData and would otherwise need a per-save
-    /// fetch. `prDetected` comes from `PRDetectionEngine.ingest`.
+    /// fetch. `prDetected` comes from `PRDetectionService.ingest`.
     func checkTrainingAchievements(workoutCount: Int, prDetected: Bool) {
         let unlocksBefore = pendingUnlocks.count
         unlock("first_workout", if: workoutCount >= 1)

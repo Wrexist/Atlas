@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The result the sheet hands back to the caller when the user taps "Apply".
-struct StackAdjustmentResult {
+struct ProtocolAdjustmentResult {
     let sourceProtocolId: UUID
     let updatedPeptides: [Peptide]
     let moves: [Move]
@@ -9,33 +9,33 @@ struct StackAdjustmentResult {
     struct Move: Identifiable {
         let id = UUID()
         let peptide: Peptide
-        let destination: StackAdjustmentEngine.RelocationOption
+        let destination: ProtocolAdjustmentEngine.RelocationOption
     }
 }
 
 /// Lets the user edit a stack from a compounding alert. Shows a live `+/-` diff of the proposed
 /// changes and, for every peptide they remove, offers a place for it to land — another active stack
 /// or a brand-new one — instead of silently dropping it.
-struct StackAdjustmentSheet: View {
-    let warning: StackRecommendationEngine.Warning
+struct ProtocolAdjustmentSheet: View {
+    let warning: ProtocolRecommendationEngine.Warning
     let candidateProtocols: [PeptideProtocol]
     let allActiveProtocols: [PeptideProtocol]
     let peptideDatabase: [Peptide]
-    let onApply: (StackAdjustmentResult) -> Void
+    let onApply: (ProtocolAdjustmentResult) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedProtocolId: UUID
     @State private var selectedPeptideIds: Set<UUID>
     /// Per removed peptide: where the user wants to send it. Recomputed when the diff changes.
-    @State private var moveChoices: [UUID: StackAdjustmentEngine.RelocationOption] = [:]
+    @State private var moveChoices: [UUID: ProtocolAdjustmentEngine.RelocationOption] = [:]
     @State private var showingPicker = false
 
     init(
-        warning: StackRecommendationEngine.Warning,
+        warning: ProtocolRecommendationEngine.Warning,
         candidateProtocols: [PeptideProtocol],
         allActiveProtocols: [PeptideProtocol],
         peptideDatabase: [Peptide],
-        onApply: @escaping (StackAdjustmentResult) -> Void
+        onApply: @escaping (ProtocolAdjustmentResult) -> Void
     ) {
         self.warning = warning
         self.candidateProtocols = candidateProtocols
@@ -60,23 +60,23 @@ struct StackAdjustmentSheet: View {
     }
 
     private var proposedPeptides: [Peptide] {
-        StackAdjustmentEngine.proposedPeptides(
+        ProtocolAdjustmentEngine.proposedPeptides(
             original: originalPeptides,
             selectedIds: selectedPeptideIds,
             database: peptideDatabase
         )
     }
 
-    private var diff: StackAdjustmentEngine.Diff {
-        StackAdjustmentEngine.diff(original: originalPeptides, proposed: proposedPeptides)
+    private var diff: ProtocolAdjustmentEngine.Diff {
+        ProtocolAdjustmentEngine.diff(original: originalPeptides, proposed: proposedPeptides)
     }
 
     private var sideEffectKey: String? {
-        StackAdjustmentEngine.sideEffectKey(from: warning.title)
+        ProtocolAdjustmentEngine.sideEffectKey(from: warning.title)
     }
 
-    private var relocations: [StackAdjustmentEngine.Relocation] {
-        StackAdjustmentEngine.relocations(
+    private var relocations: [ProtocolAdjustmentEngine.Relocation] {
+        ProtocolAdjustmentEngine.relocations(
             for: diff.removed,
             sourceProtocolId: selectedProtocolId,
             sideEffectKey: sideEffectKey,
@@ -380,7 +380,7 @@ struct StackAdjustmentSheet: View {
         }
     }
 
-    private func relocationRow(_ relocation: StackAdjustmentEngine.Relocation) -> some View {
+    private func relocationRow(_ relocation: ProtocolAdjustmentEngine.Relocation) -> some View {
         let current = moveChoices[relocation.peptide.id] ?? relocation.recommended
         return VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
@@ -457,12 +457,12 @@ struct StackAdjustmentSheet: View {
                 guard diff.hasChanges, let source = sourceProtocol else { return }
                 Haptics.success()
                 let moves = relocations.map { relocation in
-                    StackAdjustmentResult.Move(
+                    ProtocolAdjustmentResult.Move(
                         peptide: relocation.peptide,
                         destination: moveChoices[relocation.peptide.id] ?? relocation.recommended
                     )
                 }
-                onApply(StackAdjustmentResult(
+                onApply(ProtocolAdjustmentResult(
                     sourceProtocolId: source.id,
                     updatedPeptides: proposedPeptides,
                     moves: moves
@@ -497,7 +497,7 @@ struct StackAdjustmentSheet: View {
         moveChoices = moveChoices.filter { removedIds.contains($0.key) }
     }
 
-    private func optionIcon(_ option: StackAdjustmentEngine.RelocationOption) -> String {
+    private func optionIcon(_ option: ProtocolAdjustmentEngine.RelocationOption) -> String {
         switch option {
         case .discard: return "trash"
         case .moveTo: return "arrow.right.circle"

@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct StackCompletenessCard: View {
-    let completeness: StackRecommendationEngine.StackCompleteness
+struct ProtocolCompletenessCard: View {
+    let completeness: ProtocolRecommendationEngine.ProtocolCompleteness
 
     var body: some View {
         GlassCard {
@@ -65,7 +65,7 @@ struct StackCompletenessCard: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        StackCompletenessCard(
+        ProtocolCompletenessCard(
             completeness: .init(
                 score: 0.65,
                 coveredGoals: ["Muscle Recovery", "Anti-Aging"],

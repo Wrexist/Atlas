@@ -6,7 +6,7 @@ struct WorkoutFinishView: View {
     let onClose: () -> Void
     let celebratesSave: Bool
     /// Records this save set.
-    private let savedPRs: [PRDetectionEngine.DetectedPR]
+    private let savedPRs: [PRDetectionService.DetectedPR]
     @State private var store: WorkoutRecapStore
     @State private var summaryService = OnDeviceSummaryService.shared
     @State private var editing = false
@@ -16,7 +16,7 @@ struct WorkoutFinishView: View {
     @State private var showsConfetti = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(session: WorkoutSession, detectedPRs: [PRDetectionEngine.DetectedPR],
+    init(session: WorkoutSession, detectedPRs: [PRDetectionService.DetectedPR],
          unit: MeasurementUnit, celebratesSave: Bool = true,
          onClose: @escaping () -> Void) {
         self.unit = unit
@@ -152,7 +152,7 @@ struct WorkoutFinishView: View {
     /// Hidden once the workout is edited, from here or from the exercise
     /// list: the edit re-derives stored records, so these could name a set
     /// the user just corrected.
-    private var detectedPRs: [PRDetectionEngine.DetectedPR] {
+    private var detectedPRs: [PRDetectionService.DetectedPR] {
         store.wasEdited ? [] : savedPRs
     }
 
@@ -226,7 +226,7 @@ private struct RecapNavigationRow<Title: View>: View {
 }
 
 struct RecapNewPRs: View {
-    let prs: [PRDetectionEngine.DetectedPR]
+    let prs: [PRDetectionService.DetectedPR]
     let entries: [WorkoutRecapEngine.Entry]
     let unit: MeasurementUnit
 
@@ -260,7 +260,7 @@ struct RecapNewPRs: View {
         entries.first { $0.exerciseID == id }?.name ?? String(localized: "Exercise")
     }
 
-    private func kindLabel(_ kind: PRDetectionEngine.DetectedPR.Kind) -> String {
+    private func kindLabel(_ kind: PRDetectionService.DetectedPR.Kind) -> String {
         switch kind {
         case .estimatedOneRepMax: String(localized: "Estimated 1RM")
         case .absoluteWeight: String(localized: "Heaviest set")
@@ -269,7 +269,7 @@ struct RecapNewPRs: View {
         }
     }
 
-    private func valueLabel(_ pr: PRDetectionEngine.DetectedPR) -> String {
+    private func valueLabel(_ pr: PRDetectionService.DetectedPR) -> String {
         if pr.kind == .bodyweightReps {
             let reps = Int(pr.value)
             return reps == 1 ? String(localized: "1 rep") : String(localized: "\(reps) reps")

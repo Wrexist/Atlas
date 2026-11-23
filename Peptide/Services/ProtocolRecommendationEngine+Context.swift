@@ -1,6 +1,6 @@
 import Foundation
 
-extension StackRecommendationEngine {
+extension ProtocolRecommendationEngine {
 
     /// Pre-computed context for the recommendation engine.
     /// All derived fields are computed once at init to keep scoring signals O(1) per lookup.
@@ -48,13 +48,13 @@ extension StackRecommendationEngine {
             self.currentBenefits = Set(currentPeptides.flatMap(\.benefits).map { $0.lowercased() })
             self.currentRoutes = currentPeptides.map { $0.adminRoute.lowercased() }
             self.currentHalfLives = currentPeptides.compactMap {
-                StackRecommendationEngine.parseHalfLifeHours($0.halfLife)
+                ProtocolRecommendationEngine.parseHalfLifeHours($0.halfLife)
             }
             self.dbByName = database.reduce(into: [:]) { dict, p in
                 dict[p.abbreviation.lowercased()] = p
                 dict[p.name.lowercased()] = p
             }
-            self.resolvedGoals = StackRecommendationEngine.resolveGoals(goals)
+            self.resolvedGoals = ProtocolRecommendationEngine.resolveGoals(goals)
             self.categoryCompliance = Self.computeCategoryCompliance(
                 entries: entries,
                 currentPeptides: currentPeptides

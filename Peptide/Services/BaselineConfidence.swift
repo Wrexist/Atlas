@@ -7,8 +7,8 @@ import Foundation
 /// Before this type, "do we trust this yet" was answered independently
 /// (and inconsistently) in several places: `HealthRangeService` used a
 /// binary 7-day gate (nothing below it, full trust above it, no middle
-/// ground), `PerformanceAgeEngine` used its own data-density-days concept,
-/// and `StackRecommendationEngine` used a signal count — none of them
+/// ground), `BiologicalAgeEngine` used its own data-density-days concept,
+/// and `ProtocolRecommendationEngine` used a signal count — none of them
 /// shared a vocabulary, and none of them distinguished "just barely
 /// enough data" from "months of consistent history." Personalization
 /// brief Phase 3 is explicit that those two cases must not look equally

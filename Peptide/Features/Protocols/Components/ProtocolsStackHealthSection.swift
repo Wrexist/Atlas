@@ -17,12 +17,12 @@ struct ProtocolsStackHealthSection: View {
 
     /// `selectedAlert` drives the warning-detail sheet. Set when the
     /// user taps a warning row; cleared on dismiss.
-    @State private var selectedAlert: StackRecommendationEngine.Warning?
+    @State private var selectedAlert: ProtocolRecommendationEngine.Warning?
     /// `adjustingAlert` drives the follow-up adjustment sheet that
     /// the detail's primary CTA hands off to. Two-sheet chaining
     /// (rather than a push) so the user can compare side-by-side
     /// without losing the warning context.
-    @State private var adjustingAlert: StackRecommendationEngine.Warning?
+    @State private var adjustingAlert: ProtocolRecommendationEngine.Warning?
     /// Paywall trigger for the rare adjustment branch that needs a
     /// new protocol on a Pro-only account.
     @State private var showPaywall = false
@@ -46,11 +46,11 @@ struct ProtocolsStackHealthSection: View {
                 HomeSectionHeader(title: "Protocol health")
 
                 if let completeness {
-                    StackCompletenessCard(completeness: completeness)
+                    ProtocolCompletenessCard(completeness: completeness)
                 }
 
                 if !warnings.isEmpty {
-                    StackWarningCard(
+                    ProtocolWarningCard(
                         warnings: warnings,
                         onSelect: { selectedAlert = $0 }
                     )
@@ -65,7 +65,7 @@ struct ProtocolsStackHealthSection: View {
                 }
             }
             .sheet(item: $selectedAlert) { warning in
-                StackAlertDetailSheet(
+                ProtocolAlertDetailSheet(
                     warning: warning,
                     peptideDatabase: dataStore.peptideDatabase,
                     // No adjustable protocol: the warning is informational
@@ -82,11 +82,11 @@ struct ProtocolsStackHealthSection: View {
                 )
             }
             .sheet(item: $adjustingAlert) { warning in
-                let candidates = StackAdjustmentEngine.candidateProtocols(
+                let candidates = ProtocolAdjustmentEngine.candidateProtocols(
                     affectedAbbreviations: warning.peptides,
                     in: dataStore.activeProtocols
                 )
-                StackAdjustmentSheet(
+                ProtocolAdjustmentSheet(
                     warning: warning,
                     candidateProtocols: candidates,
                     allActiveProtocols: dataStore.activeProtocols,
@@ -101,15 +101,15 @@ struct ProtocolsStackHealthSection: View {
         }
     }
 
-    private func canAdjustStack(for warning: StackRecommendationEngine.Warning) -> Bool {
-        let candidates = StackAdjustmentEngine.candidateProtocols(
+    private func canAdjustStack(for warning: ProtocolRecommendationEngine.Warning) -> Bool {
+        let candidates = ProtocolAdjustmentEngine.candidateProtocols(
             affectedAbbreviations: warning.peptides,
             in: dataStore.activeProtocols
         )
         return !candidates.isEmpty
     }
 
-    private func applyStackAdjustment(_ result: StackAdjustmentResult) {
+    private func applyStackAdjustment(_ result: ProtocolAdjustmentResult) {
         guard let source = dataStore.activeProtocols.first(where: { $0.id == result.sourceProtocolId })
         else { return }
 

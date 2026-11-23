@@ -171,13 +171,13 @@ final class WorkoutSessionService {
     }
 
     /// Finish-result bundle so the WorkoutFinishView can render PR
-    /// detections without re-calling PRDetectionEngine.ingest (which
+    /// detections without re-calling PRDetectionService.ingest (which
     /// mutates the records on first call and returns [] on every
     /// subsequent call against the same session — audit Train H4:
     /// "PR celebrations never fire on the finish screen").
     struct FinishedWorkout {
         let session: WorkoutSession
-        let detectedPRs: [PRDetectionEngine.DetectedPR]
+        let detectedPRs: [PRDetectionService.DetectedPR]
     }
 
     /// Mark the session complete. Returns the finished session for
@@ -207,7 +207,7 @@ final class WorkoutSessionService {
         lastFinishError = nil
         pendingFinish = nil
         NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
-        let detections = PRDetectionEngine.shared.ingest(session: session)
+        let detections = PRDetectionService.shared.ingest(session: session)
         activeSession = nil
         lastCompletion = nil
         seedRoutine = nil
@@ -296,7 +296,7 @@ final class WorkoutSessionService {
                 orphan.focus?.rest = nil
                 orphan.finishedAt = end
                 repo.upsertWorkoutSession(orphan)
-                PRDetectionEngine.shared.ingest(session: orphan)
+                PRDetectionService.shared.ingest(session: orphan)
             }
             changed = true
             AppLog.training.info("Orphaned workout closed (id: \(orphan.id, privacy: .public))")
@@ -323,7 +323,7 @@ final class WorkoutSessionService {
             AppLog.training.error("Watch workout import failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
-        let detections = PRDetectionEngine.shared.ingest(session: session)
+        let detections = PRDetectionService.shared.ingest(session: session)
         invalidatePreviousSetCache()
         if HealthSyncSettings.isEnabled {
             Task { await HealthKitService.shared.writeWorkout(session) }

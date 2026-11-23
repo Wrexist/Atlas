@@ -1,9 +1,9 @@
 import Foundation
 
-// Model types for the StackRecommendationEngine. Kept in their own file so the
-// algorithm in StackRecommendationEngine.swift stays focused on business logic.
+// Model types for the ProtocolRecommendationEngine. Kept in their own file so the
+// algorithm in ProtocolRecommendationEngine.swift stays focused on business logic.
 
-extension StackRecommendationEngine {
+extension ProtocolRecommendationEngine {
 
     enum RecommendationReason {
         case commonStack(pairsWith: [String])
@@ -106,7 +106,7 @@ extension StackRecommendationEngine {
         }
     }
 
-    struct StackCompleteness {
+    struct ProtocolCompleteness {
         let score: Double
         let coveredGoals: [String]
         let missingCategories: [PeptideCategory]

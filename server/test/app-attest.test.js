@@ -257,7 +257,6 @@ test('checkAppAttest gate: missing config refuses in enforce mode and passes in 
 
   setEnv(t, {
     UPSTASH_REDIS_REST_URL: undefined, UPSTASH_REDIS_REST_TOKEN: undefined,
-    KV_REST_API_URL: undefined, KV_REST_API_TOKEN: undefined,
     APP_ATTEST_APP_ID: fixture.appId,
   });
   assert.equal((await checkAppAttest({ headers }, { logLabel: 'test' })).ok, false);

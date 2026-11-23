@@ -4,7 +4,7 @@
 Atlas is a native iOS SwiftUI health & fitness app — training,
 nutrition (barcode + photo meal scanner via Claude vision), biology /
 recovery (HRV, RHR, sleep, Performance Age), AI-assisted research
-chat, and optional supplement / protocol tracking. iOS 18+, Swift 6.0,
+chat, and optional supplement / protocol tracking. iOS 18+, Swift 5 language mode with targeted strict concurrency,
 SwiftData (CloudKit-backed), companion Watch app + two widget targets
 + Live Activities. See `README.md` for the directory layout and
 `HANDOFF.md` for the most-recent in-flight state. The Vercel proxy in

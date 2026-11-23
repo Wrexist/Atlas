@@ -4,13 +4,13 @@ import Foundation
 /// `BioAgeHeroSection.BioAgeState` the Biology tab consumes.
 /// Pure orchestration — no rendering, no @Observable surface — so the
 /// view's state-change logic stays a one-liner and the math lives in
-/// `PerformanceAgeEngine`, where it is tested in isolation.
+/// `BiologicalAgeEngine`, where it is tested in isolation.
 @MainActor
 enum BioAgeStateResolver {
 
     /// Default chronological age fallback when the user hasn't entered
     /// their age yet. Picks the midpoint of the typical cohort so the
-    /// dial's scale labels (± `PerformanceAgeEngine.maxDriftYears`) read as recognisable numbers. Only
+    /// dial's scale labels (± `BiologicalAgeEngine.maxDriftYears`) read as recognisable numbers. Only
     /// ever anchors the scale — it is never fed to the engine.
     static let chronologicalAgeFallback: Int = 35
 
@@ -20,10 +20,10 @@ enum BioAgeStateResolver {
 
     /// How far back HealthKit is read: the trend plus the window its
     /// oldest point looks back over.
-    static let historyDays: Int = PerformanceAgeEngine.trendDays + PerformanceAgeEngine.windowDays
+    static let historyDays: Int = BiologicalAgeEngine.trendDays + BiologicalAgeEngine.windowDays
     /// VO2 max is read over its own, longer window, so its read reaches
     /// further back.
-    static let vo2HistoryDays: Int = PerformanceAgeEngine.trendDays + PerformanceAgeEngine.vo2WindowDays
+    static let vo2HistoryDays: Int = BiologicalAgeEngine.trendDays + BiologicalAgeEngine.vo2WindowDays
 
     /// Resolves the Biological Age state for the current moment. The Pro
     /// check + HealthKit reads happen inside; callers pass only what lives
@@ -59,20 +59,20 @@ enum BioAgeStateResolver {
         series.hba1c = labDraws(labHistory, panel: .hba1c)
         series.ldl = labDraws(labHistory, panel: .ldl)
         series.crp = labDraws(labHistory, panel: .crp)
-        let profile = PerformanceAgeEngine.Profile(
+        let profile = BiologicalAgeEngine.Profile(
             chronologicalAge: age,
             sex: sex,
             bodyMassIndex: bodyMassIndex
         )
         let today = Date()
-        let inputs = PerformanceAgeEngine.inputs(asOf: today, series: series, profile: profile)
+        let inputs = BiologicalAgeEngine.inputs(asOf: today, series: series, profile: profile)
 
-        if let estimate = PerformanceAgeEngine.estimate(inputs: inputs) {
+        if let estimate = BiologicalAgeEngine.estimate(inputs: inputs) {
             return Resolved(
                 state: .unlocked(estimate: estimate),
                 chronologicalAge: age,
                 inputs: inputs,
-                trend: PerformanceAgeEngine.trend(series: series, profile: profile, endingOn: today)
+                trend: BiologicalAgeEngine.trend(series: series, profile: profile, endingOn: today)
             )
         }
 
@@ -83,18 +83,18 @@ enum BioAgeStateResolver {
     /// engine's own confidence gate for the signals present, so the count
     /// shown is the day the estimate actually unlocks; nil when only more
     /// signals can unlock it.
-    static func buildingState(for inputs: PerformanceAgeEngine.Inputs) -> BioAgeHeroSection.BioAgeState {
-        let kinds = PerformanceAgeEngine.drivers(for: inputs).map(\.kind)
-        let coverage = PerformanceAgeEngine.coverage(of: kinds)
+    static func buildingState(for inputs: BiologicalAgeEngine.Inputs) -> BioAgeHeroSection.BioAgeState {
+        let kinds = BiologicalAgeEngine.drivers(for: inputs).map(\.kind)
+        let coverage = BiologicalAgeEngine.coverage(of: kinds)
         return .building(days: inputs.healthDataDays,
-                         requiredDays: PerformanceAgeEngine.minimumDays(forCoverage: coverage))
+                         requiredDays: BiologicalAgeEngine.minimumDays(forCoverage: coverage))
     }
 
     /// Fans the HealthKit reads out in parallel. Coverage is the union of
     /// HRV, resting-HR and sleep days (computed in the engine), so a
     /// tracker that writes resting heart rate and sleep but no HRV still
     /// builds a baseline.
-    private static func readSeries(weightHistory: [WeightEntry]) async -> PerformanceAgeEngine.DailySeries {
+    private static func readSeries(weightHistory: [WeightEntry]) async -> BiologicalAgeEngine.DailySeries {
         let kit = HealthKitService.shared
         let days = historyDays
         async let hrv = kit.dailyHRV(days: days)
@@ -109,7 +109,7 @@ enum BioAgeStateResolver {
         let sleepDays = await sleep
         let stepDays = await steps
         let vo2Days = await vo2
-        return PerformanceAgeEngine.DailySeries(
+        return BiologicalAgeEngine.DailySeries(
             hrv: hrvDays.map(dailyValue),
             rhr: rhrDays.map(dailyValue),
             sleepHours: sleepDays.map(dailyValue),
@@ -119,11 +119,11 @@ enum BioAgeStateResolver {
         )
     }
 
-    static func labDraws(_ history: [LabValue], panel: LabPanel) -> [PerformanceAgeEngine.DailyValue] {
+    static func labDraws(_ history: [LabValue], panel: LabPanel) -> [BiologicalAgeEngine.DailyValue] {
         history.filter { $0.panel == panel }.map { .init(date: $0.date, value: $0.value) }
     }
 
-    nonisolated private static func dailyValue(_ sample: (date: Date, value: Double)) -> PerformanceAgeEngine.DailyValue {
+    nonisolated private static func dailyValue(_ sample: (date: Date, value: Double)) -> BiologicalAgeEngine.DailyValue {
         .init(date: sample.date, value: sample.value)
     }
 
@@ -134,15 +134,15 @@ enum BioAgeStateResolver {
         let state: BioAgeHeroSection.BioAgeState
         let chronologicalAge: Int
         /// `nil` when locked — HealthKit was never read.
-        let inputs: PerformanceAgeEngine.Inputs?
+        let inputs: BiologicalAgeEngine.Inputs?
         /// Oldest first; empty unless unlocked.
-        let trend: [PerformanceAgeEngine.TrendPoint]
+        let trend: [BiologicalAgeEngine.TrendPoint]
 
         init(
             state: BioAgeHeroSection.BioAgeState,
             chronologicalAge: Int,
-            inputs: PerformanceAgeEngine.Inputs? = nil,
-            trend: [PerformanceAgeEngine.TrendPoint] = []
+            inputs: BiologicalAgeEngine.Inputs? = nil,
+            trend: [BiologicalAgeEngine.TrendPoint] = []
         ) {
             self.state = state
             self.chronologicalAge = chronologicalAge

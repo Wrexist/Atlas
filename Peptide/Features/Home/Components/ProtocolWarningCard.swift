@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct StackWarningCard: View {
-    let warnings: [StackRecommendationEngine.Warning]
-    var onSelect: (StackRecommendationEngine.Warning) -> Void
+struct ProtocolWarningCard: View {
+    let warnings: [ProtocolRecommendationEngine.Warning]
+    var onSelect: (ProtocolRecommendationEngine.Warning) -> Void
 
     var body: some View {
         GlassCard(tinted: true) {
@@ -37,7 +37,7 @@ struct StackWarningCard: View {
         return AppColor.accentPrimary
     }
 
-    private func severityColor(_ severity: StackRecommendationEngine.Warning.Severity) -> Color {
+    private func severityColor(_ severity: ProtocolRecommendationEngine.Warning.Severity) -> Color {
         switch severity {
         case .danger: return AppColor.destructive
         case .caution: return AppColor.warning
@@ -45,7 +45,7 @@ struct StackWarningCard: View {
         }
     }
 
-    private func warningRow(_ warning: StackRecommendationEngine.Warning) -> some View {
+    private func warningRow(_ warning: ProtocolRecommendationEngine.Warning) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: warning.icon)
                 .font(AppFont.scaled(13))
@@ -114,7 +114,7 @@ struct StackWarningCard: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        StackWarningCard(
+        ProtocolWarningCard(
             warnings: [
                 .init(
                     severity: .danger,

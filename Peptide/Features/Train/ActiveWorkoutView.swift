@@ -20,7 +20,7 @@ struct ActiveWorkoutView: View {
     /// the cover slides away after a discard.
     @State private var discarding = false
     @State private var finishedSession: WorkoutSession?
-    @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
+    @State private var finishedPRs: [PRDetectionService.DetectedPR] = []
     @State private var workoutName: String = ""
     @FocusState private var nameFieldFocused: Bool
     @State private var showOverview = false

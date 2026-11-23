@@ -34,8 +34,6 @@ const BASE_ENV = {
   ANTHROPIC_API_KEY: 'test-key',
   UPSTASH_REDIS_REST_URL: undefined,
   UPSTASH_REDIS_REST_TOKEN: undefined,
-  KV_REST_API_URL: undefined,
-  KV_REST_API_TOKEN: undefined,
   ANTHROPIC_DAILY_REQUEST_BUDGET: undefined,
   WEEKLY_RPM: undefined,
   DEVICE_DAILY_QUOTA: undefined,
