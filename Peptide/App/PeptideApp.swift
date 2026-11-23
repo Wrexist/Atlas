@@ -783,6 +783,9 @@ struct PeptideApp: App {
 
         let status = await NotificationService.shared.checkAuthorization()
         if status == .notDetermined {
+            // A screenshot run never asks: the system alert would cover
+            // the captures and swallow the UI test's tab taps.
+            guard !ScreenshotMode.shared.isEnabled else { return }
             let granted = await NotificationService.shared.requestAuthorization()
             if !granted {
                 dataStore.profile.doseRemindersEnabled = false

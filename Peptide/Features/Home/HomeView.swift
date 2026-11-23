@@ -670,7 +670,10 @@ struct HomeView: View {
                 }
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { refreshForCurrentTime() }
+                guard phase == .active else { return }
+                refreshForCurrentTime()
+                // Re-checks a cycle prompt held back by a permission alert.
+                checkMilestonePrompt()
             }
             // Neither notification promises main-thread delivery.
             .onReceive(
@@ -1700,8 +1703,10 @@ struct HomeView: View {
     private func checkMilestonePrompt() {
         // TabView can call onAppear for retained, off-screen tabs during
         // modal transitions. A Today prompt must never replace Train's
-        // workout cover or completion summary.
-        guard appState.selectedTab == .today,
+        // workout cover or completion summary. Screenshot runs stay
+        // clear of prompts so captures and tab taps aren't covered.
+        guard !ScreenshotMode.shared.isEnabled,
+              appState.selectedTab == .today,
               milestonePrompt == nil,
               milestoneShareProtocol == nil,
               completionPrompt == nil
@@ -1723,7 +1728,7 @@ struct HomeView: View {
             let days = max(0, daysPastCycleEnd(of: pending))
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(800))
-                guard appState.selectedTab == .today, completionPrompt == nil else { return }
+                guard appState.selectedTab == .today, completionPrompt == nil, !Self.isAnotherPromptShowing else { return }
                 completionPrompt = CompletionPromptItem(proto: pending, daysPastEnd: days)
             }
             return
@@ -1735,9 +1740,21 @@ struct HomeView: View {
         // Defer slightly so the home tab's appear animation lands first.
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(800))
-            guard appState.selectedTab == .today, milestonePrompt == nil else { return }
+            guard appState.selectedTab == .today, milestonePrompt == nil, !Self.isAnotherPromptShowing else { return }
             milestonePrompt = MilestonePromptItem(proto: pending.proto, milestone: pending.milestone)
         }
+    }
+
+    /// A system permission alert leaves the app inactive, and onboarding,
+    /// the What's New tour or a trial offer present over the root. Either
+    /// way a cycle prompt would stack on top; it waits for the next
+    /// activation instead.
+    @MainActor private static var isAnotherPromptShowing: Bool {
+        UIApplication.shared.applicationState != .active
+            || UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .contains { $0.isKeyWindow && $0.rootViewController?.presentedViewController != nil }
     }
 
     private func daysPastCycleEnd(of proto: PeptideProtocol) -> Int {
