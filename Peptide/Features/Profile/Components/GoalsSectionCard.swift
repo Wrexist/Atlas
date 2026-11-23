@@ -41,6 +41,10 @@ struct GoalsSectionCard: View {
                     }
                 }
             }
+            // FlowLayout reports the width its chips use, not the width
+            // offered, so without this the card shrank and centred inside
+            // the gutter the cards around it fill.
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
