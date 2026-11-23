@@ -1349,9 +1349,16 @@ final class DataStore {
         mirrorWaterToHealth(fluidOunces: fluidOunces, date: date)
     }
 
+    /// An Undo right after a quick-add deletes by querying the day's
+    /// samples, so it must wait for the add to land or it finds nothing
+    /// and Health keeps the water. Each write waits for the one before it.
+    @ObservationIgnored private var waterHealthWriteTask: Task<Void, Never>?
+
     private func mirrorWaterToHealth(fluidOunces: Double, date: Date) {
         guard HealthSyncSettings.isEnabled else { return }
-        Task {
+        let previous = waterHealthWriteTask
+        waterHealthWriteTask = Task {
+            await previous?.value
             if fluidOunces > 0 {
                 await HealthKitService.shared.writeWater(fluidOunces: fluidOunces, date: date)
             } else {
