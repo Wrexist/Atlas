@@ -16,7 +16,7 @@ lab panels), habits with streak tracking, and an AI research chat.
 For advanced users, a peptide-protocol tracker rides alongside the
 fitness surfaces — the legacy peptide name lives on in the bundle
 ID and StoreKit product IDs (`com.peptidesai.app`) so existing
-subscribers keep working through the rebrand. iOS 18+, Swift 6.0,
+subscribers keep working through the rebrand. iOS 18+, Swift 5 mode,
 SwiftData (CloudKit-backed). 5-tab navigation (Today / Train / Meals /
 Biology / Habits), companion Watch
 app, two widget targets, Live Activities, biometric lock, and
