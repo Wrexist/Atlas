@@ -25619,16 +25619,6 @@
         }
       }
     },
-    "Next dose: %@, %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nästa dos: %@, %@ kl. %@"
-          }
-        }
-      }
-    },
     "Next exercise": {
       "localizations": {
         "sv": {
@@ -25685,16 +25675,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nästa: %@ kl. %@. Håll jämn takt."
-          }
-        }
-      }
-    },
-    "Next: %@ • %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nästa: %@ • %@"
           }
         }
       }
@@ -44267,16 +44247,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kunde inte läsa vikten. Öppna Atlas för att logga den."
-          }
-        }
-      }
-    },
-    "Next dose: %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nästa dos: %@ kl. %@"
           }
         }
       }
