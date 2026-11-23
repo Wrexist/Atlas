@@ -740,6 +740,24 @@ final class NotificationService {
         return content
     }
 
+    /// First dose day of an every-N-days schedule on or after `today`.
+    /// A schedule with no stored anchor counts from the protocol's start,
+    /// the same rule `ProtocolSchedule.isActive(on:protocolStart:)` gives
+    /// Today and the dose calendar.
+    nonisolated static func firstIntervalDay(
+        _ schedule: ProtocolSchedule,
+        protocolStart: Date,
+        onOrAfter today: Date,
+        calendar: Calendar
+    ) -> Date? {
+        guard let n = schedule.intervalDays, n >= 1 else { return nil }
+        let anchor = calendar.startOfDay(for: schedule.intervalAnchor ?? protocolStart)
+        let day = calendar.startOfDay(for: today)
+        let diff = calendar.dateComponents([.day], from: anchor, to: day).day ?? 0
+        let offset = diff <= 0 ? -diff : (n - diff % n) % n
+        return calendar.date(byAdding: .day, value: offset, to: day)
+    }
+
     /// Generates one-shot notification requests for the next several
     /// occurrences of an interval-cadence peptide. Each occurrence produces
     /// one request per preferred time, identified by absolute date so the
@@ -763,19 +781,13 @@ final class NotificationService {
 
         for peptide in proto.peptides {
             let schedule = proto.schedule(for: peptide.id)
-            guard schedule.isInterval, let n = schedule.intervalDays, n >= 1 else { continue }
-            let anchor = calendar.startOfDay(for: schedule.intervalAnchor ?? today)
-
-            // Next active day on or after today, anchor-relative.
-            let diff = calendar.dateComponents([.day], from: anchor, to: today).day ?? 0
-            let offsetToNextActive: Int
-            if diff <= 0 {
-                offsetToNextActive = -diff
-            } else {
-                let mod = diff % n
-                offsetToNextActive = mod == 0 ? 0 : (n - mod)
-            }
-            guard let firstActive = calendar.date(byAdding: .day, value: offsetToNextActive, to: today) else { continue }
+            guard schedule.isInterval, let n = schedule.intervalDays, n >= 1,
+                  let firstActive = Self.firstIntervalDay(
+                      schedule,
+                      protocolStart: proto.startDate,
+                      onOrAfter: today,
+                      calendar: calendar
+                  ) else { continue }
 
             for occurrence in 0..<Self.intervalLookahead {
                 guard let day = calendar.date(byAdding: .day, value: occurrence * n, to: firstActive),
