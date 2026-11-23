@@ -116,8 +116,11 @@ struct BiomarkerListSection: View {
                     ForEach(row, id: \.self) { biomarker in
                         tile(for: biomarker)
                     }
-                    // A small card without a partner keeps its half.
-                    if row.count == 1, tileSize(for: row[0]) == .small {
+                    // A small card without a partner keeps its half, so
+                    // the column lines up with the pairs above it. Alone
+                    // in the section there is no column to keep, and the
+                    // empty half read as a missing card.
+                    if row.count == 1, layout.count > 1, tileSize(for: row[0]) == .small {
                         Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
                     }
                 }
