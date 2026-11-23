@@ -38981,16 +38981,6 @@
         }
       }
     },
-    "Usually taken: %@.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tas vanligtvis: %@."
-          }
-        }
-      }
-    },
     "Values are converted to the unit Atlas charts. Compare each one with your report before saving.": {
       "localizations": {
         "sv": {
