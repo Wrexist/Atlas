@@ -9043,16 +9043,6 @@
         }
       }
     },
-    "A friend": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En vän"
-          }
-        }
-      }
-    },
     "A heads-up when today's streak is at risk": {
       "localizations": {
         "sv": {
@@ -10769,16 +10759,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "När som helst"
-          }
-        }
-      }
-    },
-    "App Store": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App Store"
           }
         }
       }
@@ -15627,16 +15607,6 @@
         }
       }
     },
-    "Contact Support": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kontakta support"
-          }
-        }
-      }
-    },
     "Context": {
       "localizations": {
         "sv": {
@@ -17013,6 +16983,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Streckad linje: din kronologiska ålder"
+          }
+        }
+      }
+    },
+    "Data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data"
           }
         }
       }
@@ -27333,16 +27313,6 @@
         }
       }
     },
-    "On — every tab shows demo data. Toggle off to restore your real protocols.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "På – alla flikar visar demodata. Stäng av för att få tillbaka dina riktiga protokoll."
-          }
-        }
-      }
-    },
     "On — syncing through your private iCloud database.": {
       "localizations": {
         "sv": {
@@ -28201,16 +28171,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Valfritt – vi använder det för att anpassa din översikt"
-          }
-        }
-      }
-    },
-    "Optional.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Valfritt."
           }
         }
       }
@@ -29335,16 +29295,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plus allt från 2.0"
-          }
-        }
-      }
-    },
-    "Podcast": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Podd"
           }
         }
       }
@@ -30571,16 +30521,6 @@
         }
       }
     },
-    "Rate Atlas": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Betygsätt Atlas"
-          }
-        }
-      }
-    },
     "Re-import a previously-exported JSON backup. A safety copy of your current data is saved on this device first.": {
       "localizations": {
         "sv": {
@@ -31181,16 +31121,6 @@
         }
       }
     },
-    "Reddit": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reddit"
-          }
-        }
-      }
-    },
     "Redeem code": {
       "localizations": {
         "sv": {
@@ -31681,16 +31611,6 @@
         }
       }
     },
-    "Replace every tab with polished demo data for App Store screenshots. Your real data stays safe.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ersätt alla flikar med snygga demodata för skärmdumpar till App Store. Dina riktiga data är i säkerhet."
-          }
-        }
-      }
-    },
     "Replace food": {
       "localizations": {
         "sv": {
@@ -31711,32 +31631,12 @@
         }
       }
     },
-    "Replaces every tab with polished demo data so you can capture App Store screenshots. Your real protocols, labs, and meals stay safe on disk — toggle off any time to bring them back.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ersätter alla flikar med snygga demodata så att du kan ta skärmdumpar till App Store. Dina riktiga protokoll, labbvärden och måltider ligger kvar på disken – stäng av när du vill för att få tillbaka dem."
-          }
-        }
-      }
-    },
     "Replay": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Spela igen"
-          }
-        }
-      }
-    },
-    "Replay What's New tour": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visa nyhetsrundturen igen"
           }
         }
       }
@@ -34153,26 +34053,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Visa alla (%lld)"
-          }
-        }
-      }
-    },
-    "Show demo data": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visa demodata"
-          }
-        }
-      }
-    },
-    "Show demo data?": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visa demodata?"
           }
         }
       }
@@ -47946,16 +47826,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hur tränar du?"
-          }
-        }
-      }
-    },
-    "How did you find Atlas?": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hur hittade du Atlas?"
           }
         }
       }

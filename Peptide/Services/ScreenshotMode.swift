@@ -8,15 +8,13 @@ import Foundation
 /// actual data never leaks into the demo state.
 ///
 /// Lifecycle:
-///   1. User flips the toggle on Profile → Settings → Screenshot
-///      mode. We persist the flag in UserDefaults and call
-///      `activate(in: dataStore)` — in-memory swap, no relaunch
-///      needed.
-///   2. App relaunches (cold-boot, force-quit, etc.). DataStore's
-///      `init` reads `ScreenshotMode.shared.isEnabled` and seeds
-///      the demo state up front instead of loading from disk.
-///   3. User flips the toggle off. We clear the flag and call
-///      `deactivate(in: dataStore)` which reloads real data from
+///   1. The UI tests launch a debug build with the flag set as a
+///      launch argument (`XCUIApplication+Atlas`).
+///   2. DataStore's `init` reads `ScreenshotMode.shared.isEnabled`
+///      and seeds the demo state up front instead of loading from
+///      disk.
+///   3. Tapping the banner clears the flag and calls
+///      `deactivate(in: dataStore)`, which reloads real data from
 ///      disk via `DataStore.reloadFromDisk()`.
 ///
 /// Safety: while screenshot mode is on, `DataStore.isEphemeral`
@@ -36,14 +34,13 @@ final class ScreenshotMode {
     /// to read it.
     private static let defaultsKey = "com.peptidesai.app.screenshotMode.enabled"
 
-    /// Observable state — flipping this from the Settings row
-    /// triggers the SwiftUI re-render that shows the banner.
+    /// Observable state — drives the banner.
     private(set) var isEnabled: Bool
     /// Per-session banner visibility. Tapping the banner's close
     /// button hides it so the user can capture clean screenshots
     /// without the floating reminder bleeding into the frame.
-    /// Resets on every cold launch + on every activate, so the
-    /// safety net is never permanently lost.
+    /// Resets on every cold launch, so the safety net is never
+    /// permanently lost.
     var isBannerVisible: Bool = true
 
     init(defaults: UserDefaults = .standard) {
@@ -51,24 +48,14 @@ final class ScreenshotMode {
         #if DEBUG
         self.isEnabled = defaults.bool(forKey: Self.defaultsKey)
         #else
-        // The toggle only exists in debug builds, so a flag left on by
-        // an older release must not strand a customer in demo data.
+        // Only debug builds honour the flag, so a flag left on by an
+        // older release must not strand a customer in demo data.
         defaults.removeObject(forKey: Self.defaultsKey)
         self.isEnabled = false
         #endif
     }
 
     // MARK: - Public surface
-
-    /// Flip screenshot mode on. Stamps the flag, swaps in demo
-    /// data, and marks the store as ephemeral so subsequent
-    /// mutations don't hit disk. Idempotent.
-    func activate(in dataStore: DataStore) {
-        defaults.set(true, forKey: Self.defaultsKey)
-        isEnabled = true
-        isBannerVisible = true
-        applyDemo(to: dataStore)
-    }
 
     /// Flip screenshot mode off. Clears the flag, drops the
     /// ephemeral lock, and reloads real data from disk.

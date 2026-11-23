@@ -6,8 +6,8 @@ import Foundation
 /// signpost so Console.app sessions show the flow in real time.
 ///
 /// Intentionally no PII — event names are fixed identifiers, never user
-/// content. The snapshot never leaves the device: it feeds on-device
-/// logic (`ReviewPromptService`) and Console diagnostics only.
+/// content. The snapshot never leaves the device: it feeds Console
+/// diagnostics only.
 @MainActor
 enum OnboardingFunnelTracker {
     private static let snapshotKey  = "onboarding.funnel.snapshot.v1"
@@ -71,8 +71,8 @@ enum OnboardingFunnelTracker {
         UserDefaults.standard.bool(forKey: completedKey)
     }
 
-    /// Forgets the recorded run — step timestamps, events (attribution
-    /// channel included) and the session ID — for "Delete All Data".
+    /// Forgets the recorded run — step timestamps, events and the
+    /// session ID — for "Delete All Data".
     static func eraseAll() {
         for key in [snapshotKey, sessionIDKey, completedKey] {
             UserDefaults.standard.removeObject(forKey: key)

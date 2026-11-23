@@ -51,7 +51,7 @@ CI/CD to TestFlight via Fastlane.
 | **Watch app** | Redesigned | watchOS 10-style vertical pages (Today rings, Recovery, Sleep Score, Nutrition, Protocol) plus Recovery and Sleep complications. Vitals are computed on the phone (no watch HealthKit entitlement). **Needs a manual Xcode build and on-device check** |
 | **Achievements** | Complete | 14 achievements (dose milestones, streaks, protocol, logging), toast notifications |
 | **Export** | Complete | CSV, JSON and a paginated PDF report (`ExportService.exportPDF`) |
-| **Onboarding** | Complete | 9 steps: welcome → name → goal & experience → body metrics → training → permissions → referral → disclaimer → plan |
+| **Onboarding** | Complete | 8 steps: welcome → name → goal & experience → body metrics → training → permissions → disclaimer → plan |
 | **HealthKit** | Complete | Reads 7 data types (HR, HRV, sleep, weight, steps, energy); observer-based background delivery wired; daily-series helpers for HRV / RHR / Sleep used by Health Monitor grid |
 | **Biometric lock** | Complete | LocalAuthentication-backed lock screen with auto-Face-ID on appear, scene-phase re-lock on background, Reduce-Motion respect, haptic feedback, toggle in AppearanceSettings, `NSFaceIDUsageDescription` in project.yml |
 | **Persistence** | Complete | SwiftData @Model classes, CloudKit-backed private container with local + in-memory fallbacks |

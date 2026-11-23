@@ -3,9 +3,9 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Onboarding for Atlas — a health & fitness app. Nine steps (see
-/// `OnboardingStep`) covering training, nutrition, recovery permissions
-/// and optional referral attribution. Related asks share a page, and the
+/// Onboarding for Atlas — a health & fitness app. Eight steps (see
+/// `OnboardingStep`) covering training, nutrition and recovery
+/// permissions. Related asks share a page, and the
 /// last page is the personalised plan — projection, daily targets and
 /// program — whose primary action opens the paywall, so the offer
 /// always follows a concrete result.
@@ -99,38 +99,6 @@ struct OnboardingView: View {
     // meaningful projection. Persisted to dataStore.profile on
     // advance off the goalDate step.
     @State private var goalDate: Date = OnboardingPlanEngine.defaultGoalDate()
-    /// Selected marketing-attribution channel. Persisted into the funnel
-    /// snapshot only — never into the user profile (the marketing-channel
-    /// answer is anonymous-aggregate signal, not personal data).
-    @State private var attributionChannel: AttributionChannel? = nil
-
-    enum AttributionChannel: String, CaseIterable, Identifiable {
-        case friend, appStore, tiktok, youtube, reddit, podcast, other
-        var id: String { rawValue }
-        var displayName: String {
-            switch self {
-            case .friend:   return String(localized: "A friend")
-            case .appStore: return String(localized: "App Store")
-            case .tiktok:   return "TikTok"
-            case .youtube:  return "YouTube"
-            case .reddit:   return String(localized: "Reddit")
-            case .podcast:  return String(localized: "Podcast")
-            case .other:    return String(localized: "choice.other", defaultValue: "Other")
-            }
-        }
-        var icon: String {
-            switch self {
-            case .friend:   return "person.2.fill"
-            case .appStore: return "apple.logo"
-            case .tiktok:   return "music.note"
-            case .youtube:  return "play.rectangle.fill"
-            case .reddit:   return "bubble.left.and.bubble.right.fill"
-            case .podcast:  return "mic.fill"
-            case .other:    return "ellipsis.circle.fill"
-            }
-        }
-    }
-
     @FocusState private var nameFocused: Bool
     @Environment(\.scenePhase) private var scenePhase
 
@@ -240,7 +208,6 @@ struct OnboardingView: View {
         case .bodyMetrics: bodyMetricsStep
         case .training: trainingStep
         case .permissions: permissionsStep
-        case .referral: referralStep
         case .disclaimer: disclaimerStep
         case .plan: planStep
         }
@@ -832,76 +799,6 @@ struct OnboardingView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
         }
-    }
-
-    // MARK: - Referral (attribution survey)
-
-    /// Optional "how did you find Atlas?" page. The channel answer is
-    /// anonymous, captured into the funnel snapshot only — useful for
-    /// allocating ad spend, never stored on the profile.
-    private var referralStep: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.lg) {
-                OnboardingHeader(title: "How did you find Atlas?", subtitle: "Optional.")
-                    .padding(.top, Spacing.xl)
-
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
-                          spacing: Spacing.sm) {
-                    ForEach(AttributionChannel.allCases) { channel in
-                        attributionChip(channel)
-                    }
-                }
-
-                Spacer(minLength: 100)
-            }
-            .padding(.horizontal, Spacing.lg)
-        }
-    }
-
-    private func attributionChip(_ channel: AttributionChannel) -> some View {
-        let isSelected = attributionChannel == channel
-        return Button {
-            Haptics.selection()
-            AppAnimation.with(AppAnimation.springSnappy) { attributionChannel = channel }
-            OnboardingFunnelTracker.recordEvent("attribution_\(channel.rawValue)")
-            advanceAfterAttribution(channel)
-        } label: { chipLabel(channel: channel, isSelected: isSelected) }
-        .buttonStyle(ScalePressStyle())
-        .accessibilityLabel(channel.displayName)
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
-    }
-
-    /// A single-answer survey is done the moment it's answered, so the
-    /// page moves on by itself once the check has landed. A second tap
-    /// inside the pause re-targets the answer instead of advancing twice.
-    private func advanceAfterAttribution(_ channel: AttributionChannel) {
-        Task {
-            try? await Task.sleep(for: .milliseconds(450))
-            guard page == .referral, attributionChannel == channel else { return }
-            advance()
-        }
-    }
-
-    @ViewBuilder
-    private func chipLabel(channel: AttributionChannel, isSelected: Bool) -> some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: channel.icon)
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
-                .frame(width: 22)
-            Text(channel.displayName)
-                .font(AppFont.callout.weight(.semibold))
-                .foregroundStyle(AppColor.textPrimary)
-            Spacer(minLength: 0)
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.accentPrimary)
-            }
-        }
-        .padding(Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .onboardingChoice(isSelected: isSelected)
     }
 
     // MARK: - Name
@@ -2049,7 +1946,7 @@ private struct ThemePickerCover: View {
 
 extension View {
     /// The one selection chrome for onboarding choice cards — goals,
-    /// attribution, experience, equipment. Neutral glass at rest; a
+    /// experience, equipment. Neutral glass at rest; a
     /// tinted wash and tint hairline once picked. Replaces fifteen
     /// hand-copied fill-plus-stroke rectangles.
     func onboardingChoice(

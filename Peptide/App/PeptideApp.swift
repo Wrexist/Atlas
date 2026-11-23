@@ -378,11 +378,6 @@ struct PeptideApp: App {
     }
 
     private func startLaunchWork() {
-        // Once per launch the user sees, not per `.active`: returning
-        // from Control Center or a Face ID sheet isn't a launch, and
-        // counting those cleared the review prompt's engagement gate
-        // in the first session.
-        ReviewPromptService.shared.recordLaunch()
         Task { @MainActor in
             // Decode the bundled peptide catalog off the main
             // thread, after the first frame. Every consumer

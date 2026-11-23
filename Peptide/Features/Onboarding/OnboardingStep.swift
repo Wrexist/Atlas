@@ -1,7 +1,7 @@
 import Foundation
 
 /// The onboarding page sequence — single source of truth for order,
-/// funnel names, and which pages may be skipped. Nine pages: related
+/// funnel names, and which pages may be skipped. Eight pages: related
 /// asks share a page, and the personalised plan is the last page, so
 /// the paywall it opens always follows a concrete result.
 ///
@@ -16,7 +16,6 @@ enum OnboardingStep: Int, CaseIterable, Comparable, Sendable {
     case bodyMetrics
     case training
     case permissions
-    case referral
     case disclaimer
     case plan
 
@@ -31,21 +30,14 @@ enum OnboardingStep: Int, CaseIterable, Comparable, Sendable {
         case .bodyMetrics: return "body_metrics"
         case .training:    return "training"
         case .permissions: return "permissions"
-        case .referral:    return "referral"
         case .disclaimer:  return "disclaimer"
         case .plan:        return "plan"
         }
     }
 
     /// Skip is offered only where every value has a working default:
-    /// permissions stay off (both re-askable from Profile and Biology),
-    /// and the referral answers are optional attribution.
-    var isSkippable: Bool {
-        switch self {
-        case .permissions, .referral: return true
-        default:                      return false
-        }
-    }
+    /// permissions stay off (both re-askable from Profile and Biology).
+    var isSkippable: Bool { self == .permissions }
 
     /// The plan summary's primary action opens the paywall. Only the
     /// last page does, so the offer never appears before the user has

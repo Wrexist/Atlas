@@ -9,8 +9,8 @@ final class OnboardingFlowTests: XCTestCase {
 
     // MARK: - Page sequence
 
-    func test_pageCount_isAtMostNine() {
-        XCTAssertLessThanOrEqual(OnboardingStep.allCases.count, 9)
+    func test_pageCount_isAtMostEight() {
+        XCTAssertLessThanOrEqual(OnboardingStep.allCases.count, 8)
     }
 
     func test_planSummary_isLastPageAndOnlyOneOpeningPaywall() {
@@ -50,12 +50,12 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertEqual(Set(names).count, names.count)
         XCTAssertEqual(names, [
             "welcome", "name", "goal_and_experience", "body_metrics",
-            "training", "permissions", "referral", "disclaimer", "plan",
+            "training", "permissions", "disclaimer", "plan",
         ])
     }
 
     func test_skip_isOfferedOnlyOnOptionalPages() {
-        XCTAssertEqual(OnboardingStep.allCases.filter(\.isSkippable), [.permissions, .referral])
+        XCTAssertEqual(OnboardingStep.allCases.filter(\.isSkippable), [.permissions])
     }
 
     // MARK: - Progress and choice load
