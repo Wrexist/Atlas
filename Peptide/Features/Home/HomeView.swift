@@ -159,6 +159,8 @@ struct HomeView: View {
         var checklist: TodayChecklistEngine.State?
         /// The shown day's supplements with their checks, under the checklist.
         var supplements: [SupplementEngine.Row] = []
+        /// The shown day's doses taken and scheduled, for the hero card.
+        var doseCount: (done: Int, total: Int) = (0, 0)
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -197,6 +199,22 @@ struct HomeView: View {
         return stats.total > 0 ? stats.score : nil
     }
 
+    /// The hero card's sources, each only when the day has something in
+    /// it, so the ring never counts an empty row as undone.
+    private var heroParts: [TodayHeroCard.Part] {
+        var parts: [TodayHeroCard.Part] = []
+        if showsDoseSection, derived.doseCount.total > 0 {
+            parts.append(.init(kind: .doses, done: derived.doseCount.done, total: derived.doseCount.total))
+        }
+        if let checklist = derived.checklist, !checklist.items.isEmpty {
+            parts.append(.init(kind: .checklist, done: checklist.completedCount, total: checklist.items.count))
+        }
+        if derived.habits.dueCount > 0 {
+            parts.append(.init(kind: .habits, done: derived.habits.doneCount, total: derived.habits.dueCount))
+        }
+        return parts
+    }
+
     private var selectedDay: Date { TodayDayEngine.day(offset: dayOffset) }
     private var isViewingToday: Bool { TodayDayEngine.isToday(offset: dayOffset) }
 
@@ -229,7 +247,8 @@ struct HomeView: View {
         // Today reads at the current time, so time-of-day copy (the next
         // meal) stays right; a past day reads at its start.
         let reference = isViewingToday ? Date() : day
-        let plan = DailyScheduleEngine.plan(for: doseEntries(on: day))
+        let dayEntries = doseEntries(on: day)
+        let plan = DailyScheduleEngine.plan(for: dayEntries)
         let habits = HabitsHeroSnapshot.build(
             activeHabits: dataStore.activeHabits,
             entries: dataStore.profile.habitEntries,
@@ -267,7 +286,8 @@ struct HomeView: View {
                 steps: steps(on: day),
                 now: reference
             ),
-            supplements: SupplementEngine.rows(dataStore.profile.supplements, on: reference, calendar: .current)
+            supplements: SupplementEngine.rows(dataStore.profile.supplements, on: reference, calendar: .current),
+            doseCount: (done: dayEntries.filter(\.completed).count, total: dayEntries.count)
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
@@ -430,6 +450,11 @@ struct HomeView: View {
                     }
                     .sectionAppear(index: 0)
 
+                    if !heroParts.isEmpty {
+                        TodayHeroCard(parts: heroParts)
+                            .sectionAppear(index: 1)
+                    }
+
                     // Today reads status → recommendation → action
                     // (Product Architecture 07). The removed
                     // TodayContextRow duplicated the date shown one
@@ -488,7 +513,10 @@ struct HomeView: View {
             } action: { _, newValue in
                 stickyProgress = newValue
             }
-            .pageBackground()
+            .background {
+                TodayBackdrop(fade: stickyProgress)
+                    .ignoresSafeArea()
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .solidTopScrollEdge()

@@ -20,6 +20,12 @@ enum AppShadow {
     /// light mode, where a dark-weight halo smudges the pale card.
     static let ringLap = Shadow(color: ink(light: 0.12, dark: 0.35), radius: 2.5, x: 0, y: 0)
 
+    /// An accent hero card's lift: a tinted drop, so the card reads as a
+    /// lit object over the page rather than a sticker on it.
+    static var heroLift: Shadow {
+        Shadow(color: AppColor.accentFill.opacity(0.42), radius: 28, x: 0, y: 16)
+    }
+
     private static func ink(light: Double, dark: Double) -> Color {
         .adaptive(light: .black.opacity(light), dark: .black.opacity(dark))
     }
