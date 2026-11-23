@@ -93,7 +93,6 @@ struct TodayHabitsHero: View {
     /// The day shown. Nil follows the live clock — today, read-write.
     var day: Date?
     @State private var addingNew = false
-    @ScaledMetric(relativeTo: .headline) private var emptyIconSize: CGFloat = 40
 
     var body: some View {
         Group {
@@ -249,47 +248,12 @@ struct TodayHabitsHero: View {
 
     // MARK: - Empty
 
+    /// One row: the Habits tab carries the starter suggestions, so Today
+    /// doesn't repeat them at full size.
     private var emptyCard: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Button {
-                Haptics.impact(.soft)
-                addingNew = true
-            } label: {
-                HStack(spacing: Spacing.md) {
-                    ZStack {
-                        Circle()
-                            .fill(AppColor.accentPrimary.opacity(0.15))
-                            .frame(width: emptyIconSize, height: emptyIconSize)
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(AppFont.scaled(16, weight: .semibold))
-                            .foregroundStyle(AppColor.accentPrimary)
-                    }
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text("Start a daily habit")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text("Small wins, every day. Watch your streak — and your Atlas Score — climb.")
-                            .font(AppFont.caption2)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer()
-                    Image(systemName: "plus.circle.fill")
-                        .font(AppFont.scaled(24))
-                        .foregroundStyle(AppColor.accentPrimary)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-
-            StarterHabitSuggestions(onPick: addStarter)
+        GlassEntryRow(icon: "checkmark.seal.fill", title: "Start a daily habit", surface: .card) {
+            Haptics.impact(.soft)
+            addingNew = true
         }
-        .padding(Spacing.cardPadding)
-        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
-    }
-
-    private func addStarter(_ template: HabitTemplate) {
-        Haptics.success()
-        dataStore.addHabit(template.makeHabit())
     }
 }

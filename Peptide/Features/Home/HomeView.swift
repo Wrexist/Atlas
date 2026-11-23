@@ -67,6 +67,7 @@ struct HomeView: View {
     @State private var showSupplements = false
     /// The check-in sheet, for a tap whose Wellness section is hidden.
     @State private var showCheckIn = false
+    @State private var showWeeklyCheckIn = false
     /// Bevel-style hero metric trio snapshot. Loaded async on first
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
@@ -766,6 +767,15 @@ struct HomeView: View {
                 .liquidGlassPresentation()
             }
             .dailyCheckInSheet(isPresented: $showCheckIn)
+            .sheet(isPresented: $showWeeklyCheckIn) {
+                if let weeklyCheckIn {
+                    ScrollView {
+                        WeeklyCheckInCard(checkIn: weeklyCheckIn, unit: dataStore.profile.bodyMetrics.unit)
+                            .padding(Spacing.screenPadding)
+                    }
+                    .liquidGlassPresentation(detents: [.medium, .large])
+                }
+            }
             .sheet(isPresented: $showWeightSheet) {
                 LogWeightSheet()
                     .environment(dataStore)
@@ -898,12 +908,19 @@ struct HomeView: View {
             )
             .sectionAppear(index: appearIndex)
         }
-        if let weeklyCheckIn, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
-            WeeklyCheckInCard(
-                checkIn: weeklyCheckIn,
-                unit: dataStore.profile.bodyMetrics.unit,
-                onLogWeight: { showWeightSheet = true }
-            )
+        // One row, not the week's weight curve, calories and protein at
+        // full size: those already live on Meals and Biology. The row
+        // opens the full check-in.
+        if weeklyCheckIn != nil, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
+            GlassEntryRow(
+                icon: "list.bullet.clipboard.fill",
+                title: "Weekly check-in",
+                subtitle: Text("Last 7 days"),
+                surface: .card
+            ) {
+                Haptics.impact(.light)
+                showWeeklyCheckIn = true
+            }
             .transition(.opacity.combined(with: .scale(0.98)))
             .sectionAppear(index: appearIndex)
         }
