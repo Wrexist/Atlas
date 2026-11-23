@@ -389,7 +389,7 @@ final class ProfileSyncIntegrityTests: XCTestCase {
 
     func test_reconcile_freshWinnerAndCustomizedTodayLayout_adoptsTheCustomLayout() {
         var other = UserProfile.fresh
-        other.todayLayout.setHidden(.timeline, false)
+        other.todayLayout.setHidden(.explore, false)
 
         let merged = ProfileMergeEngine.reconcile(UserProfile.fresh, with: other)
 
@@ -400,7 +400,7 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         var primary = UserProfile.fresh
         primary.todayLayout.setHidden(.habits, true)
         var other = UserProfile.fresh
-        other.todayLayout.setHidden(.timeline, false)
+        other.todayLayout.setHidden(.explore, false)
 
         let merged = ProfileMergeEngine.reconcile(primary, with: other)
 

@@ -151,6 +151,14 @@ enum AppColor {
     /// both schemes, which is why filled accent surfaces use this instead.
     static var accentFill: Color { ThemeManager.shared.theme.dark }
 
+    /// The shadowed corner of an accent hero card: `accentFill` pulled
+    /// toward black, so the fill reads as lit from one side. `onAccent`
+    /// clears AA on it in every theme, since it only ever gets darker.
+    static var accentDeep: Color { accentFill.mix(with: .black, by: 0.42) }
+    /// The lit corner of an accent hero card: halfway from `accentFill`
+    /// to the brand colour. Kept to a corner with no text over it.
+    static var accentSheen: Color { accentFill.mix(with: accentPrimary, by: 0.55) }
+
     // MARK: - Status
 
     static let destructive = Color(light: 0xD32F2F, dark: 0xFF4444)
