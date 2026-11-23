@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// Today's greeting. The profile entry lives in the navigation bar, as on
-/// every other tab, so the header's only control is the Log pill.
+/// Today's greeting, on one line beside the Log pill. The profile entry
+/// lives in the navigation bar, as on every other tab, and the date sits
+/// in `TodayDayRow` right below.
 struct WelcomeHeader: View {
     let greeting: String
     let name: String
-    let date: String
     /// Today's quick-log button, shown trailing the greeting when set.
     var logButton: TodayLogButton? = nil
 
@@ -28,12 +28,14 @@ struct WelcomeHeader: View {
                             logButton
                         }
                     }
-                    greetingStack
+                    greetingText
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
                 HStack(alignment: .center, spacing: Spacing.md) {
-                    greetingStack
+                    greetingText
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Spacer(minLength: 0)
                     if let logButton { logButton }
                 }
@@ -41,39 +43,15 @@ struct WelcomeHeader: View {
         }
     }
 
-    private var greetingStack: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            if displayName.isEmpty {
-                Text(greeting)
-                    .font(AppFont.largeTitle)
-                    .foregroundStyle(AppColor.textPrimary)
-            } else {
-                // Beside the pill the comma leads into the name; on a line
-                // of its own at accessibility sizes it just dangles.
-                Group {
-                    if dynamicTypeSize.isAccessibilitySize {
-                        Text(greeting)
-                    } else {
-                        Text("\(greeting),")
-                    }
-                }
-                .font(AppFont.title)
-                .foregroundStyle(AppColor.textPrimary)
-
-                Text(displayName)
-                    .font(AppFont.largeTitle)
-                    .foregroundStyle(AppColor.textPrimary)
-            }
-
-            Text(date)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-        // Past AX2 a large-title name broke mid-word a few letters a line;
-        // the page title stops growing where the rest of the text keeps on.
-        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    /// Both halves are already localized; only the comma joins them.
+    private var greetingText: some View {
+        Text(verbatim: displayName.isEmpty ? greeting : "\(greeting), \(displayName)")
+            .font(AppFont.title)
+            .foregroundStyle(AppColor.textPrimary)
+            .accessibilityAddTraits(.isHeader)
+            // Past AX2 the name broke mid-word a few letters a line; the
+            // page title stops growing where the rest of the text keeps on.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 }
 
@@ -81,7 +59,6 @@ struct WelcomeHeader: View {
     WelcomeHeader(
         greeting: "Good evening",
         name: "Alex",
-        date: "Thursday, April 10",
         logButton: TodayLogButton(isOpen: false, includesDose: false, action: {})
     )
     .padding(Spacing.screenPadding)
@@ -89,7 +66,7 @@ struct WelcomeHeader: View {
 }
 
 #Preview("No Name") {
-    WelcomeHeader(greeting: "Good evening", name: "", date: "Thursday, April 10")
+    WelcomeHeader(greeting: "Good evening", name: "")
         .padding(Spacing.screenPadding)
         .background(AppColor.background)
 }

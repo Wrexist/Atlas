@@ -3,7 +3,7 @@ import Foundation
 /// Day browsing on Today: which sections a past day keeps, and the
 /// day-scoped reads behind the ones that stay. Speaks the same day
 /// offsets as `MealDaySwitcher` (0 = today, -1 = yesterday) so Today and
-/// Meals share one picker and one lookback floor. Pure so the
+/// Meals share one lookback floor. Pure so the
 /// "per-day vs today-only" split lives in one tested place.
 enum TodayDayEngine {
     /// Every block of the Today scroll that can come and go with the day.

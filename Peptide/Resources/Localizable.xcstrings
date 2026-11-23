@@ -7604,6 +7604,16 @@
         }
       }
     },
+    "Next day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa dag"
+          }
+        }
+      }
+    },
     "No doses are scheduled today.": {
       "localizations": {
         "sv": {
@@ -7860,6 +7870,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Förhindrar att hypofysen desensibiliseras för GHRH-signalering"
+          }
+        }
+      }
+    },
+    "Previous day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föregående dag"
           }
         }
       }

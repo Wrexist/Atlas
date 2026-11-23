@@ -407,29 +407,28 @@ struct HomeView: View {
             ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: Spacing.xxl) {
-                    WelcomeHeader(
-                        greeting: greeting,
-                        name: dataStore.profile.name,
-                        date: dateString,
-                        logButton: shows(.quickActions) ? TodayLogButton(
-                            isOpen: showQuickLogSheet,
-                            includesDose: dataStore.nextDose != nil,
-                            action: openQuickLog
-                        ) : nil
-                    )
-                    .sectionAppear(index: 0)
-                    .scrollHandOff()
-
-                    // Browse back through earlier days — the Meals tab's
-                    // switcher, so both screens pick days the same way.
-                    VStack(spacing: Spacing.sm) {
-                        MealDaySwitcher(offset: $dayOffset)
+                    // Greeting and date, two lines of chrome before the
+                    // first card. The date row steps back through earlier
+                    // days on the same offsets as the Meals tab's strip.
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        WelcomeHeader(
+                            greeting: greeting,
+                            name: dataStore.profile.name,
+                            logButton: shows(.quickActions) ? TodayLogButton(
+                                isOpen: showQuickLogSheet,
+                                includesDose: dataStore.nextDose != nil,
+                                action: openQuickLog
+                            ) : nil
+                        )
+                        .scrollHandOff()
+                        TodayDayRow(offset: $dayOffset)
                         if let pastDayTitle {
                             PastDayBanner(dayTitle: pastDayTitle, onBackToToday: backToToday)
+                                .padding(.top, Spacing.xs)
                                 .transition(.move(edge: .top).combined(with: .opacity))
                         }
                     }
-                    .sectionAppear(index: 1)
+                    .sectionAppear(index: 0)
 
                     // Today reads status → recommendation → action
                     // (Product Architecture 07). The removed
@@ -1775,10 +1774,6 @@ struct HomeView: View {
         case 17..<24: return String(localized: "Good evening")
         default: return String(localized: "Up late")
         }
-    }
-
-    private var dateString: String {
-        selectedDay.formatted(.dateTime.weekday(.wide).month(.wide).day())
     }
 }
 
