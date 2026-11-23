@@ -2,12 +2,14 @@ import SwiftUI
 
 /// Settings switch for on-device AI summaries. Only rendered when this
 /// device can run Apple's on-device model — elsewhere there is nothing to
-/// turn on, and the deterministic copy is all anyone sees.
+/// turn on, and the deterministic copy is all anyone sees. Carries its
+/// own divider above, so an unsupported device leaves no stray rule.
 struct OnDeviceSummaryToggleRow: View {
     @State private var service = OnDeviceSummaryService.shared
 
     var body: some View {
         if service.isSupported {
+            Divider().overlay(AppColor.glassBorder)
             Toggle(isOn: Binding(get: { service.isEnabled }, set: { service.setEnabled($0) })) {
                 HStack(spacing: Spacing.md) {
                     IconTile("sparkles", size: 36)
@@ -26,8 +28,7 @@ struct OnDeviceSummaryToggleRow: View {
                 }
             }
             .tint(AppColor.accentPrimary)
-            .padding(Spacing.md)
-            .insetRowBackground()
+            .padding(.vertical, Spacing.xs)
         }
     }
 }

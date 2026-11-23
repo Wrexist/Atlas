@@ -24,7 +24,6 @@ struct CrashReportToggleRow: View {
             }
         }
         .tint(AppColor.accentPrimary)
-        .padding(Spacing.md)
-        .insetRowBackground()
+        .padding(.vertical, Spacing.xs)
     }
 }

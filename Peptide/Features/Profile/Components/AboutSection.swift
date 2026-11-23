@@ -58,6 +58,11 @@ struct AboutSection: View {
                     .buttonStyle(.plain)
                     Divider().overlay(AppColor.glassBorder)
                     AboutLinkRow(title: "Privacy Policy", destination: Self.privacyURL)
+                    // Developer surfaces stay out of customer builds.
+                    #if DEBUG
+                    Divider().overlay(AppColor.glassBorder)
+                    DiagnosticsRow()
+                    #endif
                 }
 
                 HStack {

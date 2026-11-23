@@ -93,18 +93,12 @@ struct MuscleHistorySheet: View {
 
     private var emptyState: some View {
         GlassCard {
-            VStack(spacing: Spacing.sm) {
-                Image(systemName: "dumbbell")
-                    .font(AppFont.title2)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .accessibilityHidden(true)
-                Text("No logged work for \(muscle.displayName.lowercased()) for this period.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.md)
+            EmptyStateView(
+                icon: "dumbbell",
+                title: "Nothing logged yet",
+                message: "No logged work for \(muscle.displayName.lowercased()) for this period.",
+                style: .compact
+            )
         }
     }
 

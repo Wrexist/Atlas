@@ -260,8 +260,9 @@ struct HeroMetricDetailSheet: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("WHY IT MATTERS")
+                Text("Why it matters")
                     .font(AppFont.scaled(11, weight: .semibold))
+                    .textCase(.uppercase)
                     .tracking(1.0)
                     .foregroundStyle(AppColor.textSecondary)
                 Text(explainerBody)
@@ -306,6 +307,7 @@ struct HeroMetricDetailSheet: View {
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(AppFont.scaled(11, weight: .semibold))
+            .textCase(.uppercase)
             .tracking(1.0)
             .foregroundStyle(AppColor.textSecondary)
     }
@@ -314,7 +316,7 @@ struct HeroMetricDetailSheet: View {
 
     private var adherenceList: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionHeader("TODAY'S DOSES")
+            sectionHeader("Today's doses")
 
             if context.todayEntries.isEmpty {
                 emptyDoseCard
@@ -346,14 +348,7 @@ struct HeroMetricDetailSheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding(Spacing.xl)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .insetRowBackground()
         .accessibilityElement(children: .combine)
     }
 
@@ -400,14 +395,7 @@ struct HeroMetricDetailSheet: View {
             Spacer()
         }
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         .accessibilityElement(children: .combine)
     }
 
@@ -415,7 +403,7 @@ struct HeroMetricDetailSheet: View {
 
     private var recoveryBreakdown: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionHeader("WHAT'S DRIVING IT")
+            sectionHeader("What's driving it")
 
             if let components = context.recoveryComponents {
                 driverRow(.hrv, value: components.hrv)
@@ -435,9 +423,10 @@ struct HeroMetricDetailSheet: View {
         }
     }
 
-    /// The three signals `RecoveryScoreEngine` composes. Each carries its
-    /// own colour — the same one the Biology tab uses for that signal —
-    /// and opens the 90-day history for it.
+    /// The three signals `RecoveryScoreEngine` composes. Each opens the
+    /// 90-day history for it. Only the icon carries the signal's colour —
+    /// the same one the Biology tab uses — while values and bars stay ink,
+    /// so the sheet's one accent is still the metric's own ring.
     private enum RecoveryDriver {
         case hrv, sleep, rhr
 
@@ -493,7 +482,7 @@ struct HeroMetricDetailSheet: View {
                     Text(value.map { "\(Int(($0 * 100).rounded()))%" } ?? "—")
                         .font(AppFont.caption2)
                         .fontWeight(.semibold)
-                        .foregroundStyle(driver.tint)
+                        .foregroundStyle(AppColor.textSecondary)
                         .monospacedDigit()
                 }
 
@@ -503,7 +492,7 @@ struct HeroMetricDetailSheet: View {
                     GlassProgressBar(
                         progress: value,
                         height: 4,
-                        gradient: [driver.tint.opacity(0.6), driver.tint]
+                        gradient: [AppColor.textPrimary.opacity(0.6), AppColor.textPrimary]
                     )
                     .frame(width: 80)
                 }
@@ -513,14 +502,7 @@ struct HeroMetricDetailSheet: View {
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.55))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
+            .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
@@ -572,14 +554,7 @@ struct HeroMetricDetailSheet: View {
             Spacer(minLength: 0)
         }
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         .padding(.top, Spacing.sm)
         .accessibilityElement(children: .combine)
     }
@@ -588,7 +563,7 @@ struct HeroMetricDetailSheet: View {
 
     private var sleepDetail: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionHeader("LAST NIGHT")
+            sectionHeader("Last night")
 
             HStack(spacing: Spacing.md) {
                 sleepStat(
@@ -629,14 +604,7 @@ struct HeroMetricDetailSheet: View {
         }
         .padding(.vertical, Spacing.lg)
         .frame(maxWidth: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
         .accessibilityValue(value)

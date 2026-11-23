@@ -208,4 +208,31 @@ final class PrimaryReasonEngineTests: XCTestCase {
         XCTAssertEqual(reason.priority, .optionalReminder)
         XCTAssertEqual(reason.message.kind, .connectHealth)
     }
+
+    // MARK: - Restating the dose plan
+
+    func test_restatesDosePlan_catchUp_isDoseState() {
+        let reason = PrimaryReasonEngine.pick(context: .init(
+            coaching: coachingContext(healthConnected: false, pendingDoseCount: 1, hourOfDay: 20)
+        ))
+        XCTAssertTrue(reason.restatesDosePlan(hasProtocols: true))
+    }
+
+    func test_restatesDosePlan_onTrackForProtocolUser_isDoseState() {
+        let reason = PrimaryReasonEngine.pick(context: .init(
+            coaching: coachingContext(), dailyPlanHeadline: "Begin with Selank at 2:00 PM"
+        ))
+        XCTAssertTrue(reason.restatesDosePlan(hasProtocols: true))
+    }
+
+    func test_restatesDosePlan_onTrackWithoutProtocols_isKept() {
+        let reason = PrimaryReasonEngine.pick(context: .init(coaching: coachingContext(hasProtocols: false)))
+        XCTAssertEqual(reason.message.kind, .onTrack)
+        XCTAssertFalse(reason.restatesDosePlan(hasProtocols: false))
+    }
+
+    func test_restatesDosePlan_recoverySignal_isKept() {
+        let reason = PrimaryReasonEngine.pick(context: .init(coaching: coachingContext(recoveryScore: 30)))
+        XCTAssertFalse(reason.restatesDosePlan(hasProtocols: true))
+    }
 }

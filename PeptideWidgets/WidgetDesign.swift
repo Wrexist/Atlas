@@ -12,8 +12,16 @@ import OSLog
 /// Every value is a light/dark pair, like the app's: a widget follows the
 /// home screen's appearance, not the app's Display setting.
 enum WidgetPalette {
-    /// `AppTheme.teal.primary`, the default brand emerald.
-    static let brand = dynamic(light: 0x077A55, dark: WatchPalette.calories)
+    /// `AppColor.accentPrimary`: the theme accent the phone stored in the
+    /// App Group, emerald until it has. Read per render so a theme change
+    /// reaches the next timeline without restarting the extension.
+    static var accent: Color {
+        let stored = ThemeAccent.stored()
+        return dynamic(light: stored.light, dark: stored.dark)
+    }
+    /// `AppColor.macroCalories` — a data colour, so it stays emerald under
+    /// every theme, like the app's calorie ring.
+    static let calories = dynamic(light: 0x077A55, dark: WatchPalette.calories)
     /// `AppColor.macroWater` — the same blue the Watch uses for training.
     static let training = dynamic(light: 0x1F6FC0, dark: WatchPalette.training)
     /// `WatchPalette.protocolDose`, darkened in light mode for contrast.

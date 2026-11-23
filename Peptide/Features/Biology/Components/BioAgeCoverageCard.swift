@@ -33,7 +33,7 @@ struct BioAgeCoverageCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            BiologySectionHeader(
+            HomeSectionHeader(
                 title: "Data behind it",
                 subtitle: "More signals and more days make the estimate steadier."
             )

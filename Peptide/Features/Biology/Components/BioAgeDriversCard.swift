@@ -20,7 +20,7 @@ struct BioAgeDriversCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            BiologySectionHeader(
+            HomeSectionHeader(
                 title: "What's driving it",
                 subtitle: "How many years each signal adds or takes off."
             )

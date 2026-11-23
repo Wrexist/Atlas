@@ -33,8 +33,7 @@ struct WeeklySummaryToggleRow: View {
                     label(isPro: true)
                 }
                 .tint(AppColor.accentPrimary)
-                .padding(Spacing.md)
-                .insetRowBackground()
+                .padding(.vertical, Spacing.xs)
             } else {
                 Button {
                     showPaywall = true
@@ -47,8 +46,7 @@ struct WeeklySummaryToggleRow: View {
                             .foregroundStyle(AppColor.textTertiary)
                             .accessibilityHidden(true)
                     }
-                    .padding(Spacing.md)
-                    .insetRowBackground()
+                    .padding(.vertical, Spacing.xs)
                     .contentShape(.rect)
                 }
                 .buttonStyle(ScalePressStyle(pressedScale: 0.98))

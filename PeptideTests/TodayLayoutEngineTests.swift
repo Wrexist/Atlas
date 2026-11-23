@@ -90,7 +90,7 @@ final class TodayLayoutEngineTests: XCTestCase {
     func test_visibleSections_freshLayout_showsOnlyDefaultSections() {
         let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: [])
         XCTAssertEqual(visible, defaultVisible)
-        XCTAssertEqual(visible.first, .coaching)
+        XCTAssertEqual(visible.first, .doses)
         XCTAssertFalse(visible.contains(.healthMonitor))
         XCTAssertFalse(visible.contains(.timeline))
     }

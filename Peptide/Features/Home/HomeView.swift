@@ -22,7 +22,7 @@ struct HomeView: View {
     /// step with the user's finger. Handed down as a binding and never
     /// read here, so scroll frames re-render only the header.
     @State private var stickyProgress: Double = 0
-    /// Device-local on purpose: the "Today shows less now" hint is for
+    /// Device-local on purpose: the "Add Steps, Your day and more" hint is for
     /// whoever is holding this phone, and nothing synced can bring it back.
     @AppStorage("today.hasOpenedEditToday") private var hasOpenedEditToday = false
     /// The build that started most Today sections off. Only members from
@@ -67,6 +67,7 @@ struct HomeView: View {
     @State private var showSupplements = false
     /// The check-in sheet, for a tap whose Wellness section is hidden.
     @State private var showCheckIn = false
+    @State private var showWeeklyCheckIn = false
     /// Bevel-style hero metric trio snapshot. Loaded async on first
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
@@ -369,6 +370,15 @@ struct HomeView: View {
         !dataStore.protocols.isEmpty && derived.plan != nil
     }
 
+    /// Today shows the dose state once, in the doses card; a coaching line
+    /// that only repeats it ("1 dose left today") goes while that card is
+    /// on screen.
+    private func restatesDoseCard(_ reason: PrimaryReasonEngine.Reason) -> Bool {
+        showsDoseSection
+            && dataStore.profile.todayLayout.visibleSections.contains(.doses)
+            && reason.restatesDosePlan(hasProtocols: !dataStore.activeProtocols.isEmpty)
+    }
+
     /// The "At a glance" trio only has meaning once there's a data
     /// source — an active protocol, a Health connection, or a workout
     /// logged this week. Hidden otherwise so a day-0 user isn't met with
@@ -397,29 +407,28 @@ struct HomeView: View {
             ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: Spacing.xxl) {
-                    WelcomeHeader(
-                        greeting: greeting,
-                        name: dataStore.profile.name,
-                        date: dateString,
-                        logButton: shows(.quickActions) ? TodayLogButton(
-                            isOpen: showQuickLogSheet,
-                            includesDose: dataStore.nextDose != nil,
-                            action: openQuickLog
-                        ) : nil
-                    )
-                    .sectionAppear(index: 0)
-                    .scrollHandOff()
-
-                    // Browse back through earlier days — the Meals tab's
-                    // switcher, so both screens pick days the same way.
-                    VStack(spacing: Spacing.sm) {
-                        MealDaySwitcher(offset: $dayOffset)
+                    // Greeting and date, two lines of chrome before the
+                    // first card. The date row steps back through earlier
+                    // days on the same offsets as the Meals tab's strip.
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        WelcomeHeader(
+                            greeting: greeting,
+                            name: dataStore.profile.name,
+                            logButton: shows(.quickActions) ? TodayLogButton(
+                                isOpen: showQuickLogSheet,
+                                includesDose: dataStore.nextDose != nil,
+                                action: openQuickLog
+                            ) : nil
+                        )
+                        .scrollHandOff()
+                        TodayDayRow(offset: $dayOffset)
                         if let pastDayTitle {
                             PastDayBanner(dayTitle: pastDayTitle, onBackToToday: backToToday)
+                                .padding(.top, Spacing.xs)
                                 .transition(.move(edge: .top).combined(with: .opacity))
                         }
                     }
-                    .sectionAppear(index: 1)
+                    .sectionAppear(index: 0)
 
                     // Today reads status → recommendation → action
                     // (Product Architecture 07). The removed
@@ -454,9 +463,10 @@ struct HomeView: View {
                     }
 
                     // The user's arrangement of Today. The default order
-                    // reads status → recommendation → action → analysis
-                    // (Product Architecture 07). Entrance stagger follows
-                    // that order, after the header and day switcher.
+                    // leads with the day's actions — doses, then the
+                    // checklist — before recommendation, status and the
+                    // week's analysis. Entrance stagger follows that
+                    // order, after the header and day switcher.
                     ForEach(Array(dataStore.profile.todayLayout.visibleSections.enumerated()), id: \.element.id) { offset, section in
                         todaySection(section, appearIndex: 2 + offset, proxy: proxy)
                     }
@@ -481,6 +491,7 @@ struct HomeView: View {
             .pageBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .solidTopScrollEdge()
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     HomeStickyHeader(firstName: firstNameForSticky, progress: $stickyProgress)
@@ -659,7 +670,10 @@ struct HomeView: View {
                 }
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { refreshForCurrentTime() }
+                guard phase == .active else { return }
+                refreshForCurrentTime()
+                // Re-checks a cycle prompt held back by a permission alert.
+                checkMilestonePrompt()
             }
             // Neither notification promises main-thread delivery.
             .onReceive(
@@ -750,6 +764,15 @@ struct HomeView: View {
                 .liquidGlassPresentation()
             }
             .dailyCheckInSheet(isPresented: $showCheckIn)
+            .sheet(isPresented: $showWeeklyCheckIn) {
+                if let weeklyCheckIn {
+                    ScrollView {
+                        WeeklyCheckInCard(checkIn: weeklyCheckIn, unit: dataStore.profile.bodyMetrics.unit)
+                            .padding(Spacing.screenPadding)
+                    }
+                    .liquidGlassPresentation(detents: [.medium, .large])
+                }
+            }
             .sheet(isPresented: $showWeightSheet) {
                 LogWeightSheet()
                     .environment(dataStore)
@@ -817,7 +840,11 @@ struct HomeView: View {
     private func atAGlanceSection(appearIndex: Int) -> some View {
         if showsAtAGlance {
             VStack(spacing: Spacing.sm) {
-                HomeSectionHeader(title: "At a glance")
+                // A heading over a single hint line is a heading for
+                // nothing; it only labels the rings.
+                if HeroMetricTrio.showsRingRow(snapshot: heroSnapshot, leading: heroLeading, isLoading: isHeroLoading) {
+                    HomeSectionHeader(title: "At a glance")
+                }
 
                 // Bevel-style hero trio — Adherence / Recovery /
                 // Sleep. Three at-a-glance numbers mapping to the
@@ -849,7 +876,7 @@ struct HomeView: View {
     /// than coaching alone used to see.
     @ViewBuilder
     private func coachingSection(appearIndex: Int, proxy: ScrollViewProxy) -> some View {
-        if let reason = derived.primaryReason {
+        if let reason = derived.primaryReason, !restatesDoseCard(reason) {
             // Keyed on the title so a new recommendation
             // cross-fades in rather than swapping text in place.
             CoachingCard(
@@ -882,12 +909,19 @@ struct HomeView: View {
             )
             .sectionAppear(index: appearIndex)
         }
-        if let weeklyCheckIn, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
-            WeeklyCheckInCard(
-                checkIn: weeklyCheckIn,
-                unit: dataStore.profile.bodyMetrics.unit,
-                onLogWeight: { showWeightSheet = true }
-            )
+        // One row, not the week's weight curve, calories and protein at
+        // full size: those already live on Meals and Biology. The row
+        // opens the full check-in.
+        if weeklyCheckIn != nil, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
+            GlassEntryRow(
+                icon: "list.bullet.clipboard.fill",
+                title: "Weekly check-in",
+                subtitle: Text("Last 7 days"),
+                surface: .card
+            ) {
+                Haptics.impact(.light)
+                showWeeklyCheckIn = true
+            }
             .transition(.opacity.combined(with: .scale(0.98)))
             .sectionAppear(index: appearIndex)
         }
@@ -1137,7 +1171,7 @@ struct HomeView: View {
     private var customizeTodayButton: some View {
         VStack(spacing: Spacing.sm) {
             if !hasOpenedEditToday && dataStore.profile.memberSince < Self.todaySimplifiedOn {
-                Text("Today shows less now. Turn on Steps, Your day and more here.")
+                Text("Add Steps, Your day and more with Edit Today.")
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
@@ -1669,8 +1703,10 @@ struct HomeView: View {
     private func checkMilestonePrompt() {
         // TabView can call onAppear for retained, off-screen tabs during
         // modal transitions. A Today prompt must never replace Train's
-        // workout cover or completion summary.
-        guard appState.selectedTab == .today,
+        // workout cover or completion summary. Screenshot runs stay
+        // clear of prompts so captures and tab taps aren't covered.
+        guard !ScreenshotMode.shared.isEnabled,
+              appState.selectedTab == .today,
               milestonePrompt == nil,
               milestoneShareProtocol == nil,
               completionPrompt == nil
@@ -1692,7 +1728,7 @@ struct HomeView: View {
             let days = max(0, daysPastCycleEnd(of: pending))
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(800))
-                guard appState.selectedTab == .today, completionPrompt == nil else { return }
+                guard appState.selectedTab == .today, completionPrompt == nil, !Self.isAnotherPromptShowing else { return }
                 completionPrompt = CompletionPromptItem(proto: pending, daysPastEnd: days)
             }
             return
@@ -1704,9 +1740,21 @@ struct HomeView: View {
         // Defer slightly so the home tab's appear animation lands first.
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(800))
-            guard appState.selectedTab == .today, milestonePrompt == nil else { return }
+            guard appState.selectedTab == .today, milestonePrompt == nil, !Self.isAnotherPromptShowing else { return }
             milestonePrompt = MilestonePromptItem(proto: pending.proto, milestone: pending.milestone)
         }
+    }
+
+    /// A system permission alert leaves the app inactive, and onboarding,
+    /// the What's New tour or a trial offer present over the root. Either
+    /// way a cycle prompt would stack on top; it waits for the next
+    /// activation instead.
+    @MainActor private static var isAnotherPromptShowing: Bool {
+        UIApplication.shared.applicationState != .active
+            || UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .contains { $0.isKeyWindow && $0.rootViewController?.presentedViewController != nil }
     }
 
     private func daysPastCycleEnd(of proto: PeptideProtocol) -> Int {
@@ -1758,10 +1806,6 @@ struct HomeView: View {
         case 17..<24: return String(localized: "Good evening")
         default: return String(localized: "Up late")
         }
-    }
-
-    private var dateString: String {
-        selectedDay.formatted(.dateTime.weekday(.wide).month(.wide).day())
     }
 }
 

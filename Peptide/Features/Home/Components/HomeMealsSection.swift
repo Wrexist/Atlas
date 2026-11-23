@@ -147,9 +147,13 @@ struct HomeMealsSection: View {
             )
             .scrollReveal()
 
-            if !dayEntries.isEmpty {
+            // Only once a logged food carries label data: a card of
+            // "Unavailable" rows answers nothing.
+            if DailyMealNutrientsCard.hasData(dayEntries) {
                 DailyMealNutrientsCard(entries: dayEntries, fiberTargetG: dataStore.profile.nutritionTargets?.fiberG)
                     .scrollReveal()
+            }
+            if DailyMicronutrientsCard.hasData(dayEntries) {
                 DailyMicronutrientsCard(entries: dayEntries)
                     .scrollReveal()
             }

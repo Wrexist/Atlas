@@ -15,7 +15,7 @@ struct HealthJournalCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
-                BiologySectionHeader(title: "Journal", subtitle: "How are you feeling today?")
+                HomeSectionHeader(title: "Journal", subtitle: "How are you feeling today?")
                 if !store.entries.isEmpty {
                     Button("See all") { showHistory = true }
                         .font(AppFont.subheadline)

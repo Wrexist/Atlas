@@ -11,9 +11,9 @@ import SwiftUI
 ///                    flight. ~1-3 s typical, with proper Reduce
 ///                    Motion respect via the shared shimmer
 ///                    modifier.
-///   • `.ready`     — full recap: hero glyph, eyebrow + title,
-///                    truncated paragraph, four stat tiles, "Read
-///                    full recap →" CTA. Tap pushes the detail.
+///   • `.ready`     — collapsed: eyebrow, week title and the
+///                    recap's first line. Tap opens the detail with
+///                    the full paragraph and figures.
 ///   • `.empty`     — engine returned `nil` (insufficient data).
 ///                    Encouraging nudge to keep logging; suppresses
 ///                    the rest of the card chrome.
@@ -68,7 +68,7 @@ struct WeeklySummaryHeroCard: View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 eyebrowRow()
-                heroRow(title: String(localized: "Reading your week…"), aiBadge: false)
+                heroRow(title: String(localized: "Reading your week…"))
 
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     // Widths trail off like a paragraph without
@@ -86,37 +86,32 @@ struct WeeklySummaryHeroCard: View {
 
     // MARK: - Ready
 
+    /// Collapsed to the week and the recap's opening line, so the card
+    /// doesn't push the day's doses and checklist below the fold. The
+    /// paragraph, figures and AI attribution live in the detail it opens.
     private func readyCard(_ summary: WeeklySummary) -> some View {
         Button(action: onTap) {
             GlassCard(tinted: true) {
-                VStack(alignment: .leading, spacing: Spacing.md) {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
                     eyebrowRow(offlineBadge: summary.kind == .offline)
-                    heroRow(
-                        title: weekTitle(for: summary.weekStart),
-                        aiBadge: summary.kind == .ai
-                    )
-
-                    Text(WeeklySummary.preview(of: summary.text, limit: 280))
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.leading)
-                        .lineSpacing(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, Spacing.xs)
-
-                    statsRow(summary.keyStats)
-                        .padding(.top, Spacing.xs)
-
-                    HStack(spacing: Spacing.xs) {
-                        Text("Read full recap")
+                    HStack(spacing: Spacing.md) {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text(weekTitle(for: summary.weekStart))
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                            // The opening sentence, so a line that has to
+                            // truncate still ends on a whole thought.
+                            Text(WeeklySummary.preview(of: summary.text, limit: 90))
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
                             .font(AppFont.scaled(13, weight: .semibold))
-                            .tracking(0.4)
-                            .textCase(.uppercase)
-                        Image(systemName: "arrow.right")
-                            .font(AppFont.scaled(11, weight: .semibold))
+                            .foregroundStyle(AppColor.textTertiary)
+                            .accessibilityHidden(true)
                     }
-                    .foregroundStyle(accent)
-                    .padding(.top, Spacing.xs)
                 }
             }
             .overlay(accentBackdrop)
@@ -153,7 +148,7 @@ struct WeeklySummaryHeroCard: View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 eyebrowRow()
-                heroRow(title: title, aiBadge: false)
+                heroRow(title: title)
                 Text(message)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
@@ -239,7 +234,7 @@ struct WeeklySummaryHeroCard: View {
         }
     }
 
-    private func heroRow(title: String, aiBadge: Bool) -> some View {
+    private func heroRow(title: String) -> some View {
         HStack(alignment: .center, spacing: Spacing.md) {
             ZStack {
                 Circle()
@@ -250,73 +245,12 @@ struct WeeklySummaryHeroCard: View {
                     .foregroundStyle(AppColor.onAccent)
             }
 
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(AppFont.scaled(AppFont.Scale.title, weight: .semibold, relativeTo: .title3))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-                if aiBadge {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "sparkles")
-                            .font(AppFont.scaled(8, weight: .semibold))
-                        Text("Personalized by AI")
-                            .font(AppFont.scaled(11, weight: .semibold))
-                    }
-                    .foregroundStyle(accent.opacity(0.95))
-                }
-            }
+            Text(title)
+                .font(AppFont.scaled(AppFont.Scale.title, weight: .semibold, relativeTo: .title3))
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(2)
             Spacer(minLength: 0)
-        }
-    }
-
-    private func statsRow(_ stats: WeeklySummary.KeyStats) -> some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: Spacing.sm),
-                GridItem(.flexible(), spacing: Spacing.sm),
-            ],
-            spacing: Spacing.sm
-        ) {
-            // Fitness-only weeks have no doses; "0%" or a 0-day dose
-            // streak would read as failure.
-            if stats.dosesTotal > 0 {
-                StatTile(
-                    label: "Adherence",
-                    value: stats.compliancePct.formatted(.percent.precision(.fractionLength(0))),
-                    tint: accent
-                )
-                StatTile(
-                    label: "Dose streak",
-                    value: stats.currentStreak == 1 ? String(localized: "1 day") : String(localized: "\(stats.currentStreak) days"),
-                    tint: AppColor.streak
-                )
-            }
-            if let composite = stats.avgCheckInScore {
-                StatTile(
-                    label: "Check-in",
-                    value: composite.formatted(.number.precision(.fractionLength(1))),
-                    tint: AppColor.metricHRV
-                )
-            }
-            if let calories = stats.avgCalories {
-                StatTile(
-                    label: "Avg kcal",
-                    value: calories.formatted(),
-                    tint: AppColor.macroProtein
-                )
-            }
-            if let delta = stats.hrvDelta {
-                let prefix = delta > 0 ? "+" : ""
-                StatTile(
-                    label: "HRV change",
-                    value: "\(prefix)\(delta) ms",
-                    tint: delta >= 0
-                        ? AppColor.positive
-                        : AppColor.negative,
-                    accessibilityLabel: WeeklySummary.hrvChangeAccessibilityLabel(delta)
-                )
-            }
         }
     }
 

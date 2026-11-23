@@ -127,7 +127,7 @@ struct NutritionTimelineProvider: TimelineProvider {
 /// The day's calories as one ring split by meal, in the meal colours the
 /// app's own calorie ring uses — so the widget is a window onto the same
 /// picture rather than a second chart. Calories outside the four buckets
-/// (or a payload without the breakdown) fill in brand emerald.
+/// (or a payload without the breakdown) fill in the calorie colour.
 private struct CalorieRing: View {
     let entry: NutritionEntry
     var lineWidth: CGFloat = 8
@@ -162,10 +162,10 @@ private struct CalorieRing: View {
 
         var parts: [(Int, Color)] = entry.meals.enumerated().compactMap { index, meal -> (Int, Color)? in
             guard meal.calories > 0 else { return nil }
-            return (meal.calories, WidgetMeal(rawValue: index)?.tint ?? WidgetPalette.brand)
+            return (meal.calories, WidgetMeal(rawValue: index)?.tint ?? WidgetPalette.calories)
         }
         let unbucketed = entry.calories - parts.reduce(0) { $0 + $1.0 }
-        if unbucketed > 0 { parts.append((unbucketed, WidgetPalette.brand)) }
+        if unbucketed > 0 { parts.append((unbucketed, WidgetPalette.calories)) }
 
         // A hairline gap between meals, only when there is more than one.
         let gap = parts.count > 1 ? 0.008 : 0
@@ -323,7 +323,7 @@ private struct SmallNutritionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            WidgetHeader(glyph: "fork.knife", title: "Nutrition", tint: WidgetPalette.brand)
+            WidgetHeader(glyph: "fork.knife", title: "Nutrition", tint: WidgetPalette.accent)
             Spacer(minLength: 6)
             CalorieRing(entry: entry)
                 .overlay { CalorieCenter(entry: entry, large: false) }
@@ -336,7 +336,7 @@ private struct SmallNutritionView: View {
                 ForEach(Macro.all(entry)) { CompactMacro(macro: $0) }
             }
         }
-        .widgetBackdrop(WidgetPalette.brand)
+        .widgetBackdrop(WidgetPalette.accent)
     }
 }
 
@@ -377,7 +377,7 @@ private struct MediumNutritionView: View {
                 WidgetHeader(
                     glyph: "fork.knife",
                     title: "Nutrition",
-                    tint: WidgetPalette.brand,
+                    tint: WidgetPalette.accent,
                     trailing: totalLabel,
                     trailingAccessibilityLabel: entry.target > 0
                         ? Text("\(entry.calories) of \(entry.target) calories")
@@ -390,7 +390,7 @@ private struct MediumNutritionView: View {
                 MealStrip(meals: entry.meals)
             }
         }
-        .widgetBackdrop(WidgetPalette.brand)
+        .widgetBackdrop(WidgetPalette.accent)
     }
 
     private var totalLabel: String {
@@ -413,9 +413,9 @@ private struct QuickActionGlyph: View {
     var body: some View {
         Image(systemName: systemImage)
             .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(WidgetPalette.brand)
+            .foregroundStyle(WidgetPalette.accent)
             .frame(width: 32, height: 32)
-            .background(Circle().fill(WidgetPalette.brand.opacity(0.16)))
+            .background(Circle().fill(WidgetPalette.accent.opacity(0.16)))
             .frame(width: Self.hitTarget, height: Self.hitTarget)
             .contentShape(Rectangle())
     }

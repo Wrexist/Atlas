@@ -58,6 +58,7 @@ struct MealsContainerView: View {
             .overlay { TableSaveToast() }
             .navigationTitle("Meals")
             .navigationBarTitleDisplayMode(.large)
+            .solidTopScrollEdge()
             #if DEBUG
             .navigationDestination(item: $fixtureRecipe) { RecipeDetailView(recipe: $0) }
             #endif

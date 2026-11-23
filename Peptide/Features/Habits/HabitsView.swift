@@ -150,6 +150,7 @@ struct HabitsView: View {
             .pageBackground()
             .navigationTitle("Habits")
             .navigationBarTitleDisplayMode(.large)
+            .solidTopScrollEdge()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

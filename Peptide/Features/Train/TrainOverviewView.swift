@@ -76,8 +76,8 @@ struct TrainOverviewView: View {
         !frequencies.isEmpty
     }
 
-    /// Training inside the widest period, so switching periods can change
-    /// the map. Without it the period control filters nothing.
+    /// Training inside the widest period, so the map has something to
+    /// light up and switching periods can change it.
     private var hasTrainingToFilter: Bool {
         let calendar = Calendar.current
         let widest = TrainingMapPeriod.allCases.map(\.rawValue).max() ?? 1
@@ -95,8 +95,12 @@ struct TrainOverviewView: View {
                     .sectionAppear(index: 1)
                 recentWorkoutsCard
                     .sectionAppear(index: 2)
-                weeklyMuscleCard
-                    .sectionAppear(index: 3)
+                // An unlit body map is a full screen of nothing; it shows
+                // once there is training for its periods to light up.
+                if hasTrainingToFilter {
+                    weeklyMuscleCard
+                        .sectionAppear(index: 3)
+                }
                 trainingDetails
                     .scrollReveal()
             }
@@ -441,14 +445,12 @@ struct TrainOverviewView: View {
                     }
                 }
 
-                if hasTrainingToFilter {
-                    GlassSegmentedControl(
-                        options: TrainingMapPeriod.allCases,
-                        selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
-                        label: { LocalizedStringKey($0.title) }
-                    )
-                    .accessibilityIdentifier("training-map-period")
-                }
+                GlassSegmentedControl(
+                    options: TrainingMapPeriod.allCases,
+                    selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
+                    label: { LocalizedStringKey($0.title) }
+                )
+                .accessibilityIdentifier("training-map-period")
 
                 TrainingBodyExplorer(
                     highlights: MuscleMapView.intensityHighlights(from: frequencies),
@@ -521,25 +523,11 @@ struct TrainOverviewView: View {
 
     private var recentWorkoutsCard: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                // Title and link share a row while both fit whole; at the
-                // largest text sizes the link moves under the title rather
-                // than hyphenating it into three lines.
-                ViewThatFits(in: .horizontal) {
-                    HStack {
-                        latestWorkoutTitle
-                        Spacer()
-                        viewAllWorkoutsLink
-                    }
-                    VStack(alignment: .leading, spacing: Spacing.xs) {
-                        latestWorkoutTitle
-                        viewAllWorkoutsLink
-                    }
-                }
-
-                if sessions.isEmpty {
-                    emptyRecentWorkouts
-                } else {
+            if sessions.isEmpty {
+                emptyRecentWorkouts
+            } else {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    latestWorkoutHeader
                     VStack(spacing: 0) {
                         ForEach(Array(sessions.prefix(1))) { session in
                             recentWorkoutRow(session)
@@ -550,14 +538,47 @@ struct TrainOverviewView: View {
         }
     }
 
+    /// Title and link share a row while both fit whole; at the largest
+    /// text sizes the link moves under the title rather than hyphenating
+    /// it into three lines.
+    private var latestWorkoutHeader: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                latestWorkoutTitle
+                Spacer()
+                viewAllWorkoutsLink
+            }
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                latestWorkoutTitle
+                viewAllWorkoutsLink
+            }
+        }
+    }
+
+    /// One row, not a full empty state: Start workout sits directly above,
+    /// so a centred icon and pitch only pushed Trends below the fold.
     private var emptyRecentWorkouts: some View {
-        // No action button: Start workout sits directly above this card.
-        EmptyStateView(
-            icon: "dumbbell",
-            title: "No sessions yet",
-            message: "Start a workout or pick a routine — it'll land here.",
-            style: .compact
-        )
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.md) {
+                emptyRecentWorkoutsLabel
+                Spacer()
+                viewAllWorkoutsLink
+            }
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                emptyRecentWorkoutsLabel
+                viewAllWorkoutsLink
+            }
+        }
+    }
+
+    private var emptyRecentWorkoutsLabel: some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            latestWorkoutTitle
+            Text("No sessions yet")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// A recent-session row, now a real NavigationLink into

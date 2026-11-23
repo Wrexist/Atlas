@@ -171,6 +171,7 @@ struct TrainContainerView: View {
         }
         .navigationTitle("Train")
         .navigationBarTitleDisplayMode(.large)
+        .solidTopScrollEdge()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
         }

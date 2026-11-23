@@ -28,14 +28,7 @@ struct SettingsView: View {
                     RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
                 }
 
-                section("About") {
-                    AboutSection()
-
-                    // Developer surfaces stay out of customer builds.
-                    #if DEBUG
-                    DiagnosticsSection()
-                    #endif
-                }
+                section("About") { AboutSection() }
 
                 DeleteDataSection()
             }
@@ -46,6 +39,7 @@ struct SettingsView: View {
         .pageBackground()
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .solidTopScrollEdge()
         .sheet(isPresented: $showRestoreBackup) {
             RestoreBackupSheet()
                 .environment(dataStore)
@@ -63,7 +57,8 @@ struct SettingsView: View {
     }
 
     /// The switches that decide what leaves the device, under one title
-    /// instead of three untitled rows floating between cards.
+    /// instead of three untitled rows floating between cards. Plain rows
+    /// split by rules, so the card isn't a card of cards.
     private var aiPrivacySection: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -75,6 +70,8 @@ struct SettingsView: View {
                 WeeklySummaryToggleRow()
 
                 OnDeviceSummaryToggleRow()
+
+                Divider().overlay(AppColor.glassBorder)
 
                 CrashReportToggleRow()
             }

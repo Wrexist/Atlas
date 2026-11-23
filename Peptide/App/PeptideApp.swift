@@ -666,12 +666,13 @@ struct PeptideApp: App {
         }
     }
 
-    /// The dose strip belongs to Today: protocol tracking is opt-in, and
-    /// the fitness tabs show only a workout in progress.
+    /// A workout in progress, or an overdue dose while the user is away
+    /// from Today. On Today the doses card already says it, and Train
+    /// draws its own resume banner.
     private var showsTabAccessory: Bool {
         appState.selectedTab != .train
             && (workoutSession.activeSession != nil
-                || (appState.selectedTab == .today && !dataStore.activeProtocols.isEmpty))
+                || TabAccessoryView.remindsOfDose(on: appState.selectedTab, dataStore: dataStore))
     }
 
     private var mainContent: some View {
@@ -782,6 +783,9 @@ struct PeptideApp: App {
 
         let status = await NotificationService.shared.checkAuthorization()
         if status == .notDetermined {
+            // A screenshot run never asks: the system alert would cover
+            // the captures and swallow the UI test's tab taps.
+            guard !ScreenshotMode.shared.isEnabled else { return }
             let granted = await NotificationService.shared.requestAuthorization()
             if !granted {
                 dataStore.profile.doseRemindersEnabled = false
@@ -820,38 +824,53 @@ private final class BackgroundTaskHandle {
     }
 }
 
-/// The strip above the tab bar. It answers "is today done?" for whatever
-/// the user is currently looking at — doses on Today, workouts elsewhere —
-/// because protocol tracking is opt-in and a dose reminder under the
-/// muscle map is answering a question nobody on that screen asked.
-/// Without an active protocol there are no doses to report, so the
-/// workout strip stands in: an empty accessory would still draw its glass
-/// capsule, and "All doses completed" with a syringe is noise for someone
-/// who never tracks one.
+/// The strip above the tab bar. A workout in progress leads; otherwise,
+/// away from Today, it carries a dose that is overdue. A dose that is
+/// merely next stays on Today: floating it over Meals or Biology all
+/// day turned a reminder into wallpaper. Today itself
+/// never shows the dose: its doses card is the one place that state reads,
+/// and a second copy floating over it could only disagree. Train skips the
+/// dose too — a dose reminder under the muscle map answers a question
+/// nobody on that screen asked.
 ///
 /// The strip is a button, like the system's own bottom accessories: it
 /// opens the tab that acts on what it reports, so "Workout in progress"
-/// or an overdue dose is one tap from being dealt with. Already on Today,
-/// it opens the next dose's log sheet; with nothing left to open it drops
-/// its chevron and stops being a button.
+/// or an overdue dose is one tap from being dealt with. Already on that
+/// tab, it drops its chevron and stops being a button.
 struct TabAccessoryView: View {
     let tab: AppTab
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
+    @State private var sessionService = WorkoutSessionService.shared
+
+    /// A dose is past its time and not taken, and the user is on a tab
+    /// that doesn't show it.
+    static func remindsOfDose(on tab: AppTab, dataStore: DataStore) -> Bool {
+        tab != .today && tab != .train && overdueDose(in: dataStore) != nil
+    }
+
+    /// Read when the strip redraws (a tab switch or a data change), so a
+    /// dose falling due while the user stays on one tab shows on the next.
+    private static func overdueDose(in dataStore: DataStore) -> ProtocolEntry? {
+        let now = Date()
+        return dataStore.todayEntries.first { !$0.completed && $0.date < now }
+    }
 
     var body: some View {
-        let showsWorkout = tab != .today || dataStore.activeProtocols.isEmpty
-        let destination: AppTab = showsWorkout ? .train : .today
-        let acts = canAct(on: destination)
+        let overdue = sessionService.activeSession == nil && Self.remindsOfDose(on: tab, dataStore: dataStore)
+            ? Self.overdueDose(in: dataStore)
+            : nil
+        let destination: AppTab = overdue == nil ? .train : .today
+        let acts = appState.selectedTab != destination
         Button {
             open(destination)
         } label: {
-            if showsWorkout {
+            if let overdue {
+                OverdueDoseAccessoryView(dose: overdue, showsChevron: acts)
+            } else {
                 // Train draws its own resume banner for a workout in
                 // progress; repeating it here stacks two identical pills.
                 WorkoutAccessoryView(reportsActiveWorkout: tab != .train, showsChevron: acts)
-            } else {
-                NextDoseAccessoryView(showsChevron: acts)
             }
         }
         // The accessory's own glass already gives press feedback; a
@@ -867,28 +886,17 @@ struct TabAccessoryView: View {
         .accessibilityHint(acts ? hint(for: destination) : Text(verbatim: ""))
     }
 
-    private func canAct(on destination: AppTab) -> Bool {
-        guard appState.selectedTab == destination else { return true }
-        return destination == .today && dataStore.nextDose != nil
-    }
-
     private func hint(for destination: AppTab) -> Text {
-        guard appState.selectedTab != destination else { return Text("Opens the dose log") }
-        return destination == .train ? Text("Opens Train") : Text("Opens Today")
+        destination == .train ? Text("Opens Train") : Text("Opens Today")
     }
 
     private func open(_ destination: AppTab) {
         Haptics.selection()
-        guard appState.selectedTab == destination else {
-            appState.selectedTab = destination
-            return
-        }
-        // HomeView presents the log sheet for a parked entry id.
-        appState.pendingDoseLogEntryId = dataStore.nextDose?.id
+        appState.selectedTab = destination
     }
 }
 
-/// Train's counterpart to `NextDoseAccessoryView`. The session count is
+/// Train's counterpart to `OverdueDoseAccessoryView`. The session count is
 /// held in state rather than read in `body`: `workoutSummary` faults
 /// SwiftData, and the accessory re-renders on every tab change.
 struct WorkoutAccessoryView: View {
@@ -957,95 +965,48 @@ private struct AccessoryChevron: View {
     }
 }
 
-struct NextDoseAccessoryView: View {
+struct OverdueDoseAccessoryView: View {
+    let dose: ProtocolEntry
     var showsChevron = true
-    @Environment(DataStore.self) private var dataStore
-    /// Re-read when the shown dose falls due, so "Next" turns into
-    /// "Overdue" on time even while nothing else redraws the strip.
-    @State private var now = Date()
 
     var body: some View {
-        let next = dataStore.nextDose
-        // `nextDose` falls back to a missed dose once none is left ahead,
-        // so a past time here means the dose is overdue, not upcoming.
-        let isOverdue = next.map { $0.date < now } ?? false
-        let noneScheduled = dataStore.todayEntries.isEmpty
-
         HStack(spacing: Spacing.sm) {
-            Image(systemName: icon(isDone: next == nil, noneScheduled: noneScheduled, isOverdue: isOverdue))
+            Image(systemName: "exclamationmark.circle.fill")
                 .font(AppFont.caption2)
-                .foregroundStyle(isOverdue ? AppColor.warning : AppColor.accentPrimary)
-                .contentTransition(.symbolEffect(.replace))
-
-            if let next {
-                Text(summary(next, isOverdue: isOverdue))
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Spacer()
-                // The icon alone carries the overdue amber.
-                Text(next.date.formatted(.dateTime.hour().minute()))
-                    .font(AppFont.caption2)
-                    .foregroundStyle(isOverdue ? AppColor.textSecondary : AppColor.accentLight)
-                    .contentTransition(.numericText())
-                    .fixedSize()
-            } else {
-                Text(noneScheduled ? "No doses today" : "All doses completed for today")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Spacer()
-            }
+                .foregroundStyle(AppColor.warning)
+            Text(summary)
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer()
+            // The icon alone carries the overdue amber.
+            Text(dose.date.formatted(.dateTime.hour().minute()))
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize()
             if showsChevron { AccessoryChevron() }
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
-        .appAnimation(AppAnimation.springSnappy, value: next == nil)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(voiceOverLabel(isOverdue: isOverdue))
-        .task(id: next?.date) {
-            now = Date()
-            guard let due = next?.date, due > now else { return }
-            try? await Task.sleep(for: .seconds(due.timeIntervalSince(now) + 1))
-            now = Date()
-        }
+        .accessibilityLabel(voiceOverLabel)
     }
 
-    private func icon(isDone: Bool, noneScheduled: Bool, isOverdue: Bool) -> String {
-        if noneScheduled { return "calendar" }
-        if isDone { return "checkmark.circle.fill" }
-        return isOverdue ? "exclamationmark.circle.fill" : "syringe.fill"
-    }
-
-    private func summary(_ next: ProtocolEntry, isOverdue: Bool) -> LocalizedStringKey {
-        let name = next.peptide.abbreviation
-        if isOverdue {
-            return next.dose.isEmpty
-                ? "Overdue: \(name)"
-                : "Overdue: \(name) \u{2022} \(next.dose)"
-        }
-        return next.dose.isEmpty
-            ? "Next: \(name)"
-            : "Next: \(name) \u{2022} \(next.dose)"
+    private var summary: LocalizedStringKey {
+        let name = dose.peptide.abbreviation
+        return dose.dose.isEmpty
+            ? "Overdue: \(name)"
+            : "Overdue: \(name) \u{2022} \(dose.dose)"
     }
 
     /// One VoiceOver stop with the full name, instead of the icon,
     /// the abbreviated line with its bullet glyph, and the time.
-    private func voiceOverLabel(isOverdue: Bool) -> Text {
-        guard let next = dataStore.nextDose else {
-            return dataStore.todayEntries.isEmpty ? Text("No doses today") : Text("All doses completed for today")
-        }
-        let time = next.date.formatted(.dateTime.hour().minute())
-        if isOverdue {
-            return next.dose.isEmpty
-                ? Text("Overdue dose: \(next.peptide.name) at \(time)")
-                : Text("Overdue dose: \(next.peptide.name), \(next.dose) at \(time)")
-        }
-        return next.dose.isEmpty
-            ? Text("Next dose: \(next.peptide.name) at \(time)")
-            : Text("Next dose: \(next.peptide.name), \(next.dose) at \(time)")
+    private var voiceOverLabel: Text {
+        let time = dose.date.formatted(.dateTime.hour().minute())
+        return dose.dose.isEmpty
+            ? Text("Overdue dose: \(dose.peptide.name) at \(time)")
+            : Text("Overdue dose: \(dose.peptide.name), \(dose.dose) at \(time)")
     }
 }
 

@@ -8,6 +8,11 @@ struct DailyMicronutrientsCard: View {
 
     @AppStorage("meals.micronutrientsExpanded") private var isExpanded = false
 
+    /// Whether any logged food carries a vitamin or mineral value.
+    static func hasData(_ entries: [MealEntry]) -> Bool {
+        MicronutrientEngine.dailyIntakes(entries).contains { $0.total != nil }
+    }
+
     var body: some View {
         let intakes = MicronutrientEngine.dailyIntakes(entries)
         GlassCard {
@@ -41,17 +46,11 @@ struct DailyMicronutrientsCard: View {
                     Text("Micronutrients")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                    Group {
-                        if knownCount == 0 {
-                            Text("Scan a barcode or a photo to see vitamins and minerals.")
-                        } else {
-                            Text("Data for \(knownCount) of \(total) nutrients")
-                                .contentTransition(.numericText())
-                        }
-                    }
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.leading)
+                    Text("Data for \(knownCount) of \(total) nutrients")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.leading)
+                        .contentTransition(.numericText())
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.down")

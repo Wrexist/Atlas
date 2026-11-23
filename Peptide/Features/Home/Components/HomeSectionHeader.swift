@@ -14,15 +14,20 @@ struct HomeSectionHeader<Trailing: View>: View {
     /// faster than an eyebrow restating the title above it.
     let eyebrow: LocalizedStringKey?
     let title: LocalizedStringKey
+    /// One line under the title saying what the section draws on
+    /// (Biology's cards use it).
+    let subtitle: LocalizedStringKey?
     let trailing: () -> Trailing
 
     init(
         eyebrow: LocalizedStringKey? = nil,
         title: LocalizedStringKey,
+        subtitle: LocalizedStringKey? = nil,
         @ViewBuilder trailing: @escaping () -> Trailing
     ) {
         self.eyebrow = eyebrow
         self.title = title
+        self.subtitle = subtitle
         self.trailing = trailing
     }
 
@@ -40,6 +45,11 @@ struct HomeSectionHeader<Trailing: View>: View {
                 Text(title)
                     .font(AppFont.sectionTitle)
                     .foregroundStyle(AppColor.textPrimary)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
             }
             // The eyebrow and title are one heading; the trailing action
             // stays its own stop so VoiceOver can still reach it.
@@ -58,7 +68,7 @@ struct HomeSectionHeader<Trailing: View>: View {
 }
 
 extension HomeSectionHeader where Trailing == EmptyView {
-    init(eyebrow: LocalizedStringKey? = nil, title: LocalizedStringKey) {
-        self.init(eyebrow: eyebrow, title: title) { EmptyView() }
+    init(eyebrow: LocalizedStringKey? = nil, title: LocalizedStringKey, subtitle: LocalizedStringKey? = nil) {
+        self.init(eyebrow: eyebrow, title: title, subtitle: subtitle) { EmptyView() }
     }
 }
