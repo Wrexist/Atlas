@@ -39,12 +39,12 @@ needed; the payload carries app/OS version, device model and call stacks
 only — no user identifier, no health data. Per-IP limit `CRASH_REPORT_RPM`
 (default 10), 256 KB body cap.
 
-meal-scan, food-scan, lab-scan, fridge-scan and ai-research share
-`_lib/anthropic-proxy.js` —
+meal-scan, food-scan, lab-scan, fridge-scan, ai-research and
+weekly-summary share `_lib/anthropic-proxy.js` —
 auth, App Attest gate, per-principal limits, body sanitisation, model
 allowlist, and the forward to `api.anthropic.com/v1/messages` live
-there. weekly-summary owns its prompt and upstream call but uses the
-same auth, App Attest gate and limiter.
+there. food-scan and weekly-summary build their whole upstream request
+server-side from a small app payload.
 
 ## Deploy
 
@@ -343,8 +343,7 @@ Pro-only, as they are in the app (the Labs scanner, the research chat
 and Meals diet coach, and the Sunday recap), and use the same check
 without a free allowance: no `X-Atlas-Entitlement` that verifies means
 `403 { error: { code: "pro_required" } }` before any quota or budget is
-spent. All three share `passesProGate` in `_lib/anthropic-proxy.js`
-(weekly-summary builds its own request, so it calls it directly). The
+spent. All three pass `requirePro` to `forwardToAnthropic`. The
 app answers a refused research question with an "Atlas Pro" alert and a
 refused recap with its offline summary. The check needs no env vars in production — it pins
 Apple Root CA - G3 and defaults to `com.peptidesai.app` (leave

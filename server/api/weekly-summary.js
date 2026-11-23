@@ -1,7 +1,8 @@
 /**
- * Vercel proxy route for Atlas's AI weekly summary. Bypasses
- * the shared `forwardToAnthropic` helper because this endpoint owns
- * the whole prompt: the client sends only an aggregate, never text.
+ * Vercel proxy route for Atlas's AI weekly summary. Auth, limits and
+ * the upstream call are the shared `forwardToAnthropic` path; this
+ * route owns the whole prompt, because the client sends only an
+ * aggregate, never text.
  *
  * iOS env vars (Info.plist or scheme env):
  *   WEEKLY_SUMMARY_ENDPOINT = https://<deploy>/api/weekly-summary
@@ -17,40 +18,16 @@
  * A verified Pro entitlement is required (403 `pro_required`
  * otherwise); the app falls back to its offline recap on any refusal.
  */
-import {
-  MIN_UPSTREAM_MS,
-  passesProGate,
-  principalFor,
-  refuse,
-  refuseAttest,
-  remainingUpstreamMs,
-  THINKING_OFF,
-} from './_lib/anthropic-proxy.js';
-import { checkAppAttest } from './_lib/app-attest.js';
-import { authorize } from './_lib/auth.js';
+import { forwardToAnthropic, THINKING_OFF } from './_lib/anthropic-proxy.js';
 import { localeTag } from './_lib/locale.js';
-import {
-  allowRate,
-  costForBytes,
-  intEnv,
-  isBlocked,
-  principalLimit,
-  recordLimitStrike,
-  refundSpend,
-  withinDailyBudget,
-  withinDeviceQuota,
-} from './_lib/rate-limit.js';
+import { intEnv } from './_lib/rate-limit.js';
 
 const MODEL = 'claude-sonnet-5';
 // ~400 words: the ~150-word target with room to finish a sentence.
 // A reply that still hits the cap is refused, never cached half-done.
 const MAX_TOKENS = 500;
-// The aggregate is tiny; nothing larger is legitimate. Checked on the
-// parsed body like `_lib/anthropic-proxy.js` does.
+// The aggregate is tiny; nothing larger is legitimate.
 const MAX_BODY_BYTES = 64 * 1024;
-// The whole request's deadline, a few seconds under vercel.json's 30 s
-// maxDuration; see MIN_UPSTREAM_MS in `_lib/anthropic-proxy.js`.
-const TIMEOUT_MS = 25_000;
 
 const SYSTEM_PROMPT = [
   "You are Atlas's weekly coach. Summarize the user's last 7 days in 2-3 short paragraphs, ~150 words total.",
@@ -74,16 +51,6 @@ const SYSTEM_PROMPT = [
   "",
   "Output: plain text, no markdown, no bullet points, no headings. The iOS card renders the paragraphs as-is."
 ].join("\n");
-
-// Per-principal cap via the shared limiter (Redis-backed when
-// configured, per-instance memory otherwise). Weekly summaries fire at
-// most once per week per user, so 6/min is generous — anything higher
-// is retry-loop noise or abuse. The principal is derived exactly as on
-// the other routes; see `principalFor` in `_lib/anthropic-proxy.js`.
-function checkRateLimit(principal) {
-  const limit = intEnv('WEEKLY_RPM', 6);
-  return allowRate({ name: 'weekly-summary', key: principal, limit: principalLimit(principal, limit), windowSeconds: 60 });
-}
 
 /**
  * Rebuilds the aggregate from an explicit allowlist of known fields
@@ -237,191 +204,62 @@ function buildUserPrompt(aggregate, locale) {
   ].join("\n");
 }
 
-export default async function handler(req, res) {
-  const startedAt = Date.now();
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: { message: 'Use POST' } });
-    return;
-  }
-
-  if (!authorize(req)) {
-    res.status(401).json({ error: { message: 'Unauthorised' } });
-    return;
-  }
-
-  // App Attest runs before throttling — its verified key is the identity
-  // the limits count against. Same semantics as the main proxy routes.
-  const attest = await checkAppAttest(req, { logLabel: 'weekly-summary' });
-  if (!attest.ok) {
-    refuseAttest(res, attest);
-    return;
-  }
-
-  const principal = principalFor(req, attest);
-
-  if (await isBlocked({ principal })) {
-    refuse(res, 'blocked');
-    return;
-  }
-
-  if (!(await checkRateLimit(principal))) {
-    if (await recordLimitStrike({ principal })) {
-      console.warn('[weekly-summary] principal blocked for repeated limit strikes');
-    }
-    refuse(res, 'rate_limited');
-    return;
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('[weekly-summary] ANTHROPIC_API_KEY missing on this deployment');
-    refuse(res, 'unavailable');
-    return;
-  }
-
-  // Measured on the parsed body so a chunked request that understates
-  // content-length can't slip past the cap.
-  const parsedBytes = Buffer.byteLength(JSON.stringify(req.body ?? ''), 'utf8');
-  if (parsedBytes > MAX_BODY_BYTES) {
-    res.status(413).json({ error: { message: 'Request too large' } });
-    return;
-  }
-
-  const aggregate = sanitiseAggregate(req.body?.aggregate);
-  if (!aggregate) {
-    res.status(400).json({ error: { message: 'Malformed aggregate' } });
-    return;
-  }
-
-  // Pro-only in the app (`WeeklySummaryService.isAvailable`); the app
-  // sends its StoreKit transaction in X-Atlas-Entitlement. Checked where
-  // `forwardToAnthropic` checks it: after the body is known good, before
-  // anything is charged.
-  if (!passesProGate(req, res, 'weekly-summary')) return;
-
-  // Charged only once the request is known to be well-formed, so a
-  // 400 or 413 costs the caller nothing.
-  const cost = costForBytes(parsedBytes);
-  if (!(await withinDeviceQuota({ principal, cost }))) {
-    console.warn('[weekly-summary] principal exceeded daily quota');
-    refuse(res, 'daily_quota');
-    return;
-  }
-
-  // Shared daily spend ceiling across all proxy routes, checked last
-  // so only requests that would actually reach Anthropic consume it.
-  // Same generic 503 as the missing-key path — reason stays
-  // server-side, and the iOS client already falls back deterministically.
-  if (!(await withinDailyBudget({ cost }))) {
-    console.error('[weekly-summary] daily Anthropic budget exhausted or unverifiable');
-    await refundSpend({ principal, cost, budget: false });
-    refuse(res, 'unavailable');
-    return;
-  }
-
-  // The aggregate goes in the user message, never the system prompt.
-  // No prompt caching: the prompt is far below the minimum cacheable
-  // length, so `cache_control` would be a no-op.
-  const body = {
+// The aggregate goes in the user message, never the system prompt.
+// No prompt caching: the prompt is far below the minimum cacheable
+// length, so `cache_control` would be a no-op.
+function buildSummaryRequest(body, locale) {
+  const aggregate = sanitiseAggregate(body?.aggregate);
+  if (!aggregate) return null;
+  return {
     model: MODEL,
     max_tokens: MAX_TOKENS,
     // MAX_TOKENS is sized for the recap alone; see THINKING_OFF.
     thinking: THINKING_OFF,
     system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        // The aggregate is numbers only, so without the locale the model
-        // has no text to mirror and always answered in English.
-        content: buildUserPrompt(aggregate, recapLocale(req))
-      }
-    ]
+    // The aggregate is numbers only, so without the locale the model
+    // has no text to mirror and always answered in English.
+    messages: [{ role: 'user', content: buildUserPrompt(aggregate, locale) }],
   };
+}
 
-  const upstreamMs = remainingUpstreamMs(startedAt, TIMEOUT_MS);
-  if (upstreamMs < MIN_UPSTREAM_MS) {
-    console.error('[weekly-summary] too little time left for the upstream call');
-    await refundSpend({ principal, cost });
-    refuse(res, 'unavailable');
-    return;
+function readSummary(data) {
+  // A summary cut off at the token cap would be cached for the whole
+  // week; a 502 sends the client to its offline formatter instead.
+  if (data?.stop_reason === 'max_tokens') {
+    console.error('[weekly-summary] reply hit max_tokens');
+    return { status: 502, body: { error: { message: 'Truncated response from model' } } };
   }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), upstreamMs);
-  try {
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
-
-    if (!upstream.ok) {
-      // Collapse every upstream failure into a generic 502 — echoing
-      // Anthropic's exact status leaks server-side key state. The
-      // iOS client has a deterministic offline fallback for any 5xx.
-      console.error('[weekly-summary] upstream non-2xx', upstream.status);
-      await refundSpend({ principal, cost });
-      res.status(502).json({ error: { message: 'Upstream error' } });
-      return;
-    }
-
-    const data = await upstream.json();
-    // Anthropic's response shape: content is an array of typed
-    // blocks. We expect a single text block; concatenate defensively.
-    const text = Array.isArray(data.content)
-      ? data.content
-          .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
-          .map((b) => b.text)
-          .join('\n\n')
-          .trim()
-      : '';
-
-    // A summary cut off at the token cap would be cached for the whole
-    // week; a 502 sends the client to its offline formatter instead.
-    if (data.stop_reason === 'max_tokens') {
-      console.error('[weekly-summary] reply hit max_tokens');
-      res.status(502).json({ error: { message: 'Truncated response from model' } });
-      return;
-    }
-
-    if (!text) {
-      console.error('[weekly-summary] empty text in response');
-      res.status(502).json({ error: { message: 'Empty response from model' } });
-      return;
-    }
-
-    // Token-usage telemetry. Log only the counts.
-    if (data?.usage) {
-      console.log(
-        '[weekly-summary] usage',
-        JSON.stringify({
-          input: data.usage.input_tokens ?? 0,
-          output: data.usage.output_tokens ?? 0
-        })
-      );
-    }
-
-    res.status(200).json({
-      text,
-      generatedAt: new Date().toISOString()
-    });
-  } catch (err) {
-    // No refund on a timeout: Anthropic may still finish, and bill,
-    // the generation we stopped waiting for.
-    if (err && err.name === 'AbortError') {
-      console.error('[weekly-summary] upstream timeout');
-      res.status(504).json({ error: { message: 'Upstream timeout' } });
-      return;
-    }
-    console.error('[weekly-summary] fetch failure', err);
-    await refundSpend({ principal, cost });
-    res.status(502).json({ error: { message: 'Proxy failure' } });
-  } finally {
-    clearTimeout(timeout);
+  const text = Array.isArray(data?.content)
+    ? data.content
+        .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+        .map((b) => b.text)
+        .join('\n\n')
+        .trim()
+    : '';
+  if (!text) {
+    console.error('[weekly-summary] empty text in response');
+    return { status: 502, body: { error: { message: 'Empty response from model' } } };
   }
+  if (data.usage) {
+    console.log('[weekly-summary] usage', JSON.stringify({
+      input: data.usage.input_tokens ?? 0,
+      output: data.usage.output_tokens ?? 0,
+    }));
+  }
+  return { status: 200, body: { text, generatedAt: new Date().toISOString() } };
+}
+
+export default async function handler(req, res) {
+  await forwardToAnthropic(req, res, {
+    logLabel: 'weekly-summary',
+    buildBody: (body) => buildSummaryRequest(body, recapLocale(req)),
+    readResponse: readSummary,
+    maxBodyBytes: MAX_BODY_BYTES,
+    // Weekly summaries fire at most once per week per user, so 6/min is
+    // generous — anything higher is retry-loop noise or abuse.
+    rateLimitRpm: intEnv('WEEKLY_RPM', 6),
+    // Pro-only in the app (`WeeklySummaryService.isAvailable`); the app
+    // sends its StoreKit transaction in X-Atlas-Entitlement.
+    requirePro: true,
+  });
 }

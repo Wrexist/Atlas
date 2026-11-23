@@ -5,10 +5,9 @@
  * `api.anthropic.com/v1/messages`. The iOS client never sees the
  * upstream Anthropic key.
  *
- * Routes (meal-scan, food-scan, lab-scan, fridge-scan, ai-research) thin-wrap
- * `forwardToAnthropic`, so a new defense is a one-place change.
- * weekly-summary shares the limiter and `refuse` but owns its upstream
- * call.
+ * Routes (meal-scan, food-scan, lab-scan, fridge-scan, ai-research,
+ * weekly-summary) thin-wrap `forwardToAnthropic`, so a new defense is a
+ * one-place change.
  *
  * Env vars (set on the Vercel deployment):
  *   ANTHROPIC_API_KEY    — server-side Anthropic key.
@@ -23,7 +22,8 @@
  *                          meal-scan and ai-research send THINKING_OFF
  *                          only to models that accept it; see there.
  *   RATE_LIMIT_RPM       — requests per minute per principal per
- *                          route. Default 20.
+ *                          route. Default 20 (weekly-summary: WEEKLY_RPM,
+ *                          default 6).
  *   DEVICE_DAILY_QUOTA   — upstream cost units per principal per UTC
  *                          day. Default 300.
  *   SHARED_IP_LIMIT_SCALE
@@ -124,8 +124,8 @@ function getAllowedModels() {
   return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-// Exported so the other proxy files (`weekly-summary.js`) can share the
-// Vercel-aware rate-limit key derivation.
+// Exported so the other routes (attest-register, apple-revoke,
+// crash-report) share the Vercel-aware rate-limit key derivation.
 export function clientKey(req) {
   // Vercel sets `x-vercel-forwarded-for` server-side from its own edge
   // and strips any client-supplied copy of the same header, so it
@@ -152,7 +152,7 @@ export function clientKey(req) {
  * a speed bump rather than a cap. This is why attestation matters
  * beyond authentication: it's what makes per-user quotas possible.
  */
-export function principalFor(req, attest) {
+function principalFor(req, attest) {
   if (attest?.keyId) return `k:${attest.keyId}`;
   return `ip:${clientKey(req)}`;
 }
@@ -162,8 +162,8 @@ export function principalFor(req, attest) {
 // accident of deployment topology. Counts requests, not cost units:
 // spend is bounded by the daily quota and budget, and charging a photo
 // ~4 units here throttled a user after a handful of scans.
-function checkRateLimit(principal, logLabel) {
-  const limit = intEnv('RATE_LIMIT_RPM', 20);
+function checkRateLimit(principal, logLabel, rpm) {
+  const limit = rpm ?? intEnv('RATE_LIMIT_RPM', 20);
   return allowRate({ name: logLabel, key: principal, limit: principalLimit(principal, limit), windowSeconds: 60 });
 }
 
@@ -220,7 +220,7 @@ export function refuseAttest(res, attest) {
  * fixtures, so `PRO_GATE_MODE=report` turns the gate into a log line
  * rather than a redeploy if a real subscriber's JWS is ever refused.
  */
-export function passesProGate(req, res, logLabel) {
+function passesProGate(req, res, logLabel) {
   if (hasVerifiedPro(req, logLabel)) return true;
   if (process.env.PRO_GATE_MODE === 'report') {
     console.warn(`[${logLabel}] pro gate report: no verified entitlement`);
@@ -333,9 +333,9 @@ function sanitiseBody(raw, options) {
  * gets what is left of it, and is not started with less than
  * MIN_UPSTREAM_MS to go.
  */
-export const MIN_UPSTREAM_MS = 5_000;
+const MIN_UPSTREAM_MS = 5_000;
 
-export function remainingUpstreamMs(startedAt, timeoutMs) {
+function remainingUpstreamMs(startedAt, timeoutMs) {
   return timeoutMs - (Date.now() - startedAt);
 }
 
@@ -348,6 +348,7 @@ export async function forwardToAnthropic(req, res, {
   shape,
   maxTokens,
   thinking,
+  rateLimitRpm,
   buildBody,
   readResponse,
   betas,
@@ -391,7 +392,7 @@ export async function forwardToAnthropic(req, res, {
     return;
   }
 
-  if (!(await checkRateLimit(principal, logLabel))) {
+  if (!(await checkRateLimit(principal, logLabel, rateLimitRpm))) {
     // Persistent hammering earns a cooldown; a client that trips the
     // limit occasionally never accumulates enough strikes to notice.
     if (await recordLimitStrike({ principal })) {
