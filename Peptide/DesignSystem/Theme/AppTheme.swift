@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 /// Brand color identities surfaced on the onboarding "Make it yours"
 /// step and reapplied across the app via `AppColor.accent*`. The first
@@ -112,6 +113,20 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
 
     var primary: Color { ramp.primary }
 
+    /// `primary` as hex, for the widgets and the Watch, which can't see
+    /// this type. Kept literal like the ramps so `contrast-check.py` can
+    /// read both; `AppThemeColorTests` pins the two together.
+    var accent: ThemeAccent {
+        switch self {
+        case .teal: .emerald
+        case .purpleGradient: ThemeAccent(light: 0x5B52B8, dark: 0x7F77DD)
+        case .ocean: ThemeAccent(light: 0x1F6FC0, dark: 0x378ADD)
+        case .amber: ThemeAccent(light: 0x9A6112, dark: 0xBA7517)
+        case .onyx: ThemeAccent(light: 0x3F3F3D, dark: 0xC9C9C7)
+        case .ember: ThemeAccent(light: 0xB04A17, dark: 0xF08A4B)
+        }
+    }
+
     /// The lighter step of the theme's one hue: accent ink on a surface,
     /// and the second stop of every `[primary, light]` gradient.
     var light: Color { ramp.light }
@@ -200,6 +215,8 @@ final class ThemeManager: @unchecked Sendable {
         didSet {
             assertMainActor()
             UserDefaults.standard.set(theme.rawValue, forKey: Self.colorKey)
+            theme.accent.store()
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
 
@@ -220,5 +237,9 @@ final class ThemeManager: @unchecked Sendable {
 
         let rawMode = UserDefaults.standard.string(forKey: Self.displayModeKey) ?? ""
         self.displayMode = DisplayMode(rawValue: rawMode) ?? .dark
+
+        // `didSet` doesn't run in `init`; a theme picked before the widgets
+        // learned to read it still has to reach them.
+        theme.accent.store()
     }
 }

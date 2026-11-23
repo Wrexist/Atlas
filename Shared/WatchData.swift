@@ -213,6 +213,9 @@ struct WatchData: Codable, Equatable, Sendable {
     /// Workouts the Watch ran on its own that the phone has filed, most
     /// recent last, so the Watch can stop holding them for delivery.
     private(set) var syncedWorkoutIDs: [UUID]?
+    /// The theme accent picked on the phone, for the Watch's emphasis
+    /// colour. Nil from an older phone build, which reads as emerald.
+    let accent: ThemeAccent?
 
     var compliance: Double {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
@@ -243,7 +246,8 @@ struct WatchData: Codable, Equatable, Sendable {
         training: WatchTrainingSnapshot? = nil,
         hapticsEnabled: Bool? = nil,
         trainingCatalog: WatchTrainingCatalog? = nil,
-        syncedWorkoutIDs: [UUID]? = nil
+        syncedWorkoutIDs: [UUID]? = nil,
+        accent: ThemeAccent? = nil
     ) {
         self.todayEntries = todayEntries
         self.completedToday = completedToday
@@ -270,6 +274,7 @@ struct WatchData: Codable, Equatable, Sendable {
         self.hapticsEnabled = hapticsEnabled
         self.trainingCatalog = trainingCatalog
         self.syncedWorkoutIDs = syncedWorkoutIDs
+        self.accent = accent
     }
 
     init(from decoder: Decoder) throws {
@@ -299,6 +304,7 @@ struct WatchData: Codable, Equatable, Sendable {
         hapticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .hapticsEnabled)
         trainingCatalog = try c.decodeIfPresent(WatchTrainingCatalog.self, forKey: .trainingCatalog)
         syncedWorkoutIDs = try c.decodeIfPresent([UUID].self, forKey: .syncedWorkoutIDs)
+        accent = try c.decodeIfPresent(ThemeAccent.self, forKey: .accent)
     }
 
     /// The same snapshot with a new dose list — what an optimistic Watch

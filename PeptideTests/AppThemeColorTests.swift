@@ -1,4 +1,5 @@
 import XCTest
+import SwiftUI
 @testable import Peptide
 
 final class AppThemeColorTests: XCTestCase {
@@ -50,6 +51,26 @@ final class AppThemeColorTests: XCTestCase {
         XCTAssertEqual(DisplayMode.light.preferredScheme, .light)
         XCTAssertEqual(DisplayMode.dark.preferredScheme,  .dark)
         XCTAssertNil(DisplayMode.system.preferredScheme)
+    }
+
+    // MARK: - Accent handed to widgets and the Watch
+
+    /// `accent` is a literal copy of each ramp's `primary` stop; if the two
+    /// drift, the widgets and the Watch paint a different colour than the app.
+    func test_accent_matchesPrimaryInBothSchemes() {
+        for theme in AppThemeColor.allCases {
+            let primary = UIColor(theme.primary)
+            XCTAssertEqual(hex(primary, .light), theme.accent.light, "\(theme) light")
+            XCTAssertEqual(hex(primary, .dark), theme.accent.dark, "\(theme) dark")
+        }
+    }
+
+    private func hex(_ color: UIColor, _ style: UIUserInterfaceStyle) -> UInt32 {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        color.resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
+            .getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        let byte = { (component: CGFloat) in UInt32((component * 255).rounded()) }
+        return byte(red) << 16 | byte(green) << 8 | byte(blue)
     }
 
     func test_appThemeColor_caseCount_matchesSpec() {

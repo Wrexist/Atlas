@@ -102,7 +102,8 @@ final class WatchSyncService: NSObject {
             vitals: vitals,
             workout: workout,
             training: training,
-            hapticsEnabled: hapticsEnabled
+            hapticsEnabled: hapticsEnabled,
+            accent: ThemeAccent.stored()
         )
         publish(data)
     }

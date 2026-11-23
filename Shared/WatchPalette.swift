@@ -19,6 +19,15 @@ enum WatchPalette {
     static let training = hex(0x378ADD)
     static let protocolDose = hex(0xA78BFA)
 
+    // MARK: Emphasis
+
+    /// The phone's theme accent, for emphasis that isn't a data colour (a
+    /// done check, points just earned, system controls). The dark stop,
+    /// since the Watch is dark-only; emerald until the phone sends one.
+    static func accent(_ accent: ThemeAccent?) -> Color {
+        hex((accent ?? .emerald).dark)
+    }
+
     // MARK: Recovery
 
     /// Apple's Heart Rate red, not `AppColor.metricHeartRate`: the wrist
