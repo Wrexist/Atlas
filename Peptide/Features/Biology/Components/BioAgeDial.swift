@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Bio Age dial. A 240° arc spanning chronological age ± the estimate's
-/// largest possible drift (`PerformanceAgeEngine.maxDriftYears`), with a
+/// largest possible drift (`BiologicalAgeEngine.maxDriftYears`), with a
 /// bound label at each end and a marker at the user's estimated bio age.
 ///
 /// Two strokes, not one. The full sweep is a hairline track — the scale
@@ -24,7 +24,7 @@ struct BioAgeDial: View {
     /// How far the scale stretches in either direction from
     /// `chronologicalAge`. The dial's bound labels reflect this. Matches
     /// the engine's cap, so no estimate ever parks at an end it isn't at.
-    var rangeHalfSpan: Int = Int(PerformanceAgeEngine.maxDriftYears)
+    var rangeHalfSpan: Int = Int(BiologicalAgeEngine.maxDriftYears)
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The pulse clock stops while the dial is scrolled out of view.

@@ -25,8 +25,6 @@ const BASE_ENV = {
   CRASH_REPORT_RPM: '1000',
   UPSTASH_REDIS_REST_URL: undefined,
   UPSTASH_REDIS_REST_TOKEN: undefined,
-  KV_REST_API_URL: undefined,
-  KV_REST_API_TOKEN: undefined,
 };
 
 // A per-thread MetricKit stack: the root is the innermost frame and each

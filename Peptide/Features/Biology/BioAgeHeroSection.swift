@@ -34,7 +34,7 @@ struct BioAgeHeroSection: View {
         /// `requiredDays` is the day the estimate unlocks with the signals
         /// present; nil when only more signals can unlock it.
         case building(days: Int, requiredDays: Int?)
-        case unlocked(estimate: PerformanceAgeEngine.Estimate)
+        case unlocked(estimate: BiologicalAgeEngine.Estimate)
     }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -172,7 +172,7 @@ struct BioAgeHeroSection: View {
     /// The number and its unit, alone in the arc so they sit on its
     /// optical centre. Sign-tinted so "younger" / "older" reads in the
     /// first glance.
-    private func unlockedCentre(estimate: PerformanceAgeEngine.Estimate) -> some View {
+    private func unlockedCentre(estimate: BiologicalAgeEngine.Estimate) -> some View {
         let shown = displayedAge ?? estimate.biologicalAge
         return VStack(spacing: Spacing.xxs) {
             Text(BioAgeFormat.age(shown))
@@ -284,13 +284,13 @@ struct BioAgeHeroSection: View {
     /// Share of the unlock day reached; when only signals are missing,
     /// the share of the full confidence window instead.
     static func buildingProgress(days: Int, requiredDays: Int?) -> Double {
-        let target = max(1, requiredDays ?? PerformanceAgeEngine.windowDays)
+        let target = max(1, requiredDays ?? BiologicalAgeEngine.windowDays)
         return min(1, Double(max(0, days)) / Double(target))
     }
 
     /// Below the dial: the delta against chronological age, what it was
     /// read against and how sure it is, then the way into the detail.
-    private func unlockedSummary(estimate: PerformanceAgeEngine.Estimate) -> some View {
+    private func unlockedSummary(estimate: BiologicalAgeEngine.Estimate) -> some View {
         VStack(spacing: Spacing.sm) {
             deltaBadge(for: estimate)
             Text(contextLine(for: estimate))
@@ -301,7 +301,7 @@ struct BioAgeHeroSection: View {
         }
     }
 
-    private func contextLine(for estimate: PerformanceAgeEngine.Estimate) -> String {
+    private func contextLine(for estimate: BiologicalAgeEngine.Estimate) -> String {
         let confidence = Self.confidenceLabel(estimate.confidence)
         return String(localized: "Chronological age \(chronologicalAge) · \(confidence)")
     }
@@ -314,7 +314,7 @@ struct BioAgeHeroSection: View {
         return String(localized: "Early estimate")
     }
 
-    private func deltaBadge(for estimate: PerformanceAgeEngine.Estimate) -> some View {
+    private func deltaBadge(for estimate: BiologicalAgeEngine.Estimate) -> some View {
         let delta = estimate.biologicalAge - Double(chronologicalAge)
         let absDelta = abs(delta) < Self.matchingTolerance ? 0 : abs(delta)
         let badgeTint = tint(for: estimate)
@@ -345,7 +345,7 @@ struct BioAgeHeroSection: View {
     }
 
     /// Green when younger / matching; warm orange when older.
-    private func tint(for estimate: PerformanceAgeEngine.Estimate) -> Color {
+    private func tint(for estimate: BiologicalAgeEngine.Estimate) -> Color {
         estimate.biologicalAge - Double(chronologicalAge) < Self.matchingTolerance
             ? AppColor.positive
             : AppColor.negative
@@ -371,7 +371,7 @@ struct BioAgeHeroSection: View {
             return
         }
         if displayedAge == nil {
-            displayedAge = Double(chronologicalAge) - PerformanceAgeEngine.maxDriftYears
+            displayedAge = Double(chronologicalAge) - BiologicalAgeEngine.maxDriftYears
             try? await Task.sleep(for: .milliseconds(150))
             guard !Task.isCancelled else { return }
         }

@@ -21,7 +21,7 @@ struct ActiveWorkoutView: View {
     /// the cover slides away after a discard.
     @State private var discarding = false
     @State private var finishedSession: WorkoutSession?
-    @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
+    @State private var finishedPRs: [PRDetectionService.DetectedPR] = []
     /// Set at finish when this workout earns a review prompt (a new PR or
     /// the third workout); consumed once the finish screen has landed.
     @State private var isReviewMoment = false

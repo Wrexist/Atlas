@@ -356,7 +356,7 @@ struct BiologyView: View {
         let fresh = await BioAgeStateResolver.resolve(
             chronologicalAge: profile.bodyMetrics.age,
             sex: profile.bodyMetrics.sex,
-            bodyMassIndex: PerformanceAgeEngine.bodyMassIndex(
+            bodyMassIndex: BiologicalAgeEngine.bodyMassIndex(
                 weightKg: latestWeight,
                 heightCm: profile.bodyMetrics.heightCm
             ),

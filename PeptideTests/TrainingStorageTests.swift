@@ -440,7 +440,7 @@ final class TrainingStorageTests: XCTestCase {
             ]
         )
 
-        let detected = PRDetectionEngine.shared.ingest(session: session)
+        let detected = PRDetectionService.shared.ingest(session: session)
 
         XCTAssertTrue(detected.isEmpty, "A first volume is a baseline and no merged best was beaten")
         let loaded = repo.loadPersonalRecords()

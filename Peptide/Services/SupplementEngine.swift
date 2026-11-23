@@ -37,8 +37,7 @@ enum SupplementEngine {
 
     /// "2026-10-28" for the local day containing `date`.
     static func dayKey(for date: Date, calendar: Calendar) -> String {
-        let c = calendar.dateComponents([.year, .month, .day], from: date)
-        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+        DayKey.dashed(date, calendar: calendar)
     }
 
     static func isTaken(_ supplement: Supplement, on date: Date, calendar: Calendar) -> Bool {

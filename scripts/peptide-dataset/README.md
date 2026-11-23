@@ -92,40 +92,10 @@ If you want to cut cost, swap `CLAUDE_MODEL = "claude-opus-4-6"` to `"claude-son
 
 ## Integrate into the iOS app
 
-1. **Copy `peptides.json` into your Xcode project:**
-   ```
-   Peptide/Resources/peptides.json
-   ```
-
-2. **Add to `project.yml`** — it's already covered by `sources: - path: Peptide` so XcodeGen will pick it up automatically on the next `xcodegen generate`. Just confirm it's not in the excludes list.
-
-3. **Copy `PeptideDatabase.swift`** into:
-   ```
-   Peptide/Data/PeptideDatabase.swift
-   ```
-
-4. **Update `DataStore.swift`** — replace the hardcoded mock list. In `MockPeptides.swift`, change:
-   ```swift
-   static let all: [Peptide] = [bpc157, tb500, ...]
-   ```
-   to:
-   ```swift
-   static let all: [Peptide] = PeptideDatabase.load()
-   ```
-   The loader falls back to the hardcoded mocks if the JSON is missing, so existing previews keep working.
-
-5. **Extend the `Peptide` model** (optional, recommended) to surface the new fields:
-   ```swift
-   struct Peptide: Identifiable, Hashable {
-       // ...existing fields...
-       let mechanism: String
-       let contraindications: [String]
-       let sideEffects: [String]
-       let commonStacks: [String]
-       let regulatoryStatus: String
-   }
-   ```
-   Then update `PeptideDatabase.map(_:)` to populate them, and add new sections to `PeptideDetailView` to display contraindications, side effects, and the "Commonly stacked with" list.
+The app already bundles the dataset at `Peptide/Resources/peptides.json`
+and loads it with `Peptide/Data/PeptideDatabase.swift`. That copy has
+been hand-corrected since it was generated, so diff a fresh build
+against it and carry the corrections over rather than overwriting it.
 
 ## Important: review before shipping
 
@@ -154,7 +124,6 @@ Open `peptides.json`, find each, and spot-check:
 
 - `peptide_list.py` — the 210 peptide master list (edit to add/remove)
 - `build_dataset.py` — the main script
-- `PeptideDatabase.swift` — drop-in loader for the iOS app
 - `peptides.json` — **output** (generated)
 - `peptides.partial.json` — **checkpoint** (generated, resumable)
 - `build.log` — run log (generated)

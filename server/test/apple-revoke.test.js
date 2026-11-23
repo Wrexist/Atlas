@@ -30,8 +30,6 @@ const BASE_ENV = {
   REVOKE_RPM: '1000',
   UPSTASH_REDIS_REST_URL: undefined,
   UPSTASH_REDIS_REST_TOKEN: undefined,
-  KV_REST_API_URL: undefined,
-  KV_REST_API_TOKEN: undefined,
 };
 
 const APPLE_TOKENS = { refresh_token: 'r-token', access_token: 'a-token' };

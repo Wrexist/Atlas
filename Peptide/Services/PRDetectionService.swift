@@ -11,8 +11,8 @@ import OSLog
 /// celebrate them with confetti + haptic without scanning the full
 /// history.
 @MainActor @Observable
-final class PRDetectionEngine {
-    static let shared = PRDetectionEngine()
+final class PRDetectionService {
+    static let shared = PRDetectionService()
     private init() {}
 
     struct DetectedPR: Hashable, Sendable {
