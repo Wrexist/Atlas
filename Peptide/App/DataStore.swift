@@ -2027,7 +2027,7 @@ final class DataStore {
         // on must still leave Health. It matches only Atlas's own sample
         // and fails quietly without permission.
         Task { await HealthKitService.shared.deleteWorkout(id: id) }
-        PRDetectionEngine.shared.recompute(exerciseIDs: affectedExercises)
+        PRDetectionService.shared.recompute(exerciseIDs: affectedExercises)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
         // Same reason as `recordWorkoutFinished`: a repo-level write is
@@ -2121,7 +2121,7 @@ final class DataStore {
 
     /// Editing changes derived records and totals, but earns no second reward.
     func workoutWasEdited(exerciseIDs: Set<String>) {
-        PRDetectionEngine.shared.recompute(exerciseIDs: exerciseIDs)
+        PRDetectionService.shared.recompute(exerciseIDs: exerciseIDs)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
         workoutHistoryDidChange()

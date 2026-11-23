@@ -4,7 +4,7 @@ import XCTest
 /// Personal records are derived data; workout history is the source.
 /// These tests pin the invariant that deleting a session can never leave
 /// a PR standing that no surviving workout justifies. Runs against the
-/// in-memory store (unlike PRDetectionEngineTests, which predates
+/// in-memory store (unlike PRDetectionServiceTests, which predates
 /// `configureForTesting` and scrubs the live store instead).
 @MainActor
 final class PRConsistencyTests: XCTestCase {
@@ -93,8 +93,8 @@ final class PRConsistencyTests: XCTestCase {
         let prSession = finishedSession(weightKg: 140, reps: 1, daysAgo: 2)
         repo.upsertWorkoutSession(baseline)
         repo.upsertWorkoutSession(prSession)
-        PRDetectionEngine.shared.ingest(session: baseline)
-        PRDetectionEngine.shared.ingest(session: prSession)
+        PRDetectionService.shared.ingest(session: baseline)
+        PRDetectionService.shared.ingest(session: prSession)
         XCTAssertEqual(benchRecord()?.bestAbsoluteWeightKg, 140)
 
         store.deleteWorkout(id: prSession.id)
@@ -109,7 +109,7 @@ final class PRConsistencyTests: XCTestCase {
     func test_workoutDeletion_lastSessionForExercise_removesPR() {
         let only = finishedSession(weightKg: 120, reps: 3, daysAgo: 1)
         repo.upsertWorkoutSession(only)
-        PRDetectionEngine.shared.ingest(session: only)
+        PRDetectionService.shared.ingest(session: only)
         XCTAssertNotNil(benchRecord())
 
         store.deleteWorkout(id: only.id)
@@ -124,8 +124,8 @@ final class PRConsistencyTests: XCTestCase {
         squat.exercises[0].exerciseID = "Barbell_Squat"
         repo.upsertWorkoutSession(bench)
         repo.upsertWorkoutSession(squat)
-        PRDetectionEngine.shared.ingest(session: bench)
-        PRDetectionEngine.shared.ingest(session: squat)
+        PRDetectionService.shared.ingest(session: bench)
+        PRDetectionService.shared.ingest(session: squat)
 
         store.deleteWorkout(id: squat.id)
 

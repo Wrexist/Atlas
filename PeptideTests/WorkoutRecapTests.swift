@@ -341,7 +341,7 @@ final class WorkoutCompletionPersistenceTests: XCTestCase {
                 session.exercises[e].sets[s].measurement = .init(kind: .assisted)
             }
         }
-        XCTAssertTrue(PRDetectionEngine.shared.ingest(session: session).isEmpty)
+        XCTAssertTrue(PRDetectionService.shared.ingest(session: session).isEmpty)
         XCTAssertTrue(repo.loadPersonalRecords().isEmpty)
     }
 
