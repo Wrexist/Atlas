@@ -50,14 +50,6 @@ struct DailyPlanCard: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Spacer(minLength: 0)
-                if plan.combinationCount > 0 {
-                    countBadge(
-                        icon: "link",
-                        count: plan.combinationCount,
-                        color: AppColor.accentPrimary,
-                        accessibilityLabel: String(localized: "\(plan.combinationCount) research pairings")
-                    )
-                }
                 if plan.conflictCount > 0 {
                     countBadge(
                         icon: "exclamationmark.triangle.fill",
@@ -255,9 +247,6 @@ private struct DailyPlanDoseRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.leading)
             }
-            ForEach(dose.combinations, id: \.self) { combo in
-                combinationChip(combo)
-            }
             ForEach(dose.conflicts, id: \.self) { conflict in
                 conflictChip(conflict)
             }
@@ -314,32 +303,6 @@ private struct DailyPlanDoseRow: View {
             .padding(.horizontal, Spacing.xs)
             .padding(.vertical, Spacing.xxs)
             .background { Capsule().fill(AppColor.warning.opacity(0.15)) }
-    }
-
-    private func combinationChip(_ combo: DailyScheduleEngine.CombinationHint) -> some View {
-        HStack(alignment: .top, spacing: Spacing.xs) {
-            Image(systemName: "link")
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 14)
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Often researched with \(combo.withAbbreviation)")
-                    .font(AppFont.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.accentLight)
-                Text(combo.synergy)
-                    .font(AppFont.scaled(11))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .lineLimit(2)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, Spacing.xs)
-        .padding(.horizontal, Spacing.sm)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.10))
-        }
     }
 
     private func conflictChip(_ conflict: DailyScheduleEngine.ConflictHint) -> some View {

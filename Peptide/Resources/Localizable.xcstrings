@@ -4155,46 +4155,6 @@
         }
       }
     },
-    "%lld research pairings": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld forskningskombination"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld forskningskombinationer"
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld research pairing"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld research pairings"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%lld scheduled": {
       "localizations": {
         "sv": {
@@ -27029,16 +26989,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kombineras ofta med"
-          }
-        }
-      }
-    },
-    "Often researched with %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Studeras ofta tillsammans med %@"
           }
         }
       }
