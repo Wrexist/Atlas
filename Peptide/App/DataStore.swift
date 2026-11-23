@@ -2907,7 +2907,6 @@ final class DataStore {
         #endif
         let data = WidgetSnapshotBuilder.build(
             today: todayEntries,
-            next: nextDose,
             hasActiveProtocol: !activeProtocols.isEmpty,
             consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
             targets: profile.nutritionTargets,
