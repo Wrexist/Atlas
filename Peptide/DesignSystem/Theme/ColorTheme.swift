@@ -63,8 +63,6 @@ enum AppColor {
 
     // MARK: - Exercise demonstration
 
-    static let trainingSelection = Color(light: 0x2465DF, dark: 0x80ADFF)
-    static let trainingComplete = Color(light: 0x19843D, dark: 0x238943)
     static let trainingPrimaryMuscle = Color(light: 0xB84813, dark: 0xFFAC73)
     static let trainingSecondaryMuscle = Color(light: 0x2465DF, dark: 0x80ADFF)
     /// Tints multiplied onto the grey body figure. Brighter than the text

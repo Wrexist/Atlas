@@ -64,7 +64,7 @@ struct SetEditorRow: View {
         // A logged set reads as done at a glance, not only through its glyph.
         .background {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.trainingComplete.opacity(set.completed ? 0.10 : 0))
+                .fill(AppColor.success.opacity(set.completed ? 0.10 : 0))
                 .padding(.horizontal, -Spacing.xs)
         }
         .appAnimation(AppAnimation.springSnappy, value: set.completed)
@@ -117,7 +117,7 @@ struct SetEditorRow: View {
         }
             .font(AppFont.caption2.weight(.semibold))
             .monospacedDigit()
-            .foregroundStyle(isCurrent ? AppColor.trainingSelection : AppColor.textPrimary)
+            .foregroundStyle(isCurrent ? AppColor.accentPrimary : AppColor.textPrimary)
             .frame(minWidth: 24, minHeight: 24)
             .background(
                 Circle()
@@ -246,7 +246,7 @@ struct SetEditorRow: View {
                 .foregroundStyle(
                     set.completed ? AppColor.onAccent : AppColor.textTertiary,
                     // The same green as the row's done wash behind it.
-                    set.completed ? AppColor.trainingComplete : AppColor.textTertiary
+                    set.completed ? AppColor.success : AppColor.textTertiary
                 )
                 .frame(width: 32, height: 32)
                 .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))

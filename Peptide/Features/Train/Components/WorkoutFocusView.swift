@@ -135,18 +135,18 @@ struct WorkoutFocusView: View {
             .clipShape(Circle())
             .padding(Spacing.xs)
             .background(Circle().fill(AppColor.surfaceElevated))
-            .overlay(Circle().stroke(selected ? AppColor.trainingSelection : AppColor.glassBorder, lineWidth: selected ? 3 : 1))
+            .overlay(Circle().stroke(selected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: selected ? 3 : 1))
             .overlay(
                 Circle()
                     .trim(from: 0, to: progress)
-                    .stroke(AppColor.trainingComplete, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .stroke(AppColor.success, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .rotationEffect(.degrees(-90))
             )
             .overlay(alignment: .bottomTrailing) {
                 if complete {
                     Image(systemName: "checkmark.circle.fill")
                         .symbolRenderingMode(.palette)
-                        .foregroundStyle(AppColor.onAccent, AppColor.trainingComplete)
+                        .foregroundStyle(AppColor.onAccent, AppColor.accentFill)
                         .background(Circle().fill(AppColor.surfaceElevated))
                         .symbolEffect(.bounce, value: complete)
                         .transition(.scale.combined(with: .opacity))
@@ -524,7 +524,7 @@ private struct RestCountdownRing: View {
                     .stroke(AppColor.track, lineWidth: 6)
                 Circle()
                     .trim(from: 0, to: rest.remainingFraction(at: context.date))
-                    .stroke(AppColor.trainingSelection, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .stroke(AppColor.accentPrimary, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(-90))
             }
         }

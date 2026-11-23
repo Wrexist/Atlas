@@ -94,7 +94,7 @@ struct WorkoutHighlightCanvas: View {
                         ExerciseImageView(exercise: ExerciseLibrary.shared.lookup(id: item.exerciseID))
                             .frame(width: 34, height: 34)
                             .clipShape(Circle())
-                            .overlay(Circle().stroke(item.id == entry?.id ? AppColor.trainingSelection : .clear, lineWidth: 2))
+                            .overlay(Circle().stroke(item.id == entry?.id ? AppColor.accentPrimary : .clear, lineWidth: 2))
                     }
                 }
             }
