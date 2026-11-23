@@ -22,7 +22,7 @@ struct HomeView: View {
     /// step with the user's finger. Handed down as a binding and never
     /// read here, so scroll frames re-render only the header.
     @State private var stickyProgress: Double = 0
-    /// Device-local on purpose: the "Today shows less now" hint is for
+    /// Device-local on purpose: the "Add Steps, Your day and more" hint is for
     /// whoever is holding this phone, and nothing synced can bring it back.
     @AppStorage("today.hasOpenedEditToday") private var hasOpenedEditToday = false
     /// The build that started most Today sections off. Only members from
@@ -1163,7 +1163,7 @@ struct HomeView: View {
     private var customizeTodayButton: some View {
         VStack(spacing: Spacing.sm) {
             if !hasOpenedEditToday && dataStore.profile.memberSince < Self.todaySimplifiedOn {
-                Text("Today shows less now. Turn on Steps, Your day and more here.")
+                Text("Add Steps, Your day and more with Edit Today.")
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
