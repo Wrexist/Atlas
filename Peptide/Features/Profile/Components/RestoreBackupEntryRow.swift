@@ -10,7 +10,7 @@ struct RestoreBackupEntryRow: View {
         GlassEntryRow(
             icon: "tray.and.arrow.down.fill",
             title: "Restore from backup",
-            subtitle: Text("Re-import a previously-exported JSON backup. A safety copy of your current data is saved on this device first."),
+            subtitle: Text("Re-import an exported backup. Your current data is copied first."),
             action: onTap
         )
         .accessibilityHint("Opens the restore-from-backup flow.")

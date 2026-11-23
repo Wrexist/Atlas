@@ -30421,12 +30421,12 @@
         }
       }
     },
-    "Re-import a previously-exported JSON backup. A safety copy of your current data is saved on this device first.": {
+    "Re-import an exported backup. Your current data is copied first.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Importera en tidigare exporterad JSON-säkerhetskopia. En säkerhetskopia av dina nuvarande data sparas först på enheten."
+            "value": "Importera en exporterad säkerhetskopia. Dina nuvarande data kopieras först."
           }
         }
       }
