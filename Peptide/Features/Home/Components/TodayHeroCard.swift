@@ -1,14 +1,13 @@
 import SwiftUI
 
 /// Today's lit summary card: one ring for how far the whole day has come,
-/// and a bar per health goal (calories, steps, water, then doses or
-/// habits) beside it. Accent fill
+/// and a bar per health goal (calories, steps, water, habits) beside it. Accent fill
 /// with a slow-moving light, a tinted lift, and a few degrees of tilt as
 /// the phone moves or the card scrolls away, so the first thing on Today
 /// is an object with weight rather than another flat list.
 struct TodayHeroCard: View {
     struct Part: Identifiable, Equatable {
-        enum Kind: String { case calories, steps, water, doses, habits }
+        enum Kind: String { case calories, steps, water, habits }
         let kind: Kind
         /// 0…1 toward the day's goal.
         let fraction: Double
@@ -130,7 +129,6 @@ private extension TodayHeroCard.Part {
         case .calories: "Calories"
         case .steps: "Steps"
         case .water: "Water"
-        case .doses: "Doses"
         case .habits: "Habits"
         }
     }
@@ -140,7 +138,6 @@ private extension TodayHeroCard.Part {
         case .calories: "flame"
         case .steps: "figure.walk"
         case .water: "drop"
-        case .doses: "syringe"
         case .habits: "checkmark.seal"
         }
     }
@@ -373,7 +370,7 @@ struct TodayBackdrop: View {
         .init(kind: .calories, amount: 1620, goal: 2400),
         .init(kind: .steps, amount: 6210, goal: 8000),
         .init(kind: .water, amount: 48, goal: 100),
-        .init(kind: .doses, done: 5, total: 8),
+        .init(kind: .habits, done: 3, total: 5),
     ])
     .padding()
     .pageBackground()

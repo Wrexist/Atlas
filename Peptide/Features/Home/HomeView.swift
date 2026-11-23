@@ -150,8 +150,6 @@ struct HomeView: View {
         var checklist: TodayChecklistEngine.State?
         /// The shown day's supplements with their checks, under the checklist.
         var supplements: [SupplementEngine.Row] = []
-        /// The shown day's doses taken and scheduled, for the hero card.
-        var doseCount: (done: Int, total: Int) = (0, 0)
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -190,8 +188,9 @@ struct HomeView: View {
         return stats.total > 0 ? stats.score : nil
     }
 
-    /// The hero card's goals: the day's food, movement and water first,
-    /// then doses when a protocol runs, else habits. Each shows only when
+    /// The hero card's goals: the day's food, movement and water, then
+    /// habits. Doses stay out: protocols are an optional extra with their
+    /// own section at the bottom of Today. Each shows only when
     /// it has a target, so the ring never counts a goal the user hasn't set.
     private var heroParts: [TodayHeroCard.Part] {
         var parts: [TodayHeroCard.Part] = []
@@ -204,9 +203,7 @@ struct HomeView: View {
             }
             parts.append(.init(kind: .water, fraction: checklist.waterProgress, value: checklist.waterProgress.formatted(.percent.precision(.fractionLength(0)))))
         }
-        if showsDoseSection, derived.doseCount.total > 0 {
-            parts.append(.init(kind: .doses, done: derived.doseCount.done, total: derived.doseCount.total))
-        } else if derived.habits.dueCount > 0 {
+        if derived.habits.dueCount > 0 {
             parts.append(.init(kind: .habits, done: derived.habits.doneCount, total: derived.habits.dueCount))
         }
         return parts
@@ -283,8 +280,7 @@ struct HomeView: View {
                 steps: steps(on: day),
                 now: reference
             ),
-            supplements: SupplementEngine.rows(dataStore.profile.supplements, on: reference, calendar: .current),
-            doseCount: (done: dayEntries.filter(\.completed).count, total: dayEntries.count)
+            supplements: SupplementEngine.rows(dataStore.profile.supplements, on: reference, calendar: .current)
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
