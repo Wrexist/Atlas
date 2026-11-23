@@ -371,14 +371,55 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertEqual(service.requestedCount, 7)
     }
 
+    func test_scheduleNotifications_singleCycleEndingInWindow_remindsOnlyUntilCycleEnd() {
+        // A one-week cycle on day 4: days 4–7 remain, then Today shows no
+        // dose, so no reminder may fire past them.
+        let proto = makeWashoutProtocol(onWeeks: 1, offWeeks: 0, startedDaysAgo: 3)
+        service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(service.requestedCount, 4)
+    }
+
+    func test_needsDatedWeeklyReminders_cycleEndsAfterWindow_isFalse() {
+        let calendar = stockholmCalendar
+        let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 19, hour: 9)) ?? Date()
+        let proto = makeWashoutProtocol(onWeeks: 8, offWeeks: 0, startedDaysAgo: 0, now: now, calendar: calendar)
+        XCTAssertFalse(NotificationService.needsDatedWeeklyReminders(proto, now: now, calendar: calendar))
+    }
+
+    func test_needsDatedWeeklyReminders_cycleEndsInsideWindow_isTrue() {
+        let calendar = stockholmCalendar
+        let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 19, hour: 9)) ?? Date()
+        let proto = makeWashoutProtocol(onWeeks: 8, offWeeks: 0, startedDaysAgo: 50, now: now, calendar: calendar)
+        XCTAssertTrue(NotificationService.needsDatedWeeklyReminders(proto, now: now, calendar: calendar))
+    }
+
+    func test_needsDatedWeeklyReminders_cycleNotStarted_isTrue() {
+        let calendar = stockholmCalendar
+        let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 19, hour: 9)) ?? Date()
+        let proto = makeWashoutProtocol(onWeeks: 8, offWeeks: 0, startedDaysAgo: -30, now: now, calendar: calendar)
+        XCTAssertTrue(NotificationService.needsDatedWeeklyReminders(proto, now: now, calendar: calendar))
+    }
+
     // MARK: - Helpers
 
-    private func makeWashoutProtocol(onWeeks: Int, offWeeks: Int, startedDaysAgo: Int) -> PeptideProtocol {
-        let start = Calendar.current.date(
+    private var stockholmCalendar: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Europe/Stockholm") ?? .current
+        return c
+    }
+
+    private func makeWashoutProtocol(
+        onWeeks: Int,
+        offWeeks: Int,
+        startedDaysAgo: Int,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> PeptideProtocol {
+        let start = calendar.date(
             byAdding: .day,
             value: -startedDaysAgo,
-            to: Calendar.current.startOfDay(for: Date())
-        ) ?? Date()
+            to: calendar.startOfDay(for: now)
+        ) ?? now
         return PeptideProtocol(
             id: UUID(),
             name: "Cycled Protocol",

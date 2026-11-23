@@ -263,7 +263,7 @@ final class NotificationService {
 
             let grouped = Self.weeklySlotGroups(for: proto, invalidWeekdays: &invalidWeekdaysSet)
 
-            if proto.washoutWeeks > 0 {
+            if Self.needsDatedWeeklyReminders(proto, now: now, calendar: calendar) {
                 appendCycleBoundedWeeklyRequests(
                     proto,
                     grouped: grouped,
@@ -700,8 +700,8 @@ final class NotificationService {
     /// topped up as occurrences fire.
     private static let intervalLookahead: Int = 12
 
-    /// Days of dated reminders pre-scheduled for a weekly protocol with a
-    /// wash-out. Same top-up-on-activation model as `intervalLookahead`.
+    /// Days of dated reminders pre-scheduled for a weekly protocol near a
+    /// cycle boundary. Same top-up-on-activation model as `intervalLookahead`.
     private static let cycleBoundedLookaheadDays: Int = 14
 
     private func makeContent(
@@ -819,9 +819,23 @@ final class NotificationService {
         }
     }
 
-    /// Weekly slots for a protocol with a wash-out. A repeating weekly
-    /// trigger would keep firing through the off weeks, so these become
-    /// dated one-shots on the on-cycle days inside the lookahead window.
+    /// True when a repeating weekly trigger would fire on a day Today shows
+    /// no dose: any protocol with a wash-out, or a single cycle that starts
+    /// or ends inside the look-ahead window. Those slots become dated
+    /// one-shots filtered by `CyclePhaseEngine.isOnCycle`.
+    static func needsDatedWeeklyReminders(_ proto: PeptideProtocol, now: Date, calendar: Calendar) -> Bool {
+        guard proto.washoutWeeks == 0 else { return true }
+        let today = calendar.startOfDay(for: now)
+        return (0..<cycleBoundedLookaheadDays).contains { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: today) else { return false }
+            return !CyclePhaseEngine.isOnCycle(day, protocol: proto, calendar: calendar)
+        }
+    }
+
+    /// Weekly slots for a protocol whose cycle boundaries fall in the
+    /// look-ahead window (see `needsDatedWeeklyReminders`). A repeating
+    /// weekly trigger would keep firing through the off days, so these
+    /// become dated one-shots on the on-cycle days inside the window.
     private func appendCycleBoundedWeeklyRequests(
         _ proto: PeptideProtocol,
         grouped: [TimeslotKey: [Peptide]],
