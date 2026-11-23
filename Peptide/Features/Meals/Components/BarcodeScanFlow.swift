@@ -348,14 +348,7 @@ struct BarcodeScanFlow: View {
                 .font(AppFont.scaled(20, weight: .semibold, design: .monospaced))
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(Spacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
+                .insetRowBackground()
 
             GlassButton(title: "Look up", style: .primary) {
                 handleDetected(barcode: manualBarcode, typed: true)

@@ -13,7 +13,7 @@ struct WorkoutRecapExercisesView: View {
                         NavigationLink {
                             WorkoutRecapExerciseDetail(store: store, entryID: entry.id, unit: unit)
                         } label: {
-                            RecapCard {
+                            GlassCard {
                                 VStack(alignment: .leading, spacing: Spacing.md) {
                                     HStack(alignment: .top, spacing: Spacing.md) {
                                         ExerciseImageView(exercise: ExerciseLibrary.shared.lookup(id: entry.exerciseID))
@@ -30,6 +30,7 @@ struct WorkoutRecapExercisesView: View {
                                     }
                                     ForEach(entry.sets) { set in RecapSetRow(set: set, unit: unit) }
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }.buttonStyle(.plain)
                     }
@@ -84,7 +85,7 @@ struct WorkoutRecapExerciseDetail: View {
                     Text("Warm-ups and unfinished sets are excluded from completion totals.")
                         .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                     ForEach(entry.sets.sorted { $0.index < $1.index }) { set in
-                        RecapCard { RecapSetRow(set: set, unit: unit) }
+                        GlassCard { RecapSetRow(set: set, unit: unit).frame(maxWidth: .infinity, alignment: .leading) }
                     }
                     if let note = entry.note, !note.isEmpty { Text(note).font(AppFont.body) }
                 }
@@ -132,7 +133,7 @@ struct WorkoutMuscleDetailsView: View {
             NavigationLink {
                 WorkoutMuscleContributionsView(muscle: muscle, unit: unit)
             } label: {
-                RecapCard {
+                GlassCard {
                     HStack(spacing: Spacing.md) {
                         Image(systemName: muscle.role == .primary ? "circle.fill" : "circle.lefthalf.filled")
                             .foregroundStyle(muscle.role == .primary ? AppColor.trainingPrimaryMuscle : AppColor.trainingSecondaryMuscle)
@@ -145,6 +146,7 @@ struct WorkoutMuscleDetailsView: View {
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right").accessibilityHidden(true)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }.buttonStyle(.plain).accessibilityIdentifier("recap-muscle-\(muscle.id)")
         }
@@ -159,12 +161,13 @@ struct WorkoutMuscleContributionsView: View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 Text("^[\(muscle.setCount) contributing working set](inflect: true)").font(AppFont.headline)
                 ForEach(muscle.contributions) { contribution in
-                    RecapCard {
+                    GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text(contribution.name).font(AppFont.headline)
                             Text(contribution.role.displayName).font(AppFont.subheadline)
                             ForEach(contribution.sets) { set in RecapSetRow(set: set, unit: unit) }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }.padding(Spacing.screenPadding)
@@ -202,7 +205,7 @@ struct WorkoutWeeklyProgressView: View {
                 if let facts = OnDeviceSummaryEngine.week(week, unit: unit), let text = summaryService.text(for: facts) {
                     RecapSummaryLine(text: text)
                 }
-                RecapCard {
+                GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.lg) {
                         Text("Completed workouts per day").font(AppFont.headline)
                         HStack(alignment: .bottom, spacing: Spacing.sm) {
@@ -219,23 +222,26 @@ struct WorkoutWeeklyProgressView: View {
                             }
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if let volume = week.volumeKg {
-                    RecapCard {
+                    GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             Text("Recorded volume \(week.phrase)").font(AppFont.headline)
                             Text(RecapFormat.volume(volume, unit: unit)).font(AppFont.title2).monospacedDigit()
                             Text("Supported external-load sets only. More logged volume is not a direct measure of strength.")
                                 .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 if week.count == 0 {
-                    Group {
-                        if week.isCurrent { Text("No completed workouts this week yet.") }
-                        else { Text("No completed workouts that week.") }
-                    }
-                    .font(AppFont.body)
+                    EmptyStateView(
+                        icon: "calendar",
+                        title: "No workouts logged yet",
+                        message: week.isCurrent ? "No completed workouts this week yet." : "No completed workouts that week.",
+                        style: .compact
+                    )
                 }
             }.padding(Spacing.screenPadding)
                 .task(id: OnDeviceSummaryEngine.week(week, unit: unit)) {

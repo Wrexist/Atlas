@@ -441,10 +441,12 @@ struct LabPanelDetailView: View {
     }
 
     private var emptyShim: some View {
-        Text("No entries")
-            .font(AppFont.caption2)
-            .foregroundStyle(AppColor.textSecondary)
-            .padding(.top, Spacing.xxl)
+        EmptyStateView(
+            icon: "testtube.2",
+            title: "No entries yet",
+            message: "Log blood work and track your results"
+        )
+        .padding(.top, Spacing.xxl)
     }
 
     private static let dateFormatter: DateFormatter = {

@@ -36,16 +36,16 @@ struct BioAgeTrendCard: View {
             if points.count >= 2 {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline) {
-                        BiologySectionHeader(title: "Trend")
+                        HomeSectionHeader(title: "Trend")
                         rangePicker
                     }
                     VStack(alignment: .leading, spacing: Spacing.sm) {
-                        BiologySectionHeader(title: "Trend")
+                        HomeSectionHeader(title: "Trend")
                         rangePicker
                     }
                 }
             } else {
-                BiologySectionHeader(title: "Trend")
+                HomeSectionHeader(title: "Trend")
             }
 
             GlassCard {

@@ -31,7 +31,7 @@ struct BiomarkerListSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
-                BiologySectionHeader(title: "Biomarkers")
+                HomeSectionHeader(title: "Biomarkers")
                 if onEditTapped != nil {
                     Button {
                         onEditTapped?()

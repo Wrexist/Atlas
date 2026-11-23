@@ -66,7 +66,7 @@ struct WorkoutFinishView: View {
                         }
                     }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-exercises")
                         .sectionAppear(index: 4)
-                    RecapCard {
+                    GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Muscle focus").font(AppFont.headline)
                             Text("Estimated from your logged exercises")
@@ -90,6 +90,7 @@ struct WorkoutFinishView: View {
                             .buttonStyle(ScalePressStyle())
                             .accessibilityIdentifier("recap-muscles")
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .sectionAppear(index: 5)
                     RecapWeeklyVolume(session: summary.session)
@@ -208,7 +209,7 @@ private struct RecapNavigationRow<Title: View>: View {
     @ViewBuilder let title: Title
 
     var body: some View {
-        RecapCard {
+        GlassCard {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
                     .foregroundStyle(AppColor.success)
@@ -220,6 +221,7 @@ private struct RecapNavigationRow<Title: View>: View {
                     .accessibilityHidden(true)
             }
             .frame(minHeight: Spacing.minimumHitTarget)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .contentShape(Rectangle())
     }
@@ -231,7 +233,7 @@ struct RecapNewPRs: View {
     let unit: MeasurementUnit
 
     var body: some View {
-        RecapCard {
+        GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "trophy.fill")
@@ -253,6 +255,7 @@ struct RecapNewPRs: View {
                     .accessibilityElement(children: .combine)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

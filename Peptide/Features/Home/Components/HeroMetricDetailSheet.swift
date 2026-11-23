@@ -346,14 +346,7 @@ struct HeroMetricDetailSheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding(Spacing.xl)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .insetRowBackground()
         .accessibilityElement(children: .combine)
     }
 
@@ -400,14 +393,7 @@ struct HeroMetricDetailSheet: View {
             Spacer()
         }
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         .accessibilityElement(children: .combine)
     }
 
@@ -514,14 +500,7 @@ struct HeroMetricDetailSheet: View {
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(Spacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.55))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
+            .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
@@ -573,14 +552,7 @@ struct HeroMetricDetailSheet: View {
             Spacer(minLength: 0)
         }
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         .padding(.top, Spacing.sm)
         .accessibilityElement(children: .combine)
     }
@@ -630,14 +602,7 @@ struct HeroMetricDetailSheet: View {
         }
         .padding(.vertical, Spacing.lg)
         .frame(maxWidth: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
         .accessibilityValue(value)

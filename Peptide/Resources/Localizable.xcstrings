@@ -26131,16 +26131,6 @@
         }
       }
     },
-    "No entries": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inga poster"
-          }
-        }
-      }
-    },
     "No entries yet": {
       "localizations": {
         "sv": {
