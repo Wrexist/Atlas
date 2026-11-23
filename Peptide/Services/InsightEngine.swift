@@ -1,6 +1,6 @@
 import Foundation
 
-struct InsightEngine {
+enum InsightEngine {
     struct Insight: Identifiable {
         let id = UUID()
         let icon: String
