@@ -3164,8 +3164,11 @@ final class DataStore {
     /// returns nil for that resource. Replaces unsaved in-memory edits;
     /// user-triggered refreshes go through `refreshFromStore`.
     func reloadFromDisk() {
-        // A pull can bring workouts finished, edited or deleted elsewhere.
+        // A pull can bring workouts finished, edited or deleted elsewhere,
+        // which also moves each lift's last set: the memo seeds the Watch
+        // catalog below and new sets in a running workout.
         workoutHistoryDidChange()
+        WorkoutSessionService.shared.invalidatePreviousSetCache()
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
         // full-table decode would jank the refresh gesture), the tail
