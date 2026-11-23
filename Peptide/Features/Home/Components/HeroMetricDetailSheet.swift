@@ -435,9 +435,10 @@ struct HeroMetricDetailSheet: View {
         }
     }
 
-    /// The three signals `RecoveryScoreEngine` composes. Each carries its
-    /// own colour — the same one the Biology tab uses for that signal —
-    /// and opens the 90-day history for it.
+    /// The three signals `RecoveryScoreEngine` composes. Each opens the
+    /// 90-day history for it. Only the icon carries the signal's colour —
+    /// the same one the Biology tab uses — while values and bars stay ink,
+    /// so the sheet's one accent is still the metric's own ring.
     private enum RecoveryDriver {
         case hrv, sleep, rhr
 
@@ -493,7 +494,7 @@ struct HeroMetricDetailSheet: View {
                     Text(value.map { "\(Int(($0 * 100).rounded()))%" } ?? "—")
                         .font(AppFont.caption2)
                         .fontWeight(.semibold)
-                        .foregroundStyle(driver.tint)
+                        .foregroundStyle(AppColor.textSecondary)
                         .monospacedDigit()
                 }
 
@@ -503,7 +504,7 @@ struct HeroMetricDetailSheet: View {
                     GlassProgressBar(
                         progress: value,
                         height: 4,
-                        gradient: [driver.tint.opacity(0.6), driver.tint]
+                        gradient: [AppColor.textPrimary.opacity(0.6), AppColor.textPrimary]
                     )
                     .frame(width: 80)
                 }
