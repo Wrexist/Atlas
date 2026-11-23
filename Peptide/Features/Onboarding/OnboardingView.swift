@@ -623,6 +623,10 @@ struct OnboardingView: View {
     /// the first entitlement scan, since `isProUser` reads false until it
     /// finishes and a reinstalling subscriber would see the trial.
     private func presentPaywall() {
+        guard StoreService.paywallEnabled else {
+            showThemePicker = true
+            return
+        }
         guard !isResolvingProStatus else { return }
         isResolvingProStatus = true
         Task {

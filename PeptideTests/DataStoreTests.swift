@@ -94,6 +94,8 @@ final class DataStoreTests: XCTestCase {
     }
 
     func test_restartProtocol_activeProtocolAtFreeCap_restartsCycle() throws {
+        StoreService.paywallEnabled = true
+        defer { StoreService.paywallEnabled = false }
         try XCTSkipIf(StoreService.shared.isProUser, "Free-tier cap only applies without Pro")
         let protos = (0..<4).map { index in
             PeptideProtocol(

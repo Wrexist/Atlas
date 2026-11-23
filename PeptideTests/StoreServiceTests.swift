@@ -42,6 +42,9 @@ final class StoreServiceTests: XCTestCase {
         // deterministic — the .storekit file defaults to USA but a
         // prior test could have changed it.
         session.storefront = "USA"
+        // These tests exercise the paywall itself, which ships switched
+        // off for now.
+        StoreService.paywallEnabled = true
         // Belt-and-suspenders: clear any locally-cached entitlement
         // state on the singleton before each test.
         service = StoreService.shared
@@ -56,6 +59,7 @@ final class StoreServiceTests: XCTestCase {
         // Re-read entitlements so the next test sees a non-Pro user.
         await service.checkProAccess()
         service = nil
+        StoreService.paywallEnabled = false
         try await super.tearDown()
     }
 
@@ -184,6 +188,15 @@ final class StoreServiceTests: XCTestCase {
         // — the singleton should be reading "no entitlements".
         XCTAssertFalse(service.isProUser)
         XCTAssertTrue(service.purchasedProductIDs.isEmpty)
+    }
+
+    func test_paywallDisabled_unlocksProWithoutEntitlement() async {
+        StoreService.paywallEnabled = false
+        XCTAssertTrue(service.isProUser)
+        XCTAssertFalse(service.hasProEntitlement)
+        XCTAssertFalse(service.requiresPro(activeProtocolCount: 100))
+        let resolved = await service.resolvedProStatus()
+        XCTAssertTrue(resolved)
     }
 
     func test_canAccessAIFeatures_mirrorsIsProUser() async throws {
