@@ -3,19 +3,22 @@ import SwiftUI
 /// A block of the Today scroll the user can move or hide from the
 /// "Edit Today" sheet. Raw values are persisted on the profile, so they
 /// are stable ids — rename a case freely, never its raw value. Case
-/// order is the default layout, and `isShownByDefault` decides which
-/// of them a fresh layout shows.
+/// order is the default layout — the day's actions first, so doses and
+/// the checklist sit above the fold — and `isShownByDefault` decides
+/// which of them a fresh layout shows. Reordering cases moves every
+/// layout that was never rearranged (an empty stored `order`); a saved
+/// order is the user's and stays as they left it.
 ///
 /// The welcome header, day switcher and reminder banner are not here: they
 /// are Today's chrome and stay pinned above the sections.
 enum TodaySection: String, CaseIterable, Identifiable, Sendable {
+    case doses = "doses"
+    case checklist = "checklist"
     case coaching = "coaching"
+    case habits = "habits"
+    case wellness = "wellness"
     case atAGlance = "atAGlance"
     case weeklyRecap = "weeklyRecap"
-    case habits = "habits"
-    case checklist = "checklist"
-    case doses = "doses"
-    case wellness = "wellness"
     case movement = "movement"
     case steps = "steps"
     case overview = "overview"

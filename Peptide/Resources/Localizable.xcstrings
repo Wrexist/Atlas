@@ -30481,16 +30481,6 @@
         }
       }
     },
-    "Read full recap": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Läs hela sammanfattningen"
-          }
-        }
-      }
-    },
     "Read more": {
       "localizations": {
         "sv": {

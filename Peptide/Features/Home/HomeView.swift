@@ -463,9 +463,10 @@ struct HomeView: View {
                     }
 
                     // The user's arrangement of Today. The default order
-                    // reads status → recommendation → action → analysis
-                    // (Product Architecture 07). Entrance stagger follows
-                    // that order, after the header and day switcher.
+                    // leads with the day's actions — doses, then the
+                    // checklist — before recommendation, status and the
+                    // week's analysis. Entrance stagger follows that
+                    // order, after the header and day switcher.
                     ForEach(Array(dataStore.profile.todayLayout.visibleSections.enumerated()), id: \.element.id) { offset, section in
                         todaySection(section, appearIndex: 2 + offset, proxy: proxy)
                     }
@@ -836,7 +837,11 @@ struct HomeView: View {
     private func atAGlanceSection(appearIndex: Int) -> some View {
         if showsAtAGlance {
             VStack(spacing: Spacing.sm) {
-                HomeSectionHeader(title: "At a glance")
+                // A heading over a single hint line is a heading for
+                // nothing; it only labels the rings.
+                if HeroMetricTrio.showsRingRow(snapshot: heroSnapshot, leading: heroLeading, isLoading: isHeroLoading) {
+                    HomeSectionHeader(title: "At a glance")
+                }
 
                 // Bevel-style hero trio — Adherence / Recovery /
                 // Sleep. Three at-a-glance numbers mapping to the

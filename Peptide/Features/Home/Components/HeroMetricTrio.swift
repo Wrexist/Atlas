@@ -68,25 +68,27 @@ struct HeroMetricTrio: View {
         .accessibilityLabel("Today's metrics")
     }
 
-    /// The rings that have data. While loading every ring shows, as a
-    /// placeholder, so the card doesn't jump once values land.
     private var shownRings: [HeroMetricKind] {
-        let kinds: [HeroMetricKind] = leading == .adherence
-            ? [.adherence, .recovery, .sleep]
-            : [.recovery, .sleep]
-        return isLoading ? kinds : kinds.filter { value(for: $0).isAvailable }
+        Self.shownRings(snapshot: snapshot, leading: leading, isLoading: isLoading)
     }
 
     private var showsRingRow: Bool {
-        leading != .adherence || !shownRings.isEmpty
+        Self.showsRingRow(snapshot: snapshot, leading: leading, isLoading: isLoading)
     }
 
-    private func value(for kind: HeroMetricKind) -> HeroMetricValue {
-        switch kind {
-        case .adherence: snapshot.adherence
-        case .recovery: snapshot.recovery
-        case .sleep: snapshot.sleep
-        }
+    /// The rings that have data. While loading every ring shows, as a
+    /// placeholder, so the card doesn't jump once values land.
+    static func shownRings(snapshot: HeroMetricSnapshot, leading: HeroLeadingMetric, isLoading: Bool) -> [HeroMetricKind] {
+        let kinds: [HeroMetricKind] = leading == .adherence
+            ? [.adherence, .recovery, .sleep]
+            : [.recovery, .sleep]
+        return isLoading ? kinds : kinds.filter { snapshot.value(for: $0).isAvailable }
+    }
+
+    /// False when the card is only a footer line, which Today then shows
+    /// without its "At a glance" header.
+    static func showsRingRow(snapshot: HeroMetricSnapshot, leading: HeroLeadingMetric, isLoading: Bool) -> Bool {
+        leading != .adherence || !shownRings(snapshot: snapshot, leading: leading, isLoading: isLoading).isEmpty
     }
 
     private var ringRowContainer: some View {
@@ -114,7 +116,7 @@ struct HeroMetricTrio: View {
                 workoutsTile(done: done, target: target)
             }
             ForEach(shownRings, id: \.self) { kind in
-                ringTile(kind, value: value(for: kind))
+                ringTile(kind, value: snapshot.value(for: kind))
             }
         }
     }
@@ -366,6 +368,14 @@ struct HeroMetricSnapshot: Equatable, Sendable {
     /// reason — the sleep detail sheet shows "Slept N h" without a
     /// second HealthKit hop.
     let lastSleepHours: Double?
+
+    func value(for kind: HeroMetricKind) -> HeroMetricValue {
+        switch kind {
+        case .adherence: adherence
+        case .recovery: recovery
+        case .sleep: sleep
+        }
+    }
 
     /// True when Recovery or Sleep are unavailable AND the user
     /// hasn't connected HealthKit. Drives the footer prompt. Once
