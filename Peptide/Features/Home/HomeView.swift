@@ -1487,7 +1487,9 @@ struct HomeView: View {
             healthConnected: dataStore.profile.healthConnected
         )
         AppAnimation.with(AppAnimation.springSmooth) {
-            heroSnapshot = snapshot
+            // A dose toggled while HealthKit answered already moved the
+            // ring; the ratio captured before the await is stale.
+            heroSnapshot = snapshot.withAdherence(adherenceRatio)
             isHeroLoading = false
         }
     }
