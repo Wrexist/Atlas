@@ -6668,6 +6668,16 @@
         }
       }
     },
+    "Connect Apple Health to fill in %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anslut Apple Hälsa för att fylla i %@"
+          }
+        }
+      }
+    },
     "Connect Apple Health to fill this in": {
       "localizations": {
         "sv": {
@@ -8732,6 +8742,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppvakning"
+          }
+        }
+      }
+    },
+    "Wear Apple Watch to record %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bär Apple Watch för att registrera %@"
           }
         }
       }
@@ -45984,16 +46004,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mikronäring"
-          }
-        }
-      }
-    },
-    "Scan a barcode or a photo to see vitamins and minerals.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Skanna en streckkod eller ett foto för att se vitaminer och mineraler."
           }
         }
       }

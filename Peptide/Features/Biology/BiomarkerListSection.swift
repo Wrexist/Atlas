@@ -2,7 +2,9 @@ import SwiftUI
 
 /// "Biomarkers" on the Biology tab. Section header with an Edit
 /// affordance; below it, one `BiomarkerTile` per visible biomarker in
-/// the user's curated order, two small cards to a row.
+/// the user's curated order, two small cards to a row. Wearable
+/// biomarkers with no data yet fold into one line under the cards
+/// instead of a "No data yet" card each.
 ///
 /// Loads snapshots async via `BiomarkerSeriesService` so the view
 /// body stays synchronous. Refreshes on appear + when the user
@@ -57,14 +59,21 @@ struct BiomarkerListSection: View {
             if visibleBiomarkers.isEmpty {
                 emptyState
             } else if isLoading {
-                rows
+                rows(visibleBiomarkers)
                     .redacted(reason: .placeholder)
                     .shimmer()
                     .allowsHitTesting(false)
                     .transition(.opacity)
             } else {
-                rows
-                    .transition(.opacity)
+                let split = Biomarker.splitAwaitingWearable(visibleBiomarkers) { snapshot(for: $0).latest != nil }
+                if !split.tiles.isEmpty {
+                    rows(split.tiles)
+                        .transition(.opacity)
+                }
+                if !split.awaitingWearable.isEmpty {
+                    awaitingWearableNote(split.awaitingWearable)
+                        .transition(.opacity)
+                }
             }
         }
         // Keyed on every input the snapshots read, compared by value: a
@@ -81,8 +90,26 @@ struct BiomarkerListSection: View {
         }
     }
 
-    private var rows: some View {
-        let layout = BiomarkerTileSize.rows(for: visibleBiomarkers, sizes: tileSizes)
+    private func awaitingWearableNote(_ biomarkers: [Biomarker]) -> some View {
+        let names = biomarkers.map(\.shortName).formatted(.list(type: .and))
+        return HStack(spacing: Spacing.sm) {
+            Image(systemName: "applewatch")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.accentLight)
+                .accessibilityHidden(true)
+            Text(dataStore.profile.healthConnected
+                 ? String(localized: "Wear Apple Watch to record \(names)")
+                 : String(localized: "Connect Apple Health to fill in \(names)"))
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func rows(_ biomarkers: [Biomarker]) -> some View {
+        let layout = BiomarkerTileSize.rows(for: biomarkers, sizes: tileSizes)
         return VStack(spacing: Spacing.sm) {
             ForEach(Array(layout.enumerated()), id: \.element) { index, row in
                 HStack(alignment: .top, spacing: Spacing.sm) {

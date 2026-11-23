@@ -37,6 +37,12 @@ struct DailyMealNutrientsCard: View {
     let entries: [MealEntry]
     /// The user's daily fiber goal in grams; nil or zero shows no target.
     var fiberTargetG: Int?
+
+    /// Whether any logged food carries fiber or sugar label data.
+    static func hasData(_ entries: [MealEntry]) -> Bool {
+        MealNutrientCoverage.derive(entries: entries, nutrient: \.fiberG).total != nil
+            || MealNutrientCoverage.derive(entries: entries, nutrient: \.sugarsG).total != nil
+    }
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {

@@ -926,8 +926,9 @@ final class ScreenshotTests: XCTestCase {
             if !train.isSelected { train.tap() }
             XCTAssertTrue(train.isSelected)
             discardLeftoverWorkout()
-            // Demo data seeds no finished Atlas session, so the period
-            // control is hidden until this run finishes one below.
+            // Demo data seeds no finished Atlas session, so the body map
+            // and its period control are hidden until this run finishes
+            // one below.
             capture(named: "body-\(appearance)-00-before-workout")
             let start = app.buttons["Empty workout"]
             reveal(start)
