@@ -57,7 +57,7 @@ struct BenefitTagFlow: View {
 /// known peptide become NavigationLinks, so the user can jump directly to the
 /// stacked peptide's detail view. Tags that don't match any peptide
 /// (e.g. supplements like "Alpha-GPC") render as plain badges.
-struct StackTagFlow: View {
+struct ProtocolTagFlow: View {
     let stacks: [String]
     var fallbackColor: Color = AppColor.accentPrimary
     var excludingPeptideID: UUID?

@@ -124,11 +124,11 @@ final class DataStore {
     @ObservationIgnored private var _entriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
     @ObservationIgnored private var _activeEntriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
     @ObservationIgnored private var _stackPeptides: (version: Int, value: [Peptide])?
-    @ObservationIgnored private var _stackWarnings: (version: Int, value: [StackRecommendationEngine.Warning])?
-    @ObservationIgnored private var _stackRecommendations: (version: Int, value: [StackRecommendationEngine.Recommendation])?
+    @ObservationIgnored private var _stackWarnings: (version: Int, value: [ProtocolRecommendationEngine.Warning])?
+    @ObservationIgnored private var _stackRecommendations: (version: Int, value: [ProtocolRecommendationEngine.Recommendation])?
     @ObservationIgnored private var _smartCycleSuggestions: (version: Int, value: [SmartCyclePlanner.Suggestion])?
-    @ObservationIgnored private var _stackCompleteness: (version: Int, value: StackRecommendationEngine.StackCompleteness?)?
-    @ObservationIgnored private var _cycleTransitions: (version: Int, value: [StackRecommendationEngine.CycleTransition])?
+    @ObservationIgnored private var _stackCompleteness: (version: Int, value: ProtocolRecommendationEngine.ProtocolCompleteness?)?
+    @ObservationIgnored private var _cycleTransitions: (version: Int, value: [ProtocolRecommendationEngine.CycleTransition])?
     @ObservationIgnored private var _topInsight: (version: Int, value: InsightEngine.Insight?)?
 
     private func bumpVersionIfDayChanged() {
@@ -1127,9 +1127,9 @@ final class DataStore {
         return result
     }
 
-    var stackWarnings: [StackRecommendationEngine.Warning] {
+    var stackWarnings: [ProtocolRecommendationEngine.Warning] {
         if let cached = _stackWarnings, cached.version == cacheVersion { return cached.value }
-        let result = StackRecommendationEngine.warnings(
+        let result = ProtocolRecommendationEngine.warnings(
             for: stackPeptides,
             activeProtocols: activeProtocols
         )
@@ -1137,16 +1137,16 @@ final class DataStore {
         return result
     }
 
-    var stackRecommendations: [StackRecommendationEngine.Recommendation] {
+    var stackRecommendations: [ProtocolRecommendationEngine.Recommendation] {
         if let cached = _stackRecommendations, cached.version == cacheVersion { return cached.value }
-        let context = StackRecommendationEngine.RecommendationContext(
+        let context = ProtocolRecommendationEngine.RecommendationContext(
             currentPeptides: stackPeptides,
             database: peptideDatabase,
             goals: profile.goals,
             activeProtocols: activeProtocols,
             entries: entries
         )
-        let result = StackRecommendationEngine.recommendations(context: context)
+        let result = ProtocolRecommendationEngine.recommendations(context: context)
         _stackRecommendations = (cacheVersion, result)
         return result
     }
@@ -1160,9 +1160,9 @@ final class DataStore {
         return result
     }
 
-    var stackCompleteness: StackRecommendationEngine.StackCompleteness? {
+    var stackCompleteness: ProtocolRecommendationEngine.ProtocolCompleteness? {
         if let cached = _stackCompleteness, cached.version == cacheVersion { return cached.value }
-        let result = StackRecommendationEngine.stackCompleteness(
+        let result = ProtocolRecommendationEngine.stackCompleteness(
             for: stackPeptides,
             goals: profile.goals,
             from: peptideDatabase
@@ -1171,9 +1171,9 @@ final class DataStore {
         return result
     }
 
-    var cycleTransitions: [StackRecommendationEngine.CycleTransition] {
+    var cycleTransitions: [ProtocolRecommendationEngine.CycleTransition] {
         if let cached = _cycleTransitions, cached.version == cacheVersion { return cached.value }
-        let result = StackRecommendationEngine.cycleTransitions(for: activeProtocols)
+        let result = ProtocolRecommendationEngine.cycleTransitions(for: activeProtocols)
         _cycleTransitions = (cacheVersion, result)
         return result
     }

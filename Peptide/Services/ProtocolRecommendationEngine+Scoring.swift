@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - New Scoring Signals (6-12)
 
-extension StackRecommendationEngine {
+extension ProtocolRecommendationEngine {
 
     // MARK: Signal 6: Timing Awareness
 

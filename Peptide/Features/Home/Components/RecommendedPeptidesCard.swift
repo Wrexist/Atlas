@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RecommendedPeptidesCard: View {
-    let recommendations: [StackRecommendationEngine.Recommendation]
+    let recommendations: [ProtocolRecommendationEngine.Recommendation]
     var activeProtocols: [PeptideProtocol] = []
 
     var body: some View {
@@ -56,7 +56,7 @@ struct RecommendedPeptidesCard: View {
     }
 
     @ViewBuilder
-    private func confidenceBadge(_ confidence: StackRecommendationEngine.Confidence) -> some View {
+    private func confidenceBadge(_ confidence: ProtocolRecommendationEngine.Confidence) -> some View {
         switch confidence {
         case .high:
             reasonBadge("Research-backed", color: AppColor.accentLight, bgOpacity: 0.2)
@@ -68,7 +68,7 @@ struct RecommendedPeptidesCard: View {
     }
 
     private func recommendationRow(
-        _ rec: StackRecommendationEngine.Recommendation,
+        _ rec: ProtocolRecommendationEngine.Recommendation,
         stacks: [PeptideProtocol]
     ) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
