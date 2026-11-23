@@ -439,17 +439,17 @@ enum ScreenshotSeedData {
     /// Today hero card lands in `.ready` state immediately.
     /// Keyed with `WeeklySummaryService`'s own week key so its cache
     /// lookup hits on first read, and counted from the seeded entries so
-    /// the recap agrees with the screens around it.
+    /// the recap agrees with the screens around it. The count covers the
+    /// seven days up to the reference date, not the ISO week so far: a
+    /// Monday-morning capture would otherwise read "0 of 0 doses logged"
+    /// beside a full dose card.
     private static func buildWeeklySummaries(
         referenceDate: Date,
         entries: [ProtocolEntry]
     ) -> [String: WeeklySummary] {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.firstWeekday = 2
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: referenceDate)
-        else { return [:] }
         let weekStart = WeeklySummaryService.weekStartString(for: referenceDate)
-        let thisWeek = entries.filter { $0.date >= interval.start && $0.date <= referenceDate }
+        let windowStart = referenceDate.addingTimeInterval(-7 * 24 * 3600)
+        let thisWeek = entries.filter { $0.date > windowStart && $0.date <= referenceDate }
         let dosesCompleted = thisWeek.filter(\.completed).count
         let dosesTotal = thisWeek.count
         let compliance = dosesTotal == 0 ? 0 : Double(dosesCompleted) / Double(dosesTotal)
