@@ -3,7 +3,7 @@ import SwiftUI
 /// How each Biological Age signal is named, drawn and explained. One switch
 /// per question so the hero, the drivers card, the coverage card and the
 /// explainer all say the same thing about the same signal.
-extension PerformanceAgeEngine.Driver.Kind {
+extension BiologicalAgeEngine.Driver.Kind {
 
     var displayName: String {
         switch self {

@@ -100,7 +100,7 @@ CI/CD to TestFlight via Fastlane.
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
 | 3.1 | **Tab restructure** | Shipped | Shipped as Today / Train / Meals / Biology / Habits; Library + Protocols open as a modal |
-| 3.2 | **Performance Age engine** | Shipped (`PerformanceAgeEngine`) | Pure-function bio-age estimate from HRV + RHR + sleep + weight trend + lab markers; confidence-gated UI (hide if confidence < 60%) |
+| 3.2 | **Performance Age engine** | Shipped (`BiologicalAgeEngine`) | Pure-function bio-age estimate from HRV + RHR + sleep + weight trend + lab markers; confidence-gated UI (hide if confidence < 60%) |
 | 3.3 | **Biomarker trend cards** | Shipped (#282, #287) | 90-day charts for HRV / RHR / Sleep efficiency on the Biology tab |
 | 3.4 | **Lab photo OCR ingestion** | Shipped (`LabScanFlow`, #285) | Camera, photo or PDF pages → Claude vision extracts markers → user confirms each → Labs; pages kept on device (Pro) |
 | 3.5 | **Stack-effectiveness score** | 2 days | Atlas-unique: map each lab marker movement to active compounds in the cycle; surfaces "BPC-157 may be helping your IGF-1 trend" |
