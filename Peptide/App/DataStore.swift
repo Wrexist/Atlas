@@ -2023,10 +2023,6 @@ final class DataStore {
             .map { Set($0.exercises.map(\.exerciseID)) } ?? []
         repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
-        // Not gated on the sync toggle: a workout mirrored while sync was
-        // on must still leave Health. It matches only Atlas's own sample
-        // and fails quietly without permission.
-        Task { await HealthKitService.shared.deleteWorkout(id: id) }
         PRDetectionService.shared.recompute(exerciseIDs: affectedExercises)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
@@ -2037,6 +2033,12 @@ final class DataStore {
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
+            // Only once the row is really gone, or Health would lose a
+            // workout Atlas still shows, with no path to write it back.
+            // Not gated on the sync toggle: a workout mirrored while sync
+            // was on must still leave Health. It matches only Atlas's own
+            // sample and fails quietly without permission.
+            Task { await HealthKitService.shared.deleteWorkout(id: id) }
             refreshTrainingGlanceables()
         }
     }
