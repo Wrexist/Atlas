@@ -292,18 +292,18 @@ struct WeeklySummaryHeroCard: View {
                     tint: AppColor.streak
                 )
             }
+            // Neutral ink: violet and orange figures beside the accent
+            // adherence read as four competing highlights.
             if let composite = stats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
-                    value: composite.formatted(.number.precision(.fractionLength(1))),
-                    tint: AppColor.metricHRV
+                    value: composite.formatted(.number.precision(.fractionLength(1)))
                 )
             }
             if let calories = stats.avgCalories {
                 StatTile(
                     label: "Avg kcal",
-                    value: calories.formatted(),
-                    tint: AppColor.macroProtein
+                    value: calories.formatted()
                 )
             }
             if let delta = stats.hrvDelta {
