@@ -402,13 +402,17 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         )
     }
 
+    /// Nothing logged yet reads as no data, not as 0%: a lone empty
+    /// ring at breakfast scored the user before the day had started.
     private static func adherenceValue(_ ratio: Double?) -> HeroMetricValue {
-        ratio.map(HeroMetricValue.percent) ?? .unavailable
+        guard let ratio, ratio > 0 else { return .unavailable }
+        return .percent(ratio)
     }
 
     /// Builds the snapshot. Adherence is synchronous (uses the
     /// caller's already-computed ratio, `nil` on a day with no doses
-    /// scheduled so the ring rests instead of reading 0%); Recovery
+    /// scheduled; with none of them logged yet the ring is left out
+    /// rather than reading 0%); Recovery
     /// and Sleep pull from HealthKit via `RecoveryScoreEngine`. Safe to call from
     /// `.task` in HomeView — the call sites batch their work so a
     /// scene-phase change re-runs once, not three times.
