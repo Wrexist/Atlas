@@ -17517,16 +17517,6 @@
         }
       }
     },
-    "Diagnostics": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diagnostik"
-          }
-        }
-      }
-    },
     "Diamond": {
       "localizations": {
         "sv": {

@@ -1,49 +1,43 @@
 import SwiftUI
 
-/// Developer-facing diagnostics row in Settings (debug builds only). Surfaces the
-/// MetricKit subscription's captured payload count so the wiring
-/// is visible without leaving the device, and offers a tap-in
-/// sheet showing the latest 20 records (kind, timestamp, raw JSON
-/// preview).
+/// Developer-facing diagnostics row in Settings' About card (debug
+/// builds only). Surfaces the MetricKit subscription's captured payload
+/// count so the wiring is visible without leaving the device, and offers
+/// a tap-in sheet showing the latest 20 records (kind, timestamp, raw
+/// JSON preview).
 ///
 /// Apple's TestFlight + App Store Connect dashboards collect the
 /// same data on the server side — this is the offline / on-device
 /// view that doesn't require leaving the app.
-struct DiagnosticsSection: View {
+struct DiagnosticsRow: View {
     @State private var diagnosticsService = DiagnosticsService.shared
     @State private var showDetail = false
 
     var body: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Diagnostics", systemImage: "waveform.path.ecg.rectangle.fill")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-
-                Button {
-                    showDetail = true
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: Spacing.xxs) {
-                            Text("MetricKit reports")
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textPrimary)
-                            Text(detailSummary)
-                                .font(AppFont.caption2)
-                                .foregroundStyle(AppColor.textSecondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.textTertiary)
-                            .accessibilityHidden(true)
-                    }
+        Button {
+            showDetail = true
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("MetricKit reports")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                    Text(detailSummary)
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textTertiary)
                 }
-                .buttonStyle(.plain)
-                .disabled(diagnosticsService.records.isEmpty)
-                .opacity(diagnosticsService.records.isEmpty ? 0.5 : 1)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
             }
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .disabled(diagnosticsService.records.isEmpty)
+        .opacity(diagnosticsService.records.isEmpty ? 0.5 : 1)
         .sheet(isPresented: $showDetail) {
             DiagnosticsDetailSheet(service: diagnosticsService)
         }
