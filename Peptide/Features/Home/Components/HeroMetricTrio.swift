@@ -11,9 +11,9 @@ import SwiftUI
 /// The trio drives off `HeroMetricSnapshot` which is built once on
 /// view appear and refreshed when scene phase returns to .active.
 /// Async HealthKit reads happen inside the snapshot builder; the
-/// view never blocks waiting for them — missing data renders as a
-/// dimmed ring with an em-dash centre and (collectively) a single
-/// "Connect Health for full picture" footer.
+/// view never blocks waiting for them — a ring without data is left
+/// out rather than drawn empty, and what's missing is named once in a
+/// one-line footer. With no ring to show, that line is the whole card.
 struct HeroMetricTrio: View {
     let snapshot: HeroMetricSnapshot
     var onTapRing: ((HeroMetricKind) -> Void)?
@@ -49,22 +49,9 @@ struct HeroMetricTrio: View {
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
-            Group {
-                if isLoading {
-                    ringRow
-                        .redacted(reason: .placeholder)
-                        .shimmer()
-                        .allowsHitTesting(false)
-                        .accessibilityLabel("Loading today's metrics")
-                } else {
-                    ringRow
-                }
+            if showsRingRow {
+                ringRowContainer
             }
-            // minWidth 0 makes the frame report the proposed width even
-            // while the rings are still at full size, so the measurement
-            // below is the space available rather than the rings' width.
-            .frame(minWidth: 0, maxWidth: .infinity)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
 
             if !isLoading {
                 if snapshot.needsHealthConnection {
@@ -81,16 +68,54 @@ struct HeroMetricTrio: View {
         .accessibilityLabel("Today's metrics")
     }
 
+    /// The rings that have data. While loading every ring shows, as a
+    /// placeholder, so the card doesn't jump once values land.
+    private var shownRings: [HeroMetricKind] {
+        let kinds: [HeroMetricKind] = leading == .adherence
+            ? [.adherence, .recovery, .sleep]
+            : [.recovery, .sleep]
+        return isLoading ? kinds : kinds.filter { value(for: $0).isAvailable }
+    }
+
+    private var showsRingRow: Bool {
+        leading != .adherence || !shownRings.isEmpty
+    }
+
+    private func value(for kind: HeroMetricKind) -> HeroMetricValue {
+        switch kind {
+        case .adherence: snapshot.adherence
+        case .recovery: snapshot.recovery
+        case .sleep: snapshot.sleep
+        }
+    }
+
+    private var ringRowContainer: some View {
+        Group {
+            if isLoading {
+                ringRow
+                    .redacted(reason: .placeholder)
+                    .shimmer()
+                    .allowsHitTesting(false)
+                    .accessibilityLabel("Loading today's metrics")
+            } else {
+                ringRow
+            }
+        }
+        // minWidth 0 makes the frame report the proposed width even
+        // while the rings are still at full size, so the measurement
+        // below is the space available rather than the rings' width.
+        .frame(minWidth: 0, maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
+    }
+
     private var ringRow: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
-            switch leading {
-            case .adherence:
-                ringTile(.adherence, value: snapshot.adherence)
-            case .workouts(let done, let target):
+            if case .workouts(let done, let target) = leading {
                 workoutsTile(done: done, target: target)
             }
-            ringTile(.recovery,  value: snapshot.recovery)
-            ringTile(.sleep,     value: snapshot.sleep)
+            ForEach(shownRings, id: \.self) { kind in
+                ringTile(kind, value: value(for: kind))
+            }
         }
     }
 

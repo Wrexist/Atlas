@@ -76,8 +76,8 @@ struct TrainOverviewView: View {
         !frequencies.isEmpty
     }
 
-    /// Training inside the widest period, so switching periods can change
-    /// the map. Without it the period control filters nothing.
+    /// Training inside the widest period, so the map has something to
+    /// light up and switching periods can change it.
     private var hasTrainingToFilter: Bool {
         let calendar = Calendar.current
         let widest = TrainingMapPeriod.allCases.map(\.rawValue).max() ?? 1
@@ -95,8 +95,12 @@ struct TrainOverviewView: View {
                     .sectionAppear(index: 1)
                 recentWorkoutsCard
                     .sectionAppear(index: 2)
-                weeklyMuscleCard
-                    .sectionAppear(index: 3)
+                // An unlit body map is a full screen of nothing; it shows
+                // once there is training for its periods to light up.
+                if hasTrainingToFilter {
+                    weeklyMuscleCard
+                        .sectionAppear(index: 3)
+                }
                 trainingDetails
                     .scrollReveal()
             }
@@ -441,14 +445,12 @@ struct TrainOverviewView: View {
                     }
                 }
 
-                if hasTrainingToFilter {
-                    GlassSegmentedControl(
-                        options: TrainingMapPeriod.allCases,
-                        selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
-                        label: { LocalizedStringKey($0.title) }
-                    )
-                    .accessibilityIdentifier("training-map-period")
-                }
+                GlassSegmentedControl(
+                    options: TrainingMapPeriod.allCases,
+                    selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
+                    label: { LocalizedStringKey($0.title) }
+                )
+                .accessibilityIdentifier("training-map-period")
 
                 TrainingBodyExplorer(
                     highlights: MuscleMapView.intensityHighlights(from: frequencies),

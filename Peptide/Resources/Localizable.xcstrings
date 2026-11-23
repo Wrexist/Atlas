@@ -4155,46 +4155,6 @@
         }
       }
     },
-    "%lld research pairings": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld forskningskombination"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld forskningskombinationer"
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld research pairing"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld research pairings"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%lld scheduled": {
       "localizations": {
         "sv": {
@@ -6668,6 +6628,16 @@
         }
       }
     },
+    "Connect Apple Health to fill in %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anslut Apple Hälsa för att fylla i %@"
+          }
+        }
+      }
+    },
     "Connect Apple Health to fill this in": {
       "localizations": {
         "sv": {
@@ -7181,6 +7151,16 @@
         }
       }
     },
+    "How to get your biological age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Så får du din biologiska ålder"
+          }
+        }
+      }
+    },
     "IGF-1 Receptor": {
       "localizations": {
         "sv": {
@@ -7554,6 +7534,16 @@
         }
       }
     },
+    "Next day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa dag"
+          }
+        }
+      }
+    },
     "No doses are scheduled today.": {
       "localizations": {
         "sv": {
@@ -7684,16 +7674,6 @@
         }
       }
     },
-    "Opens the dose log": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öppnar dosloggen"
-          }
-        }
-      }
-    },
     "Oral or intranasal. Morning for cognitive enhancement throughout the day": {
       "localizations": {
         "sv": {
@@ -7820,6 +7800,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Förhindrar att hypofysen desensibiliseras för GHRH-signalering"
+          }
+        }
+      }
+    },
+    "Previous day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föregående dag"
           }
         }
       }
@@ -8662,6 +8652,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppvakning"
+          }
+        }
+      }
+    },
+    "Wear Apple Watch overnight. Atlas reads your heart rate, HRV and sleep.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bär Apple Watch över natten. Atlas läser av din puls, HRV och sömn."
+          }
+        }
+      }
+    },
+    "Wear Apple Watch to record %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bär Apple Watch för att registrera %@"
           }
         }
       }
@@ -10369,16 +10379,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Alla prestationer upplåsta"
-          }
-        }
-      }
-    },
-    "All doses completed for today": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alla doser tagna för idag"
           }
         }
       }
@@ -26903,16 +26903,6 @@
         }
       }
     },
-    "Often researched with %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Studeras ofta tillsammans med %@"
-          }
-        }
-      }
-    },
     "Often rotated with %@. Discuss changes with a qualified clinician.": {
       "localizations": {
         "sv": {
@@ -33883,46 +33873,6 @@
         }
       }
     },
-    "Show %lld more time slots": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Visa %lld tidsfönster till"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Visa %lld tidsfönster till"
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Show %lld more time slot"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Show %lld more time slots"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "Show ^[%lld exercise](inflect: true)": {
       "localizations": {
         "sv": {
@@ -34383,16 +34333,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sov"
-          }
-        }
-      }
-    },
-    "Small wins, every day. Watch your streak — and your Atlas Score — climb.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Små vinster, varje dag. Se din svit – och din Atlas-poäng – klättra."
           }
         }
       }
@@ -45818,16 +45758,6 @@
         }
       }
     },
-    "Scan a barcode or a photo to see vitamins and minerals.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Skanna en streckkod eller ett foto för att se vitaminer och mineraler."
-          }
-        }
-      }
-    },
     "Data for %lld of %lld nutrients": {
       "localizations": {
         "sv": {
@@ -49636,46 +49566,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spara %lld"
-          }
-        }
-      }
-    },
-    "%lld doses": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld dose"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld doses"
-                }
-              }
-            }
-          }
-        },
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld dos"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld doser"
-                }
-              }
-            }
           }
         }
       }

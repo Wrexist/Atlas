@@ -236,9 +236,6 @@ enum DailyScheduleEngine {
             let slotCount = slots.count
             var parts: [String] = []
             parts.append(String(localized: "\(totalDoses) doses across \(slotCount) windows"))
-            if combinationCount > 0 {
-                parts.append(String(localized: "\(combinationCount) research pairings"))
-            }
             if conflictCount > 0 {
                 parts.append(String(localized: "\(conflictCount) timing notes"))
             }

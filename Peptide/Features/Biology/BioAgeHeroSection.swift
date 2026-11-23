@@ -1,15 +1,15 @@
 import SwiftUI
 
-/// Top of the Biology tab. Three states:
+/// Top of the Biology tab. The dial shows only once there is a number
+/// to put on it; until then a compact card says how to get one:
 ///
-///   • `.locked` — free tier: shows the dial outline + scale + particle
-///     cluster where the marker would go, plus a quiet "Included with
-///     Atlas Pro" caption. The host's promo card carries the one CTA.
-///   • `.needsAge` — Pro tier with no age (or under 18) in Profile: asks
-///     for it instead of estimating against a made-up age.
+///   • `.locked` — free tier: nothing here. The host's promo card carries
+///     the one CTA, so an empty dial above it added nothing.
+///   • `.needsAge` — Pro tier with no age (or under 18) in Profile: the
+///     card asks for it instead of estimating against a made-up age.
 ///   • `.building(days:requiredDays:)` — Pro tier without enough data:
-///     shows a progress bar and the day count, or asks for more signals
-///     when more days alone can't unlock the estimate.
+///     the card names the step, with the day count and a progress bar,
+///     or asks for more signals when more days alone can't unlock it.
 ///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the arc sweeps
 ///     up to the estimate as the number rolls to it, then the delta against
 ///     chronological age and how sure the estimate is.
@@ -47,13 +47,26 @@ struct BioAgeHeroSection: View {
     @State private var hasPlayedReveal = false
 
     var body: some View {
-        VStack(spacing: Spacing.md) {
-            header
-            dialStack
-            stateAffordance
+        Group {
+            switch state {
+            case nil, .unlocked(_)?:
+                VStack(spacing: Spacing.md) {
+                    header
+                    dialStack
+                    if case .unlocked(let estimate)? = state {
+                        unlockedSummary(estimate: estimate)
+                            .transition(Self.stateTransition)
+                    }
+                }
+                .padding(.top, Spacing.sm)
+            case .locked?:
+                EmptyView()
+            case .needsAge?, .building(_, _)?:
+                setupCard
+                    .transition(Self.stateTransition)
+            }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, Spacing.sm)
         .appAnimation(AppAnimation.springSmooth, value: state)
         .task(id: estimatedAge) { await reveal(to: estimatedAge) }
     }
@@ -111,46 +124,17 @@ struct BioAgeHeroSection: View {
 
     @ViewBuilder
     private var centreContent: some View {
-        switch state {
-        case nil:
-            resolvingCentre
-                .transition(Self.stateTransition)
-        case .locked?:
-            lockedCentre
-                .transition(Self.stateTransition)
-        case .needsAge?:
-            centreGlyph("person.crop.circle.badge.questionmark")
-                .transition(Self.stateTransition)
-        case .building(let days, let requiredDays)?:
-            buildingCentre(progress: Self.buildingProgress(days: days, requiredDays: requiredDays))
-                .transition(Self.stateTransition)
-        case .unlocked(let estimate)?:
+        if case .unlocked(let estimate)? = state {
             unlockedCentre(estimate: estimate)
+                .transition(Self.stateTransition)
+        } else {
+            resolvingCentre
                 .transition(Self.stateTransition)
         }
     }
 
-    /// Locked → building → unlocked cross-fade rather than swap.
+    /// Placeholder → card or dial cross-fade rather than swap.
     private static var stateTransition: AnyTransition { .opacity.combined(with: .scale(scale: 0.96)) }
-
-    /// Where the number will be: only the signal it is read from. The Pro
-    /// card right below names the unlock, so saying it here too stacked
-    /// two upsells on one screen.
-    private var lockedCentre: some View {
-        centreGlyph("waveform.path.ecg")
-    }
-
-    /// The one glyph size every non-numeric centre uses, so locked, needs
-    /// age and building sit at the same weight in the same spot.
-    private func centreGlyph(_ systemName: String) -> some View {
-        Image(systemName: systemName)
-            .font(AppFont.scaled(28, weight: .light, relativeTo: .title1, in: centreTypeSize))
-            .foregroundStyle(AppColor.textSecondary)
-            .accessibilityHidden(true)
-    }
-
-    /// Text inside the arc stays clear of the stroke at every type size.
-    private static let centreTextWidth: CGFloat = 160
 
     private var resolvingCentre: some View {
         Circle()
@@ -158,15 +142,6 @@ struct BioAgeHeroSection: View {
             .frame(width: 120, height: 120)
             .shimmer()
             .accessibilityHidden(true)
-    }
-
-    private func buildingCentre(progress: Double) -> some View {
-        VStack(spacing: Spacing.xs) {
-            centreGlyph("hourglass")
-                .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion && !noHealthData)
-            GlassProgressBar(progress: progress)
-                .frame(width: Self.centreTextWidth)
-        }
     }
 
     /// The number and its unit, alone in the arc so they sit on its
@@ -206,39 +181,48 @@ struct BioAgeHeroSection: View {
         .accessibilityHint("Shows what moved your Biological Age and how it's calculated")
     }
 
-    // MARK: - State affordance
+    // MARK: - Setup card
 
-    @ViewBuilder
-    private var stateAffordance: some View {
-        switch state {
-        case nil:
-            EmptyView()
-        case .locked?:
-            // The promo card right below says Pro once; a caption here
-            // made it three times in one screen.
-            EmptyView()
-        case .needsAge?:
-            needsAgeLabel
-                .transition(Self.stateTransition)
-        case .building(let days, let requiredDays)?:
-            buildingLabel(days: days, requiredDays: requiredDays)
-                .transition(Self.stateTransition)
-        case .unlocked(let estimate)?:
-            unlockedSummary(estimate: estimate)
-                .transition(Self.stateTransition)
+    /// Stands in for the dial while there is no number: what the estimate
+    /// is waiting for, in a card a few lines tall instead of an empty
+    /// 280pt gauge.
+    private var setupCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: state == .needsAge ? "person.crop.circle.badge.questionmark" : "hourglass")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.accentLight)
+                        .accessibilityHidden(true)
+                    Text("How to get your biological age")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .accessibilityAddTraits(.isHeader)
+                }
+                setupStep
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var needsAgeLabel: some View {
+    @ViewBuilder
+    private var setupStep: some View {
+        switch state {
+        case .needsAge?:
+            needsAgeStep
+        case .building(let days, let requiredDays)?:
+            buildingStep(days: days, requiredDays: requiredDays)
+        case nil, .locked?, .unlocked(_)?:
+            EmptyView()
+        }
+    }
+
+    private var needsAgeStep: some View {
         let isUnderage = (1..<BioAgeStateResolver.minimumAge).contains(chronologicalAge)
-        return VStack(spacing: Spacing.md) {
-            Text(isUnderage
+        return VStack(alignment: .leading, spacing: Spacing.md) {
+            setupText(isUnderage
                 ? String(localized: "Biological Age is available for users 18+.")
                 : String(localized: "Add your age in Profile to see your Biological Age."))
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xl)
             // The one step between the user and the estimate, one tap
             // away instead of a hunt through Profile.
             if !isUnderage, let onAddAge {
@@ -250,35 +234,32 @@ struct BioAgeHeroSection: View {
         }
     }
 
+    /// Days against the unlock day when more days will get there;
+    /// otherwise the missing signals are what's holding it back.
     @ViewBuilder
-    private func buildingLabel(days: Int, requiredDays: Int?) -> some View {
+    private func buildingStep(days: Int, requiredDays: Int?) -> some View {
         if noHealthData {
-            Text("Atlas can't see any heart or sleep data. Check that Atlas has read access in the Health app, and wear Apple Watch overnight.")
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xl)
+            setupText(String(localized: "Atlas can't see any heart or sleep data. Check that Atlas has read access in the Health app, and wear Apple Watch overnight."))
         } else {
-            buildingProgressLabel(days: days, requiredDays: requiredDays)
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                setupText(String(localized: "Wear Apple Watch overnight. Atlas reads your heart rate, HRV and sleep."))
+                if let requiredDays {
+                    GlassProgressBar(progress: Self.buildingProgress(days: days, requiredDays: requiredDays))
+                    Text("\(min(days, requiredDays)) of \(requiredDays) days of data collected")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                } else {
+                    setupText(String(localized: "A few more signals will unlock your estimate."))
+                }
+            }
         }
     }
 
-    /// Days against the unlock day when more days will get there;
-    /// otherwise the missing signals are what's holding it back.
-    private func buildingProgressLabel(days: Int, requiredDays: Int?) -> some View {
-        VStack(spacing: Spacing.xs) {
-            if let requiredDays {
-                Text("\(min(days, requiredDays)) of \(requiredDays) days of data collected")
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(AppColor.textSecondary)
-            } else {
-                Text("A few more signals will unlock your estimate.")
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .padding(.horizontal, Spacing.xl)
+    private func setupText(_ text: String) -> some View {
+        Text(text)
+            .font(AppFont.subheadline)
+            .foregroundStyle(AppColor.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Share of the unlock day reached; when only signals are missing,
@@ -388,13 +369,15 @@ struct BioAgeHeroSection: View {
     }
 }
 
-#Preview("Locked") {
+#Preview("Needs age") {
     ZStack {
         PageBackdrop().ignoresSafeArea()
         BioAgeHeroSection(
-            state: .locked,
-            chronologicalAge: 26
+            state: .needsAge,
+            chronologicalAge: 26,
+            onAddAge: {}
         )
+        .padding(Spacing.screenPadding)
     }
 }
 
@@ -405,6 +388,7 @@ struct BioAgeHeroSection: View {
             state: .building(days: 4, requiredDays: 15),
             chronologicalAge: 26
         )
+        .padding(Spacing.screenPadding)
     }
 }
 

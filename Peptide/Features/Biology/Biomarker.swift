@@ -59,6 +59,28 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
+    /// Filled in only by a worn device through Apple Health. Nothing can
+    /// be logged by hand, so without data its card has no step to offer
+    /// beyond the one line the list shows for all of them.
+    var isRecordedByWearable: Bool {
+        switch self {
+        case .hrvBaseline, .rhrBaseline, .sleepBaseline, .stepsBaseline:
+            true
+        case .weight, .bodyTemperature, .bodyFat, .waist, .bloodPressure, .latestLabPanel:
+            false
+        }
+    }
+
+    /// Splits biomarkers, order kept, into those that get a card and the
+    /// wearable ones still without data, which the list names in one line.
+    static func splitAwaitingWearable(
+        _ biomarkers: [Biomarker],
+        hasData: (Biomarker) -> Bool
+    ) -> (tiles: [Biomarker], awaitingWearable: [Biomarker]) {
+        let awaiting = biomarkers.filter { $0.isRecordedByWearable && !hasData($0) }
+        return (biomarkers.filter { !awaiting.contains($0) }, awaiting)
+    }
+
     /// SF Symbol shown on the biomarker's card. Prefer the `.fill`
     /// variants that hold their weight at small sizes.
     var icon: String {
