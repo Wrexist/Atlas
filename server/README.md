@@ -83,8 +83,7 @@ server-side from a small app payload.
        Upstash Redis integration from the Vercel Marketplace and these
        are injected automatically; rate limits and the daily budget
        then hold across all instances instead of per warm lambda.
-       The legacy `KV_REST_API_URL` / `KV_REST_API_TOKEN` names work
-       too. Unset → per-instance in-memory limiting (the old behavior).
+       Unset → per-instance in-memory limiting (the old behavior).
      - `ANTHROPIC_DAILY_REQUEST_BUDGET` — hard cap on upstream
        Anthropic cost units per UTC day across **all** routes combined.
        Once spent, routes return 503 until midnight UTC. Unset → 20 000

@@ -6,13 +6,11 @@
  * Env vars:
  *   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
  *       — set automatically by the Vercel Upstash integration.
- *         `KV_REST_API_URL` / `KV_REST_API_TOKEN` (legacy Vercel KV
- *         naming) are honoured as fallbacks.
  */
 
 export function redisConfig() {
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
   return { url, token };
 }
