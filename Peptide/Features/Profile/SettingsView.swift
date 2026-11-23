@@ -2,41 +2,40 @@ import SwiftUI
 
 /// Settings pushed from Profile, so Profile itself stays about the user —
 /// identity, progress, goals, body and health — and the switches live here.
-/// Each card carries its own title, in the order Training, Reminders,
-/// Preferences, AI & privacy, Data, Account, About — and last, on its own,
-/// the two irreversible deletes, so they never sit beside an everyday control.
+/// Five titled sections — Training, Reminders, Appearance, Data, About —
+/// and last, on its own, the two irreversible deletes, so they never sit
+/// beside an everyday control.
 struct SettingsView: View {
     @Environment(DataStore.self) private var dataStore
     @State private var showRestoreBackup = false
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Spacing.lg) {
-                TrainingSettingsSection()
+            VStack(spacing: Spacing.xl) {
+                section("Training") { TrainingSettingsSection() }
 
-                DailyRemindersSection()
+                section("Reminders") { DailyRemindersSection() }
 
-                AppearanceSettings()
+                section("Appearance") { AppearanceSettings() }
 
-                aiPrivacySection
+                section("Data") {
+                    AccountSection()
 
-                // Export and its round trip, restore, read as one group.
-                VStack(spacing: Spacing.sm) {
+                    aiPrivacySection
+
                     ExportSection()
 
                     RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
                 }
 
-                // Developer surfaces stay out of customer builds.
-                #if DEBUG
-                DiagnosticsSection()
+                section("About") {
+                    AboutSection()
 
-                ScreenshotModeRow()
-                #endif
-
-                AccountSection()
-
-                AboutSection()
+                    // Developer surfaces stay out of customer builds.
+                    #if DEBUG
+                    DiagnosticsSection()
+                    #endif
+                }
 
                 DeleteDataSection()
             }
@@ -50,6 +49,16 @@ struct SettingsView: View {
         .sheet(isPresented: $showRestoreBackup) {
             RestoreBackupSheet()
                 .environment(dataStore)
+        }
+    }
+
+    private func section<Content: View>(
+        _ title: LocalizedStringKey,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(spacing: Spacing.md) {
+            HomeSectionHeader(title: title)
+            content()
         }
     }
 
