@@ -172,7 +172,7 @@ private struct TodayHeroSurface: View {
         // Light mode keeps the falloff shallow: a near-black corner on a
         // cream page outweighs everything else on screen.
         let light = colorScheme == .light
-        let deep = AppColor.accentFill.mix(with: AppColor.accentDeep, by: light ? 0.35 : 1)
+        let deep = AppColor.accentFill.mix(with: AppColor.accentDeep, by: light ? 0.2 : 1)
         let fill = AppColor.accentFill
         let sheen = AppColor.accentFill.mix(with: AppColor.accentSheen, by: light ? 0.6 : 0.8)
         return MeshGradient(
@@ -247,8 +247,8 @@ private struct TodayHeroTilt: ViewModifier {
 
 // MARK: - Ring
 
-/// The day's ring, drawn on the accent: a recessed track, a bright arc,
-/// and a raised knob at its head.
+/// The day's ring, drawn on the accent: a recessed track and a bright
+/// arc that casts a small shadow onto it.
 private struct TodayHeroRing: View {
     let progress: Double
 
@@ -260,18 +260,9 @@ private struct TodayHeroRing: View {
                 .stroke(AppColor.onAccent.opacity(0.25), lineWidth: Self.stroke)
             Circle()
                 .trim(from: 0, to: max(progress, 0.001))
-                .stroke(
-                    AngularGradient(
-                        colors: [AppColor.onAccent.opacity(0.55), AppColor.onAccent],
-                        center: .center,
-                        startAngle: .degrees(0),
-                        endAngle: .degrees(360 * max(progress, 0.001))
-                    ),
-                    style: StrokeStyle(lineWidth: Self.stroke, lineCap: .round)
-                )
+                .stroke(AppColor.onAccent, style: StrokeStyle(lineWidth: Self.stroke, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .appShadow(AppShadow.ringLap)
-            knob
             Text(progress, format: .percent.precision(.fractionLength(0)))
                 .font(AppFont.scaled(24, weight: .semibold, relativeTo: .title3))
                 .monospacedDigit()
@@ -282,25 +273,6 @@ private struct TodayHeroRing: View {
                 .padding(.horizontal, Self.stroke + Spacing.xs)
         }
         .appAnimation(AppAnimation.springSmooth, value: progress)
-    }
-
-    /// The arc's head as a small raised bead, so the ring reads as a
-    /// physical track rather than a line. Hidden at zero, where there's
-    /// no arc to lead.
-    private var knob: some View {
-        GeometryReader { geo in
-            let r = min(geo.size.width, geo.size.height) / 2
-            let angle = Angle.degrees(360 * progress - 90)
-            Circle()
-                .fill(AppColor.onAccent)
-                .frame(width: Self.stroke - 2, height: Self.stroke - 2)
-                .appShadow(AppShadow.tileDrop)
-                .position(
-                    x: r + cos(angle.radians) * r,
-                    y: r + sin(angle.radians) * r
-                )
-                .opacity(progress > 0.02 ? 1 : 0)
-        }
     }
 }
 
