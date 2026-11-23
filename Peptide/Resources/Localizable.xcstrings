@@ -6779,16 +6779,6 @@
         }
       }
     },
-    "DAYS PER WEEK": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DAGAR PER VECKA"
-          }
-        }
-      }
-    },
     "Daily injection. Morning dosing may help with daytime appetite control": {
       "localizations": {
         "sv": {
@@ -6835,26 +6825,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Diastoliskt"
-          }
-        }
-      }
-    },
-    "EQUIPMENT": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "UTRUSTNING"
-          }
-        }
-      }
-    },
-    "EXPERIENCE": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ERFARENHET"
           }
         }
       }
@@ -7151,16 +7121,6 @@
         }
       }
     },
-    "GOAL": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "MÅL"
-          }
-        }
-      }
-    },
     "Ghrelin receptor downregulation reduces GH response": {
       "localizations": {
         "sv": {
@@ -7414,22 +7374,12 @@
         }
       }
     },
-    "MINUTES": {
+    "Minutes per session": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "MINUTER"
-          }
-        }
-      }
-    },
-    "MINUTES PER SESSION": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "MINUTER PER PASS"
+            "value": "Minuter per pass"
           }
         }
       }
@@ -8602,16 +8552,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Systoliskt"
-          }
-        }
-      }
-    },
-    "TRAIN WITH IT": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TRÄNA MED"
           }
         }
       }
@@ -22415,12 +22355,12 @@
         }
       }
     },
-    "LAST NIGHT": {
+    "Last night": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "I NATT"
+            "value": "I natt"
           }
         }
       }
@@ -35947,16 +35887,6 @@
         }
       }
     },
-    "TODAY'S DOSES": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DAGENS DOSER"
-          }
-        }
-      }
-    },
     "Today's training": {
       "localizations": {
         "sv": {
@@ -39593,22 +39523,12 @@
         }
       }
     },
-    "WHAT'S DRIVING IT": {
+    "Why it matters": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "VAD SOM DRIVER DET"
-          }
-        }
-      }
-    },
-    "WHY IT MATTERS": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "VARFÖR DET SPELAR ROLL"
+            "value": "Varför det spelar roll"
           }
         }
       }
@@ -53619,42 +53539,42 @@
         }
       }
     },
-    "FREE WEIGHTS": {
+    "Free weights": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "FRIA VIKTER"
+            "value": "Fria vikter"
           }
         }
       }
     },
-    "STATIONS": {
+    "Stations": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "STATIONER"
+            "value": "Stationer"
           }
         }
       }
     },
-    "MACHINES": {
+    "Machines": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "MASKINER"
+            "value": "Maskiner"
           }
         }
       }
     },
-    "SMALL KIT": {
+    "Small kit": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "ÖVRIGT"
+            "value": "Övrigt"
           }
         }
       }

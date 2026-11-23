@@ -260,8 +260,9 @@ struct HeroMetricDetailSheet: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("WHY IT MATTERS")
+                Text("Why it matters")
                     .font(AppFont.scaled(11, weight: .semibold))
+                    .textCase(.uppercase)
                     .tracking(1.0)
                     .foregroundStyle(AppColor.textSecondary)
                 Text(explainerBody)
@@ -306,6 +307,7 @@ struct HeroMetricDetailSheet: View {
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(AppFont.scaled(11, weight: .semibold))
+            .textCase(.uppercase)
             .tracking(1.0)
             .foregroundStyle(AppColor.textSecondary)
     }
@@ -314,7 +316,7 @@ struct HeroMetricDetailSheet: View {
 
     private var adherenceList: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionHeader("TODAY'S DOSES")
+            sectionHeader("Today's doses")
 
             if context.todayEntries.isEmpty {
                 emptyDoseCard
@@ -401,7 +403,7 @@ struct HeroMetricDetailSheet: View {
 
     private var recoveryBreakdown: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionHeader("WHAT'S DRIVING IT")
+            sectionHeader("What's driving it")
 
             if let components = context.recoveryComponents {
                 driverRow(.hrv, value: components.hrv)
@@ -561,7 +563,7 @@ struct HeroMetricDetailSheet: View {
 
     private var sleepDetail: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionHeader("LAST NIGHT")
+            sectionHeader("Last night")
 
             HStack(spacing: Spacing.md) {
                 sleepStat(

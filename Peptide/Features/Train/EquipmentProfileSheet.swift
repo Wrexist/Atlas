@@ -25,10 +25,10 @@ struct EquipmentProfileSheet: View {
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    section("FREE WEIGHTS", items: Self.freeWeights.map(Item.kind))
-                    section("STATIONS", items: Self.stations.map(Item.kind) + EquipmentAccessory.allCases.map(Item.accessory))
-                    section("MACHINES", items: GymMachine.allCases.map(Item.machine))
-                    section("SMALL KIT", items: Self.small.map(Item.kind))
+                    section("Free weights", items: Self.freeWeights.map(Item.kind))
+                    section("Stations", items: Self.stations.map(Item.kind) + EquipmentAccessory.allCases.map(Item.accessory))
+                    section("Machines", items: GymMachine.allCases.map(Item.machine))
+                    section("Small kit", items: Self.small.map(Item.kind))
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.vertical, Spacing.lg)
@@ -98,6 +98,7 @@ struct EquipmentProfileSheet: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
                     .font(AppFont.eyebrow)
+                    .textCase(.uppercase)
                     .tracking(1.2)
                     .foregroundStyle(AppColor.textTertiary)
                     .accessibilityAddTraits(.isHeader)

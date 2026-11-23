@@ -65,7 +65,7 @@ struct ProgramBuilderSheet: View {
 
     private var form: some View {
         VStack(alignment: .leading, spacing: Spacing.xl) {
-            section("GOAL") {
+            section("Goal") {
                 FlowLayout(spacing: Spacing.sm) {
                     ForEach(TrainingGoal.allCases) { goal in
                         GlassChip(LocalizedStringKey(goal.displayName), isSelected: request.goal == goal) {
@@ -75,7 +75,7 @@ struct ProgramBuilderSheet: View {
                 }
             }
 
-            section("EXPERIENCE") {
+            section("Experience") {
                 GlassSegmentedControl(
                     options: [Exercise.Level.beginner, .intermediate, .expert],
                     selected: $request.experience,
@@ -83,7 +83,7 @@ struct ProgramBuilderSheet: View {
                 )
             }
 
-            section("DAYS PER WEEK") {
+            section("Days per week") {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     GlassSegmentedControl(
                         options: Array(ProgramRequest.dayRange),
@@ -96,7 +96,7 @@ struct ProgramBuilderSheet: View {
                 }
             }
 
-            section("MINUTES PER SESSION") {
+            section("Minutes per session") {
                 GlassSegmentedControl(
                     options: ProgramRequest.sessionOptions,
                     selected: $request.sessionMinutes,
@@ -104,7 +104,7 @@ struct ProgramBuilderSheet: View {
                 )
             }
 
-            section("EQUIPMENT") {
+            section("Equipment") {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     FlowLayout(spacing: Spacing.sm) {
                         ForEach(Self.equipmentChoices) { kind in
@@ -134,6 +134,7 @@ struct ProgramBuilderSheet: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(title)
                 .font(AppFont.eyebrow)
+                .textCase(.uppercase)
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textTertiary)
                 .accessibilityAddTraits(.isHeader)

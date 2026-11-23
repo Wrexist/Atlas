@@ -162,7 +162,7 @@ struct SessionBuilderSheet: View {
             if let focus {
                 VStack(alignment: .leading, spacing: Spacing.xxl) {
                     statusCard(for: focus)
-                    section("TRAIN WITH IT") {
+                    section("Train with it") {
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             chips(focus.companions.filter { !resting.contains($0) },
                                   tint: Self.companionChipColor,
@@ -187,7 +187,7 @@ struct SessionBuilderSheet: View {
                 }
             }
 
-            section("MINUTES") {
+            section("Minutes") {
                 GlassSegmentedControl(options: Self.minuteOptions, selected: $minutes,
                                       label: { LocalizedStringKey("\($0)") })
             }
@@ -555,6 +555,7 @@ struct SessionBuilderSheet: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(title)
                 .font(AppFont.eyebrow)
+                .textCase(.uppercase)
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textTertiary)
                 .accessibilityAddTraits(.isHeader)
