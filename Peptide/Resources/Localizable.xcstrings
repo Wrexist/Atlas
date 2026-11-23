@@ -44857,56 +44857,6 @@
         }
       }
     },
-    "Opens Today": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öppnar Idag"
-          }
-        }
-      }
-    },
-    "Overdue dose: %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad dos: %@ kl. %@"
-          }
-        }
-      }
-    },
-    "Overdue dose: %@, %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad dos: %@, %@ kl. %@"
-          }
-        }
-      }
-    },
-    "Overdue: %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad: %@"
-          }
-        }
-      }
-    },
-    "Overdue: %@ • %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad: %@ • %@"
-          }
-        }
-      }
-    },
     "%lld h": {
       "comment": "Custom fast length on the lock screen, e.g. 20 h",
       "localizations": {

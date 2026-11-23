@@ -71,9 +71,6 @@ struct ProfileView: View {
                     AtlasScoreCard(onTap: { showProgress = true })
                         .sectionAppear(index: 2)
 
-                    CycleCardShareSection()
-                        .scrollReveal()
-
                     GoalsSectionCard(
                         goalCatalog: goalCatalog,
                         selectedKeys: Set(dataStore.profile.goals),
@@ -103,9 +100,11 @@ struct ProfileView: View {
                     )
                     .scrollReveal()
 
+                    // Protocol tools are secondary, so they close the page.
                     // The library and its calculator are one toolset, so they
                     // sit together rather than a full section gap apart.
                     VStack(spacing: Spacing.sm) {
+                        CycleCardShareSection()
                         PeptideLibraryEntryCard()
 
                         // The calculator only matters to someone running a protocol.

@@ -360,6 +360,16 @@ struct PeptideShortcuts: AppShortcutsProvider {
             systemImageName: "list.bullet.rectangle.fill"
         )
         AppShortcut(
+            intent: ShowStreakIntent(),
+            phrases: [
+                "Show my \(.applicationName) streak",
+                "What's my streak in \(.applicationName)",
+            ],
+            shortTitle: "Streaks",
+            systemImageName: "flame.fill"
+        )
+        // Dose shortcuts are secondary, so they come last.
+        AppShortcut(
             intent: LogDoseIntent(),
             phrases: [
                 "Log a dose in \(.applicationName)",
@@ -388,15 +398,6 @@ struct PeptideShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Adherence",
             systemImageName: "chart.bar.fill"
-        )
-        AppShortcut(
-            intent: ShowStreakIntent(),
-            phrases: [
-                "Show my \(.applicationName) streak",
-                "What's my streak in \(.applicationName)",
-            ],
-            shortTitle: "Streaks",
-            systemImageName: "flame.fill"
         )
     }
 }
