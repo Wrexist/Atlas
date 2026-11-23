@@ -6,7 +6,16 @@ import StoreKit
 final class StoreService {
     static let shared = StoreService()
 
-    private(set) var isProUser = false
+    /// Master switch for the Pro paywall. While `false`, everything Pro is
+    /// unlocked and every paywall, trial and upsell surface is hidden;
+    /// StoreKit still runs underneath. Set back to `true` to re-enable
+    /// (and `ScreenshotTests.paywallEnabled` with it). A `var` only so
+    /// tests can exercise the paywall logic.
+    nonisolated(unsafe) static var paywallEnabled = false
+
+    /// Whether StoreKit reports an active Pro entitlement.
+    private(set) var hasProEntitlement = false
+    var isProUser: Bool { !Self.paywallEnabled || hasProEntitlement }
     private(set) var products: [Product] = []
     private(set) var purchasedProductIDs: Set<String> = []
     /// Intro-offer eligibility for the monthly subscription. Driven by
@@ -55,7 +64,7 @@ final class StoreService {
     @ObservationIgnored private var productsTask: Task<Void, Never>?
 
     private init() {
-        isProUser = UserDefaults.standard.bool(forKey: Self.lastKnownProKey)
+        hasProEntitlement = UserDefaults.standard.bool(forKey: Self.lastKnownProKey)
         updateTask = Task { [weak self] in
             await self?.listenForTransactions()
         }
@@ -349,8 +358,8 @@ final class StoreService {
             }
         }
         purchasedProductIDs = purchased
-        isProUser = !purchased.isDisjoint(with: proIDs)
-        UserDefaults.standard.set(isProUser, forKey: Self.lastKnownProKey)
+        hasProEntitlement = !purchased.isDisjoint(with: proIDs)
+        UserDefaults.standard.set(hasProEntitlement, forKey: Self.lastKnownProKey)
         hasResolvedEntitlements = true
         proEntitlementJWS = proJWS?.jws
         await refreshTrialEligibility()

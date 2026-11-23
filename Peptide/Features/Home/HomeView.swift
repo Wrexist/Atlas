@@ -115,7 +115,6 @@ struct HomeView: View {
     /// after midnight and never reaches into the future.
     @State private var dayOffset = 0
     @State private var summaryService = OnDeviceSummaryService.shared
-    @Environment(\.requestReview) private var requestReview
     @Environment(\.scenePhase) private var scenePhase
 
     /// What `refreshDerived()` reruns on: any store mutation, or a
@@ -634,19 +633,12 @@ struct HomeView: View {
             }
             // Single handler for adherence-ratio changes: update only the
             // trio's Adherence ring so a logged/unlogged dose shows
-            // immediately without re-reading HealthKit, and fire the
-            // review prompt when the day first hits 100%. Keyed on the
+            // immediately without re-reading HealthKit. Keyed on the
             // optional ratio so going from no doses to N untaken (nil → 0)
             // still reaches the ring.
-            .onChange(of: adherenceRatio) { oldRatio, newRatio in
+            .onChange(of: adherenceRatio) { _, newRatio in
                 AppAnimation.with(AppAnimation.springSmooth) {
                     heroSnapshot = heroSnapshot.withAdherence(newRatio)
-                }
-                if (oldRatio ?? 0) < 1.0, (newRatio ?? 0) >= 1.0 {
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(1))
-                        ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
-                    }
                 }
             }
             // Recompute the derived Today models once per store mutation.

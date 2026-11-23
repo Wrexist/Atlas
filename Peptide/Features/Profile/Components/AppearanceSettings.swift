@@ -16,10 +16,6 @@ struct AppearanceSettings: View {
 
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Preferences", systemImage: "gearshape.fill")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-
                 SettingsToggleRow(
                     icon: "hand.tap.fill",
                     title: "Haptic feedback",
@@ -186,7 +182,7 @@ private struct DisplayModeRow: View {
     var body: some View {
         SettingsPickerRow(
             icon: selection.iconName,
-            title: "Appearance",
+            title: "Mode",
             subtitle: LocalizedStringKey(selection.displayName)
         ) {
             GlassSegmentedControl(

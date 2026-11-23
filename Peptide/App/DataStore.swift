@@ -2766,8 +2766,7 @@ final class DataStore {
 
     /// Swaps the in-memory state for a demo seed and locks writes
     /// so user data on disk stays untouched. Called by
-    /// `ScreenshotMode.activate(in:)` on a toggle flip and on
-    /// every cold launch where the flag is already on.
+    /// `ScreenshotMode` on every cold launch where the flag is on.
     ///
     /// Bumps `cacheVersion` so every derived metric (streak,
     /// weeklyCompletion, topInsight) recomputes against the new

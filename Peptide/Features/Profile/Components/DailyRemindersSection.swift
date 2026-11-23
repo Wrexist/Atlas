@@ -14,14 +14,9 @@ struct DailyRemindersSection: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Label("Reminders", systemImage: "bell.badge.fill")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("Each one stays quiet on days you've already logged it.")
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textTertiary)
-                }
+                Text("Each one stays quiet on days you've already logged it.")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
 
                 if permissionDenied {
                     NotificationsDeniedRow()

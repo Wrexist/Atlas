@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The settings a training-first user reaches for most — display units,
 /// the daily step goal, the rest timer's fallback length, auto-progression,
-/// and the plates and bars the plate calculator loads — surfaced near the top of Profile
-/// instead of at the bottom of the general Settings card.
+/// and the plates and bars the plate calculator loads. `SettingsView` titles
+/// the card.
 struct TrainingSettingsSection: View {
     @Environment(DataStore.self) private var dataStore
 
@@ -12,10 +12,6 @@ struct TrainingSettingsSection: View {
 
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Training", systemImage: "dumbbell.fill")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-
                 MeasurementUnitRow(selection: $store.profile.bodyMetrics.unit)
                     .onChange(of: dataStore.profile.bodyMetrics.unit) { _, _ in
                         dataStore.persistProfile()

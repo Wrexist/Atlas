@@ -1,4 +1,3 @@
-import StoreKit
 import SwiftUI
 import UIKit
 
@@ -23,21 +22,12 @@ struct CelebrationHostView: View {
     @State private var center = CelebrationCenter.shared
     @State private var achievements = AchievementService.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.requestReview) private var requestReview
 
     @State private var burst: ConfettiBurst?
     @State private var levelUp: LevelUpPresentation?
     /// The unlocks the current toast stands for, head first.
     @State private var toastUnlocks: [Achievement] = []
     @State private var showAchievementToast = false
-
-    /// Milestones big enough to be a good moment for the review prompt —
-    /// asked only after the user has actually seen the toast.
-    private static let reviewWorthyAchievements: Set<String> = [
-        "streak_7", "streak_14", "streak_30", "streak_90",
-        "fifty_doses", "hundred_doses", "five_hundred_doses",
-        "month_logged"
-    ]
 
     private struct ConfettiBurst: Identifiable {
         let id = UUID()
@@ -97,9 +87,6 @@ struct CelebrationHostView: View {
         }
         .onChange(of: showAchievementToast) { _, isShowing in
             guard !isShowing else { return }
-            if toastUnlocks.contains(where: { Self.reviewWorthyAchievements.contains($0.id) }) {
-                ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
-            }
             // Drain what this toast showed once it has slid away, so the
             // next one never overlaps the outgoing card.
             let shownCount = toastUnlocks.count
