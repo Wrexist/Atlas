@@ -1026,7 +1026,9 @@ struct HomeView: View {
                 }
             }
             .id(TodaySection.doses)
-            .scrollReveal()
+            // No scroll reveal: a day's dose list runs taller than the
+            // screen, so it never reached the fully-visible phase and sat
+            // dimmed under the hero.
         }
     }
 
