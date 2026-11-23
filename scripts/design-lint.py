@@ -40,7 +40,7 @@ SCANNED_ROOTS = (REPO / "Peptide" / "App", FEATURES, DESIGN_SYSTEM, SERVICES, MO
 # or which are composited onto a permanently dark backdrop (share cards,
 # anatomy, photo viewers). Documented in ColorTheme.swift.
 DOMAIN_PALETTE_FILES = {
-    "WhatsNewPage.swift", "MuscleMapView.swift", "CycleCardView.swift",
+    "MuscleMapView.swift", "CycleCardView.swift",
     "ProtocolNotesTimeline.swift", "AvatarPreset.swift", "HabitEditSheet.swift",
     "BarcodeScanFlow.swift", "ShareCardSheet.swift",
     "ProgressPhotoViewer.swift", "ProgressPhotoCompareView.swift",

@@ -18,8 +18,7 @@ import UIKit
 /// metric colours (`metric*`), `streak` / `achievement`, the anatomy
 /// primary/secondary tints in
 /// `MuscleMapView`, the notes mood-rating scale in `ProtocolNotesTimeline`,
-/// the multi-colour onboarding showcase in `WhatsNewPage`, and the
-/// deliberately-distinct Screenshot-mode dev row. These encode a real-world
+/// and the deliberately-distinct Screenshot-mode dev row. These encode a real-world
 /// concept, not the brand — but they still carry a light variant where the
 /// dark-mode value would fail contrast on a light surface.
 enum AppColor {
