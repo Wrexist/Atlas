@@ -359,15 +359,18 @@ struct MacroSummaryRow: View {
             onAddWater(option.fluidOunces)
         } label: {
             HStack(spacing: Spacing.xs) {
+                // Only the drop keeps the water data colour: the chips are
+                // secondary to Log food, so their fill and label stay neutral.
                 Image(systemName: "drop.fill")
                     .font(AppFont.scaled(11, weight: .bold))
+                    .foregroundStyle(AppColor.macroWaterInk)
                     .completionPulse(trigger: waterFeedback, isActive: selectedWaterAmount == option.fluidOunces)
                 Text(option.label)
                     .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .foregroundStyle(AppColor.macroWaterInk)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
             .frame(maxWidth: .infinity)
@@ -375,8 +378,8 @@ struct MacroSummaryRow: View {
             // second, competing scale on iOS 26.
             .glassControl(
                 .capsule,
-                tint: AppColor.macroWater.opacity(0.18),
-                border: AppColor.macroWater.opacity(0.32),
+                tint: AppColor.surfaceElevated.opacity(0.3),
+                border: AppColor.glassBorder,
                 interactive: false
             )
             .minimumHitArea()
