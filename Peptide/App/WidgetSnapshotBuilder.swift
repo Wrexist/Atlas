@@ -12,15 +12,14 @@ import Foundation
 enum WidgetSnapshotBuilder {
 
     /// Captures the inputs the widget cares about: today's entries
-    /// (regardless of completion), the next pending dose, and the day's
-    /// nutrition rollup. The next dose is passed separately rather than
-    /// recomputed because `DataStore.nextDose` is cached and shouldn't
-    /// be re-derived. Nutrition is optional so non-nutrition widgets
+    /// (regardless of completion) and the day's nutrition rollup. The
+    /// next dose is the earliest unlogged one, missed or not — the rule
+    /// the Watch complication uses — so a missed dose stays the hero
+    /// (and overdue) until it's logged. Nutrition is optional so non-nutrition widgets
     /// (NextDose, Compliance) continue to work even on a fresh install
     /// where the user hasn't logged anything yet.
     static func build(
         today: [ProtocolEntry],
-        next: ProtocolEntry?,
         hasActiveProtocol: Bool = false,
         consumption: DailyConsumption = .empty(on: Date()),
         targets: NutritionTargets? = nil,
@@ -40,6 +39,7 @@ enum WidgetSnapshotBuilder {
         // most recent first, so the dose just taken is the one shown.
         let chronological = today.sorted { $0.date < $1.date }
         let pending = chronological.filter { !$0.completed }
+        let next = pending.first
         let logged = chronological.filter(\.completed).reversed()
         let upcoming = (pending + logged)
             .prefix(3)
@@ -131,7 +131,7 @@ enum WidgetSnapshotBuilder {
                     (lhs.finishedAt ?? .distantPast) < (rhs.finishedAt ?? .distantPast)
                 }
                 .map { summary(of: $0) },
-            workoutsThisWeek: thisWeek.count,
+            workoutsThisWeek: TrainingWeekEngine.trainedDaysThisWeek(finished, now: now, calendar: calendar),
             weeklySetCount: thisWeek.reduce(0) { $0 + $1.completedSetCount },
             weeklyVolumeKg: thisWeek.reduce(0) { $0 + $1.totalVolumeKg },
             trainingDays: Set(thisWeek.map { midday(of: $0.dayAnchor, in: calendar) })
@@ -143,6 +143,8 @@ enum WidgetSnapshotBuilder {
     /// one assembly step rather than four.
     struct TrainingSnapshot: Equatable {
         var lastWorkout: WidgetWorkoutSummary?
+        /// Distinct trained days this week (`TrainingWeekEngine`), the
+        /// same count Today and Train compare to the days-per-week target.
         var workoutsThisWeek: Int
         var weeklySetCount: Int
         var weeklyVolumeKg: Double

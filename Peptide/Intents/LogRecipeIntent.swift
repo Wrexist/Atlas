@@ -33,6 +33,7 @@ struct LogRecipeIntent: AppIntent {
         let outcome = await MainActor.run {
             Self.log(recipeID: recipeID, in: IntentDataStore.resolve(), at: Date())
         }
+        if case .logged = outcome { await LogMealIntent.reconcileReminders() }
 
         switch outcome {
         case .saveFailed:

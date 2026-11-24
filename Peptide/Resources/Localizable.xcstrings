@@ -1498,12 +1498,12 @@
         }
       }
     },
-    "%@%lld sessions this week — %@.": {
+    "%@%lld sessions in the last 7 days — %@.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@%#@arg2@ den här veckan – %3$@."
+            "value": "%1$@%#@arg2@ de senaste 7 dagarna – %3$@."
           },
           "substitutions": {
             "arg2": {
@@ -1531,7 +1531,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@%#@arg2@ this week — %3$@."
+            "value": "%1$@%#@arg2@ in the last 7 days — %3$@."
           },
           "substitutions": {
             "arg2": {
@@ -8201,6 +8201,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vävnadsreparation (flera vägar)"
+          }
+        }
+      }
+    },
+    "Training days this week, %lld of %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningsdagar den här veckan, %lld av %lld"
           }
         }
       }
@@ -40747,16 +40757,6 @@
         }
       }
     },
-    "Workouts this week, %lld of %lld": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pass den här veckan, %lld av %lld"
-          }
-        }
-      }
-    },
     "Worth Reviewing": {
       "localizations": {
         "sv": {
@@ -44873,56 +44873,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Förkortning (valfritt)"
-          }
-        }
-      }
-    },
-    "Opens Today": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öppnar Idag"
-          }
-        }
-      }
-    },
-    "Overdue dose: %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad dos: %@ kl. %@"
-          }
-        }
-      }
-    },
-    "Overdue dose: %@, %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad dos: %@, %@ kl. %@"
-          }
-        }
-      }
-    },
-    "Overdue: %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad: %@"
-          }
-        }
-      }
-    },
-    "Overdue: %@ • %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad: %@ • %@"
           }
         }
       }

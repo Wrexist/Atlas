@@ -198,6 +198,32 @@ final class RoutineStoreTests: XCTestCase {
                        "A reorder held only in memory is a reorder the user loses")
     }
 
+    func test_move_afterDeleteFromAnotherDevice_doesNotResurrectIt() {
+        store.create(name: "A")
+        let b = store.create(name: "B")
+        store.create(name: "C")
+        // Another device's delete synced in; this list hasn't reloaded.
+        repo.deleteRoutine(id: b.id)
+
+        store.move(fromOffsets: IndexSet(integer: 2), toOffset: 0)
+        store.load()
+
+        XCTAssertEqual(store.routines.map(\.name), ["C", "A"])
+    }
+
+    func test_move_afterEditFromAnotherDevice_keepsTheEdit() throws {
+        store.create(name: "A")
+        let b = store.create(name: "B")
+        var remote = try XCTUnwrap(repo.loadRoutines().first { $0.id == b.id })
+        remote.name = "B edited elsewhere"
+        repo.upsertRoutine(remote)
+
+        store.move(fromOffsets: IndexSet(integer: 1), toOffset: 0)
+        store.load()
+
+        XCTAssertEqual(store.routines.map(\.name), ["B edited elsewhere", "A"])
+    }
+
     /// Editing a routine after a reorder must not float it to the top —
     /// which is exactly what sorting on updatedAt alone would do.
     func test_move_thenEdit_keepsTheUserOrder() {

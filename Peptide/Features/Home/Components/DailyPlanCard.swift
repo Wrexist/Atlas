@@ -241,11 +241,13 @@ private struct DailyPlanDoseRow: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             topRow
             if !dose.timingNote.isEmpty {
+                // One line: doses sit at the foot of Today as an optional
+                // extra, and two-line notes made the list run a screen and
+                // a half. VoiceOver still reads the whole note.
                 Text(dose.timingNote)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .multilineTextAlignment(.leading)
+                    .lineLimit(1)
             }
             ForEach(dose.conflicts, id: \.self) { conflict in
                 conflictChip(conflict)

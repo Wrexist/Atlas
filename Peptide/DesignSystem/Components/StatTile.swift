@@ -72,7 +72,7 @@ struct StatTile: View {
             if let footnote {
                 Text(footnote)
                     .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
+                    .foregroundStyle(AppColor.textSecondary)
                     // A sentence, not a word: two lines read better than an
                     // ellipsis once Swedish lengthens it.
                     .lineLimit(2)

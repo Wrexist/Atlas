@@ -139,8 +139,8 @@ struct HomeView: View {
         var habits: HabitsHeroSnapshot = .empty
         /// Facts the on-device model may rephrase `primaryReason`'s body from.
         var coachingFacts: OnDeviceSummaryEngine.Facts?
-        /// Finished sessions this calendar week — the trio's first ring
-        /// for a user with no active protocol.
+        /// Distinct trained days this calendar week (`TrainingWeekEngine`)
+        /// — the trio's first ring for a user with no active protocol.
         var workoutsThisWeek = 0
         /// The day's session count and minutes — feeds the Movement card
         /// and the checklist's training row without a fetch from `body`.
@@ -150,8 +150,6 @@ struct HomeView: View {
         var checklist: TodayChecklistEngine.State?
         /// The shown day's supplements with their checks, under the checklist.
         var supplements: [SupplementEngine.Row] = []
-        /// The shown day's doses taken and scheduled, for the hero card.
-        var doseCount: (done: Int, total: Int) = (0, 0)
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -190,8 +188,9 @@ struct HomeView: View {
         return stats.total > 0 ? stats.score : nil
     }
 
-    /// The hero card's goals: the day's food, movement and water first,
-    /// then doses when a protocol runs, else habits. Each shows only when
+    /// The hero card's goals: the day's food, movement and water, then
+    /// habits. Doses stay out: protocols are an optional extra with their
+    /// own section at the bottom of Today. Each shows only when
     /// it has a target, so the ring never counts a goal the user hasn't set.
     private var heroParts: [TodayHeroCard.Part] {
         var parts: [TodayHeroCard.Part] = []
@@ -204,9 +203,7 @@ struct HomeView: View {
             }
             parts.append(.init(kind: .water, fraction: checklist.waterProgress, value: checklist.waterProgress.formatted(.percent.precision(.fractionLength(0)))))
         }
-        if showsDoseSection, derived.doseCount.total > 0 {
-            parts.append(.init(kind: .doses, done: derived.doseCount.done, total: derived.doseCount.total))
-        } else if derived.habits.dueCount > 0 {
+        if derived.habits.dueCount > 0 {
             parts.append(.init(kind: .habits, done: derived.habits.doneCount, total: derived.habits.dueCount))
         }
         return parts
@@ -273,18 +270,17 @@ struct HomeView: View {
             primaryReason: reason,
             habits: habits,
             coachingFacts: reason.flatMap { coachingFacts(for: $0) },
-            workoutsThisWeek: weekSessions.count,
+            workoutsThisWeek: TrainingWeekEngine.trainedDaysThisWeek(weekSessions),
             workoutSummary: workoutSummary,
             checklist: TodayChecklistEngine.state(
                 profile: dataStore.profile,
                 consumption: dataStore.consumption(for: day),
                 trainedToday: workoutSummary.count > 0,
-                weekSessionCount: shownDay.weekCount,
+                weekTrainedDays: shownDay.weekTrainedDays,
                 steps: steps(on: day),
                 now: reference
             ),
-            supplements: SupplementEngine.rows(dataStore.profile.supplements, on: reference, calendar: .current),
-            doseCount: (done: dayEntries.filter(\.completed).count, total: dayEntries.count)
+            supplements: SupplementEngine.rows(dataStore.profile.supplements, on: reference, calendar: .current)
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
@@ -351,15 +347,15 @@ struct HomeView: View {
             .filter { !$0.isActive }
     }
 
-    /// The shown day's finished sessions, and how many finished sessions
-    /// its week holds up to the end of that day — what the checklist's
-    /// weekly-target rule counts. The current week reuses the week fetch;
-    /// an earlier week reads its week-through-day window once and derives
-    /// both from it.
+    /// The shown day's finished sessions, and how many distinct days of
+    /// its week were trained up to the end of that day — what the
+    /// checklist's weekly-target rule counts. The current week reuses the
+    /// week fetch; an earlier week reads its week-through-day window once
+    /// and derives both from it.
     private func finishedSessions(
         on day: Date,
         thisWeek weekSessions: [WorkoutSession]
-    ) -> (day: [WorkoutSession], weekCount: Int) {
+    ) -> (day: [WorkoutSession], weekTrainedDays: Int) {
         let calendar = Calendar.current
         guard let week = calendar.dateInterval(of: .weekOfYear, for: day) else { return ([], 0) }
         let end = min(week.end, TodayDayEngine.dayRange(for: day).upperBound)
@@ -370,7 +366,8 @@ struct HomeView: View {
                 .loadWorkoutSessions(startedBetween: week.start..<end)
                 .filter { !$0.isActive }
         let daySessions = throughDay.filter { calendar.isDate($0.dayAnchor, inSameDayAs: day) }
-        return (daySessions, throughDay.count)
+        let trainedDays = TrainingWeekEngine.trainedDays(throughDay, in: week.start..<end, calendar: calendar)
+        return (daySessions, trainedDays)
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
@@ -409,9 +406,10 @@ struct HomeView: View {
     /// Adherence leads for protocol users; everyone else sees this
     /// week's training against their days-per-week target, so Today
     /// doesn't open on a dose metric they never asked for.
+    /// Workouts lead the rings for everyone: protocols are an optional
+    /// extra, so dose adherence no longer takes the first ring.
     private var heroLeading: HeroLeadingMetric {
-        guard dataStore.activeProtocols.isEmpty else { return .adherence }
-        return .workouts(
+        .workouts(
             done: derived.workoutsThisWeek,
             target: max(1, dataStore.profile.trainingPreferences?.daysPerWeek ?? TrainingPreferences().daysPerWeek)
         )
@@ -519,7 +517,7 @@ struct HomeView: View {
             .solidTopScrollEdge()
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    HomeStickyHeader(firstName: firstNameForSticky, progress: $stickyProgress)
+                    HomeStickyHeader(greeting: greeting, firstName: firstNameForSticky, progress: $stickyProgress)
                 }
                 // The same 30pt entry, in the same place, as Train,
                 // Meals, Biology and Habits, so Profile doesn't jump in
@@ -1053,7 +1051,6 @@ struct HomeView: View {
     private func overviewCard(_ overview: TodayOverviewSnapshot, proxy: ScrollViewProxy) -> some View {
         TodayOverviewCard(
             snapshot: overview,
-            unit: dataStore.profile.bodyMetrics.unit,
             onTapInsight: { insight in
                 switch insight {
                 case .latestLab:
@@ -1063,8 +1060,6 @@ struct HomeView: View {
                     showTargetsEditor = true
                 case .nudge(_, _, _, .logMeal):
                     appState.selectedTab = .meals
-                case .protocolInsight:
-                    break
                 }
             },
             // Tiles log and route for today; a past day's tiles are a
@@ -1095,8 +1090,10 @@ struct HomeView: View {
             .scrollReveal()
         }
 
-        AtlasScoreCard(onTap: { showProgress = true })
-            .scrollReveal()
+        if dataStore.momentum.score > 0 {
+            AtlasScoreCard(onTap: { showProgress = true })
+                .scrollReveal()
+        }
     }
 
     /// The AI research chat's only other entry is an icon in the Library
@@ -1291,10 +1288,6 @@ struct HomeView: View {
             }
         case .mealStreak:
             appState.selectedTab = .meals
-        case .checkIn:
-            show(.wellness, proxy: proxy)
-        case .water:
-            logWaterGlass()
         }
     }
 
@@ -1487,7 +1480,9 @@ struct HomeView: View {
             healthConnected: dataStore.profile.healthConnected
         )
         AppAnimation.with(AppAnimation.springSmooth) {
-            heroSnapshot = snapshot
+            // A dose toggled while HealthKit answered already moved the
+            // ring; the ratio captured before the await is stale.
+            heroSnapshot = snapshot.withAdherence(adherenceRatio)
             isHeroLoading = false
         }
     }
@@ -1791,7 +1786,7 @@ struct HomeView: View {
     // that called them.
 
     /// First-name token for the sticky header. Trimmed +
-    /// space-split so "Alex Chen" reads as "Hi, Alex". Empty
+    /// space-split so "Alex Chen" reads as "Good evening, Alex". Empty
     /// string is handled by the sticky header's own fallback so
     /// this helper stays a pure transform.
     private var firstNameForSticky: String {

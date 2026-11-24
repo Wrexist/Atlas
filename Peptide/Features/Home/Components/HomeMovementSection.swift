@@ -28,16 +28,14 @@ struct HomeMovementSection: View {
         }
     }
 
+    /// No section header: the card already titles itself "Today's
+    /// training", and a second heading above it read as a stutter.
     var body: some View {
-        VStack(spacing: Spacing.sm) {
-            HomeSectionHeader(title: "Training")
-
-            WorkoutCard(
-                sessionCountToday: summary.count,
-                durationMinutesToday: summary.minutes,
-                onTap: openTrain,
-                isPastDay: isPastDay
-            )
-        }
+        WorkoutCard(
+            sessionCountToday: summary.count,
+            durationMinutesToday: summary.minutes,
+            onTap: openTrain,
+            isPastDay: isPastDay
+        )
     }
 }

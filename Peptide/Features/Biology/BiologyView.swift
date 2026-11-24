@@ -361,8 +361,9 @@ struct BiologyView: View {
 
     private func refreshState() async {
         let profile = dataStore.profile
-        let latestWeight = profile.weightHistory.max(by: { $0.date < $1.date })?.kg
-            ?? profile.bodyMetrics.weightKg
+        // The weight Today's targets use: a weigh-in from the last 30
+        // days, else the stored weight, never a months-old weigh-in.
+        let latestWeight = LifestyleDataLogic.currentBodyMetrics(profile).weightKg
         let fresh = await BioAgeStateResolver.resolve(
             chronologicalAge: profile.bodyMetrics.age,
             sex: profile.bodyMetrics.sex,

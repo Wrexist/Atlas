@@ -215,6 +215,34 @@ final class LifestyleDataStoreTests: XCTestCase {
         XCTAssertFalse(store.profile.habitEntries.contains { $0.habitId == water.id })
     }
 
+    func test_toggleHabitEntry_sameDayDuplicateFromSync_unticksBoth() {
+        let store = makeStore()
+        let stretch = Habit(name: "Stretch", iconSymbol: "figure.flexibility", tintHex: 0x6B8AFF)
+        store.addHabit(stretch)
+        store.profile.habitEntries += [
+            HabitEntry(habitId: stretch.id, date: Date()),
+            HabitEntry(habitId: stretch.id, date: Date()),
+        ]
+
+        store.toggleHabitEntry(habitId: stretch.id)
+
+        XCTAssertFalse(store.profile.habitEntries.contains { $0.habitId == stretch.id })
+    }
+
+    func test_removeOneHabitCount_sameDayDuplicateFromSync_stepsDownFromTheShownCount() {
+        let store = makeStore()
+        let water = Habit(name: "Water", iconSymbol: "drop.fill", tintHex: 0x6B8AFF, targetValue: 8)
+        store.addHabit(water)
+        store.profile.habitEntries += [
+            HabitEntry(habitId: water.id, date: Date(), value: 3),
+            HabitEntry(habitId: water.id, date: Date(), value: 5),
+        ]
+
+        store.removeOneHabitCount(habitId: water.id)
+
+        XCTAssertEqual(store.profile.habitEntries.filter { $0.habitId == water.id }.map(\.value), [4])
+    }
+
     /// Starting a workout must not tick Today's "Workout logged" row
     /// before the session is finished.
     func test_workoutSummary_activeSession_isNotCounted() {
@@ -224,5 +252,17 @@ final class LifestyleDataStoreTests: XCTestCase {
         let summary = store.workoutSummary()
         XCTAssertEqual(summary.count, 0)
         XCTAssertEqual(summary.minutes, 0)
+    }
+
+    /// The weekly check-in reads these dates, so a started-but-unfinished
+    /// workout must not count as a training day until it's finished.
+    func test_recentWorkoutDates_activeSession_isNotCounted() {
+        let store = makeStore()
+        let startedAt = Date().addingTimeInterval(-60)
+        SwiftDataRepository.shared.upsertWorkoutSession(WorkoutSession(name: "Push", startedAt: startedAt))
+        XCTAssertTrue(store.recentWorkoutDates().isEmpty)
+
+        store.logWorkout(WorkoutEntry(date: startedAt, name: "Pull", sets: 4, reps: 8, durationMinutes: 30))
+        XCTAssertEqual(store.recentWorkoutDates().count, 1)
     }
 }

@@ -37,9 +37,9 @@ enum HabitReminderEngine {
         var groups: [[Planned]] = []
 
         for habit in habits where !habit.archived {
-            guard let reminderTime = habit.reminderTime else { continue }
-            let hour = calendar.component(.hour, from: reminderTime)
-            let minute = calendar.component(.minute, from: reminderTime)
+            guard let clock = habit.reminderClock(calendar: calendar) else { continue }
+            let hour = clock.hour
+            let minute = clock.minute
 
             let slots = week
                 .filter { habit.schedule.isDue(on: $0, calendar: calendar) }

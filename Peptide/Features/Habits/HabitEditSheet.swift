@@ -97,7 +97,10 @@ struct HabitEditSheet: View {
         let range = HabitCustomizeView.targetRange
         _targetValue = State(initialValue: min(max(base.targetValue ?? 8, range.lowerBound), range.upperBound))
         _enableReminder = State(initialValue: base.reminderTime != nil)
-        _reminderTime = State(initialValue: base.reminderTime ?? HabitReminderSlot.morning.time())
+        let savedReminder = base.reminderClock().flatMap {
+            Calendar.current.date(bySettingHour: $0.hour, minute: $0.minute, second: 0, of: Date())
+        }
+        _reminderTime = State(initialValue: savedReminder ?? HabitReminderSlot.morning.time())
     }
 
     private func historyCard(_ history: History) -> some View {
@@ -534,19 +537,12 @@ struct HabitEditSheet: View {
             schedule = .timesPerWeek(timesPerWeek)
         }
 
-        // Re-anchor the reminder to today's date with the chosen hour +
-        // minute — keeps the stored value semantically a "time of day"
-        // while avoiding the year-0001 timestamp a date-less
-        // DateComponents produces (audit M9). NotificationService only
-        // reads hour + minute, so the date component here is cosmetic.
+        // Store the picked hour + minute as a wall-clock time, so the
+        // reminder stays at it after the user changes time zone.
         let normalizedReminder: Date? = {
             guard enableReminder else { return nil }
-            let calendar = Calendar.current
-            var components = calendar.dateComponents([.year, .month, .day], from: Date())
-            let timeOnly = calendar.dateComponents([.hour, .minute], from: reminderTime)
-            components.hour = timeOnly.hour
-            components.minute = timeOnly.minute
-            return calendar.date(from: components) ?? reminderTime
+            let timeOnly = Calendar.current.dateComponents([.hour, .minute], from: reminderTime)
+            return Habit.reminderTime(hour: timeOnly.hour ?? 0, minute: timeOnly.minute ?? 0)
         }()
 
         let habit = Habit(
