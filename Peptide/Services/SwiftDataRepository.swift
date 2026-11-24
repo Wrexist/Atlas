@@ -113,6 +113,9 @@ final class SwiftDataRepository {
             }
             fixture.finishedAt = nil
             upsertWorkoutSession(fixture)
+            // An earlier launch in the same simulator leaves this device's
+            // claim idle, and an unclaimed row reads as another device's.
+            WorkoutSessionClaim.save(.session(fixture.id))
             failNextCompletionForTesting = ProcessInfo.processInfo.arguments.contains("--completion-save-failure")
             return
         }
