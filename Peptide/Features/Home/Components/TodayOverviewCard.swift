@@ -114,24 +114,15 @@ struct TodayOverviewCard: View {
 
     // MARK: - Bottom insight
 
-    /// Protocol insights have no destination, so they render as plain
-    /// text rather than a row that looks pressable and does nothing.
-    @ViewBuilder
     private func bottomInsight(_ insight: TodayOverviewSnapshot.BottomInsight) -> some View {
-        if case .protocolInsight = insight {
+        Button {
+            Haptics.impact(.soft)
+            onTapInsight(insight)
+        } label: {
             insightRow(insight)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(insight.title). \(insight.body)")
-        } else {
-            Button {
-                Haptics.impact(.soft)
-                onTapInsight(insight)
-            } label: {
-                insightRow(insight)
-            }
-            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-            .accessibilityLabel("\(insight.title). \(insight.body)")
         }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityLabel("\(insight.title). \(insight.body)")
     }
 
     private func insightRow(_ insight: TodayOverviewSnapshot.BottomInsight) -> some View {

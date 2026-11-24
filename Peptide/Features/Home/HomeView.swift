@@ -516,7 +516,7 @@ struct HomeView: View {
             .solidTopScrollEdge()
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    HomeStickyHeader(firstName: firstNameForSticky, progress: $stickyProgress)
+                    HomeStickyHeader(greeting: greeting, firstName: firstNameForSticky, progress: $stickyProgress)
                 }
                 // The same 30pt entry, in the same place, as Train,
                 // Meals, Biology and Habits, so Profile doesn't jump in
@@ -1059,8 +1059,6 @@ struct HomeView: View {
                     showTargetsEditor = true
                 case .nudge(_, _, _, .logMeal):
                     appState.selectedTab = .meals
-                case .protocolInsight:
-                    break
                 }
             },
             // Tiles log and route for today; a past day's tiles are a
@@ -1785,7 +1783,7 @@ struct HomeView: View {
     // that called them.
 
     /// First-name token for the sticky header. Trimmed +
-    /// space-split so "Alex Chen" reads as "Hi, Alex". Empty
+    /// space-split so "Alex Chen" reads as "Good evening, Alex". Empty
     /// string is handled by the sticky header's own fallback so
     /// this helper stays a pure transform.
     private var firstNameForSticky: String {

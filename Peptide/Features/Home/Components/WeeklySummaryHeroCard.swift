@@ -276,6 +276,8 @@ struct WeeklySummaryHeroCard: View {
             ],
             spacing: Spacing.sm
         ) {
+            // No dose tiles: protocols are an optional extra, and their
+            // adherence reads in the full recap and the doses section.
             if let composite = stats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
@@ -299,20 +301,6 @@ struct WeeklySummaryHeroCard: View {
                         ? AppColor.positive
                         : AppColor.negative,
                     accessibilityLabel: WeeklySummary.hrvChangeAccessibilityLabel(delta)
-                )
-            }
-            // Doses come last: protocols are an optional extra. Fitness-only
-            // weeks have none, and "0%" would read as failure.
-            if stats.dosesTotal > 0 {
-                StatTile(
-                    label: "Adherence",
-                    value: stats.compliancePct.formatted(.percent.precision(.fractionLength(0))),
-                    tint: accent
-                )
-                StatTile(
-                    label: "Dose streak",
-                    value: stats.currentStreak == 1 ? String(localized: "1 day") : String(localized: "\(stats.currentStreak) days"),
-                    tint: accent
                 )
             }
         }
