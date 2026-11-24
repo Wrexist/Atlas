@@ -47,10 +47,27 @@ enum CardioWorkoutEngine {
     /// matches an Atlas workout's to the second had its exercises logged
     /// from here, and the Atlas workout now shows it. Holds because a saved
     /// workout's start is never edited; only sessions history has loaded
-    /// are checked, which covers the 30-day Health window.
+    /// are checked, which covers the 30-day Health window. A gym-type one
+    /// that mostly overlaps an Atlas workout is the same session recorded
+    /// twice — the Watch Workout app running for heart rate beside Atlas.
     static func unlogged(_ workouts: [ImportedCardioWorkout], sessions: [WorkoutSession]) -> [ImportedCardioWorkout] {
         let starts = Set(sessions.map { Int($0.startedAt.timeIntervalSinceReferenceDate.rounded()) })
-        return workouts.filter { !starts.contains(Int($0.start.timeIntervalSinceReferenceDate.rounded())) }
+        let finished = sessions.compactMap { session in
+            session.finishedAt.map { DateInterval(start: session.startedAt, end: max(session.startedAt, $0)) }
+        }
+        return workouts.filter { workout in
+            guard !starts.contains(Int(workout.start.timeIntervalSinceReferenceDate.rounded())) else { return false }
+            guard canLogExercises(workout.activity) else { return true }
+            let health = DateInterval(start: workout.start, end: max(workout.start, workout.end))
+            return !finished.contains { mostlyOverlap(health, $0) }
+        }
+    }
+
+    /// Shared time covers at least half of the shorter of the two.
+    private static func mostlyOverlap(_ lhs: DateInterval, _ rhs: DateInterval) -> Bool {
+        guard let shared = lhs.intersection(with: rhs) else { return false }
+        let shorter = min(lhs.duration, rhs.duration)
+        return shorter > 0 && shared.duration >= shorter / 2
     }
 
     /// "5.23 km" — two decimals under ten, one above, so a long ride

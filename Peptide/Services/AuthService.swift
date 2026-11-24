@@ -345,9 +345,8 @@ final class AuthService {
     ///
     /// Covers the SwiftData store (propagates to the private CloudKit zone
     /// when iCloud sync is on), legacy JSON and the archived `.migrated`
-    /// safety nets (name, email, body metrics), custom peptides, the widget
-    /// snapshot, progress photos, scanned lab reports, the health journal, weekly meal prep, pre-restore backup
-    /// snapshots and any export file still in the temp directory.
+    /// safety nets (name, email, body metrics) and every device-local
+    /// record `DeviceLocalData` lists.
     /// HealthKit samples are deliberately untouched — Health data belongs
     /// to the user's Health app, and deleting it there is theirs to decide
     /// (see docs/DATA_ERASURE_POLICY.md).
@@ -361,33 +360,14 @@ final class AuthService {
         // set edit would persist it straight back into the wiped store.
         WorkoutSessionService.shared.discardWorkout()
         SwiftDataRepository.shared.deleteAll()
-        PersistenceService.shared.clearAll()
-        ProgressPhotoStorage.deleteAll()
-        LabReportStorage.deleteAll()
-        HealthJournalStore.shared.deleteAll()
-        WeeklyPrepStore.shared.deleteAll()
-        PantryStore.shared.deleteAll()
-        GroceryChecklistStore.shared.deleteAll()
-        FridgeStore.shared.deleteAll()
-        TableMomentStore.shared.deleteAll()
-        BackupSnapshotService.deleteAll()
-        ExportService.shared.clearExports()
-        // Records kept outside the main stores: reminders carry protocol
-        // names and times, Live Activities show doses, achievements, barcode
-        // history and scan corrections sit in UserDefaults, the product
-        // cache feeds "recently scanned", and Spotlight indexes custom
-        // foods and recipes.
+        DeviceLocalData.eraseAll()
+        // Outputs built from the erased records: reminders carry protocol
+        // names and times, Live Activities and the fasting widget show
+        // doses and fasts.
         NotificationService.shared.cancelAll()
         DoseLiveActivityService.shared.endAll()
         FastingLiveActivityService.shared.endAll()
         FastingWidgetPublisher.shared.clear()
-        AchievementService.shared.eraseAll()
-        Task {
-            await BarcodeScanHistory.shared.removeAll()
-            await BarcodeProductCache.shared.clear()
-            await FoodSpotlightService.shared.removeAll()
-        }
-        ScanCorrectionMemory.shared.eraseAll()
         // After an erase the next meal scan or research question has to
         // ask again before anything reaches the AI proxy.
         AIDataConsent.revoke()

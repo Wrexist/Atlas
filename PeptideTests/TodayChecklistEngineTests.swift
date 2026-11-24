@@ -22,7 +22,7 @@ final class TodayChecklistEngineTests: XCTestCase {
         profile: UserProfile = .fresh,
         waterOz: Int = 0,
         trainedToday: Bool = false,
-        weekSessionCount: Int = 0,
+        weekTrainedDays: Int = 0,
         steps: Double? = nil,
         hour: Int = 12
     ) -> TodayChecklistEngine.State {
@@ -34,7 +34,7 @@ final class TodayChecklistEngineTests: XCTestCase {
                 return day
             }(),
             trainedToday: trainedToday,
-            weekSessionCount: weekSessionCount,
+            weekTrainedDays: weekTrainedDays,
             steps: steps,
             now: monday(hour),
             calendar: calendar
@@ -99,7 +99,7 @@ final class TodayChecklistEngineTests: XCTestCase {
     func test_emptyPreferredDays_weeklyTargetMet_isNotTrainingDay() {
         var profile = UserProfile.fresh
         profile.trainingPreferences = TrainingPreferences(daysPerWeek: 3, preferredDays: [])
-        let s = state(profile: profile, weekSessionCount: 3)
+        let s = state(profile: profile, weekTrainedDays: 3)
         XCTAssertFalse(s.isTrainingDay)
         XCTAssertTrue(s.isDone(.training))
     }
@@ -107,7 +107,7 @@ final class TodayChecklistEngineTests: XCTestCase {
     func test_emptyPreferredDays_weeklyTargetNotMet_isTrainingDay() {
         var profile = UserProfile.fresh
         profile.trainingPreferences = TrainingPreferences(daysPerWeek: 3, preferredDays: [])
-        let s = state(profile: profile, weekSessionCount: 2)
+        let s = state(profile: profile, weekTrainedDays: 2)
         XCTAssertTrue(s.isTrainingDay)
         XCTAssertFalse(s.isDone(.training))
     }
@@ -115,7 +115,7 @@ final class TodayChecklistEngineTests: XCTestCase {
     func test_emptyPreferredDays_targetMetByTodaysSession_staysTrainingDay() {
         var profile = UserProfile.fresh
         profile.trainingPreferences = TrainingPreferences(daysPerWeek: 3, preferredDays: [])
-        let s = state(profile: profile, trainedToday: true, weekSessionCount: 3)
+        let s = state(profile: profile, trainedToday: true, weekTrainedDays: 3)
         XCTAssertTrue(s.isTrainingDay)
         XCTAssertTrue(s.isDone(.training))
     }
@@ -123,7 +123,7 @@ final class TodayChecklistEngineTests: XCTestCase {
     func test_pickedWeekday_ignoresWeeklyCount() {
         var profile = UserProfile.fresh
         profile.trainingPreferences = TrainingPreferences(daysPerWeek: 1, preferredDays: [.monday])
-        XCTAssertTrue(state(profile: profile, weekSessionCount: 5).isTrainingDay)
+        XCTAssertTrue(state(profile: profile, weekTrainedDays: 5).isTrainingDay)
     }
 
     func test_water_doneAtTarget() {

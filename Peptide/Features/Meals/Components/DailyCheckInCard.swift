@@ -133,9 +133,11 @@ struct DailyCheckInCard: View {
             ForEach(OutcomeDimension.allCases) { dim in
                 let value = dim.value(in: entry)
                 VStack(spacing: 2) {
+                    // One accent on Today: the icon names the dimension,
+                    // the number carries the value.
                     Image(systemName: dim.icon)
                         .font(AppFont.scaled(11, weight: .semibold))
-                        .foregroundStyle(dim.tint)
+                        .foregroundStyle(AppColor.accentPrimary)
                     Text("\(value)")
                         .font(AppFont.scaled(13, weight: .semibold))
                         .monospacedDigit()

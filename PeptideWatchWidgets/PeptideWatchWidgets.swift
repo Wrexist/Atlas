@@ -543,7 +543,6 @@ struct WatchTrainingHabitsWidget: Widget {
 @main
 struct PeptideWatchWidgetsBundle: WidgetBundle {
     var body: some Widget {
-        WatchNextDoseWidget()
         WatchAtlasScoreWidget()
         WatchHealthHabitsWidget()
         WatchTrainingHabitsWidget()
@@ -551,5 +550,7 @@ struct PeptideWatchWidgetsBundle: WidgetBundle {
         WatchSleepWidget()
         WatchWorkoutWidget()
         WatchNutritionWidget()
+        // Doses are a secondary feature, so they close the gallery.
+        WatchNextDoseWidget()
     }
 }

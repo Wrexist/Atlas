@@ -175,4 +175,25 @@ final class HabitReminderEngineTests: XCTestCase {
 
         XCTAssertEqual(planned.first?.fireDate, october(21, 18))
     }
+
+    func test_wallClockReminder_afterTimeZoneChange_firesAtSameLocalTime() {
+        var meditate = habit(at: 20)
+        meditate.reminderTime = Habit.reminderTime(hour: 8, minute: 30)
+        var newYork = Calendar(identifier: .gregorian)
+        newYork.timeZone = TimeZone(identifier: "America/New_York") ?? .current
+
+        let home = HabitReminderEngine.plan(habits: [meditate], entries: [], now: monday(7), calendar: calendar)
+        let away = HabitReminderEngine.plan(habits: [meditate], entries: [], now: monday(7), calendar: newYork)
+
+        XCTAssertEqual(home.first?.trigger.components.hour, 8)
+        XCTAssertEqual(home.first?.trigger.components.minute, 30)
+        XCTAssertEqual(away.first?.trigger.components.hour, 8)
+        XCTAssertEqual(away.first?.trigger.components.minute, 30)
+    }
+
+    func test_reminderClock_legacyTimestamp_readsInGivenCalendar() {
+        let clock = habit(at: 20).reminderClock(calendar: calendar)
+        XCTAssertEqual(clock?.hour, 20)
+        XCTAssertEqual(clock?.minute, 0)
+    }
 }

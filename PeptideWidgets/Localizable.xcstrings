@@ -81,6 +81,86 @@
         }
       }
     },
+    "%lld days trained": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld träningsdag"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld träningsdagar"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day trained"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days trained"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld days trained this week": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld träningsdag den här veckan"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld träningsdagar den här veckan"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day trained this week"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days trained this week"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld of %lld calories": {
       "localizations": {
         "sv": {
@@ -139,46 +219,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld set · %@"
-          }
-        }
-      }
-    },
-    "%lld workouts this week": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld pass den här veckan"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld pass den här veckan"
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld workout this week"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld workouts this week"
-                }
-              }
-            }
           }
         }
       }
@@ -1178,50 +1218,6 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld övningar"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "^[%lld session](inflect: true)": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld pass"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld pass"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "^[%lld session](inflect: true) this week": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld pass den här veckan"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld pass den här veckan"
                 }
               }
             }

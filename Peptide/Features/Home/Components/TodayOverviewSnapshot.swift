@@ -61,9 +61,6 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
     /// case carries the precomputed display strings + an SF Symbol
     /// hint so the view layer is a pure render of the snapshot.
     enum BottomInsight: Equatable, Sendable {
-        /// Output of the protocol insight engine — "Best on
-        /// Tuesday", "You're 2 doses from a record streak", etc.
-        case protocolInsight(title: String, body: String, icon: String)
         /// Latest lab draw — "Total T up 24 ng/dL since Apr 12".
         case latestLab(title: String, body: String, icon: String)
         /// Fallback nudge when no other signal is available. Carries
@@ -79,8 +76,7 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
 
         var icon: String {
             switch self {
-            case .protocolInsight(_, _, let icon),
-                 .latestLab(_, _, let icon),
+            case .latestLab(_, _, let icon),
                  .nudge(_, _, let icon, _):
                 return icon
             }
@@ -88,8 +84,7 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
 
         var title: String {
             switch self {
-            case .protocolInsight(let title, _, _),
-                 .latestLab(let title, _, _),
+            case .latestLab(let title, _, _),
                  .nudge(let title, _, _, _):
                 return title
             }
@@ -97,8 +92,7 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
 
         var body: String {
             switch self {
-            case .protocolInsight(_, let body, _),
-                 .latestLab(_, let body, _),
+            case .latestLab(_, let body, _),
                  .nudge(_, let body, _, _):
                 return body
             }
@@ -109,11 +103,10 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
 
     /// Has the user supplied enough data anywhere to justify the
     /// card? When false the host can suppress it (no nutrition
-    /// target, no meals, no labs and no protocol insight is a
+    /// target, no meals and no labs is a
     /// brand-new install — a sea of empty tiles helps nobody).
     /// Doses don't count: they live in the Today's doses section.
     var hasAnySignal: Bool {
-        if case .protocolInsight = bottomInsight { return true }
         if mealStreak > 0 || caloriesToday > 0 || waterToday > 0 { return true }
         if calorieTarget != nil { return true }
         if checkInScore != nil { return true }
@@ -147,7 +140,6 @@ extension TodayOverviewSnapshot {
             : LifestyleDataLogic.mealLoggingStreak(in: dataStore.profile, asOf: now)
         let bottom = includesInsight
             ? pickBottomInsight(
-                engineInsight: dataStore.topInsight,
                 latestLab: lab,
                 mealStreak: mealStreak,
                 hasTarget: targets != nil
@@ -199,23 +191,16 @@ extension TodayOverviewSnapshot {
     }
 
     /// Priority order:
-    /// 1. Protocol insight engine — has the most personalised signal
-    /// 2. Latest lab — if it's within the last 60 days
-    /// 3. Nudge based on what the user hasn't set up yet
-    /// 4. nil — let the row collapse on a brand-new install
+    /// 1. Latest lab — if it's within the last 60 days
+    /// 2. Nudge based on what the user hasn't set up yet
+    /// 3. nil — let the row collapse on a brand-new install
+    /// Dose-streak insights stay out: protocols are an optional extra, and
+    /// a "14 days in a row" next to the meal streak read as a contradiction.
     private static func pickBottomInsight(
-        engineInsight: InsightEngine.Insight?,
         latestLab: LatestLabSummary?,
         mealStreak: Int,
         hasTarget: Bool
     ) -> BottomInsight? {
-        if let insight = engineInsight {
-            return .protocolInsight(
-                title: insight.title,
-                body: insight.description,
-                icon: insight.icon
-            )
-        }
         if let lab = latestLab, lab.daysAgo <= 60 {
             let body = switch lab.daysAgo {
             case 0: String(localized: "Logged today")
