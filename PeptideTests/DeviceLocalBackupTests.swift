@@ -30,6 +30,24 @@ final class DeviceLocalBackupTests: XCTestCase {
         XCTAssertEqual(DeviceLocalBackup.merged(["a": "run"], ["a": "walk", "b": "swim"], replacing: false), ["a": "run", "b": "swim"])
     }
 
+    func test_merged_replaceWithEmptyBackupMember_keepsCurrent() {
+        let mine = HealthJournalEntry(day: day, mood: .good, note: "Mine", calendar: utc)
+
+        XCTAssertEqual(DeviceLocalBackup.merged([mine], [], replacing: true, by: \.dayKey), [mine])
+        XCTAssertEqual(DeviceLocalBackup.merged(Set(["milk"]), [], replacing: true), ["milk"])
+        XCTAssertEqual(DeviceLocalBackup.merged(["a": "run"], [:], replacing: true), ["a": "run"])
+    }
+
+    func test_decode_unreadableMember_dropsOnlyThatMember() throws {
+        let json = #"{"pantryKeys":["rice"],"trainingLocation":"spaceStation","healthJournal":[{"id":1}]}"#
+
+        let decoded = try JSONDecoder().decode(DeviceLocalBackup.self, from: Data(json.utf8))
+
+        XCTAssertEqual(decoded.pantryKeys, ["rice"])
+        XCTAssertNil(decoded.trainingLocation)
+        XCTAssertNil(decoded.healthJournal)
+    }
+
     func test_appBackup_withoutDeviceLocalKey_decodesNil() throws {
         let backup = AppBackup(exportDate: day, version: "2.0", protocols: [], entries: [], profile: .fresh)
         let encoder = JSONEncoder()

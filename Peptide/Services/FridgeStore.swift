@@ -255,21 +255,11 @@ final class FridgeStore {
     }
 
     /// A backup's products and items, merged by `DeviceLocalBackup`. The
-    /// backup carries no cut-outs: a product whose PNG isn't on this
-    /// device shows without one, and a product left out takes its PNG.
+    /// backup carries no cut-outs and no file is touched: a product whose
+    /// PNG isn't on this device shows without one, as `photo(for:)`
+    /// already handles a missing file.
     func restore(products restored: [FridgeProduct], items restoredItems: [FridgeItem]) {
-        let keptIDs = Set(restored.map(\.id))
-        for product in products where !keptIDs.contains(product.id) {
-            photoWrites.removeValue(forKey: product.id)?.task.cancel()
-            deleteFile(Self.photoFilename(product.id))
-        }
-        products = restored.map { product in
-            var product = product
-            if product.hasPhoto, let url = photoURL(product.id), !FileManager.default.fileExists(atPath: url.path) {
-                product.hasPhoto = false
-            }
-            return product
-        }
+        products = restored
         items = restoredItems
         changed()
     }

@@ -9,9 +9,11 @@ import Foundation
 /// JSON. A restored product or dish whose file isn't on the device shows
 /// without its picture, as it does on a device that never had it.
 ///
-/// Every member is optional: nil (an older backup) leaves that store as
-/// it is. Replace swaps each carried store for the backup's; Merge keeps
-/// the current record on a conflict and adds what only the backup holds.
+/// Every member is optional: nil (an older backup, or a member this build
+/// can't read) leaves that store as it is, and so does an empty one, so a
+/// backup taken while a store was unreadable can't wipe it. Replace swaps
+/// each carried store for the backup's; Merge keeps the current record on
+/// a conflict and adds what only the backup holds.
 struct DeviceLocalBackup: Codable, Sendable {
     var healthJournal: [HealthJournalEntry]?
     var fridgeProducts: [FridgeProduct]?
@@ -104,20 +106,46 @@ struct DeviceLocalBackup: Codable, Sendable {
     // MARK: - Merge rules
 
     /// Replace: the backup's records. Merge: the current ones, then each
-    /// backup record whose key the current ones don't hold.
+    /// backup record whose key the current ones don't hold. An empty
+    /// backup member keeps the current records either way.
     static func merged<Record, Key: Hashable>(
         _ current: [Record], _ restored: [Record], replacing: Bool, by key: (Record) -> Key
     ) -> [Record] {
+        guard !restored.isEmpty else { return current }
         guard !replacing else { return restored }
         let known = Set(current.map(key))
         return current + restored.filter { !known.contains(key($0)) }
     }
 
     static func merged<Element: Hashable>(_ current: Set<Element>, _ restored: Set<Element>, replacing: Bool) -> Set<Element> {
-        replacing ? restored : current.union(restored)
+        guard !restored.isEmpty else { return current }
+        return replacing ? restored : current.union(restored)
     }
 
     static func merged<Key: Hashable, Value>(_ current: [Key: Value], _ restored: [Key: Value], replacing: Bool) -> [Key: Value] {
-        replacing ? restored : current.merging(restored) { mine, _ in mine }
+        guard !restored.isEmpty else { return current }
+        return replacing ? restored : current.merging(restored) { mine, _ in mine }
+    }
+}
+
+extension DeviceLocalBackup {
+    /// Each member decodes on its own: one this build can't read is left
+    /// out (nil, so its store stays as it is) instead of failing the whole
+    /// backup. In an extension so the memberwise init stays.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        healthJournal = try? c.decodeIfPresent([HealthJournalEntry].self, forKey: .healthJournal)
+        fridgeProducts = try? c.decodeIfPresent([FridgeProduct].self, forKey: .fridgeProducts)
+        fridgeItems = try? c.decodeIfPresent([FridgeItem].self, forKey: .fridgeItems)
+        pantryKeys = try? c.decodeIfPresent([String].self, forKey: .pantryKeys)
+        prepPlans = try? c.decodeIfPresent([PrepWeek].self, forKey: .prepPlans)
+        prepBoxes = try? c.decodeIfPresent([PrepBoxBatch].self, forKey: .prepBoxes)
+        prepEatenBoxes = try? c.decodeIfPresent([UUID: PrepBoxBatch].self, forKey: .prepEatenBoxes)
+        groceryChecked = try? c.decodeIfPresent([String].self, forKey: .groceryChecked)
+        groceryCleared = try? c.decodeIfPresent([String].self, forKey: .groceryCleared)
+        trainingLocation = try? c.decodeIfPresent(TrainingLocation.self, forKey: .trainingLocation)
+        equipmentProfiles = try? c.decodeIfPresent([TrainingLocation: EquipmentProfile].self, forKey: .equipmentProfiles)
+        workoutTypeOverrides = try? c.decodeIfPresent([String: String].self, forKey: .workoutTypeOverrides)
+        tableMoments = try? c.decodeIfPresent([TableMoment].self, forKey: .tableMoments)
     }
 }
