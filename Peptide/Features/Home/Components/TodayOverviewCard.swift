@@ -44,14 +44,10 @@ struct TodayOverviewCard: View {
 
     // MARK: - Stats grid
 
+    /// One row that splits its width between the tiles shown, so a lone
+    /// meal-streak tile spans the card instead of leaving half of it empty.
     private var statsGrid: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: Spacing.sm),
-                GridItem(.flexible(), spacing: Spacing.sm),
-            ],
-            spacing: Spacing.sm
-        ) {
+        HStack(alignment: .top, spacing: Spacing.sm) {
             if snapshot.calorieTarget == nil {
                 tileButton(.calories, hint: "Opens your calorie target or Meals") { caloriesTile }
             }
