@@ -3218,6 +3218,7 @@ final class DataStore {
         // catalog below and new sets in a running workout.
         workoutHistoryDidChange()
         WorkoutSessionService.shared.invalidatePreviousSetCache()
+        WorkoutSessionService.shared.reconcileWithStore()
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
         // full-table decode would jank the refresh gesture), the tail
