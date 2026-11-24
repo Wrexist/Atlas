@@ -407,4 +407,21 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
 
         XCTAssertEqual(series.map(\.value), [7])
     }
+
+    func test_sleepSeries_napAndSecondTracker_keepOnlyTheMainNight() {
+        // The definition `HealthKitService.dailySleepHours` uses: a 7 h
+        // Watch night, an offset AutoSleep copy of it and a 45 min nap
+        // the same day read as 7 h, not their union.
+        let wake = utc.date(from: DateComponents(year: 2026, month: 10, day: 19, hour: 7)) ?? Date()
+        let segments = [
+            SleepScoreEngine.Segment(stage: .core, start: wake.addingTimeInterval(-7 * 3600), end: wake, source: "com.apple.health"),
+            SleepScoreEngine.Segment(stage: .unspecified, start: wake.addingTimeInterval(-6 * 3600), end: wake.addingTimeInterval(1800), source: "com.autosleep"),
+            SleepScoreEngine.Segment(stage: .unspecified, start: wake.addingTimeInterval(7 * 3600), end: wake.addingTimeInterval(7.75 * 3600), source: "com.apple.health"),
+        ]
+        let nights = SleepScoreEngine.nights(from: segments, calendar: utc)
+
+        let series = BiomarkerSeriesService.sleepSeries(from: nights, days: 2, now: wake.addingTimeInterval(9 * 3600), calendar: utc)
+
+        XCTAssertEqual(series.map(\.value), [7])
+    }
 }
