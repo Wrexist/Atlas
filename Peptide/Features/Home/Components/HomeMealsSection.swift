@@ -213,8 +213,9 @@ struct HomeMealsSection: View {
                 bodyMetrics: dataStore.currentBodyMetrics,
                 goalRaw: dataStore.profile.primaryGoal,
                 expenditure: dataStore.expenditureEstimate(),
-                onSave: { targets in
-                    dataStore.updateNutritionTargets(targets)
+                adaptiveEnabled: dataStore.adaptiveTargetsSetting.isEnabled,
+                onSave: { targets, adaptive in
+                    dataStore.updateNutritionTargets(targets, adaptive: adaptive)
                     showTargetsEditor = false
                 },
                 onCancel: { showTargetsEditor = false }

@@ -221,6 +221,10 @@ final class DataStore {
                 HealthSyncSettings.adoptSyncedNutritionFlag(savedProfile.healthKitNutritionEnabled)
                 adoptDeviceHealthConnection()
             }
+            if syncCustomPeptides(), savedProfile != nil {
+                repo.saveProfile(profile, since: persistedProfile)
+                persistedProfile = profile
+            }
             // Everything above came off disk and is already persisted.
             // A synthesised `.fresh` profile is the exception: there's no
             // row for it yet, so it stays dirty until the first save
@@ -317,6 +321,18 @@ final class DataStore {
             Task { @MainActor in
                 self?.retryUnreadableCustomPeptides()
                 self?.refreshHealthIfDue()
+            }
+        }
+
+        // New Health samples while the app runs: the Watch glance would
+        // otherwise keep last night's missing sleep until the next activation.
+        NotificationCenter.default.addObserver(
+            forName: .healthSamplesDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshWatchVitals()
             }
         }
 
@@ -485,6 +501,8 @@ final class DataStore {
 
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)
+        profile.customPeptides.append(peptide)
+        save()
         retryUnreadableCustomPeptides()
         guard customPeptidesReadable else {
             lastError = Self.saveFailureMessage
@@ -492,6 +510,33 @@ final class DataStore {
         }
         PersistenceService.shared.saveCustomPeptides(customPeptides)
         Haptics.success()
+    }
+
+    /// The synced library first, then whatever only this device's cache
+    /// holds. Custom peptides are never edited or deleted, so a union by
+    /// id loses nothing.
+    static func mergedCustomPeptides(synced: [Peptide], local: [Peptide]) -> [Peptide] {
+        let syncedIDs = Set(synced.map(\.id))
+        return synced + local.filter { !syncedIDs.contains($0.id) }
+    }
+
+    /// Brings the synced library and custom-peptides.json together: a
+    /// compound added on another device reaches the library here, and
+    /// one only this device had (saved before the library synced)
+    /// reaches iCloud. True when the profile changed and needs a save.
+    @discardableResult
+    private func syncCustomPeptides() -> Bool {
+        retryUnreadableCustomPeptides()
+        let merged = Self.mergedCustomPeptides(synced: profile.customPeptides, local: customPeptides)
+        if merged != customPeptides {
+            customPeptides = merged
+            // An unread file would be replaced by only what this session
+            // holds; the next successful read merges it in instead.
+            if customPeptidesReadable { PersistenceService.shared.saveCustomPeptides(merged) }
+        }
+        guard merged != profile.customPeptides else { return false }
+        profile.customPeptides = merged
+        return true
     }
 
     private static func readCustomPeptides() -> [Peptide]? {
@@ -1244,6 +1289,19 @@ final class DataStore {
         save()
     }
 
+    /// Saves the targets editor's result together with its adaptive
+    /// switch, so every device honours the one setting.
+    func updateNutritionTargets(_ targets: NutritionTargets, adaptive: AdaptiveTargetsSetting) {
+        profile.adaptiveTargets = adaptive
+        updateNutritionTargets(targets)
+    }
+
+    /// The adaptive-targets switch: the synced one once any device has
+    /// saved it, until then this device's own earlier setting.
+    var adaptiveTargetsSetting: AdaptiveTargetsSetting {
+        profile.adaptiveTargets ?? AdaptiveTDEESettings.legacySetting
+    }
+
     /// Expenditure estimate from logged intake + weight trend, or the
     /// formula when there isn't enough data yet. Nil only when there's
     /// neither logging history nor complete body stats.
@@ -1260,8 +1318,9 @@ final class DataStore {
     /// but only while they're still the recommendation the user accepted —
     /// hand-entered numbers are never overwritten.
     func refreshAdaptiveTargets(asOf now: Date = Date()) {
+        let setting = adaptiveTargetsSetting
         guard
-            AdaptiveTDEESettings.isEnabled,
+            setting.isEnabled,
             let current = profile.nutritionTargets,
             let estimate = expenditureEstimate(asOf: now),
             estimate.source == .adaptive,
@@ -1272,12 +1331,11 @@ final class DataStore {
             ),
             AdaptiveTDEEEngine.shouldFollow(
                 current: current,
-                followed: AdaptiveTDEESettings.followedTargets,
+                followed: setting.followedTargets,
                 next: next
             )
         else { return }
-        AdaptiveTDEESettings.followedTargets = next
-        updateNutritionTargets(next)
+        updateNutritionTargets(next, adaptive: AdaptiveTargetsSetting(isEnabled: true, followedTargets: next))
     }
 
     // MARK: - Lifestyle data
@@ -1528,6 +1586,37 @@ final class DataStore {
             guard let ml = entry.waterMillilitres, ml.isFinite, ml > 0 else { continue }
             let ounces = LifestyleDataLogic.fluidOunces(millilitres: ml)
             mirrorWaterToHealth(fluidOunces: removing ? -ounces : ounces, date: entry.date)
+        }
+    }
+
+    /// A meal deleted or edited on another device, or by a restore,
+    /// reaches this one only as a replaced diary, so what this device
+    /// keeps beside it follows here: the Apple Health samples it wrote
+    /// (an edit is rewritten only where samples were found, so nothing is
+    /// mirrored that this device didn't mirror before), and a prep box
+    /// eaten as it. Table cut-outs are left alone: deleting a file isn't
+    /// worth risking on a reload. A Health delete that fails (device
+    /// locked) isn't retried; the samples then linger.
+    private func reconcileMealsChangedElsewhere(from previous: [MealEntry], to current: [MealEntry]) {
+        let changes = LifestyleDataLogic.mealChanges(from: previous, to: current)
+        for id in changes.removed {
+            WeeklyPrepStore.shared.returnBox(forMeal: id)
+        }
+        guard HealthSyncSettings.isNutritionEnabled,
+              !changes.removed.isEmpty || !changes.edited.isEmpty
+        else { return }
+        let removed = changes.removed
+        let edited = changes.edited
+        enqueueMealHealthWrite {
+            for id in removed {
+                await HealthKitService.shared.deleteSamples(forEntryID: id)
+            }
+            for entry in edited {
+                let deleted = await HealthKitService.shared.deleteSamples(forEntryID: entry.id)
+                if deleted > 0 {
+                    await HealthKitService.shared.writeMealEntry(entry)
+                }
+            }
         }
     }
 
@@ -2212,6 +2301,7 @@ final class DataStore {
         HealthSyncSettings.setConnected(true)
         profile.healthConnected = true
         save()
+        HealthKitService.shared.startObservingSampleChanges()
         await refreshWatchVitals()
         return true
     }
@@ -2393,6 +2483,28 @@ final class DataStore {
             profile.habitEntries.remove(at: index)
         }
         return first
+    }
+
+    // MARK: - Health workout types
+
+    /// Saves the type picked for an Apple Health workout; nil goes back to
+    /// the type Health recorded.
+    func setWorkoutType(_ activity: CardioActivity?, forHealthWorkout workoutID: UUID) {
+        profile.workoutTypeOverrides = WorkoutTypeOverrideStore.setting(
+            activity, for: workoutID, in: profile.workoutTypeOverrides
+        )
+        save()
+    }
+
+    /// Moves picks an older build kept on this device into the synced
+    /// profile, where a pick made since wins. The device copy goes only
+    /// once the profile is on disk; a failed save retries next time.
+    func adoptLegacyWorkoutTypeOverrides() {
+        guard let legacy = WorkoutTypeOverrideStore.legacy() else { return }
+        profile.workoutTypeOverrides.merge(legacy) { synced, _ in synced }
+        flushPendingSave()
+        guard !profileNeedsSave else { return }
+        WorkoutTypeOverrideStore.deleteLegacy()
     }
 
     // MARK: - Supplements
@@ -3169,6 +3281,7 @@ final class DataStore {
         // user has. A no-op within the same day (`isRedundant`).
         updateWidgetData()
         refreshHealthIfDue()
+        if profile.healthConnected { HealthKitService.shared.startObservingSampleChanges() }
         turnOffDeniedHealthWrites()
         // The unlock notification isn't delivered to a suspended app.
         retryUnreadableCustomPeptides()
@@ -3218,6 +3331,7 @@ final class DataStore {
         // catalog below and new sets in a running workout.
         workoutHistoryDidChange()
         WorkoutSessionService.shared.invalidatePreviousSetCache()
+        WorkoutSessionService.shared.reconcileWithStore()
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
         // full-table decode would jank the refresh gesture), the tail
@@ -3231,12 +3345,17 @@ final class DataStore {
         let saved = repo.loadProfile()
         persistedProfile = saved
         if let saved {
+            let previousMeals = profile.mealHistory
             profile = saved
+            if repo.lastLoadedMealsDecodedCleanly {
+                reconcileMealsChangedElsewhere(from: previousMeals, to: saved.mealHistory)
+            }
             adoptDeviceHealthConnection()
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
             // marked clean without ever reaching disk.
             profileNeedsSave = false
+            if syncCustomPeptides() { save() }
         }
         // Protocols and entries always came straight from disk, so the
         // assignments above must not leave them marked dirty — the next
@@ -3312,9 +3431,15 @@ final class DataStore {
         pendingProtocolDeletions.removeAll()
         pendingEntryDeletions.removeAll()
 
+        // The synced library is what the restore leaves in the local one:
+        // the backup's compounds, or with no v2 payload the current ones.
+        var newProfile = newProfile
+        newProfile.customPeptides = training?.customPeptides ?? customPeptides
+
         // Replace in-memory state first so any observers (Train tab,
         // calendar, etc.) re-render against the new data while the
         // disk write is in flight.
+        let previousMeals = profile.mealHistory
         protocols = newProtocols
         entries = newEntries
         profile = newProfile
@@ -3405,6 +3530,7 @@ final class DataStore {
         profileNeedsSave = false
         persistedProfile = newProfile
 
+        reconcileMealsChangedElsewhere(from: previousMeals, to: newProfile.mealHistory)
         regenerateTodayEntries()
         refreshTrainingGlanceables()
         // A restore with reminders off must still clear the weekly dose

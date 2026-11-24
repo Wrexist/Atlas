@@ -1,6 +1,13 @@
 import Foundation
 @preconcurrency import HealthKit
 
+extension Notification.Name {
+    /// Posted on the main actor when Health gains steps, sleep, HRV or
+    /// resting heart rate samples while Atlas runs — the Watch syncing last
+    /// night's sleep after Today has opened, say.
+    static let healthSamplesDidChange = Notification.Name("atlas.healthKit.samplesDidChange")
+}
+
 /// Read/write bridge to Apple Health. Every accessor queries HealthKit
 /// on demand — the service holds no cached state, so callers get fresh
 /// numbers and nothing observes it.
@@ -10,6 +17,15 @@ final class HealthKitService {
 
     private let store = HKHealthStore()
     private let availability: () -> Bool
+    /// Live for the rest of the process once started.
+    private var observerQueries: [HKObserverQuery] = []
+    private var pendingChangePost: Task<Void, Never>?
+    /// Each observer query fires once as it starts, with nothing new.
+    private var observingSince: Date?
+    private static let initialFireSeconds: TimeInterval = 2
+    /// A Watch sync lands as a burst of callbacks, one per type and batch;
+    /// they become one notification this long after the first.
+    private static let changeCoalesceSeconds = 5
 
     /// `availability` is injectable so tests can exercise the
     /// unavailable path on a simulator, where HealthKit reports
@@ -65,6 +81,51 @@ final class HealthKitService {
 
     private var readTypes: Set<HKObjectType> {
         biologyReadTypes.union(workoutReadTypes)
+    }
+
+    /// The types Today, Biology and the Watch glance re-read on change.
+    /// Not steps: Today already ticks those, and a walk would refresh
+    /// everything every few minutes.
+    private var observedSampleTypes: [HKSampleType] {
+        [
+            HKCategoryType(.sleepAnalysis),
+            HKQuantityType(.heartRateVariabilitySDNN),
+            HKQuantityType(.restingHeartRate),
+        ]
+    }
+
+    /// Posts `.healthSamplesDidChange` whenever those types change.
+    /// Idempotent. Foreground only: the app has no background-delivery
+    /// entitlement, and activation re-reads everything anyway.
+    func startObservingSampleChanges() {
+        guard isAvailable, observerQueries.isEmpty else { return }
+        observingSince = Date()
+        observerQueries = observedSampleTypes.map(Self.makeObserverQuery(for:))
+        for query in observerQueries {
+            store.execute(query)
+        }
+    }
+
+    /// Built outside the main actor: HealthKit calls the handler on its
+    /// own queue.
+    nonisolated private static func makeObserverQuery(for type: HKSampleType) -> HKObserverQuery {
+        HKObserverQuery(sampleType: type, predicate: nil) { _, completionHandler, error in
+            completionHandler()
+            guard error == nil else { return }
+            Task { @MainActor in
+                HealthKitService.shared.coalesceSampleChange()
+            }
+        }
+    }
+
+    private func coalesceSampleChange() {
+        if let observingSince, Date().timeIntervalSince(observingSince) < Self.initialFireSeconds { return }
+        guard pendingChangePost == nil else { return }
+        pendingChangePost = Task {
+            try? await Task.sleep(for: .seconds(Self.changeCoalesceSeconds))
+            self.pendingChangePost = nil
+            NotificationCenter.default.post(name: .healthSamplesDidChange, object: nil)
+        }
     }
 
     func requestAuthorization() async -> Bool {
@@ -291,17 +352,21 @@ final class HealthKitService {
     /// only touch samples we wrote, never other apps' data. Routine
     /// for the user to deny delete permission (Apple Health asks
     /// separately) — when that happens we log and drop the request.
-    func deleteSamples(forEntryID id: UUID) async {
-        guard isAvailable else { return }
+    /// Returns how many samples were deleted, so a caller can tell whether
+    /// Atlas had written any for the entry.
+    @discardableResult
+    func deleteSamples(forEntryID id: UUID) async -> Int {
+        guard isAvailable else { return 0 }
 
         let predicate = HKQuery.predicateForObjects(
             withMetadataKey: HKMetadataKeyExternalUUID,
             operatorType: .equalTo,
             value: id.uuidString
         )
+        var deleted = 0
         for type in nutritionWriteTypes {
             do {
-                try await store.deleteObjects(of: type, predicate: predicate)
+                deleted += try await store.deleteObjects(of: type, predicate: predicate)
             } catch let hkError as HKError where hkError.code == .errorAuthorizationDenied
                                               || hkError.code == .errorAuthorizationNotDetermined {
                 // Permission is per type, so the other types' samples
@@ -316,6 +381,7 @@ final class HealthKitService {
                 )
             }
         }
+        return deleted
     }
 
     private func makeSample(
@@ -370,7 +436,10 @@ final class HealthKitService {
     func writeWorkout(_ session: WorkoutSession) async {
         guard isAvailable, let end = session.finishedAt else { return }
         do {
-            try await Self.saveStrengthWorkout(store: store, id: session.id, start: session.startedAt, end: end)
+            try await Self.saveStrengthWorkout(
+                store: store, id: session.id, start: session.startedAt, end: end,
+                pauses: session.healthPauseIntervals(end: end)
+            )
         } catch {
             AppLog.healthKit.error("writeWorkout failed: \(error.localizedDescription, privacy: .private)")
         }
@@ -391,7 +460,8 @@ final class HealthKitService {
         store: HKHealthStore,
         id: UUID,
         start: Date,
-        end: Date
+        end: Date,
+        pauses: [DateInterval]
     ) async throws {
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .traditionalStrengthTraining
@@ -399,8 +469,27 @@ final class HealthKitService {
         let builder = HKWorkoutBuilder(healthStore: store, configuration: configuration, device: .local())
         try await builder.beginCollection(at: start)
         try await builder.addMetadata([HKMetadataKeyExternalUUID: id.uuidString])
+        // Health subtracts paused stretches from the workout's duration.
+        // Best effort: a rejected event still files the workout, as before.
+        let events = pauseEvents(pauses, end: end)
+        if !events.isEmpty {
+            do { try await builder.addWorkoutEvents(events) } catch {
+                AppLog.healthKit.error("Workout pause events failed: \(error.localizedDescription, privacy: .private)")
+            }
+        }
         try await builder.endCollection(at: end)
         _ = try await builder.finishWorkout()
+    }
+
+    /// A pause/resume pair per stretch. A stretch running to `end` gets no
+    /// resume: the workout ends paused rather than resuming at its end.
+    nonisolated private static func pauseEvents(_ pauses: [DateInterval], end: Date) -> [HKWorkoutEvent] {
+        pauses.filter { $0.start < end }.flatMap { pause -> [HKWorkoutEvent] in
+            let paused = HKWorkoutEvent(type: .pause, dateInterval: DateInterval(start: pause.start, duration: 0), metadata: nil)
+            guard pause.end < end else { return [paused] }
+            let resumed = HKWorkoutEvent(type: .resume, dateInterval: DateInterval(start: pause.end, duration: 0), metadata: nil)
+            return [paused, resumed]
+        }
     }
 
     /// Mirrors the day's Atlas weigh-in. Atlas keeps one weight per day,

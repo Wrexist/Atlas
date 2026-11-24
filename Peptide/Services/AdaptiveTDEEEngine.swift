@@ -1,8 +1,20 @@
 import Foundation
 
-/// Persisted switches for adaptive calorie targets. UserDefaults-backed
-/// (device-local) like `HealthSyncSettings`; the targets editor binds the
-/// same key through `@AppStorage`.
+/// The adaptive-targets switch and the targets it may move. Synced on the
+/// profile (`UserProfile.adaptiveTargets`) because it drives the synced
+/// `nutritionTargets`: a device-local switch let one device keep moving
+/// targets another had turned adaptive off for.
+struct AdaptiveTargetsSetting: Codable, Hashable, Sendable {
+    var isEnabled: Bool
+    /// Targets the user last accepted from the recommendation. While the
+    /// saved targets still equal them in every field nobody has hand-edited
+    /// since, so Atlas may move them as the estimate moves. Nil once the
+    /// user saves custom numbers.
+    var followedTargets: NutritionTargets?
+}
+
+/// Where the adaptive switch lived before it synced: UserDefaults on each
+/// device. Read only until a device saves the switch to the profile.
 enum AdaptiveTDEESettings {
     static let enabledKey = "atlas.adaptiveTDEE.enabled.v1"
     /// v2 holds the full accepted targets. The v1 key held calories only;
@@ -29,6 +41,11 @@ enum AdaptiveTDEESettings {
             let data = newValue.flatMap { try? JSONEncoder().encode($0) }
             UserDefaults.standard.set(data, forKey: followedTargetsKey)
         }
+    }
+
+    /// This device's pre-sync setting, for a profile that has none yet.
+    static var legacySetting: AdaptiveTargetsSetting {
+        AdaptiveTargetsSetting(isEnabled: isEnabled, followedTargets: followedTargets)
     }
 }
 

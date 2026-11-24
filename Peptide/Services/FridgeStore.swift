@@ -254,6 +254,16 @@ final class FridgeStore {
         changed()
     }
 
+    /// A backup's products and items, merged by `DeviceLocalBackup`. The
+    /// backup carries no cut-outs and no file is touched: a product whose
+    /// PNG isn't on this device shows without one, as `photo(for:)`
+    /// already handles a missing file.
+    func restore(products restored: [FridgeProduct], items restoredItems: [FridgeItem]) {
+        products = restored
+        items = restoredItems
+        changed()
+    }
+
     /// "Delete all data" — the photos are of the user's kitchen.
     func deleteAll() {
         products = []

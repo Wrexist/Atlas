@@ -173,6 +173,14 @@ final class WeeklyPrepStore {
 
     // MARK: - Storage
 
+    /// A backup's plans and boxes, merged by `DeviceLocalBackup`.
+    func restore(plans: [PrepWeek], boxes: [PrepBoxBatch], eatenBoxes: [UUID: PrepBoxBatch]) {
+        self.plans = plans
+        self.boxes = boxes
+        self.eatenBoxes = eatenBoxes
+        boxesChanged()
+    }
+
     /// "Delete all data" — the plan and boxes must not survive an erase.
     func deleteAll() {
         plans = []

@@ -177,6 +177,10 @@ struct BiologyView: View {
             ) { _ in
                 refreshForCurrentTime()
             }
+            // Posted on the main actor once Health samples land.
+            .onReceive(NotificationCenter.default.publisher(for: .healthSamplesDidChange)) { _ in
+                refreshForCurrentTime()
+            }
         }
         .appAnimation(AppAnimation.springSmooth, value: healthPromptState)
         // Single `.task(id:)` keyed on the inputs `refreshState` reads.

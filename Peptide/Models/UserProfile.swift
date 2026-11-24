@@ -575,6 +575,20 @@ struct UserProfile: Codable, Sendable {
     /// taken days. Older profiles decode to an empty list. See
     /// `SupplementEngine` for the streak and reminder rules.
     var supplements: [Supplement]
+    /// The type the user picked for an Apple Health workout Health
+    /// recorded wrongly or vaguely ("Workout"), keyed by the sample's uuid
+    /// string, valued by `CardioActivity.rawValue`. Atlas can't change
+    /// another app's samples, so the pick is laid over every fetch (see
+    /// `WorkoutTypeOverrideStore`). Older profiles decode to empty.
+    var workoutTypeOverrides: [String: String]
+    /// Compounds the user added to the peptide library. Synced here so the
+    /// library matches on every device; `custom-peptides.json` stays this
+    /// device's cache. Never edited or deleted, so copies union by id.
+    var customPeptides: [Peptide]
+    /// The adaptive calorie-targets switch. Nil until a device first saves
+    /// it; `DataStore.adaptiveTargetsSetting` then reads the device's
+    /// older UserDefaults value.
+    var adaptiveTargets: AdaptiveTargetsSetting?
 
     init(
         name: String,
@@ -620,7 +634,10 @@ struct UserProfile: Codable, Sendable {
         momentumAwardedToday: Int = 0,
         lastMomentumAwardDay: Date? = nil,
         momentumHistory: [MomentumDayPoint] = [],
-        supplements: [Supplement] = []
+        supplements: [Supplement] = [],
+        workoutTypeOverrides: [String: String] = [:],
+        customPeptides: [Peptide] = [],
+        adaptiveTargets: AdaptiveTargetsSetting? = nil
     ) {
         self.name = name
         self.goals = goals
@@ -666,6 +683,9 @@ struct UserProfile: Codable, Sendable {
         self.lastMomentumAwardDay = lastMomentumAwardDay
         self.momentumHistory = momentumHistory
         self.supplements = supplements
+        self.workoutTypeOverrides = workoutTypeOverrides
+        self.customPeptides = customPeptides
+        self.adaptiveTargets = adaptiveTargets
     }
 
     init(from decoder: Decoder) throws {
@@ -721,6 +741,9 @@ struct UserProfile: Codable, Sendable {
         lastMomentumAwardDay = try container.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
         momentumHistory = try container.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
         supplements = try container.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
+        workoutTypeOverrides = try container.decodeIfPresent([String: String].self, forKey: .workoutTypeOverrides) ?? [:]
+        customPeptides = try container.decodeIfPresent([Peptide].self, forKey: .customPeptides) ?? []
+        adaptiveTargets = try container.decodeIfPresent(AdaptiveTargetsSetting.self, forKey: .adaptiveTargets)
     }
 
     static var fresh: UserProfile {

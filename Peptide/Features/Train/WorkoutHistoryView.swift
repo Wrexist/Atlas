@@ -66,6 +66,10 @@ struct WorkoutHistoryView: View {
         // A workout finished or edited elsewhere bumps the training revision.
         .onChange(of: dataStore.trainingRevision) { _, _ in reload() }
         .task(id: dataStore.profile.healthConnected) { await loadCardio() }
+        // A type picked on another device arrives with the synced profile.
+        .onChange(of: dataStore.profile.workoutTypeOverrides) { _, overrides in
+            cardio = WorkoutTypeOverrideStore.applied(overrides, to: healthWorkouts)
+        }
         .sheet(item: $inspectedCardio) { workout in
             CardioWorkoutDetailSheet(
                 workout: workout,
@@ -258,10 +262,11 @@ struct WorkoutHistoryView: View {
         #if DEBUG
         if HealthWorkoutsFixture.isRequested {
             healthWorkouts = HealthWorkoutsFixture.workouts()
-            cardio = WorkoutTypeOverrideStore.shared.applied(to: healthWorkouts)
+            cardio = WorkoutTypeOverrideStore.applied(dataStore.profile.workoutTypeOverrides, to: healthWorkouts)
             return
         }
         #endif
+        dataStore.adoptLegacyWorkoutTypeOverrides()
         let health = HealthKitService.shared
         guard dataStore.profile.healthConnected, health.isAvailable else {
             healthWorkouts = []
@@ -271,7 +276,7 @@ struct WorkoutHistoryView: View {
         }
         needsWorkoutAccess = await health.hasUnrequestedWorkoutReadTypes()
         healthWorkouts = await health.externalWorkouts(days: CardioWorkoutEngine.historyWindowDays)
-        cardio = WorkoutTypeOverrideStore.shared.applied(to: healthWorkouts)
+        cardio = WorkoutTypeOverrideStore.applied(dataStore.profile.workoutTypeOverrides, to: healthWorkouts)
     }
 
     /// Shown as something other than what Health recorded.
@@ -284,8 +289,8 @@ struct WorkoutHistoryView: View {
     private func setType(_ activity: CardioActivity?, for workoutID: UUID) {
         Haptics.selection()
         let recorded = healthWorkouts.first { $0.id == workoutID }?.activity
-        WorkoutTypeOverrideStore.shared.set(activity == recorded ? nil : activity, for: workoutID)
-        cardio = WorkoutTypeOverrideStore.shared.applied(to: healthWorkouts)
+        dataStore.setWorkoutType(activity == recorded ? nil : activity, forHealthWorkout: workoutID)
+        cardio = WorkoutTypeOverrideStore.applied(dataStore.profile.workoutTypeOverrides, to: healthWorkouts)
         if inspectedCardio?.id == workoutID {
             inspectedCardio = cardio.first { $0.id == workoutID }
         }

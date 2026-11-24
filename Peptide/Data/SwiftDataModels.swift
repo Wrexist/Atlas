@@ -536,6 +536,7 @@ final class StoredProfile {
             .of(ProtocolNote.self, at: "protocolNotes"),
             .of(WorkoutEntry.self, at: "workoutHistory"),
             .of(Supplement.self, at: "supplements"),
+            .of(Peptide.self, at: "customPeptides"),
         ]
     }
 
@@ -626,6 +627,18 @@ final class StoredProfile {
               let metrics = try? sdDecoder.decode(BodyMetrics.self, from: bodyMetricsData)
         else { return false }
         return metrics.lacksAgeRecordedAt
+    }
+
+    /// True when the meal diary column decodes as stored: no record
+    /// skipped as unreadable and no fall-back to the legacy blob. A reload
+    /// compares diaries only then, so a meal this build can't read never
+    /// counts as deleted.
+    var mealsDecodeCleanly: Bool {
+        if let mealsData {
+            return (try? sdDecoder.decode(MealsSlice.self, from: mealsData)) != nil
+        }
+        guard let extensionData else { return true }
+        return (try? sdDecoder.decode(ProfileExtension.self, from: extensionData)) != nil
     }
 
     func toUserProfile() throws -> UserProfile {
@@ -743,7 +756,10 @@ final class StoredProfile {
             momentumAwardedToday: momentum.momentumAwardedToday,
             lastMomentumAwardDay: momentum.lastMomentumAwardDay,
             momentumHistory: momentum.momentumHistory,
-            supplements: ext.supplements
+            supplements: ext.supplements,
+            workoutTypeOverrides: ext.workoutTypeOverrides,
+            customPeptides: ext.customPeptides,
+            adaptiveTargets: ext.adaptiveTargets
         )
     }
 }
@@ -997,6 +1013,14 @@ private struct ProfileExtension: Codable {
     /// two devices at once, so it rides the residual blob rather than a
     /// column of its own — a new column would mean a CloudKit schema deploy.
     var supplements: [Supplement] = []
+    /// Types picked for Apple Health workouts; small and rarely edited, so
+    /// it rides this blob like `supplements` rather than a new column.
+    var workoutTypeOverrides: [String: String] = [:]
+    /// The user's own peptide-library compounds, here for the same reason
+    /// as `supplements`: syncing them needs no new column.
+    var customPeptides: [Peptide] = []
+    /// The adaptive-targets switch, beside the `nutritionTargets` it moves.
+    var adaptiveTargets: AdaptiveTargetsSetting? = nil
 
     static let empty = ProfileExtension()
 
@@ -1043,6 +1067,9 @@ private struct ProfileExtension: Codable {
         lastMomentumAwardDay = try c.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
         momentumHistory = try c.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
         supplements = try c.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
+        workoutTypeOverrides = try c.decodeIfPresent([String: String].self, forKey: .workoutTypeOverrides) ?? [:]
+        customPeptides = try c.decodeIfPresent([Peptide].self, forKey: .customPeptides) ?? []
+        adaptiveTargets = try c.decodeIfPresent(AdaptiveTargetsSetting.self, forKey: .adaptiveTargets)
     }
 
     /// Snapshot of everything that still lives in the blob. The split
@@ -1071,6 +1098,9 @@ private struct ProfileExtension: Codable {
         ext.weeklySummaryOptInConfirmed = profile.weeklySummaryOptInConfirmed
         ext.goalDate = profile.goalDate
         ext.supplements = profile.supplements
+        ext.workoutTypeOverrides = profile.workoutTypeOverrides
+        ext.customPeptides = profile.customPeptides
+        ext.adaptiveTargets = profile.adaptiveTargets
         return ext
     }
 }

@@ -340,6 +340,7 @@ enum BackupImportService {
             throw ImportError.applyFailed(error.localizedDescription)
         }
         restoreFasts(backup.fasts, strategy: strategy)
+        backup.deviceLocal?.restore(replacing: strategy == .replace)
 
         var realized = preview(
             exportDate: backup.exportDate,
