@@ -1,0 +1,71 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "22B81CD4-7348-495B-838C-5CD97556C3EF.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-08-share-preview_0_94054038-58AD-4792-8A9F-A37E81B65845.png",
+        "timestamp" : 1795543033.95
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "538EAAF7-84FD-4112-985C-34977331DA69.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-07-weekly_0_122DD4D8-DBA9-4485-958D-7351C3EFB35E.png",
+        "timestamp" : 1795543026.673
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "94878F9F-9A17-4374-91B0-08C22568BD4A.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-02c-contributions_0_0F50A3C7-9E7A-42A2-9B32-7F6A3715D5A1.png",
+        "timestamp" : 1795543014.547
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "061FECE1-2C53-43C9-A87D-05DD435AC5D7.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-02b-muscle-list_0_31A3213D-D2E7-4FFA-8E2A-377D6FDAC786.png",
+        "timestamp" : 1795543009.255
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "AA4C1E55-D5C2-4968-BEC9-6BF83AF72329.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-02-muscle-map_0_AB9478E5-733F-43DB-BF92-C7B043D89C15.png",
+        "timestamp" : 1795543007.168
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "5C084C18-ED59-4452-A08E-63AADD17CD30.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-03-exercises_0_ED6519C1-E228-4DB6-80E7-E227047AF2B2.png",
+        "timestamp" : 1795542999.858
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "AE3779C3-4E2A-4631-A962-8872349C6A5A.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-01-summary_0_D572A6AF-9225-417A-A2A5-627ADAC91C56.png",
+        "timestamp" : 1795542974.733
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureWorkoutCompletion()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureWorkoutCompletion"
+  }
+]
