@@ -143,7 +143,10 @@ final class CardioWorkoutEngineTests: XCTestCase {
 
     func test_runOverlappingAtlasWorkout_staysInTheHealthList() {
         let run = workout(start: october(7, 18), minutes: 60)
-        let atlas = WorkoutSession(startedAt: october(7, 18), finishedAt: october(7, 19).addingTimeInterval(-60))
+        // Offset start: a start matching to the second means "exercises
+        // logged from this Health workout", a different rule.
+        let atlas = WorkoutSession(startedAt: october(7, 18).addingTimeInterval(36),
+                                   finishedAt: october(7, 19).addingTimeInterval(-60))
 
         XCTAssertEqual(CardioWorkoutEngine.unlogged([run], sessions: [atlas]).map(\.id), [run.id])
     }
