@@ -197,8 +197,11 @@ struct BiologyView: View {
             await refreshState()
         }
         .task(id: SleepKey(reloadID: reloadID, healthConnected: dataStore.profile.healthConnected)) {
-            let next = await SleepInsightsSection.load()
-            let temperature = await SleepInsightsSection.loadWristTemperature()
+            // The screenshot simulator has no Apple Watch nights, so the
+            // demo shows a believable fortnight instead of no card.
+            let isDemo = ScreenshotMode.shared.isEnabled
+            let next = isDemo ? SleepInsightsSection.demoInsights : await SleepInsightsSection.load()
+            let temperature = isDemo ? SleepInsightsSection.demoWristTemperature : await SleepInsightsSection.loadWristTemperature()
             // HealthKit reads don't stop on cancellation; a superseded run
             // must not land after the newer one.
             guard !Task.isCancelled else { return }
