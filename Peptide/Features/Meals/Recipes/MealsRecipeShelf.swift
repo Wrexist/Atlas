@@ -30,7 +30,7 @@ struct MealsRecipeShelf: View {
                 } label: {
                     Text("See all")
                         .font(AppFont.subheadline.weight(.semibold))
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.accentPrimary)
                         .minimumHitArea()
                 }
             }
