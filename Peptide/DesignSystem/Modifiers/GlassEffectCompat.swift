@@ -221,11 +221,13 @@ extension View {
     /// Pins `content` under the navigation bar on the page's own
     /// backdrop, so cards scrolling up pass under it instead of showing
     /// through. A plain inset rather than iOS 26's `safeAreaBar`: the bar
-    /// variant pulls the large title into its scroll-edge blur.
+    /// variant pulls the large title into its scroll-edge blur. The
+    /// backdrop stays inside the inset: stretched into the top safe area
+    /// it would paint over the large title.
     func topScrollBar<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         safeAreaInset(edge: .top, spacing: 0) {
             content()
-                .background(PageBackdrop().ignoresSafeArea(edges: .top))
+                .background(PageBackdrop())
         }
     }
 
