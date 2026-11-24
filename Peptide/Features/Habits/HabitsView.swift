@@ -372,9 +372,6 @@ struct HabitsView: View {
                 }
             )
 
-            HabitWeekPreview()
-                .padding(.horizontal, Spacing.sm)
-
             StarterHabitList(onPick: addStarter)
         }
     }

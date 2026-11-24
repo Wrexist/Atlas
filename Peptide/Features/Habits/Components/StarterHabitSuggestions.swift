@@ -92,8 +92,8 @@ struct StarterHabitSuggestions: View {
 }
 
 /// Vertical "quick start" list for the Habits tab's empty state: one row per
-/// starter with its schedule and an add glyph, so every option is visible
-/// without a sideways scroll. Presentational — the parent supplies `onPick`.
+/// starter with an add glyph, so every option is visible without a sideways
+/// scroll. Presentational — the parent supplies `onPick`.
 struct StarterHabitList: View {
     /// Five rows fill the empty tab without scrolling; the supplement starter
     /// stays one tap in, in the editor.
@@ -123,6 +123,12 @@ struct StarterHabitList: View {
         }
     }
 
+    /// The schedule only tells starters apart when they differ; the same
+    /// "Daily" under every row was noise.
+    private var showsSchedule: Bool {
+        Set(templates.map(\.schedule)).count > 1
+    }
+
     private func row(_ template: HabitTemplate) -> some View {
         Button {
             AppAnimation.with(AppAnimation.springSnappy) { onPick(template) }
@@ -134,9 +140,11 @@ struct StarterHabitList: View {
                     Text(template.name)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                    Text(template.schedule.displayName)
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textSecondary)
+                    if showsSchedule {
+                        Text(template.schedule.displayName)
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
                 }
                 .multilineTextAlignment(.leading)
 
@@ -153,34 +161,5 @@ struct StarterHabitList: View {
         }
         .buttonStyle(.cardPress)
         .accessibilityLabel("Add habit: \(template.name)")
-    }
-}
-
-/// A ghosted week of habit rings shown before the first habit exists — a
-/// preview of what checking in fills. Today's ring carries the accent so the
-/// strip reads as "this week starts now". Decorative.
-struct HabitWeekPreview: View {
-    var body: some View {
-        let calendar = Calendar.current
-        let symbols = calendar.veryShortStandaloneWeekdaySymbols
-        let offset = calendar.firstWeekday - 1
-        let letters = Array(symbols[offset...]) + Array(symbols[..<offset])
-        let todayIndex = (calendar.component(.weekday, from: .now) - calendar.firstWeekday + 7) % 7
-
-        HStack(spacing: 0) {
-            ForEach(Array(letters.enumerated()), id: \.offset) { index, letter in
-                let isToday = index == todayIndex
-                VStack(spacing: Spacing.xs) {
-                    Circle()
-                        .strokeBorder(isToday ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: 3)
-                        .frame(width: 32, height: 32)
-                    Text(letter)
-                        .font(AppFont.caption2)
-                        .foregroundStyle(isToday ? AppColor.textPrimary : AppColor.textTertiary)
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .accessibilityHidden(true)
     }
 }
