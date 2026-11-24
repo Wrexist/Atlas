@@ -1288,6 +1288,7 @@ final class DataStore {
     func logWeight(kg: Double, date: Date = Date()) {
         LifestyleDataLogic.logWeight(into: &profile, kg: kg, date: date)
         save()
+        refreshAdaptiveTargets()
         guard HealthSyncSettings.isEnabled else { return }
         enqueueBodyMassHealthWrite { await HealthKitService.shared.writeBodyMass(kg: kg, date: date) }
     }
@@ -1349,9 +1350,16 @@ final class DataStore {
         mirrorWaterToHealth(fluidOunces: fluidOunces, date: date)
     }
 
+    /// An Undo right after a quick-add deletes by querying the day's
+    /// samples, so it must wait for the add to land or it finds nothing
+    /// and Health keeps the water. Each write waits for the one before it.
+    @ObservationIgnored private var waterHealthWriteTask: Task<Void, Never>?
+
     private func mirrorWaterToHealth(fluidOunces: Double, date: Date) {
         guard HealthSyncSettings.isEnabled else { return }
-        Task {
+        let previous = waterHealthWriteTask
+        waterHealthWriteTask = Task {
+            await previous?.value
             if fluidOunces > 0 {
                 await HealthKitService.shared.writeWater(fluidOunces: fluidOunces, date: date)
             } else {
@@ -1573,6 +1581,7 @@ final class DataStore {
         guard !additions.isEmpty, repo.recordHealthWeightImports(additions) else { return }
         profile.weightHistory = (profile.weightHistory + additions).sorted { $0.date < $1.date }
         save()
+        refreshAdaptiveTargets()
     }
 
     /// Individual meal entries logged on a specific day, newest first.
@@ -3121,6 +3130,9 @@ final class DataStore {
         // scheduled entries before the status change lands.
         performCycleAutoCompletion()
         regenerateTodayEntries()
+        // Today, the widget and the Watch read the saved targets, so they
+        // follow the estimate without waiting for the Meals view to appear.
+        refreshAdaptiveTargets(asOf: now)
         // A rest day generates nothing to save, so nothing else would
         // restamp the widget and it keeps saying "Open Atlas" after the
         // user has. A no-op within the same day (`isRedundant`).
