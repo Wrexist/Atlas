@@ -6368,6 +6368,16 @@
         }
       }
     },
+    "Batch-cook for the week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matlådor för veckan"
+          }
+        }
+      }
+    },
     "BDNF upregulation persists during off-period; prevents receptor adaptation": {
       "localizations": {
         "sv": {
@@ -6674,6 +6684,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kontinuerlig oral GHS-R-aktivering leder till gradvis nedreglering"
+          }
+        }
+      }
+    },
+    "Cook from what you have": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laga av det du har"
           }
         }
       }
@@ -7394,6 +7414,16 @@
         }
       }
     },
+    "Meals for today's targets": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Måltider för dagens mål"
+          }
+        }
+      }
+    },
     "Minutes per session": {
       "localizations": {
         "sv": {
@@ -7920,6 +7950,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Retatrutide är en trippelagonist (GLP-1/GIP/glukagon). Att lägga till semaglutide dubblerar GLP-1-aktiveringen och förstärker mag-tarmbiverkningar utan påvisad additiv nytta."
+          }
+        }
+      }
+    },
+    "Review your week with AI": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gå igenom veckan med AI"
           }
         }
       }

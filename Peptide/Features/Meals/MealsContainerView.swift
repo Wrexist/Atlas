@@ -78,9 +78,10 @@ struct MealsContainerView: View {
         }
     }
 
-    /// Four tools as a 2×2 grid of icon + title tiles: one glance, one
-    /// tap in, and the scroll keeps Log food and the diary as its jobs.
-    /// The longer descriptions stay as VoiceOver hints.
+    /// Four tools as a 2×2 grid of short tiles: icon and name on one line,
+    /// a one-line purpose under it so "Plan my day" and "Weekly prep" don't
+    /// read as the same thing. The longer descriptions stay as VoiceOver
+    /// hints.
     private var planningTools: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HomeSectionHeader(title: "Plan and cook")
@@ -91,21 +92,21 @@ struct MealsContainerView: View {
                 NavigationLink {
                     FridgeView()
                 } label: {
-                    PlanningToolTile(icon: "refrigerator.fill", title: "Fridge", badge: fridgeBadge)
+                    PlanningToolTile(icon: "refrigerator.fill", title: "Fridge", subtitle: "Cook from what you have", badge: fridgeBadge)
                 }
                 .buttonStyle(ScalePressStyle(pressedScale: 0.97))
                 .accessibilityHint(fridgeSubtitle)
                 NavigationLink {
                     WeeklyPrepView()
                 } label: {
-                    PlanningToolTile(icon: "shippingbox.fill", title: "Weekly prep")
+                    PlanningToolTile(icon: "shippingbox.fill", title: "Weekly prep", subtitle: "Batch-cook for the week")
                 }
                 .buttonStyle(ScalePressStyle(pressedScale: 0.97))
                 .accessibilityHint(Text("Two dishes, one shopping list, boxes for the week"))
                 Button {
                     showMealPlan = true
                 } label: {
-                    PlanningToolTile(icon: "wand.and.stars", title: "Plan my day")
+                    PlanningToolTile(icon: "wand.and.stars", title: "Plan my day", subtitle: "Meals for today's targets")
                 }
                 .buttonStyle(ScalePressStyle(pressedScale: 0.97))
                 .accessibilityHint(Text("Meals from foods you already eat, sized to your targets"))
@@ -113,6 +114,7 @@ struct MealsContainerView: View {
                     PlanningToolTile(
                         icon: "sparkles",
                         title: "Ask Atlas",
+                        subtitle: "Review your week with AI",
                         badge: storeService.canAccessAIFeatures ? nil : Badge("Pro")
                     )
                 }
@@ -158,26 +160,36 @@ struct MealsContainerView: View {
     }
 }
 
-/// One "Plan and cook" tool: an accent glyph over its name, with an
-/// optional badge (use-soon count, Pro) in the corner.
+/// One "Plan and cook" tool: an accent glyph beside its name, and a
+/// one-line purpose under both. A badge (use-soon count, Pro) takes the
+/// purpose line's place, since it is the more urgent thing to say.
 private struct PlanningToolTile: View {
     let icon: String
     let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
     var badge: Badge?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(alignment: .top) {
-                IconTile(icon, size: 32)
-                Spacer(minLength: Spacing.xs)
-                badge
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(spacing: Spacing.sm) {
+                IconTile(icon, size: 28)
+                Text(title)
+                    .font(AppFont.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text(title)
-                .font(AppFont.subheadline.weight(.semibold))
-                .foregroundStyle(AppColor.textPrimary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
+            if let badge {
+                badge
+            } else {
+                Text(subtitle)
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.md)
