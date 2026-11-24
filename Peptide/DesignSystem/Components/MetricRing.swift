@@ -113,10 +113,7 @@ struct MetricRing<Center: View>: View {
     @ViewBuilder
     private var track: some View {
         if raised {
-            Circle().stroke(
-                AppColor.track.shadow(.inner(color: AppColor.ringGroove, radius: strokeWidth * 0.18, y: strokeWidth * 0.12)),
-                lineWidth: strokeWidth
-            )
+            Circle().stroke(RaisedRingFinish.groove(AppColor.track, strokeWidth: strokeWidth), lineWidth: strokeWidth)
         } else {
             Circle().stroke(AppColor.track, lineWidth: strokeWidth)
         }
@@ -353,7 +350,27 @@ struct RaisedRingFinish: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-        .mask { arc(width: strokeWidth * 0.26) }
+        .mask { crest }
+    }
+
+    /// A narrow, softened highlight that stops short of both caps, so it
+    /// reads as light on a rounded tube rather than a painted stripe.
+    private var crest: some View {
+        let fade = RingGeometry.capDegrees(strokeWidth: strokeWidth, diameter: diameter) / 360 * 2
+        return Circle()
+            .inset(by: strokeWidth / 2)
+            .trim(from: fade, to: max(fade, progress - fade))
+            .stroke(style: StrokeStyle(lineWidth: strokeWidth * 0.18, lineCap: .round))
+            .rotationEffect(.degrees(-90))
+            .blur(radius: strokeWidth * 0.06)
+    }
+
+    /// A track sunk into the card: a shadow under its upper wall and a
+    /// faint lit lower lip. Shared with rings that draw their own track.
+    static func groove<S: ShapeStyle>(_ track: S, strokeWidth: CGFloat) -> some ShapeStyle {
+        track
+            .shadow(.inner(color: AppColor.ringGroove, radius: strokeWidth * 0.12, y: strokeWidth * 0.14))
+            .shadow(.inner(color: AppColor.ringGrooveLip, radius: strokeWidth * 0.06, y: -strokeWidth * 0.06))
     }
 
     private func arc(width: CGFloat) -> some View {
@@ -370,7 +387,7 @@ struct RaisedRingFinish: View {
         let angle = progress * 2 * .pi
         let radius = diameter / 2
         let centre = radius + strokeWidth / 2
-        let reach = strokeWidth * 0.3
+        let reach = strokeWidth * 0.2
         let shadow = AppShadow.ringTip
         return Circle()
             .fill(tipColor)
