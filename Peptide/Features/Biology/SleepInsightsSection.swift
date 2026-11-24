@@ -6,11 +6,13 @@ import SwiftUI
 /// The parent shows it only once `load()` finds at least
 /// `SleepInsightsEngine.minNights` nights, so a new user never sees a
 /// card of dashes. Last night's wrist temperature, when Apple Watch has
-/// recorded enough nights for a baseline, rides along as one quiet row.
+/// recorded enough nights for a baseline, rides along as one more tile.
 struct SleepInsightsSection: View {
     let insights: SleepInsightsEngine.Insights
     var wristTemperature: WristTemperatureEngine.Deviation?
     var unit: MeasurementUnit = .metric
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -24,13 +26,8 @@ struct SleepInsightsSection: View {
                     if let shares = insights.stageShares {
                         stages(shares)
                     }
-                    Divider().overlay(AppColor.glassBorder)
-                    clock(insights)
-                    debt(insights)
-                    if let wristTemperature {
-                        wristTemperatureRow(wristTemperature)
-                            .transition(.opacity)
-                    }
+                    tiles(insights)
+                    consistencyNote(insights.consistency)
                 }
             }
         }
@@ -51,6 +48,26 @@ struct SleepInsightsSection: View {
         let readings = await HealthKitService.shared.sleepingWristTemperatures(days: WristTemperatureEngine.readDays)
         return WristTemperatureEngine.deviation(readings: readings, now: .now, calendar: .current)
     }
+
+    /// Two weeks of short, uneven nights for the screenshot demo.
+    static let demoInsights = SleepInsightsEngine.Insights(
+        nightCount: 14,
+        averageAsleep: 5 * 3600 + 56 * 60,
+        efficiency: 0.98,
+        stageShares: .init(deep: 0.17, core: 0.58, rem: 0.25),
+        averageBedtime: 52,
+        averageWake: 6 * 60 + 57,
+        bedtimeSpread: 70,
+        wakeSpread: 104,
+        sleepDebt: 17 * 3600 + 21 * 60
+    )
+
+    static let demoWristTemperature = WristTemperatureEngine.Deviation(
+        night: .now,
+        celsius: 0.1,
+        baselineNights: 21,
+        isLastNight: true
+    )
 
     // MARK: - Rows
 
@@ -147,95 +164,66 @@ struct SleepInsightsSection: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func clock(_ insights: SleepInsightsEngine.Insights) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            row(
+    /// The schedule, the debt and the temperature as one grid of the
+    /// app's stat tiles: each number leads, its name sits under it, and
+    /// the qualifier ("varies 1 h 10 min") gets its own line instead of
+    /// a "±" squeezed beside the time.
+    private func tiles(_ insights: SleepInsightsEngine.Insights) -> some View {
+        let columnCount = dynamicTypeSize.isAccessibilitySize ? 1 : 2
+        let columns = Array(repeating: GridItem(.flexible(), spacing: Spacing.sm, alignment: .top), count: columnCount)
+        return LazyVGrid(columns: columns, spacing: Spacing.sm) {
+            StatTile(
+                label: "Bedtime",
+                value: Self.time(insights.averageBedtime),
                 icon: "moon.fill",
-                title: "Bedtime",
-                value: Text("\(Self.time(insights.averageBedtime)) ± \(Self.minutes(insights.bedtimeSpread))")
+                tint: AppColor.accentPrimary,
+                footnote: String(localized: "Varies \(Self.minutes(insights.bedtimeSpread))")
             )
-            row(
+            StatTile(
+                label: "Wake time",
+                value: Self.time(insights.averageWake),
                 icon: "sunrise.fill",
-                title: "Wake time",
-                value: Text("\(Self.time(insights.averageWake)) ± \(Self.minutes(insights.wakeSpread))")
+                tint: AppColor.accentPrimary,
+                footnote: String(localized: "Varies \(Self.minutes(insights.wakeSpread))")
             )
-            Text(Self.consistencyText(insights.consistency))
+            StatTile(
+                label: "Sleep debt",
+                value: insights.sleepDebt < 60
+                    ? String(localized: "None")
+                    : Self.duration(insights.sleepDebt),
+                icon: "hourglass",
+                tint: AppColor.accentPrimary,
+                footnote: String(localized: "Short of your goal, last 7 nights")
+            )
+            if let wristTemperature {
+                StatTile(
+                    label: "Wrist temp",
+                    value: Self.temperatureDelta(wristTemperature.celsius, unit: unit),
+                    icon: "thermometer.medium",
+                    tint: AppColor.accentPrimary,
+                    footnote: wristTemperature.isLastNight
+                        ? String(localized: "Last night vs your normal")
+                        : String(localized: "Night before last vs your normal")
+                )
+                .transition(.opacity)
+            }
+        }
+    }
+
+    /// One plain-language line on how regular the schedule is, with a
+    /// mark that says at a glance whether it is good news.
+    private func consistencyNote(_ consistency: SleepInsightsEngine.Consistency) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+            Image(systemName: consistency == .steady ? "checkmark.circle.fill" : "info.circle.fill")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(consistency == .steady ? AppColor.success : AppColor.textSecondary)
+                .accessibilityHidden(true)
+            Text(Self.consistencyText(consistency))
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private func debt(_ insights: SleepInsightsEngine.Insights) -> some View {
-        row(
-            icon: "hourglass",
-            title: "Sleep debt, last 7 nights",
-            value: insights.sleepDebt < 60
-                ? Text("None")
-                : Text(Self.duration(insights.sleepDebt))
-        )
-    }
-
-    private func wristTemperatureRow(_ deviation: WristTemperatureEngine.Deviation) -> some View {
-        let title = VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text("Wrist temperature")
-                .font(AppFont.scaled(16))
-                .foregroundStyle(AppColor.textPrimary)
-            Text(deviation.isLastNight ? "Last night vs your baseline" : "Night before last vs your baseline")
-                .font(AppFont.scaled(13))
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        let value = Text(Self.temperatureDelta(deviation.celsius, unit: unit))
-            .font(AppFont.scaled(16, weight: .semibold))
-            .foregroundStyle(AppColor.textPrimary)
-            .monospacedDigit()
-        return HStack(spacing: Spacing.md) {
-            rowIcon("thermometer.medium")
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: Spacing.sm) {
-                    title
-                    Spacer(minLength: Spacing.sm)
-                    value
-                }
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    title
-                    value
-                }
-            }
-        }
         .accessibilityElement(children: .combine)
-    }
-
-    /// Title and value on one line while both fit; the value drops
-    /// below the title otherwise instead of wrapping into a column.
-    private func row(icon: String, title: LocalizedStringKey, value: Text) -> some View {
-        let titleText = Text(title)
-            .font(AppFont.scaled(16))
-            .foregroundStyle(AppColor.textPrimary)
-        let valueText = value
-            .font(AppFont.scaled(16, weight: .semibold))
-            .foregroundStyle(AppColor.textPrimary)
-            .monospacedDigit()
-        return HStack(spacing: Spacing.md) {
-            rowIcon(icon)
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: Spacing.sm) {
-                    titleText
-                    Spacer(minLength: Spacing.sm)
-                    valueText
-                }
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    titleText
-                    valueText
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private func rowIcon(_ icon: String) -> some View {
-        IconTile(icon, size: 28)
-            .accessibilityHidden(true)
     }
 
     // MARK: - Formatting
@@ -262,9 +250,9 @@ struct SleepInsightsSection: View {
 
     private static func consistencyText(_ consistency: SleepInsightsEngine.Consistency) -> LocalizedStringKey {
         switch consistency {
-        case .steady: "Your sleep schedule is steady. A regular clock helps recovery."
-        case .variable: "Your sleep schedule shifts by up to an hour. Steadier times help recovery."
-        case .irregular: "Your sleep schedule shifts by more than an hour. Try going to bed and waking at the same times."
+        case .steady: "Your bed and wake times are steady. That helps recovery."
+        case .variable: "Your bed and wake times shift by up to an hour. Steadier times help recovery."
+        case .irregular: "Your bed and wake times shift by more than an hour. Aim for the same times every day."
         }
     }
 }

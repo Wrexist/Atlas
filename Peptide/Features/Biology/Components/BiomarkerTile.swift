@@ -6,8 +6,8 @@ import SwiftUI
 /// sizes, picked from the card's menu: small sits two to a row, medium
 /// and large take the full width with a longer and a taller line.
 ///
-/// Tapping opens `BiomarkerDetailSheet`. A card with no reading says
-/// how to get one instead of showing a dash.
+/// Tapping opens `BiomarkerDetailSheet`. A card with no reading names
+/// the next step to get one instead of showing a dash.
 struct BiomarkerTile: View {
     let snapshot: BiomarkerSnapshot
     let size: BiomarkerTileSize
@@ -121,13 +121,24 @@ struct BiomarkerTile: View {
             .lineLimit(2, reservesSpace: size == .small)
     }
 
+    /// An empty card names the next step, not the missing data: "No
+    /// data yet" over a hint read as a dead end beside the cards that
+    /// have numbers.
     private var emptyBody: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
+        let step = emptyStep
+        return VStack(alignment: .leading, spacing: Spacing.xs) {
             Spacer(minLength: 0)
-            Text("No data yet")
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.textPrimary)
-            Text(emptyHint)
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                Image(systemName: step.icon)
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(step.isAction ? tint : AppColor.textSecondary)
+                    .accessibilityHidden(true)
+                Text(step.title)
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(step.hint)
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -145,19 +156,32 @@ struct BiomarkerTile: View {
 
     // MARK: - Text
 
-    private var emptyHint: LocalizedStringKey {
+    private struct EmptyStep {
+        let icon: String
+        let title: LocalizedStringKey
+        let hint: LocalizedStringKey
+        /// Something the user can do now, rather than wait for.
+        let isAction: Bool
+    }
+
+    private var emptyStep: EmptyStep {
         switch biomarker {
         case .latestLabPanel:
-            return "Add results in Labs"
-        case .weight:
-            return "Log a weigh-in to fill this in"
-        case .bodyFat, .waist, .bloodPressure, .bodyTemperature:
-            return "Tap to log a reading"
+            return EmptyStep(icon: "plus.circle.fill", title: "Add lab results", hint: "In Labs, further down this page", isAction: true)
+        case .weight, .bodyFat, .waist, .bloodPressure, .bodyTemperature:
+            return EmptyStep(icon: "plus.circle.fill", title: "Log a reading", hint: "Your trend starts with the first one", isAction: true)
         case .hrvBaseline, .rhrBaseline, .sleepBaseline, .stepsBaseline:
-            guard healthConnected else { return "Connect Apple Health to fill this in" }
-            return biomarker == .stepsBaseline
-                ? "Carry your iPhone or wear Apple Watch to record this"
-                : "Wear Apple Watch to record this"
+            guard healthConnected else {
+                return EmptyStep(icon: "heart.text.square", title: "Connect Apple Health", hint: "Atlas then reads this for you", isAction: false)
+            }
+            return EmptyStep(
+                icon: biomarker == .stepsBaseline ? "iphone" : "applewatch",
+                title: "Waiting for data",
+                hint: biomarker == .stepsBaseline
+                    ? "Carry your iPhone or wear Apple Watch to record this"
+                    : "Wear Apple Watch to record this",
+                isAction: false
+            )
         }
     }
 

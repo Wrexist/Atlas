@@ -6198,16 +6198,6 @@
         }
       }
     },
-    "Add results in Labs": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lägg till resultat under Labbvärden"
-          }
-        }
-      }
-    },
     "Add supplements": {
       "localizations": {
         "sv": {
@@ -6714,16 +6704,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Anslut Apple Hälsa så att Atlas kan läsa av din puls, HRV och sömn."
-          }
-        }
-      }
-    },
-    "Connect Apple Health to fill this in": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anslut Apple Hälsa för att fylla i det här"
           }
         }
       }
@@ -8735,16 +8715,6 @@
         }
       }
     },
-    "Sleep debt, last 7 nights": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sömnskuld, senaste 7 nätterna"
-          }
-        }
-      }
-    },
     "Sleep, stress, training, how your body feels…": {
       "localizations": {
         "sv": {
@@ -8872,16 +8842,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Systoliskt"
-          }
-        }
-      }
-    },
-    "Tap to log a reading": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck för att logga ett värde"
           }
         }
       }
@@ -9174,36 +9134,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Din plan"
-          }
-        }
-      }
-    },
-    "Your sleep schedule is steady. A regular clock helps recovery.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dina sovtider är jämna. En regelbunden dygnsrytm hjälper återhämtningen."
-          }
-        }
-      }
-    },
-    "Your sleep schedule shifts by more than an hour. Try going to bed and waking at the same times.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dina sovtider varierar med mer än en timme. Försök lägga dig och vakna på samma tider."
-          }
-        }
-      }
-    },
-    "Your sleep schedule shifts by up to an hour. Steadier times help recovery.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dina sovtider varierar med upp till en timme. Jämnare tider hjälper återhämtningen."
           }
         }
       }
@@ -45598,16 +45528,6 @@
         }
       }
     },
-    "Last night vs your baseline": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I natt mot din baslinje"
-          }
-        }
-      }
-    },
     "Allow new Health data": {
       "localizations": {
         "sv": {
@@ -50633,16 +50553,6 @@
         }
       }
     },
-    "Log a weigh-in to fill this in": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Logga en vägning för att fylla i det här"
-          }
-        }
-      }
-    },
     "Wear Apple Watch to record this": {
       "localizations": {
         "sv": {
@@ -50699,16 +50609,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inte tillräckligt med uppskattningar de senaste 30 dagarna. Byt till 90 dagar för att se din trend."
-          }
-        }
-      }
-    },
-    "Night before last vs your baseline": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Förrförra natten mot din baslinje"
           }
         }
       }
@@ -53855,6 +53755,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "Visar doserna i det här fönstret"
+          }
+        }
+      }
+    },
+    "Sleep debt": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömnskuld"
+          }
+        }
+      }
+    },
+    "Varies %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varierar %@"
+          }
+        }
+      }
+    },
+    "Short of your goal, last 7 nights": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Under ditt mål, senaste 7 nätterna"
+          }
+        }
+      }
+    },
+    "Wrist temp": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handledstemp."
+          }
+        }
+      }
+    },
+    "Last night vs your normal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I natt mot ditt normala"
+          }
+        }
+      }
+    },
+    "Night before last vs your normal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natten före i natt mot ditt normala"
+          }
+        }
+      }
+    },
+    "Your bed and wake times are steady. That helps recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du lägger dig och vaknar på jämna tider. Det hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Your bed and wake times shift by up to an hour. Steadier times help recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sov- och vakentider skiftar upp till en timme. Jämnare tider hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Your bed and wake times shift by more than an hour. Aim for the same times every day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sov- och vakentider skiftar mer än en timme. Sikta på samma tider varje dag."
+          }
+        }
+      }
+    },
+    "Add lab results": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till labbvärden"
+          }
+        }
+      }
+    },
+    "In Labs, further down this page": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Under Labbvärden längre ner på sidan"
+          }
+        }
+      }
+    },
+    "Your trend starts with the first one": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trenden börjar med det första värdet"
+          }
+        }
+      }
+    },
+    "Atlas then reads this for you": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sedan läser Atlas in det åt dig"
+          }
+        }
+      }
+    },
+    "Waiting for data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Väntar på data"
           }
         }
       }
