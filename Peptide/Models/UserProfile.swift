@@ -575,6 +575,12 @@ struct UserProfile: Codable, Sendable {
     /// taken days. Older profiles decode to an empty list. See
     /// `SupplementEngine` for the streak and reminder rules.
     var supplements: [Supplement]
+    /// The type the user picked for an Apple Health workout Health
+    /// recorded wrongly or vaguely ("Workout"), keyed by the sample's uuid
+    /// string, valued by `CardioActivity.rawValue`. Atlas can't change
+    /// another app's samples, so the pick is laid over every fetch (see
+    /// `WorkoutTypeOverrideStore`). Older profiles decode to empty.
+    var workoutTypeOverrides: [String: String]
 
     init(
         name: String,
@@ -620,7 +626,8 @@ struct UserProfile: Codable, Sendable {
         momentumAwardedToday: Int = 0,
         lastMomentumAwardDay: Date? = nil,
         momentumHistory: [MomentumDayPoint] = [],
-        supplements: [Supplement] = []
+        supplements: [Supplement] = [],
+        workoutTypeOverrides: [String: String] = [:]
     ) {
         self.name = name
         self.goals = goals
@@ -666,6 +673,7 @@ struct UserProfile: Codable, Sendable {
         self.lastMomentumAwardDay = lastMomentumAwardDay
         self.momentumHistory = momentumHistory
         self.supplements = supplements
+        self.workoutTypeOverrides = workoutTypeOverrides
     }
 
     init(from decoder: Decoder) throws {
@@ -721,6 +729,7 @@ struct UserProfile: Codable, Sendable {
         lastMomentumAwardDay = try container.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
         momentumHistory = try container.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
         supplements = try container.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
+        workoutTypeOverrides = try container.decodeIfPresent([String: String].self, forKey: .workoutTypeOverrides) ?? [:]
     }
 
     static var fresh: UserProfile {

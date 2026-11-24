@@ -38,6 +38,7 @@ enum ProfileMergeEngine {
         merged.supplements = mergeSupplements(primary.supplements, other.supplements)
         merged.favoriteFoodIDs.formUnion(other.favoriteFoodIDs)
         merged.favoriteRecipeIDs.formUnion(other.favoriteRecipeIDs)
+        merged.workoutTypeOverrides.merge(other.workoutTypeOverrides) { mine, _ in mine }
         merged.streakFreezeDays = StreakFreezeService.migratingLegacyKeys(
             primary.streakFreezeDays.union(other.streakFreezeDays)
         )
@@ -213,6 +214,24 @@ enum ProfileMergeEngine {
             )
         }
 
+        /// A dictionary (workout type picks): this device's added, changed
+        /// and removed keys since `baseline` replayed onto `remote`, so two
+        /// devices picking types for different workouts both keep theirs.
+        static func keyed(_ keyPath: WritableKeyPath<UserProfile, [String: String]>) -> BlobField {
+            BlobField(
+                changed: { $0[keyPath: keyPath] != $1[keyPath: keyPath] },
+                rebase: { merged, baseline, remote in
+                    let local = merged[keyPath: keyPath]
+                    let base = baseline[keyPath: keyPath]
+                    var rebased = remote[keyPath: keyPath]
+                    for key in Set(local.keys).union(base.keys) where local[key] != base[key] {
+                        rebased[key] = local[key]
+                    }
+                    merged[keyPath: keyPath] = rebased
+                }
+            )
+        }
+
         /// An ordered list of unique ids (progress photos), rebased like
         /// `idSet`: `remote`'s order kept, this device's adds appended.
         static func idList(_ keyPath: WritableKeyPath<UserProfile, [String]>) -> BlobField {
@@ -249,7 +268,7 @@ enum ProfileMergeEngine {
             .of(\.healthKitNutritionEnabled), .of(\.workoutLegacyMigrationCompleted),
             .of(\.lastKnownTimezoneIdentifier), .idSet(\.streakFreezeDays), .of(\.biologyConfig),
             .of(\.todayLayout), .of(\.trainingPreferences), .of(\.weeklySummaryEnabled),
-            .of(\.weeklySummaryOptInConfirmed), .of(\.goalDate),
+            .of(\.weeklySummaryOptInConfirmed), .of(\.goalDate), .keyed(\.workoutTypeOverrides),
         ]
     }
 

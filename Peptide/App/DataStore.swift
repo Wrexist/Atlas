@@ -2395,6 +2395,26 @@ final class DataStore {
         return first
     }
 
+    // MARK: - Health workout types
+
+    /// Saves the type picked for an Apple Health workout; nil goes back to
+    /// the type Health recorded.
+    func setWorkoutType(_ activity: CardioActivity?, forHealthWorkout workoutID: UUID) {
+        profile.workoutTypeOverrides = WorkoutTypeOverrideStore.setting(
+            activity, for: workoutID, in: profile.workoutTypeOverrides
+        )
+        save()
+    }
+
+    /// Moves picks an older build kept on this device into the synced
+    /// profile, where a pick made since wins. Saved at once, because the
+    /// device copy is already gone.
+    func adoptLegacyWorkoutTypeOverrides() {
+        guard let legacy = WorkoutTypeOverrideStore.takeLegacy() else { return }
+        profile.workoutTypeOverrides.merge(legacy) { synced, _ in synced }
+        flushPendingSave()
+    }
+
     // MARK: - Supplements
 
     /// Adds the supplement, or replaces the one with its id.
