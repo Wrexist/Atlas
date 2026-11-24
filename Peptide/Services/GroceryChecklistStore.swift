@@ -49,6 +49,13 @@ final class GroceryChecklistStore {
         save()
     }
 
+    /// A backup's ticks, merged by `DeviceLocalBackup`.
+    func restore(checked: Set<String>, cleared: Set<String>) {
+        self.checked = checked
+        self.cleared = cleared
+        save()
+    }
+
     /// "Delete all data": the ticks are food names from the meal plan.
     func deleteAll() {
         checked = []

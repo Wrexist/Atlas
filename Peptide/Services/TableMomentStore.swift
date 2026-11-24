@@ -201,6 +201,24 @@ final class TableMomentStore {
         }
     }
 
+    /// A backup's tables, merged by `DeviceLocalBackup`. The backup carries
+    /// no cut-outs, so a dish whose PNG isn't on this device draws as a
+    /// plain plate.
+    func restore(_ restored: [TableMoment]) {
+        moments = restored.map { moment in
+            var moment = moment
+            for index in moment.dishes.indices {
+                guard let filename = moment.dishes[index].stickerFilename,
+                      let url = directory?.appendingPathComponent(filename),
+                      !FileManager.default.fileExists(atPath: url.path)
+                else { continue }
+                moment.dishes[index].stickerFilename = nil
+            }
+            return moment
+        }
+        persist()
+    }
+
     /// "Delete all data" — cut-outs are photos of the user's meals and
     /// must not survive an erase.
     func deleteAll() {

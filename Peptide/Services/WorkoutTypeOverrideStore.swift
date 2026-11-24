@@ -34,6 +34,14 @@ final class WorkoutTypeOverrideStore {
         defaults.set(overrides, forKey: key)
     }
 
+    /// Every pick by sample uuid, for a backup.
+    var overrides: [String: String] { stored }
+
+    /// A backup's picks, merged by `DeviceLocalBackup`.
+    func restore(_ overrides: [String: String]) {
+        defaults.set(overrides, forKey: key)
+    }
+
     func deleteAll() {
         defaults.removeObject(forKey: key)
     }
