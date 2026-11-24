@@ -71,12 +71,12 @@
         }
       }
     },
-    "%@ appear here once Apple Watch data arrives.": {
+    "%@ appear here once data arrives.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ visas här när data från Apple Watch kommer in."
+            "value": "%@ visas här när data kommer in."
           }
         }
       }

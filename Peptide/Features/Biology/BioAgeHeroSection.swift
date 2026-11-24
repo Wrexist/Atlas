@@ -277,7 +277,7 @@ struct BioAgeHeroSection: View {
                 }
                 // Connected but still no number: the one step left is
                 // making sure Atlas can read the data.
-                GlassButton(title: "Check Health access", icon: "heart.text.square", style: .secondary, action: openHealthSettings)
+                GlassButton(title: "Check Health access", icon: "heart.text.square", style: .primary, action: openHealthSettings)
                     .padding(.top, Spacing.xs)
                     .accessibilityHint("Opens Settings, where Atlas's Apple Health access is set")
             }

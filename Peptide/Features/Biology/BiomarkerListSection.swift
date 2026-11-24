@@ -112,7 +112,7 @@ struct BiomarkerListSection: View {
                 .foregroundStyle(AppColor.textTertiary)
                 .accessibilityHidden(true)
             Text(reason == .needsWatch
-                ? String(localized: "\(names) appear here once Apple Watch data arrives.")
+                ? String(localized: "\(names) appear here once data arrives.")
                 : String(localized: "\(names) appear here once Apple Health is connected."))
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
