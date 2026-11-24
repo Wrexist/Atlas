@@ -8555,6 +8555,16 @@
         }
       }
     },
+    "Start small — pick one below or make your own.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börja smått – välj en nedan eller skapa en egen."
+          }
+        }
+      }
+    },
     "Started a %lld-hour fast. You'll reach your goal at %@.": {
       "comment": "Siri confirmation after starting a fast. Values: target length in hours, clock time the goal is reached.",
       "localizations": {
@@ -29025,16 +29035,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Välj ett återkommande tidsblock nästa vecka och skydda det."
-          }
-        }
-      }
-    },
-    "Pick something small — 10 push-ups, 5 minutes of stretching, a glass of water. Consistency compounds.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Välj något litet – 10 armhävningar, 5 minuters stretching, ett glas vatten. Kontinuitet ger ränta på ränta."
           }
         }
       }

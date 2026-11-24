@@ -71,7 +71,7 @@ struct HabitsView: View {
                         // the first-frame-before-task gap doesn't flash a
                         // false "no habits" message.
                         emptyState
-                            .padding(.top, Spacing.xxxxl)
+                            .padding(.top, Spacing.lg)
                     } else {
                         if dataStore.habitStreakAtRisk {
                             streakFreezeBanner
@@ -152,19 +152,23 @@ struct HabitsView: View {
             .navigationBarTitleDisplayMode(.large)
             .solidTopScrollEdge()
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        editing = .new
-                    } label: {
-                        // Weight and cap match the profile glyph beside it:
-                        // the toolbar doesn't grow past xxxLarge, so neither
-                        // does the plus; the large content viewer covers the rest.
-                        Image(systemName: "plus")
-                            .font(AppFont.scaled(16, weight: .semibold, in: min(dynamicTypeSize, .xxxLarge)))
-                            .foregroundStyle(AppColor.textPrimary)
+                // The empty state carries its own create button; a second
+                // "+" above it would be two doors to one room.
+                if !habits.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            editing = .new
+                        } label: {
+                            // Weight and cap match the profile glyph beside it:
+                            // the toolbar doesn't grow past xxxLarge, so neither
+                            // does the plus; the large content viewer covers the rest.
+                            Image(systemName: "plus")
+                                .font(AppFont.scaled(16, weight: .semibold, in: min(dynamicTypeSize, .xxxLarge)))
+                                .foregroundStyle(AppColor.textPrimary)
+                        }
+                        .accessibilityLabel("Add habit")
+                        .accessibilityShowsLargeContentViewer()
                     }
-                    .accessibilityLabel("Add habit")
-                    .accessibilityShowsLargeContentViewer()
                 }
                 ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
             }
@@ -358,17 +362,20 @@ struct HabitsView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack(spacing: Spacing.xl) {
             EmptyStateView(
                 icon: "checkmark.seal.fill",
                 title: "No habits yet",
-                message: "Pick something small — 10 push-ups, 5 minutes of stretching, a glass of water. Consistency compounds.",
+                message: "Start small — pick one below or make your own.",
                 action: .init(title: "Create your first habit", icon: "plus") {
                     editing = .new
                 }
             )
 
-            StarterHabitSuggestions(onPick: addStarter)
+            HabitWeekPreview()
+                .padding(.horizontal, Spacing.sm)
+
+            StarterHabitList(onPick: addStarter)
         }
     }
 
