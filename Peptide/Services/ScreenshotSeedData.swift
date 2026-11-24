@@ -455,9 +455,9 @@ enum ScreenshotSeedData {
         let compliance = dosesTotal == 0 ? 0 : Double(dosesCompleted) / Double(dosesTotal)
 
         let text = """
-        Strong week — \(dosesCompleted) of \(dosesTotal) doses logged, a 14-day streak holding through the weekend, and your daily check-ins climbed to a 4.4 of 5 composite. Sleep quality led the rebound at 4.6, recovery followed at 4.4, and focus settled at 4.0 after a midweek dip.
+        Strong week — your daily check-ins climbed to a 4.4 of 5 composite, with sleep quality leading the rebound at 4.6, recovery at 4.4, and focus settling at 4.0 after a midweek dip.
 
-        Biometrics moved alongside the cadence: HRV averaged 62 ms (up 5 ms versus last week) and resting heart rate held at 58 bpm. Nutrition stayed on target — 2,380 kcal average across six logging days, well inside your 2,400 kcal goal.
+        Biometrics moved alongside: HRV averaged 62 ms (up 5 ms versus last week) and resting heart rate held at 58 bpm. Nutrition stayed on target — 2,380 kcal average across six logging days, well inside your 2,400 kcal goal. Protocols stayed on track too, \(dosesCompleted) of \(dosesTotal) doses logged.
 
         Keep the same rhythm next week. Consistency at this level compounds — and your numbers are starting to show it.
         """

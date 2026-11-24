@@ -32,10 +32,12 @@ final class CycleMilestoneService {
     }
 
     private let defaults: UserDefaults
+    /// Autoupdating by default: `.shared` lives for the whole session, and
+    /// a `.current` snapshot would keep the launch time zone after travel.
     private let calendar: Calendar
     private static let storageKey = "cycle.milestone.shown"
 
-    init(defaults: UserDefaults = .standard, calendar: Calendar = .current) {
+    init(defaults: UserDefaults = .standard, calendar: Calendar = .autoupdatingCurrent) {
         self.defaults = defaults
         self.calendar = calendar
     }

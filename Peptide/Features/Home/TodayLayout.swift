@@ -4,8 +4,8 @@ import SwiftUI
 /// "Edit Today" sheet. Raw values are persisted on the profile, so they
 /// are stable ids — rename a case freely, never its raw value. Case
 /// order is the default layout — the whole body first (recovery and
-/// sleep, food, movement), the day's checklist and habits next, a
-/// protocol's doses after them — and `isShownByDefault` decides which
+/// sleep, food, movement), the day's checklist and habits next, and a
+/// protocol's doses last, since they are an optional extra — and `isShownByDefault` decides which
 /// of them a fresh layout shows. Reordering cases moves every
 /// layout that was never rearranged (an empty stored `order`); a saved
 /// order is the user's and stays as they left it.
@@ -22,11 +22,11 @@ enum TodaySection: String, CaseIterable, Identifiable, Sendable {
     case habits = "habits"
     case wellness = "wellness"
     case weeklyRecap = "weeklyRecap"
-    case doses = "doses"
     case momentum = "momentum"
     case explore = "explore"
     case timeline = "timeline"
     case healthMonitor = "healthMonitor"
+    case doses = "doses"
 
     var id: String { rawValue }
 

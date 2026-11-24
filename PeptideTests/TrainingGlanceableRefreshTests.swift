@@ -67,7 +67,6 @@ final class TrainingGlanceableRefreshTests: XCTestCase {
 
         let snapshot = WidgetSnapshotBuilder.build(
             today: store.todayEntries,
-            next: nil,
             workouts: SwiftDataRepository.shared.loadWorkoutSessions(limit: 30),
             activeWorkout: WorkoutSessionService.shared.activeSession
         )

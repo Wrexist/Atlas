@@ -142,6 +142,35 @@ final class WorkoutSessionServiceTests: XCTestCase {
                      "Service should drop activeSession after finish")
     }
 
+    /// A retry after a failed save keeps the first attempt's finish time
+    /// but saves the live session, so a set ticked on the Watch or Live
+    /// Activity while the error showed isn't dropped.
+    func test_finishWorkout_retryAfterFailure_keepsSetsLoggedInBetween() throws {
+        let started = service.startWorkout(routine: Routine(name: "Test", exercises: [
+            RoutineExercise(exerciseID: "Incline_Dumbbell_Press", index: 0, targetSets: 2, targetReps: 10)
+        ]))
+        let entry = try XCTUnwrap(service.activeSession?.exercises.first)
+        var set = try XCTUnwrap(entry.sets.first)
+        set.completed = true
+        set.weightKg = 25
+        service.updateSet(set, inExerciseEntryID: entry.id)
+        let firstTap = Date()
+
+        repo.forceCommitFailureForTesting = true
+        defer { repo.forceCommitFailureForTesting = false }
+        XCTAssertNil(service.finishWorkout(at: firstTap))
+        var second = try XCTUnwrap(entry.sets.last)
+        second.completed = true
+        second.weightKg = 25
+        service.updateSet(second, inExerciseEntryID: entry.id)
+        repo.forceCommitFailureForTesting = false
+        let finished = try XCTUnwrap(service.finishWorkout(at: firstTap.addingTimeInterval(120))?.session)
+
+        XCTAssertEqual(finished.completedSetCount, 2)
+        XCTAssertEqual(finished.finishedAt, firstTap)
+        XCTAssertEqual(repo.loadWorkoutSession(id: started.id)?.completedSetCount, 2)
+    }
+
     func test_finishWorkout_withoutActiveSession_returnsNil() {
         XCTAssertNil(service.finishWorkout())
     }

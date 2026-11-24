@@ -178,7 +178,7 @@ struct TodayHabitsHero: View {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "flame.fill")
                     .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.streak)
+                    .foregroundStyle(AppColor.accentPrimary)
                     .symbolEffect(.bounce, value: snapshot.bestCurrentStreak)
                 Text("\(snapshot.bestCurrentStreak) day streak")
                     .font(AppFont.subheadline)

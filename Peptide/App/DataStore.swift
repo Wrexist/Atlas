@@ -395,6 +395,12 @@ final class DataStore {
         protocols = []
         entries = []
         profile = .fresh
+        // The library file is gone when the previous account's
+        // device-local records were removed with it.
+        if let stored = Self.readCustomPeptides() {
+            customPeptides = stored
+            customPeptidesReadable = true
+        }
         WorkoutSessionService.shared.reloadActiveSession()
         isAwaitingCloudAccountDecision = repo.isAwaitingAccountDecision
         // SwiftDataRepository's identity handler swaps the container
@@ -1288,6 +1294,7 @@ final class DataStore {
     func logWeight(kg: Double, date: Date = Date()) {
         LifestyleDataLogic.logWeight(into: &profile, kg: kg, date: date)
         save()
+        refreshAdaptiveTargets()
         guard HealthSyncSettings.isEnabled else { return }
         enqueueBodyMassHealthWrite { await HealthKitService.shared.writeBodyMass(kg: kg, date: date) }
     }
@@ -1349,9 +1356,16 @@ final class DataStore {
         mirrorWaterToHealth(fluidOunces: fluidOunces, date: date)
     }
 
+    /// An Undo right after a quick-add deletes by querying the day's
+    /// samples, so it must wait for the add to land or it finds nothing
+    /// and Health keeps the water. Each write waits for the one before it.
+    @ObservationIgnored private var waterHealthWriteTask: Task<Void, Never>?
+
     private func mirrorWaterToHealth(fluidOunces: Double, date: Date) {
         guard HealthSyncSettings.isEnabled else { return }
-        Task {
+        let previous = waterHealthWriteTask
+        waterHealthWriteTask = Task {
+            await previous?.value
             if fluidOunces > 0 {
                 await HealthKitService.shared.writeWater(fluidOunces: fluidOunces, date: date)
             } else {
@@ -1573,6 +1587,7 @@ final class DataStore {
         guard !additions.isEmpty, repo.recordHealthWeightImports(additions) else { return }
         profile.weightHistory = (profile.weightHistory + additions).sorted { $0.date < $1.date }
         save()
+        refreshAdaptiveTargets()
     }
 
     /// Individual meal entries logged on a specific day, newest first.
@@ -1699,6 +1714,16 @@ final class DataStore {
     /// Activities to them.
     func applyTravelShift(toTimezone identifier: String, minutesDelta: Int) {
         TravelModeLogic.shiftProtocolTimes(in: &protocols, byMinutes: minutesDelta)
+        acknowledgeTimezone(identifier)
+    }
+
+    /// User declined the schedule shift but acknowledged the
+    /// detection. Records the new identifier so we don't keep
+    /// re-prompting at every launch, and rebuilds today's entries at
+    /// the same wall-clock times the reminders fire at in this zone
+    /// (entries made in the old zone sit at its absolute times), then
+    /// re-plans reminders and Live Activities to match.
+    func acknowledgeTimezone(_ identifier: String) {
         TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
         for proto in activeProtocols {
             regenerateTodayEntriesPreservingLogs(for: proto)
@@ -1706,14 +1731,6 @@ final class DataStore {
         save()
         rescheduleNotificationsIfEnabled()
         reconcileDoseLiveActivities()
-    }
-
-    /// User declined the schedule shift but acknowledged the
-    /// detection. Records the new identifier so we don't keep
-    /// re-prompting at every launch.
-    func acknowledgeTimezone(_ identifier: String) {
-        TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
-        save()
     }
 
     // MARK: - Streak freeze
@@ -2023,10 +2040,6 @@ final class DataStore {
             .map { Set($0.exercises.map(\.exerciseID)) } ?? []
         repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
-        // Not gated on the sync toggle: a workout mirrored while sync was
-        // on must still leave Health. It matches only Atlas's own sample
-        // and fails quietly without permission.
-        Task { await HealthKitService.shared.deleteWorkout(id: id) }
         PRDetectionService.shared.recompute(exerciseIDs: affectedExercises)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
@@ -2037,6 +2050,12 @@ final class DataStore {
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
+            // Only once the row is really gone, or Health would lose a
+            // workout Atlas still shows, with no path to write it back.
+            // Not gated on the sync toggle: a workout mirrored while sync
+            // was on must still leave Health. It matches only Atlas's own
+            // sample and fails quietly without permission.
+            Task { await HealthKitService.shared.deleteWorkout(id: id) }
             refreshTrainingGlanceables()
         }
     }
@@ -2128,13 +2147,16 @@ final class DataStore {
         refreshTrainingGlanceables()
     }
 
-    /// Start dates of workout sessions from the last `days` days. The
-    /// weekly recap counts training days as activity.
+    /// Start dates of finished workout sessions from the last `days`
+    /// days. The weekly recap counts training days as activity; a session
+    /// still in progress isn't logged yet, same as `workoutSummary`.
     func recentWorkoutDates(days: Int = 7) -> [Date] {
         let now = Date()
         let cal = Calendar.current
         guard let start = cal.date(byAdding: .day, value: -days, to: cal.startOfDay(for: now)) else { return [] }
-        return repo.loadWorkoutSessions(startedBetween: start..<now).map(\.dayAnchor)
+        return repo.loadWorkoutSessions(startedBetween: start..<now)
+            .filter { !$0.isActive }
+            .map(\.dayAnchor)
     }
 
     /// (count, totalMinutes) for finished workout sessions on `date`'s
@@ -2286,9 +2308,7 @@ final class DataStore {
         // fires only on the not-complete → complete transition.
         let wasCompleted = HabitsService.summary(for: habit, entries: profile.habitEntries, on: date).isCompletedToday
         let target = habit.targetValue ?? 1
-        let existingIdx = profile.habitEntries.firstIndex {
-            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
-        }
+        let existingIdx = habitEntryIndex(habitId: habitId, day: day)
         if habit.isCountable {
             // Countable habit: increment by one toward the target. If
             // the user has already hit target, the next tap RESETS to
@@ -2343,9 +2363,7 @@ final class DataStore {
         let wasCompleted = habit.map {
             HabitsService.summary(for: $0, entries: profile.habitEntries, on: date).isCompletedToday
         } ?? false
-        let existingIdx = profile.habitEntries.firstIndex {
-            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
-        }
+        let existingIdx = habitEntryIndex(habitId: habitId, day: day)
         if value <= 0 {
             if let idx = existingIdx { profile.habitEntries.remove(at: idx) }
         } else if let idx = existingIdx {
@@ -2358,6 +2376,23 @@ final class DataStore {
             registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
         }
         Task { await rescheduleHabitReminders() }
+    }
+
+    /// The day's one entry for the habit. A CloudKit race can leave two;
+    /// they collapse into the first at the highest value — the one the
+    /// summary shows — so an edit acts on what the user sees.
+    private func habitEntryIndex(habitId: UUID, day: Date) -> Int? {
+        let indices = profile.habitEntries.indices.filter {
+            profile.habitEntries[$0].habitId == habitId
+                && Calendar.current.isDate(profile.habitEntries[$0].date, inSameDayAs: day)
+        }
+        guard let first = indices.first else { return nil }
+        guard indices.count > 1 else { return first }
+        profile.habitEntries[first].value = indices.map { profile.habitEntries[$0].value }.max() ?? 0
+        for index in indices.dropFirst().reversed() {
+            profile.habitEntries.remove(at: index)
+        }
+        return first
     }
 
     // MARK: - Supplements
@@ -2407,8 +2442,13 @@ final class DataStore {
 
     /// The user's current Atlas Score / level, derived from stored profile
     /// state. Cheap arithmetic, safe to read from a view body.
-    var momentum: MomentumEngine.Snapshot {
-        let earnedToday = (profile.lastMomentumAwardDay.map { Calendar.current.isDateInToday($0) } ?? false)
+    var momentum: MomentumEngine.Snapshot { momentumSnapshot(on: Date()) }
+
+    /// The Atlas Score as of `day`: points banked count as "today" only
+    /// on the day they were awarded. Views pass their day so a card
+    /// left on screen past midnight redraws without a profile write.
+    func momentumSnapshot(on day: Date, calendar: Calendar = .current) -> MomentumEngine.Snapshot {
+        let earnedToday = (profile.lastMomentumAwardDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false)
             ? profile.momentumAwardedToday
             : 0
         return MomentumEngine.snapshot(score: profile.atlasScore, todayEarned: earnedToday)
@@ -2855,6 +2895,11 @@ final class DataStore {
         async let recentRHR = kit.averageRestingHeartRate(days: 3)
         async let baseRHR = kit.averageRestingHeartRate(days: 30)
         async let segments = kit.recentSleepSegments()
+        // The Watch labels these "Resting" / "HRV" like the iPhone, so it
+        // shows the same latest daily reading; the 3-day means above feed
+        // Recovery only.
+        async let latestRHR = kit.latestRestingHeartRate()
+        async let latestHRV = kit.latestHRV()
 
         let hrv = await recentHRV
         let hrvBaseline = await baseHRV
@@ -2887,9 +2932,9 @@ final class DataStore {
         }
         let snapshot = WatchVitalsSnapshot(
             recoveryScore: recovery?.value,
-            restingHeartRate: rhr.map { Int($0.rounded()) },
+            restingHeartRate: await latestRHR.map { Int($0.rounded()) },
             restingHeartRateBaseline: rhrBaseline.map { Int($0.rounded()) },
-            hrv: hrv.map { Int($0.rounded()) },
+            hrv: await latestHRV.map { Int($0.rounded()) },
             hrvBaseline: hrvBaseline.map { Int($0.rounded()) },
             sleep: sleep,
             measuredAt: Date()
@@ -2907,7 +2952,6 @@ final class DataStore {
         #endif
         let data = WidgetSnapshotBuilder.build(
             today: todayEntries,
-            next: nextDose,
             hasActiveProtocol: !activeProtocols.isEmpty,
             consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
             targets: profile.nutritionTargets,
@@ -3117,6 +3161,13 @@ final class DataStore {
         // scheduled entries before the status change lands.
         performCycleAutoCompletion()
         regenerateTodayEntries()
+        // Today, the widget and the Watch read the saved targets, so they
+        // follow the estimate without waiting for the Meals view to appear.
+        refreshAdaptiveTargets(asOf: now)
+        // A rest day generates nothing to save, so nothing else would
+        // restamp the widget and it keeps saying "Open Atlas" after the
+        // user has. A no-op within the same day (`isRedundant`).
+        updateWidgetData()
         refreshHealthIfDue()
         turnOffDeniedHealthWrites()
         // The unlock notification isn't delivered to a suspended app.
@@ -3162,8 +3213,11 @@ final class DataStore {
     /// returns nil for that resource. Replaces unsaved in-memory edits;
     /// user-triggered refreshes go through `refreshFromStore`.
     func reloadFromDisk() {
-        // A pull can bring workouts finished, edited or deleted elsewhere.
+        // A pull can bring workouts finished, edited or deleted elsewhere,
+        // which also moves each lift's last set: the memo seeds the Watch
+        // catalog below and new sets in a running workout.
         workoutHistoryDidChange()
+        WorkoutSessionService.shared.invalidatePreviousSetCache()
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
         // full-table decode would jank the refresh gesture), the tail
@@ -3227,7 +3281,7 @@ final class DataStore {
     // private by design — these keep the single-facade rule intact
     // instead of handing views the repository singleton.
     func allWorkoutSessionsForBackup() -> [WorkoutSession] { repo.loadAllWorkoutSessions() }
-    /// `fetchCount` only, so the export screen can gate its workout row
+    /// Session ids only, so the export screen can gate its workout row
     /// without decoding every session.
     var hasWorkoutHistory: Bool { repo.workoutSessionCount() > 0 }
     func routinesForBackup() -> [Routine] { repo.loadRoutines() }
