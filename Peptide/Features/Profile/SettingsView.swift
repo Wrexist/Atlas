@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Settings pushed from Profile, so Profile itself stays about the user —
 /// identity, progress, goals, body and health — and the switches live here.
-/// Five titled sections, everyday first — Reminders, Appearance, Training,
+/// Five titled sections, everyday first — Training, Reminders, Appearance,
 /// Data, About — and last, on its own, the two irreversible deletes, so they
 /// never sit beside an everyday control.
 struct SettingsView: View {
@@ -12,11 +12,11 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.xl) {
+                section("Training") { TrainingSettingsSection() }
+
                 section("Reminders") { DailyRemindersSection() }
 
                 section("Appearance") { AppearanceSettings() }
-
-                section("Training") { TrainingSettingsSection() }
 
                 section("Data") {
                     AccountSection()
