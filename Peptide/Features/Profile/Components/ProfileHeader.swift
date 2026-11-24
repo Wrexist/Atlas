@@ -21,6 +21,8 @@ struct ProfileHeader: View {
     }
 
     var body: some View {
+        // The faint accent wash marks this card as the person's own,
+        // distinct from the neutral data cards below it.
         GlassCard(tinted: true) {
             VStack(spacing: Spacing.lg) {
                 editableAvatar
@@ -44,10 +46,19 @@ struct ProfileHeader: View {
 
                 // Training and days only: protocols are a secondary feature
                 // and their count lives with the library, not the identity.
-                HStack(spacing: Spacing.xxl) {
+                // Equal columns either side of a hairline, so the pair sits
+                // centred under the name instead of drifting left.
+                HStack(spacing: 0) {
                     ProfileStat(value: workoutCount, label: "Workouts")
+                        .frame(maxWidth: .infinity)
+                    Rectangle()
+                        .fill(AppColor.glassBorder)
+                        .frame(width: 1, height: 32)
+                        .accessibilityHidden(true)
                     ProfileStat(value: daysLogged, label: "Days")
+                        .frame(maxWidth: .infinity)
                 }
+                .frame(maxWidth: 260)
             }
             .frame(maxWidth: .infinity)
             .overlay(alignment: .topTrailing) {
@@ -104,7 +115,7 @@ struct ProfileHeader: View {
         } else {
             ZStack {
                 Circle()
-                    .fill(AppColor.accentPrimary.opacity(0.2))
+                    .fill(AppColor.surfaceElevated)
                     .frame(width: 80, height: 80)
                     .overlay(avatarBorder)
 
@@ -127,7 +138,7 @@ struct ProfileHeader: View {
 
     private var avatarBorder: some View {
         Circle()
-            .strokeBorder(AppColor.glassBorderActive, lineWidth: 1.5)
+            .strokeBorder(AppColor.accentPrimary, lineWidth: 2)
     }
 }
 
@@ -139,7 +150,7 @@ private struct ProfileStat: View {
         VStack(spacing: Spacing.xxs) {
             Text(value, format: .number)
                 .font(AppFont.title2)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
                 .appAnimation(AppAnimation.springSnappy, value: value)
             Text(label)
