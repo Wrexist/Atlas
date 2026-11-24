@@ -276,15 +276,9 @@ struct WeeklySummaryHeroCard: View {
             ],
             spacing: Spacing.sm
         ) {
-            // No dose tiles: protocols are an optional extra, and their
-            // adherence reads in the full recap and the doses section.
-            if let composite = stats.avgCheckInScore {
-                StatTile(
-                    label: "Check-in",
-                    value: composite.formatted(.number.precision(.fractionLength(1))),
-                    tint: accent
-                )
-            }
+            // No dose tiles (protocols are an optional extra) and no
+            // check-in tile (the check-in card sits just above on Today);
+            // both read in the full recap.
             if let calories = stats.avgCalories {
                 StatTile(
                     label: "Avg kcal",
