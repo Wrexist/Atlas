@@ -57,24 +57,42 @@ final class TrainOverviewSuggestionTests: XCTestCase {
         XCTAssertNil(TrainOverviewView.suggestedRoutine(from: [routine("Draft", empty: true)], history: []))
     }
 
-    func test_trainedDaysThisWeek_twoSessionsOneDay_countsTheDayOnce() {
+    func test_weekSummary_twoSessionsOneDay_countsTheDayOnce() {
         let sessions = [
             finished(wednesday),
             finished(wednesday.addingTimeInterval(3_600 * 3)),
             finished(wednesday.addingTimeInterval(-86_400)),
         ]
 
-        let days = TrainingWeekEngine.trainedDaysThisWeek(sessions, now: wednesday, calendar: calendar)
+        let week = TrainWeekSummary.make(from: sessions, now: wednesday, calendar: calendar)
 
-        XCTAssertEqual(days, 2)
+        XCTAssertEqual(week.trainedDays.count, 2)
+        XCTAssertEqual(week.workoutCount, 3)
     }
 
-    func test_trainedDaysThisWeek_lastWeekAndInProgress_areLeftOut() {
+    func test_weekSummary_lastWeekAndInProgress_areLeftOut() {
         let lastSunday = wednesday.addingTimeInterval(-86_400 * 3)
         let inProgress = WorkoutSession(startedAt: wednesday)
 
-        let days = TrainingWeekEngine.trainedDaysThisWeek([finished(lastSunday), inProgress], now: wednesday, calendar: calendar)
+        let week = TrainWeekSummary.make(from: [finished(lastSunday), inProgress], now: wednesday, calendar: calendar)
 
-        XCTAssertEqual(days, 0)
+        XCTAssertEqual(week.trainedDays.count, 0)
+        XCTAssertEqual(week.workoutCount, 0)
+    }
+
+    func test_weekSummary_mondayFirstCalendar_startsOnMondayWithSevenDays() {
+        let week = TrainWeekSummary.make(from: [], now: wednesday, calendar: calendar)
+
+        XCTAssertEqual(week.days.count, 7)
+        XCTAssertEqual(week.days.first.map { calendar.component(.weekday, from: $0) }, 2)
+    }
+
+    func test_weekSummary_sundayFirstCalendar_startsOnSunday() {
+        var sundayFirst = calendar
+        sundayFirst.firstWeekday = 1
+
+        let week = TrainWeekSummary.make(from: [], now: wednesday, calendar: sundayFirst)
+
+        XCTAssertEqual(week.days.first.map { sundayFirst.component(.weekday, from: $0) }, 1)
     }
 }
