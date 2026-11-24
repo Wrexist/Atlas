@@ -8165,6 +8165,16 @@
         }
       }
     },
+    "Training days this week, %lld of %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningsdagar den här veckan, %lld av %lld"
+          }
+        }
+      }
+    },
     "Use Hexarelin short-term if maximum GH pulse is needed, or Ipamorelin for cleaner long-term use.": {
       "localizations": {
         "sv": {
@@ -40723,16 +40733,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pass grupperas efter startdatum i din nuvarande kalender och tidszon. Avslutade pass med arbetsset och sparade manuella pass räknas. Pass med bara uppvärmning och ofärdiga pass räknas inte."
-          }
-        }
-      }
-    },
-    "Workouts this week, %lld of %lld": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pass den här veckan, %lld av %lld"
           }
         }
       }
