@@ -53769,16 +53769,6 @@
         }
       }
     },
-    "Varies %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Varierar %@"
-          }
-        }
-      }
-    },
     "Wrist temp": {
       "localizations": {
         "sv": {
@@ -53805,36 +53795,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Natten före i natt mot ditt normala"
-          }
-        }
-      }
-    },
-    "Your bed and wake times are steady. That helps recovery.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du lägger dig och vaknar på jämna tider. Det hjälper återhämtningen."
-          }
-        }
-      }
-    },
-    "Your bed and wake times shift by up to an hour. Steadier times help recovery.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dina sov- och vakentider skiftar upp till en timme. Jämnare tider hjälper återhämtningen."
-          }
-        }
-      }
-    },
-    "Your bed and wake times shift by more than an hour. Aim for the same times every day.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dina sov- och vakentider skiftar mer än en timme. Sikta på samma tider varje dag."
           }
         }
       }
@@ -53895,6 +53855,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Senaste 7 nätterna"
+          }
+        }
+      }
+    },
+    "Steady times like these help recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jämna tider som de här hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Steadier bed and wake times would help recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jämnare sov- och vakentider skulle hjälpa återhämtningen."
+          }
+        }
+      }
+    },
+    "Aim for the same bed and wake times every day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sikta på samma sov- och vakentider varje dag."
+          }
+        }
+      }
+    },
+    "Varies by %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varierar med %@"
           }
         }
       }

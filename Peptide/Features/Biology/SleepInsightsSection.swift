@@ -177,14 +177,14 @@ struct SleepInsightsSection: View {
                 value: Self.time(insights.averageBedtime),
                 icon: "moon.fill",
                 tint: AppColor.accentPrimary,
-                footnote: String(localized: "Varies \(Self.minutes(insights.bedtimeSpread))")
+                footnote: String(localized: "Varies by \(Self.minutes(insights.bedtimeSpread))")
             )
             StatTile(
                 label: "Wake time",
                 value: Self.time(insights.averageWake),
                 icon: "sunrise.fill",
                 tint: AppColor.accentPrimary,
-                footnote: String(localized: "Varies \(Self.minutes(insights.wakeSpread))")
+                footnote: String(localized: "Varies by \(Self.minutes(insights.wakeSpread))")
             )
             StatTile(
                 label: "Sleep debt",
@@ -250,9 +250,9 @@ struct SleepInsightsSection: View {
 
     private static func consistencyText(_ consistency: SleepInsightsEngine.Consistency) -> LocalizedStringKey {
         switch consistency {
-        case .steady: "Your bed and wake times are steady. That helps recovery."
-        case .variable: "Your bed and wake times shift by up to an hour. Steadier times help recovery."
-        case .irregular: "Your bed and wake times shift by more than an hour. Aim for the same times every day."
+        case .steady: "Steady times like these help recovery."
+        case .variable: "Steadier bed and wake times would help recovery."
+        case .irregular: "Aim for the same bed and wake times every day."
         }
     }
 }
