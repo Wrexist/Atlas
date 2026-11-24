@@ -1,6 +1,13 @@
 import Foundation
 @preconcurrency import HealthKit
 
+extension Notification.Name {
+    /// Posted on the main actor when Health gains steps, sleep, HRV or
+    /// resting heart rate samples while Atlas runs — the Watch syncing last
+    /// night's sleep after Today has opened, say.
+    static let healthSamplesDidChange = Notification.Name("atlas.healthKit.samplesDidChange")
+}
+
 /// Read/write bridge to Apple Health. Every accessor queries HealthKit
 /// on demand — the service holds no cached state, so callers get fresh
 /// numbers and nothing observes it.
@@ -10,6 +17,12 @@ final class HealthKitService {
 
     private let store = HKHealthStore()
     private let availability: () -> Bool
+    /// Live for the rest of the process once started.
+    private var observerQueries: [HKObserverQuery] = []
+    private var pendingChangePost: Task<Void, Never>?
+    /// A Watch sync lands as a burst of callbacks, one per type and batch;
+    /// they become one notification this long after the first.
+    private static let changeCoalesceSeconds = 5
 
     /// `availability` is injectable so tests can exercise the
     /// unavailable path on a simulator, where HealthKit reports
@@ -65,6 +78,48 @@ final class HealthKitService {
 
     private var readTypes: Set<HKObjectType> {
         biologyReadTypes.union(workoutReadTypes)
+    }
+
+    /// The types Today, Biology and the Watch glance re-read on change.
+    private var observedSampleTypes: [HKSampleType] {
+        [
+            HKQuantityType(.stepCount),
+            HKCategoryType(.sleepAnalysis),
+            HKQuantityType(.heartRateVariabilitySDNN),
+            HKQuantityType(.restingHeartRate),
+        ]
+    }
+
+    /// Posts `.healthSamplesDidChange` whenever those types change.
+    /// Idempotent. Foreground only: the app has no background-delivery
+    /// entitlement, and activation re-reads everything anyway.
+    func startObservingSampleChanges() {
+        guard isAvailable, observerQueries.isEmpty else { return }
+        observerQueries = observedSampleTypes.map(Self.makeObserverQuery(for:))
+        for query in observerQueries {
+            store.execute(query)
+        }
+    }
+
+    /// Built outside the main actor: HealthKit calls the handler on its
+    /// own queue.
+    nonisolated private static func makeObserverQuery(for type: HKSampleType) -> HKObserverQuery {
+        HKObserverQuery(sampleType: type, predicate: nil) { _, completionHandler, error in
+            completionHandler()
+            guard error == nil else { return }
+            Task { @MainActor in
+                HealthKitService.shared.coalesceSampleChange()
+            }
+        }
+    }
+
+    private func coalesceSampleChange() {
+        guard pendingChangePost == nil else { return }
+        pendingChangePost = Task {
+            try? await Task.sleep(for: .seconds(Self.changeCoalesceSeconds))
+            self.pendingChangePost = nil
+            NotificationCenter.default.post(name: .healthSamplesDidChange, object: nil)
+        }
     }
 
     func requestAuthorization() async -> Bool {

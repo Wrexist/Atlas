@@ -320,6 +320,18 @@ final class DataStore {
             }
         }
 
+        // New Health samples while the app runs: the Watch glance would
+        // otherwise keep last night's missing sleep until the next activation.
+        NotificationCenter.default.addObserver(
+            forName: .healthSamplesDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshWatchVitals()
+            }
+        }
+
         // Ingest remote CloudKit changes. Before this observer existed,
         // rows written on another device reached memory only via one
         // pull-to-refresh or a relaunch — and the debounced save's
@@ -2212,6 +2224,7 @@ final class DataStore {
         HealthSyncSettings.setConnected(true)
         profile.healthConnected = true
         save()
+        HealthKitService.shared.startObservingSampleChanges()
         await refreshWatchVitals()
         return true
     }
@@ -3189,6 +3202,7 @@ final class DataStore {
         // user has. A no-op within the same day (`isRedundant`).
         updateWidgetData()
         refreshHealthIfDue()
+        if profile.healthConnected { HealthKitService.shared.startObservingSampleChanges() }
         turnOffDeniedHealthWrites()
         // The unlock notification isn't delivered to a suspended app.
         retryUnreadableCustomPeptides()

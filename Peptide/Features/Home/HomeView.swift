@@ -714,6 +714,10 @@ struct HomeView: View {
             ) { _ in
                 refreshForCurrentTime()
             }
+            // Posted on the main actor once Health samples land.
+            .onReceive(NotificationCenter.default.publisher(for: .healthSamplesDidChange)) { _ in
+                refreshForCurrentTime()
+            }
             // The coaching copy reads recovery + sleep off the hero snapshot,
             // so it has to re-pick when that lands (it arrives async, after
             // the first `refreshDerived()`).
