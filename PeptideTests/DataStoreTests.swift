@@ -466,6 +466,20 @@ final class DataStoreTests: XCTestCase {
                              "A rest-day activation must restamp the widget or it keeps asking to open Atlas")
     }
 
+    // MARK: - Atlas Score day boundary
+
+    func test_momentumSnapshot_dayAfterAward_reportsNothingEarnedToday() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        let awardDay = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 3, day: 10, hour: 22)))
+        let nextMorning = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 3, day: 11, hour: 7)))
+        store.profile.lastMomentumAwardDay = calendar.startOfDay(for: awardDay)
+        store.profile.momentumAwardedToday = 40
+
+        XCTAssertEqual(store.momentumSnapshot(on: awardDay, calendar: calendar).todayEarned, 40)
+        XCTAssertEqual(store.momentumSnapshot(on: nextMorning, calendar: calendar).todayEarned, 0)
+    }
+
     // MARK: - Meal reminder "Same as yesterday"
 
     /// Yesterday's dinner reminder, tapped today, fills yesterday from the

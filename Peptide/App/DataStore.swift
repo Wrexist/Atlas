@@ -2407,8 +2407,13 @@ final class DataStore {
 
     /// The user's current Atlas Score / level, derived from stored profile
     /// state. Cheap arithmetic, safe to read from a view body.
-    var momentum: MomentumEngine.Snapshot {
-        let earnedToday = (profile.lastMomentumAwardDay.map { Calendar.current.isDateInToday($0) } ?? false)
+    var momentum: MomentumEngine.Snapshot { momentumSnapshot(on: Date()) }
+
+    /// The Atlas Score as of `day`: points banked count as "today" only
+    /// on the day they were awarded. Views pass their day so a card
+    /// left on screen past midnight redraws without a profile write.
+    func momentumSnapshot(on day: Date, calendar: Calendar = .current) -> MomentumEngine.Snapshot {
+        let earnedToday = (profile.lastMomentumAwardDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false)
             ? profile.momentumAwardedToday
             : 0
         return MomentumEngine.snapshot(score: profile.atlasScore, todayEarned: earnedToday)
