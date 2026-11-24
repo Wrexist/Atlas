@@ -130,6 +130,9 @@ struct WorkoutFinishView: View {
                         .font(AppFont.subheadline).frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                 }.disabled(store.summary == nil)
             }.padding(.horizontal, Spacing.screenPadding).padding(.top, Spacing.sm)
+                // A pinned footer at the largest sizes would take a fifth
+                // of the screen from the recap above it.
+                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                 .background(AppColor.background)
         }
         .sheet(isPresented: $editing) {

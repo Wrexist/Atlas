@@ -81,13 +81,16 @@ struct RecapLevelHero: View {
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textSecondary)
                 Text("\(level)")
-                    .font(AppFont.statValue)
+                    .font(AppFont.scaled(52, weight: .bold, relativeTo: .largeTitle))
                     .monospacedDigit()
                     .contentTransition(.numericText(value: Double(level)))
                     .foregroundStyle(AppColor.textPrimary)
             }
             .lineLimit(1)
             .minimumScaleFactor(0.5)
+            // The ring is a fixed size, so its label stops growing before
+            // it reaches the stroke.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .padding(Self.stroke * 2)
         }
         .frame(width: Self.diameter, height: Self.diameter)

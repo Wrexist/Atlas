@@ -125,6 +125,7 @@ struct RecapMetrics: View {
     let summary: WorkoutRecapEngine.Summary
     let unit: MeasurementUnit
     @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .body) private var iconRowHeight: CGFloat = 24
     var body: some View {
         GlassCard {
             ViewThatFits(in: .horizontal) {
@@ -148,7 +149,10 @@ struct RecapMetrics: View {
     }
     private func metric(_ title: String, value: String, icon: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
+            // One row height for every glyph, so the three columns' values
+            // and labels sit on the same lines.
             Image(systemName: icon).foregroundStyle(AppColor.accentPrimary).accessibilityHidden(true)
+                .frame(height: iconRowHeight, alignment: .bottomLeading)
             valueText(value).monospacedDigit().contentTransition(.numericText())
                 .fixedSize(horizontal: false, vertical: true)
             Text(title).font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
