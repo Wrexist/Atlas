@@ -22,6 +22,9 @@ struct DailyPlanCard: View {
     /// was taken rather than a plan to act on.
     private var isReadOnly: Bool { onToggleDose == nil && onTapDose == nil }
 
+    /// Finished windows the user opened again to look back at.
+    @State private var expandedSlots: Set<DailyScheduleEngine.DaySlot> = []
+
     var body: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -150,13 +153,65 @@ struct DailyPlanCard: View {
 
     /// Every window, flat on the card: a one-line label over its rows, no
     /// inner panels, so the whole day reads at one level.
+    @ViewBuilder
     private func slotSection(_ scheduled: DailyScheduleEngine.ScheduledSlot) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            slotHeader(scheduled.slot)
-            ForEach(scheduled.doses) { dose in
-                DailyPlanDoseRow(dose: dose, onTap: onTapDose, onToggle: onToggleDose)
+        if isFolded(scheduled) {
+            foldedSlot(scheduled)
+        } else {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                slotHeader(scheduled.slot)
+                ForEach(scheduled.doses) { dose in
+                    DailyPlanDoseRow(dose: dose, onTap: onTapDose, onToggle: onToggleDose)
+                }
             }
         }
+    }
+
+    /// On today a window whose doses are all taken folds to one line, so
+    /// the card shrinks as the day gets done and only what's left stays
+    /// tall. A browsed past day is a record and stays open.
+    private func isFolded(_ scheduled: DailyScheduleEngine.ScheduledSlot) -> Bool {
+        !isReadOnly
+            && !scheduled.doses.isEmpty
+            && scheduled.doses.allSatisfy(\.entry.completed)
+            && !expandedSlots.contains(scheduled.slot)
+    }
+
+    private func foldedSlot(_ scheduled: DailyScheduleEngine.ScheduledSlot) -> some View {
+        Button {
+            Haptics.selection()
+            AppAnimation.with(AppAnimation.springSmooth) {
+                _ = expandedSlots.insert(scheduled.slot)
+            }
+        } label: {
+            // Same type and icon column as the open windows' headers, so
+            // a finished window reads as a quieter header, not a heading.
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.success)
+                    .accessibilityHidden(true)
+                Text(scheduled.slot.title)
+                    .font(AppFont.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.textSecondary)
+                Text("\(scheduled.doses.count) taken")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .monospacedDigit()
+                Spacer(minLength: Spacing.sm)
+                Image(systemName: "chevron.down")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Shows the doses in this window")
+        .transition(.opacity)
     }
 
     private func slotHeader(_ slot: DailyScheduleEngine.DaySlot) -> some View {

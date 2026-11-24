@@ -53838,6 +53838,26 @@
           }
         }
       }
+    },
+    "%lld taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld tagna"
+          }
+        }
+      }
+    },
+    "Shows the doses in this window": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar doserna i det här fönstret"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
