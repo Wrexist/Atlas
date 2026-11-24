@@ -78,47 +78,47 @@ struct MealsContainerView: View {
         }
     }
 
+    /// Four tools as a 2×2 grid of icon + title tiles: one glance, one
+    /// tap in, and the scroll keeps Log food and the diary as its jobs.
+    /// The longer descriptions stay as VoiceOver hints.
     private var planningTools: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HomeSectionHeader(title: "Plan and cook")
-            NavigationLink {
-                FridgeView()
-            } label: {
-                GlassEntryRowLabel(
-                    icon: "refrigerator.fill",
-                    title: "Fridge",
-                    subtitle: fridgeSubtitle,
-                    badge: fridgeBadge,
-                    surface: .card
-                )
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: Spacing.sm), GridItem(.flexible(), spacing: Spacing.sm)],
+                spacing: Spacing.sm
+            ) {
+                NavigationLink {
+                    FridgeView()
+                } label: {
+                    PlanningToolTile(icon: "refrigerator.fill", title: "Fridge", badge: fridgeBadge)
+                }
+                .buttonStyle(ScalePressStyle(pressedScale: 0.97))
+                .accessibilityHint(fridgeSubtitle)
+                NavigationLink {
+                    WeeklyPrepView()
+                } label: {
+                    PlanningToolTile(icon: "shippingbox.fill", title: "Weekly prep")
+                }
+                .buttonStyle(ScalePressStyle(pressedScale: 0.97))
+                .accessibilityHint(Text("Two dishes, one shopping list, boxes for the week"))
+                Button {
+                    showMealPlan = true
+                } label: {
+                    PlanningToolTile(icon: "wand.and.stars", title: "Plan my day")
+                }
+                .buttonStyle(ScalePressStyle(pressedScale: 0.97))
+                .accessibilityHint(Text("Meals from foods you already eat, sized to your targets"))
+                Button(action: openCoach) {
+                    PlanningToolTile(
+                        icon: "sparkles",
+                        title: "Ask Atlas",
+                        badge: storeService.canAccessAIFeatures ? nil : Badge("Pro")
+                    )
+                }
+                .buttonStyle(ScalePressStyle(pressedScale: 0.97))
+                .accessibilityHint(Text("Review your last 7 days of meals with AI"))
             }
-            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-            NavigationLink {
-                WeeklyPrepView()
-            } label: {
-                GlassEntryRowLabel(
-                    icon: "shippingbox.fill",
-                    title: "Weekly prep",
-                    subtitle: Text("Two dishes, one shopping list, boxes for the week"),
-                    surface: .card
-                )
-            }
-            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-            GlassEntryRow(
-                icon: "wand.and.stars",
-                title: "Plan my day",
-                subtitle: Text("Meals from foods you already eat, sized to your targets"),
-                surface: .card,
-                action: { showMealPlan = true }
-            )
-            GlassEntryRow(
-                icon: "sparkles",
-                title: "Ask Atlas",
-                subtitle: Text("Review your last 7 days of meals with AI"),
-                badge: storeService.canAccessAIFeatures ? nil : Badge("Pro"),
-                surface: .card,
-                action: openCoach
-            )
         }
     }
 
@@ -155,6 +155,35 @@ struct MealsContainerView: View {
             unit: profile.bodyMetrics.unit
         )
         return AIResearchService.Brief(topic: .nutrition, text: text)
+    }
+}
+
+/// One "Plan and cook" tool: an accent glyph over its name, with an
+/// optional badge (use-soon count, Pro) in the corner.
+private struct PlanningToolTile: View {
+    let icon: String
+    let title: LocalizedStringKey
+    var badge: Badge?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(alignment: .top) {
+                IconTile(icon, size: 32)
+                Spacer(minLength: Spacing.xs)
+                badge
+            }
+            Text(title)
+                .font(AppFont.subheadline.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.md)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
 
