@@ -71,9 +71,11 @@ final class WorkoutSessionService {
         // Re-hydrate the session this device was running when the process
         // was suspended so the user picks up where they left off. An
         // unfinished row synced in from another device stays that device's.
-        activeSession = WorkoutSessionClaim.load().adoptable(
-            from: SwiftDataRepository.shared.loadUnfinishedWorkoutSessions()
-        )
+        // Open the repository before reading the claim: its first open can
+        // record one (the UI-test fixture does), and a claim read earlier
+        // would miss it.
+        let unfinished = SwiftDataRepository.shared.loadUnfinishedWorkoutSessions()
+        activeSession = WorkoutSessionClaim.load().adoptable(from: unfinished)
         // The restored workout's sets already carry this adjustment, so it is
         // set directly rather than through a reseed.
         readiness = ReadinessEngine.retained(fresh: .unknown, last: lastReadiness, now: Date(), calendar: .current)
