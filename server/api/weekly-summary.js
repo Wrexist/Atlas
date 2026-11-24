@@ -46,7 +46,7 @@ const SYSTEM_PROMPT = [
   "",
   "Structure:",
   "1. One sentence opener: how the week went overall.",
-  "2. 2-3 specific observations grounded in the numbers present. Lead with training days, nutrition, HRV, and check-in averages such as sleep; mention Protocol adherence and streak only when they're present.",
+  "2. 2-3 specific observations grounded in the numbers present. Lead with training days, nutrition, HRV, and check-in averages such as sleep. Protocols are an optional extra: never open with doses, and give adherence and streak at most one short clause near the end, only when they're present.",
   "3. One forward-looking line for next week — encouraging, not prescriptive.",
   "",
   "Output: plain text, no markdown, no bullet points, no headings. The iOS card renders the paragraphs as-is."

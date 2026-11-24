@@ -34,6 +34,10 @@ final class WorkoutTypeOverrideStore {
         defaults.set(overrides, forKey: key)
     }
 
+    func deleteAll() {
+        defaults.removeObject(forKey: key)
+    }
+
     func applied(to workouts: [ImportedCardioWorkout]) -> [ImportedCardioWorkout] {
         workouts.map { workout in
             activity(for: workout.id).map(workout.categorized(as:)) ?? workout

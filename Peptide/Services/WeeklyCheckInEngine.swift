@@ -182,7 +182,7 @@ enum WeeklyCheckInEngine {
         calendar: Calendar
     ) -> WeeklyCheckIn.Training? {
         let daysPerWeek = weeks.map { range in
-            Set(workoutDates.filter { range.contains($0) }.map { calendar.startOfDay(for: $0) }).count
+            TrainingWeekEngine.trainedDays(dates: workoutDates, in: range, calendar: calendar)
         }
         let usual = Int((Double(daysPerWeek[1...].reduce(0, +)) / 3).rounded())
         var goal: Int?

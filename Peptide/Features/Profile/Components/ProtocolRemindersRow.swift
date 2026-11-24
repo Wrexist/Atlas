@@ -76,8 +76,12 @@ struct ProtocolRemindersRow: View {
                     )
                 },
                 // Habit reminders survive this switch: each habit opts in
-                // on its own.
-                cancel: { NotificationService.shared.cancelProtocolReminders() }
+                // on its own. Re-planned so they stop stepping around the
+                // cancelled dose slots.
+                cancel: {
+                    NotificationService.shared.cancelProtocolReminders()
+                    Task { await dataStore.rescheduleHabitReminders() }
+                }
             ))
             guard outcome != .cancelled else { return }
             notificationsDenied = outcome == .denied

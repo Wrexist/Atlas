@@ -9,8 +9,11 @@ import SwiftUI
 /// A binding so only this view, not the caller's body, reads it on every
 /// scroll frame.
 struct HomeStickyHeader: View {
-    /// User's first name, already trimmed by the caller. Empty falls back
-    /// to "Today" so the bar still reads cleanly without a name.
+    /// The same time-of-day greeting the large title shows, so the
+    /// hand-over reads as one title shrinking, not a second greeting.
+    let greeting: String
+    /// User's first name, already trimmed by the caller. Empty shows the
+    /// greeting alone.
     let firstName: String
     @Binding var progress: Double
 
@@ -30,13 +33,12 @@ struct HomeStickyHeader: View {
 
     private var displayText: String {
         let trimmed = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return String(localized: "Today") }
-        return String(format: String(localized: "Hi, %@"), trimmed)
+        return trimmed.isEmpty ? greeting : "\(greeting), \(trimmed)"
     }
 }
 
 #Preview("Shown") {
-    HomeStickyHeader(firstName: "Alex", progress: .constant(1))
+    HomeStickyHeader(greeting: "Good evening", firstName: "Alex", progress: .constant(1))
         .padding(Spacing.lg)
         .background(AppColor.background)
 }

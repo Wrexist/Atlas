@@ -36,6 +36,7 @@ struct LogMealIntent: AppIntent {
         let resolution = await MainActor.run {
             Self.log(foodID: foodID, in: IntentDataStore.resolve(), at: Date())
         }
+        if case .logged = resolution { await Self.reconcileReminders() }
 
         switch resolution {
         case .notFound:
@@ -94,6 +95,13 @@ struct LogMealIntent: AppIntent {
         }
         store.flushPendingSave()
         return .logged(name: customFood.name, calories: meal.calories, category: category)
+    }
+
+    /// A meal logged from Siri with Atlas in the background gets no
+    /// activation to re-plan reminders, so that meal's nudge would still fire.
+    @MainActor
+    static func reconcileReminders() async {
+        await DailyReminderScheduler.reconcile(dataStore: IntentDataStore.resolve())
     }
 
     enum Resolution: Equatable {

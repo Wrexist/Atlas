@@ -17,7 +17,9 @@ final class WorkoutSessionService {
     /// "one active session at a time" invariant.
     private(set) var activeSession: WorkoutSession?
     private(set) var lastFinishError: String?
-    private var pendingFinish: WorkoutSession?
+    /// The finish time of a failed finish attempt, so a retry records the
+    /// moment the user first tapped Finish.
+    private var pendingFinish: (sessionID: UUID, end: Date)?
     /// Set when `closeIfStale` closed a forgotten workout, so the Train
     /// tab can say so once. Cleared by `acknowledgeStaleClosure`.
     private(set) var staleClosure: StaleClosure?
@@ -192,13 +194,16 @@ final class WorkoutSessionService {
             lastFinishError = String(localized: "Complete at least one working set before finishing.")
             return nil
         }
-        session.focus?.resume(at: end)
+        // Everything but the end time comes from the live session: sets
+        // logged from the Watch or Live Activity while the error showed
+        // must reach the saved workout.
+        let finishedAt = pendingFinish.flatMap { $0.sessionID == session.id ? $0.end : nil } ?? end
+        pendingFinish = (session.id, finishedAt)
+        session.focus?.resume(at: finishedAt)
         session.focus?.rest = nil
-        session.finishedAt = end
+        session.finishedAt = finishedAt
         session.perceivedEffort = perceivedEffort
         session.note = note
-        if let pendingFinish, pendingFinish.id == session.id { session = pendingFinish }
-        else { pendingFinish = session }
         do { try SwiftDataRepository.shared.saveWorkoutDurably(session) }
         catch {
             lastFinishError = error.localizedDescription
@@ -330,8 +335,21 @@ final class WorkoutSessionService {
         }
         DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
         DataStore.current?.refreshTrainingGlanceables()
+        replanRemindersInBackground()
         AppLog.training.info("Watch workout imported (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public))")
         return true
+    }
+
+    /// A Watch workout is usually filed while the app sleeps in the
+    /// background, where no scene change re-plans the daily reminders, so
+    /// today's "Time to train" would still fire after the workout.
+    private func replanRemindersInBackground() {
+        guard !ProcessInfo.processInfo.isRunningUnitTests, let dataStore = DataStore.current else { return }
+        let backgroundTask = BackgroundTaskHandle(name: "Reminder reconcile")
+        Task { @MainActor in
+            await DailyReminderScheduler.reconcile(dataStore: dataStore)
+            backgroundTask.end()
+        }
     }
 
     /// Re-reads the in-progress session after an iCloud account switch,

@@ -50,12 +50,14 @@ final class CycleCompletionService {
     }
 
     private let defaults: UserDefaults
+    /// Autoupdating by default: `.shared` lives for the whole session, and
+    /// a `.current` snapshot would keep the launch time zone after travel.
     private let calendar: Calendar
     private static let dismissCountKey = "cycle.completion.dismissCount"
     private static let autoCompletedKey = "cycle.completion.autoCompleted"
     private static let graceStartKey = "cycle.completion.graceStart"
 
-    init(defaults: UserDefaults = .standard, calendar: Calendar = .current) {
+    init(defaults: UserDefaults = .standard, calendar: Calendar = .autoupdatingCurrent) {
         self.defaults = defaults
         self.calendar = calendar
     }

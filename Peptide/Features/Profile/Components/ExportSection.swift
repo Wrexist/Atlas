@@ -235,6 +235,7 @@ struct ExportSection: View {
         let personalRecords = dataStore.personalRecordsForBackup()
         let customPeptides = dataStore.customPeptides
         let fasts = SwiftDataRepository.shared.loadFasts()
+        let healthWeightIDs = SwiftDataRepository.shared.healthWeightImportIDs(in: profile)
         isPreparingBackup = true
         Task {
             let data = await Task.detached(priority: .userInitiated) {
@@ -247,7 +248,8 @@ struct ExportSection: View {
                     customExercises: customExercises,
                     personalRecords: personalRecords,
                     customPeptides: customPeptides,
-                    fasts: fasts
+                    fasts: fasts,
+                    healthWeightIDs: healthWeightIDs
                 )
             }.value
             isPreparingBackup = false

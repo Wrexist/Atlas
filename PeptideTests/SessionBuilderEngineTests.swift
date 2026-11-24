@@ -345,6 +345,25 @@ final class SessionBuilderEngineTests: XCTestCase {
         defaults.removePersistentDomain(forName: suite)
     }
 
+    func test_equipmentProfileStore_deleteAll_forgetsPlaceAndKit() throws {
+        let suite = "EquipmentProfileStoreDeleteTests"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        let store = EquipmentProfileStore(defaults: defaults)
+        var home = store.profile(for: .home)
+        home.kinds.insert(.kettlebell)
+        store.set(home, for: .home)
+        store.select(.home)
+
+        store.deleteAll()
+
+        XCTAssertEqual(store.location, .gym)
+        let reopened = EquipmentProfileStore(defaults: defaults)
+        XCTAssertEqual(reopened.location, .gym)
+        XCTAssertEqual(reopened.profile(for: .home), .standard(for: .home))
+        defaults.removePersistentDomain(forName: suite)
+    }
+
     func test_build_shortSessionTrimsACompanion_subtitleDropsIt() {
         let routine = build(focus: .chest, companions: [.shoulders, .back, .triceps], minutes: 20)
         XCTAssertLessThan(routine.exercises.count, 5, "A 20-minute session trims the trailing isolation work")
