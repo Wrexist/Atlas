@@ -97,13 +97,13 @@ struct HealthConnectionCard: View {
                         }
                         syncToggle(
                             title: "Sync workouts, weight and water",
-                            detail: "Finished workouts, weigh-ins and water show up in the Health app, and weigh-ins from a smart scale come back to Atlas.",
+                            detail: "Workouts, weigh-ins and water, both ways.",
                             isOn: activitySyncEnabled,
                             onChange: onToggleActivitySync
                         )
                         syncToggle(
                             title: "Write meals to Apple Health",
-                            detail: "Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.",
+                            detail: "Calories and macros in Health's nutrition log.",
                             isOn: nutritionWriteEnabled,
                             onChange: onToggleNutritionWrite
                         )
@@ -157,7 +157,8 @@ struct HealthConnectionCard: View {
                 Text(detail)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
         }
         .tint(AppColor.accentPrimary)

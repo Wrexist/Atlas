@@ -6568,6 +6568,16 @@
         }
       }
     },
+    "Calories and macros in Health's nutrition log.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalorier och makron i Hälsas näringslogg."
+          }
+        }
+      }
+    },
     "CJC-1295 (GHRH analog) activates cAMP/PKA via the GHRH receptor while Ipamorelin (GHS-R agonist) activates phospholipase C via the ghrelin receptor. Different receptors produce synergistic GH release 2-3x greater than either alone.": {
       "localizations": {
         "sv": {
@@ -6835,6 +6845,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Diastoliskt"
+          }
+        }
+      }
+    },
+    "Edit goals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera mål"
           }
         }
       }
@@ -7780,6 +7800,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Välj en GHRP utifrån hur väl du tål aptitstimulering (GHRP-6 starkare) och kombinera med CJC-1295."
+          }
+        }
+      }
+    },
+    "Pick what you're working toward.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj vad du siktar mot."
           }
         }
       }
@@ -8792,6 +8822,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Passpåminnelser och återhämtningsinsikter.\nBåda valfria."
+          }
+        }
+      }
+    },
+    "Workouts, weigh-ins and water, both ways.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pass, vägningar och vatten, åt båda hållen."
           }
         }
       }
@@ -19697,16 +19737,6 @@
         }
       }
     },
-    "Finished workouts, weigh-ins and water show up in the Health app, and weigh-ins from a smart scale come back to Atlas.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avslutade pass, vägningar och vatten visas i appen Hälsa, och vägningar från en smart våg kommer tillbaka till Atlas."
-          }
-        }
-      }
-    },
     "First Bite": {
       "localizations": {
         "sv": {
@@ -23743,16 +23773,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Loggad kl."
-          }
-        }
-      }
-    },
-    "Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Loggade kalorier, protein, kolhydrater och fett visas i kosttidslinjen i appen Hälsa."
           }
         }
       }

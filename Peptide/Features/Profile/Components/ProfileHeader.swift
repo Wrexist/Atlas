@@ -21,7 +21,9 @@ struct ProfileHeader: View {
     }
 
     var body: some View {
-        GlassCard(tinted: true) {
+        // Neutral glass: the accent lives on the avatar ring alone, so the
+        // identity reads calm and the one tinted thing is the person.
+        GlassCard {
             VStack(spacing: Spacing.lg) {
                 editableAvatar
 
@@ -104,7 +106,7 @@ struct ProfileHeader: View {
         } else {
             ZStack {
                 Circle()
-                    .fill(AppColor.accentPrimary.opacity(0.2))
+                    .fill(AppColor.surfaceElevated)
                     .frame(width: 80, height: 80)
                     .overlay(avatarBorder)
 
@@ -127,7 +129,7 @@ struct ProfileHeader: View {
 
     private var avatarBorder: some View {
         Circle()
-            .strokeBorder(AppColor.glassBorderActive, lineWidth: 1.5)
+            .strokeBorder(AppColor.accentPrimary, lineWidth: 2)
     }
 }
 
@@ -139,7 +141,7 @@ private struct ProfileStat: View {
         VStack(spacing: Spacing.xxs) {
             Text(value, format: .number)
                 .font(AppFont.title2)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
                 .appAnimation(AppAnimation.springSnappy, value: value)
             Text(label)

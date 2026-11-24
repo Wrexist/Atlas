@@ -67,7 +67,7 @@ struct ProfileView: View {
                     // Earned Atlas Score — the rewards identity. Taps open
                     // the full progress view, where the achievement badges
                     // it sums up live.
-                    AtlasScoreCard(onTap: { showProgress = true })
+                    ProfileLevelCard(onTap: { showProgress = true })
                         .sectionAppear(index: 2)
 
                     GoalsSectionCard(
@@ -99,18 +99,27 @@ struct ProfileView: View {
                     )
                     .scrollReveal()
 
-                    // Protocol tools are secondary, so they close the page.
-                    // The library and its calculator are one toolset, so they
-                    // sit together rather than a full section gap apart.
-                    VStack(spacing: Spacing.sm) {
-                        CycleCardShareSection()
+                    // Protocol tools are secondary, so they close the page
+                    // under a quiet label: reachable, never promoted.
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        Text("Protocols")
+                            .font(AppFont.eyebrow)
+                            .tracking(0.6)
+                            .textCase(.uppercase)
+                            .foregroundStyle(AppColor.textTertiary)
+                            .padding(.horizontal, Spacing.xs)
+                            .accessibilityAddTraits(.isHeader)
+
                         PeptideLibraryEntryCard()
 
                         // The calculator only matters to someone running a protocol.
                         if !dataStore.protocols.isEmpty {
                             ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
                         }
+
+                        CycleCardShareSection()
                     }
+                    .padding(.top, Spacing.lg)
                     .scrollReveal()
                 }
                 .padding(.horizontal, Spacing.screenPadding)
