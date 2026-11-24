@@ -5,35 +5,35 @@ import SwiftUI
 /// The same card serves the building state, where it is the answer to
 /// "why don't I have a number yet?".
 struct BioAgeCoverageCard: View {
-    let inputs: PerformanceAgeEngine.Inputs
+    let inputs: BiologicalAgeEngine.Inputs
     let healthConnected: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
 
-    private var presentKinds: [PerformanceAgeEngine.Driver.Kind] {
-        PerformanceAgeEngine.drivers(for: inputs).map(\.kind)
+    private var presentKinds: [BiologicalAgeEngine.Driver.Kind] {
+        BiologicalAgeEngine.drivers(for: inputs).map(\.kind)
     }
 
     /// Missing signals first: each carries the one step that would add
     /// it, and those steps are what this card is for. Counted ones
     /// follow, in the engine's order.
-    private var orderedKinds: [PerformanceAgeEngine.Driver.Kind] {
+    private var orderedKinds: [BiologicalAgeEngine.Driver.Kind] {
         let present = Set(presentKinds)
-        let all = PerformanceAgeEngine.Driver.Kind.allCases
+        let all = BiologicalAgeEngine.Driver.Kind.allCases
         return all.filter { !present.contains($0) } + all.filter { present.contains($0) }
     }
 
     private var confidence: Double {
-        PerformanceAgeEngine.confidenceScore(
-            coverage: PerformanceAgeEngine.coverage(of: presentKinds),
+        BiologicalAgeEngine.confidenceScore(
+            coverage: BiologicalAgeEngine.coverage(of: presentKinds),
             healthDataDays: inputs.healthDataDays
         )
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            BiologySectionHeader(
+            HomeSectionHeader(
                 title: "Data behind it",
                 subtitle: "More signals and more days make the estimate steadier."
             )
@@ -56,8 +56,8 @@ struct BioAgeCoverageCard: View {
     }
 
     private var confidenceHeader: some View {
-        let total = PerformanceAgeEngine.Driver.Kind.allCases.count
-        let ready = confidence >= PerformanceAgeEngine.minConfidence
+        let total = BiologicalAgeEngine.Driver.Kind.allCases.count
+        let ready = confidence >= BiologicalAgeEngine.minConfidence
         let title = Text(ready ? BioAgeHeroSection.confidenceLabel(confidence) : String(localized: "Not enough data yet"))
             .font(AppFont.scaled(16, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary)
@@ -78,14 +78,14 @@ struct BioAgeCoverageCard: View {
                 }
             }
             GlassProgressBar(progress: confidence)
-            Text("\(min(inputs.healthDataDays, PerformanceAgeEngine.windowDays)) of \(PerformanceAgeEngine.windowDays) days of heart and sleep data")
+            Text("\(min(inputs.healthDataDays, BiologicalAgeEngine.windowDays)) of \(BiologicalAgeEngine.windowDays) days of heart and sleep data")
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .accessibilityElement(children: .combine)
     }
 
-    private func signalRow(_ kind: PerformanceAgeEngine.Driver.Kind, index: Int) -> some View {
+    private func signalRow(_ kind: BiologicalAgeEngine.Driver.Kind, index: Int) -> some View {
         let present = presentKinds.contains(kind)
         return HStack(alignment: .top, spacing: Spacing.md) {
             // The drivers card's key, so a signal looks the same in both;
@@ -119,7 +119,7 @@ struct BioAgeCoverageCard: View {
         .accessibilityValue(Text(present ? String(localized: "Counted") : String(localized: "Not counted")))
     }
 
-    private func guidance(for kind: PerformanceAgeEngine.Driver.Kind) -> String {
+    private func guidance(for kind: BiologicalAgeEngine.Driver.Kind) -> String {
         if kind.comesFromHealth && !healthConnected {
             return String(localized: "Connect Apple Health to include this.")
         }

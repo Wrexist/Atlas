@@ -14,7 +14,9 @@ name: PR Checks
 #
 # Pushes to main and a nightly run catch what a PR cannot: a main that
 # went red from a toolchain bump on the runner image, or from a commit
-# that reached main without a PR.
+# that reached main without a PR. The nightly skips the macOS build when
+# main's push or nightly run already passed on the same SHA, except on
+# Mondays, so a quiet week still gets one runner-image check.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -65,6 +67,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Fail-safe default: if anything below errors out, run the
           # macOS build. Push and schedule runs have no base SHA, so the
@@ -91,6 +94,17 @@ jobs:
             echo "::warning::git diff failed — defaulting ios=true so the build still runs."
             echo "git output: $FILES"
             IOS=true
+          fi
+
+          # Same query as ios-testflight.yml's gate. A failed lookup
+          # prints 0 and the build runs.
+          if [ "$GITHUB_EVENT_NAME" = schedule ] && [ "$(date -u +%u)" != 1 ]; then
+            PASSED=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/pr-checks.yml/runs?head_sha=$GITHUB_SHA&status=success&branch=main" \
+              -q '[.workflow_runs[] | select(.event == "push" or .event == "schedule")] | length' 2>/dev/null || echo 0)
+            if [ "${PASSED:-0}" != 0 ]; then
+              IOS=false
+              echo "→ main already passed on $GITHUB_SHA; nightly build-check skipped."
+            fi
           fi
 
           echo "ios=$IOS" >> "$GITHUB_OUTPUT"

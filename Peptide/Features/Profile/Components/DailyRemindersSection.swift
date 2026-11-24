@@ -14,14 +14,9 @@ struct DailyRemindersSection: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Label("Reminders", systemImage: "bell.badge.fill")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("Each one stays quiet on days you've already logged it.")
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textTertiary)
-                }
+                Text("Each one stays quiet on days you've already logged it.")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
 
                 if permissionDenied {
                     NotificationsDeniedRow()
@@ -61,7 +56,7 @@ struct DailyRemindersSection: View {
     private func subtitle(for kind: DailyReminderKind) -> LocalizedStringKey {
         switch kind {
         case .weighIn:
-            "Reply with your weight right from the notification"
+            "Log your weight from the notification"
         case .breakfast, .lunch, .dinner:
             "Scan it, or repeat yesterday's in one tap"
         case .workout:
@@ -71,7 +66,7 @@ struct DailyRemindersSection: View {
 
     private var trainingDaysSubtitle: LocalizedStringKey {
         let days = dataStore.profile.trainingPreferences?.preferredDays ?? []
-        guard !days.isEmpty else { return "Every day — pick training days in your plan" }
+        guard !days.isEmpty else { return "Every day — set days in your plan" }
         let names = Weekday.allCases.filter(days.contains).map(\.shortName).joined(separator: " · ")
         return "\(names)"
     }

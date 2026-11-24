@@ -41,6 +41,7 @@ struct WatchRootView: View {
             }
             .tabViewStyle(.verticalPage)
         }
+        .tint(WatchPalette.accent(store.watchData.accent))
         .onAppear {
             if store.displayedWorkout != nil { selection = .workout }
         }

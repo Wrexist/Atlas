@@ -68,6 +68,9 @@ struct RecipeDetailView: View {
             .padding(.bottom, Spacing.xl)
         }
         .ignoresSafeArea(edges: .top)
+        // On iOS 26 the bar's soft edge let the steps read through the
+        // title once it moved into the bar; past the photo it goes solid.
+        .solidTopScrollEdge(showsTitle)
         .background(AppColor.background.ignoresSafeArea())
         // The big title under the photo names the screen; the bar only
         // repeats it once that title has scrolled away.

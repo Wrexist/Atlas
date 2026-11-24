@@ -1,0 +1,182 @@
+import SwiftUI
+
+/// Developer-facing diagnostics row in Settings' About card (debug
+/// builds only, once a report exists). Surfaces the MetricKit subscription's captured payload
+/// count so the wiring is visible without leaving the device, and offers
+/// a tap-in sheet showing the latest 20 records (kind, timestamp, raw
+/// JSON preview).
+///
+/// Apple's TestFlight + App Store Connect dashboards collect the
+/// same data on the server side — this is the offline / on-device
+/// view that doesn't require leaving the app.
+struct DiagnosticsRow: View {
+    @State private var diagnosticsService = DiagnosticsService.shared
+    @State private var showDetail = false
+
+    var body: some View {
+        Button {
+            showDetail = true
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("MetricKit reports")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                    Text(detailSummary)
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showDetail) {
+            DiagnosticsDetailSheet(service: diagnosticsService)
+        }
+    }
+
+    private var detailSummary: String {
+        let records = diagnosticsService.records
+        // Clearing from the sheet empties the list a frame before About
+        // drops this row.
+        guard let latest = records.first else { return "" }
+        let crashCount = records.filter { $0.kind == .diagnostic }.count
+        let metricCount = records.count - crashCount
+        let last = relativeTime(for: latest.receivedAt)
+        return String(localized: "\(crashCount) diagnostic · \(metricCount) metric · last \(last)")
+    }
+
+    private func relativeTime(for date: Date) -> String {
+        Self.formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    nonisolated(unsafe) private static let formatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .short
+        return f
+    }()
+}
+
+// MARK: - Detail sheet
+
+private struct DiagnosticsDetailSheet: View {
+    @Bindable var service: DiagnosticsService
+    @Environment(\.dismiss) private var dismiss
+    @State private var showConfirmClear = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(spacing: Spacing.sm) {
+                    if service.records.isEmpty {
+                        emptyState
+                    } else {
+                        ForEach(service.records) { record in
+                            recordCard(record)
+                        }
+                    }
+                }
+                .padding(Spacing.screenPadding)
+            }
+            .background(AppColor.background)
+            .navigationTitle("MetricKit Reports")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+                if !service.records.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            showConfirmClear = true
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .accessibilityLabel("Clear all reports")
+                    }
+                }
+            }
+            .confirmationDialog(
+                "Clear all reports?",
+                isPresented: $showConfirmClear,
+                titleVisibility: .visible
+            ) {
+                Button("Clear", role: .destructive) {
+                    service.reset()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Removes the captured MetricKit payloads from this device. Apple's server-side TestFlight crash data is unaffected.")
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: Spacing.md) {
+            Image(systemName: "checkmark.shield.fill")
+                .font(AppFont.scaled(40, relativeTo: .largeTitle))
+                .foregroundStyle(AppColor.success)
+                .padding(.top, Spacing.xxl)
+            Text("No reports yet")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+            Text("MetricKit delivers daily payloads on launch after a crash or hang. Once captured, they show up here.")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+        }
+    }
+
+    private func recordCard(_ record: DiagnosticsService.Record) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack {
+                Label(record.kind == .diagnostic ? "Diagnostic" : "Metric",
+                      systemImage: record.kind == .diagnostic ? "exclamationmark.triangle.fill" : "gauge.with.dots.needle.bottom.50percent")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(record.kind == .diagnostic ? AppColor.warning : AppColor.accentLight)
+                Spacer()
+                Text(record.receivedAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            Text(payloadPreview(for: record))
+                .font(AppFont.scaled(11, design: .monospaced))
+                .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(Spacing.sm)
+                .background {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .fill(AppColor.surfaceElevated.opacity(0.5))
+                }
+        }
+        .padding(Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+        }
+    }
+
+    private func payloadPreview(for record: DiagnosticsService.Record) -> String {
+        // Truncate to ~480 chars so a 50KB MetricKit payload doesn't
+        // blow up the row. Full payload is on disk for any future
+        // upload path.
+        let raw = String(data: record.payloadJSON, encoding: .utf8) ?? "<binary>"
+        if raw.count > 480 {
+            let prefix = raw.prefix(480)
+            return "\(prefix)…"
+        }
+        return raw
+    }
+}

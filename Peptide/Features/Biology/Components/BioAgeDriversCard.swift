@@ -5,7 +5,7 @@ import SwiftUI
 /// from a centre line — left is younger, right is older — on one shared
 /// scale, so a long bar always means a big pull.
 struct BioAgeDriversCard: View {
-    let estimate: PerformanceAgeEngine.Estimate
+    let estimate: BiologicalAgeEngine.Estimate
     let unit: MeasurementUnit
     /// Pick the age-group table for the "better than" line.
     var age: Int?
@@ -15,12 +15,12 @@ struct BioAgeDriversCard: View {
     @State private var grown = false
 
     /// The widest any single signal can swing, so bars share one scale.
-    private static let scaleYears: Double = PerformanceAgeEngine.Driver.Kind.allCases
+    private static let scaleYears: Double = BiologicalAgeEngine.Driver.Kind.allCases
         .map(\.maxSwingYears).max() ?? 3
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            BiologySectionHeader(
+            HomeSectionHeader(
                 title: "What's driving it",
                 subtitle: "How many years each signal adds or takes off."
             )
@@ -32,7 +32,7 @@ struct BioAgeDriversCard: View {
                     }
                     legend
                     if estimate.isCapped {
-                        Text("Capped at \(Int(PerformanceAgeEngine.maxDriftYears)) years from your age")
+                        Text("Capped at \(Int(BiologicalAgeEngine.maxDriftYears)) years from your age")
                             .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -54,7 +54,7 @@ struct BioAgeDriversCard: View {
         }
     }
 
-    private func row(_ driver: PerformanceAgeEngine.Driver, index: Int) -> some View {
+    private func row(_ driver: BiologicalAgeEngine.Driver, index: Int) -> some View {
         let kind = driver.kind
         let shownDelta = grown ? driver.deltaYears : 0
         return VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -106,7 +106,7 @@ struct BioAgeDriversCard: View {
     }
 
     /// "48 ms · Typical for your age: 41 ms"
-    private func detail(for driver: PerformanceAgeEngine.Driver) -> String? {
+    private func detail(for driver: BiologicalAgeEngine.Driver) -> String? {
         guard let value = driver.value else { return nil }
         let reading = driver.kind.formattedValue(value, unit: unit)
         guard let reference = driver.reference else { return reading }
@@ -115,7 +115,7 @@ struct BioAgeDriversCard: View {
 
     /// "Better than 72% of men your age", for signals with a published
     /// age-group table.
-    private func placement(for driver: PerformanceAgeEngine.Driver) -> String? {
+    private func placement(for driver: BiologicalAgeEngine.Driver) -> String? {
         guard let age, let value = driver.value else { return nil }
         let signal: AgeGroupPercentileEngine.Signal
         switch driver.kind {

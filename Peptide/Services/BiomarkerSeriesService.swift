@@ -91,9 +91,8 @@ enum BiomarkerSeriesService {
             let series = await HealthKitService.shared.dailyRestingHeartRate(days: days)
             return seriesSnapshot(.rhrBaseline, series: series, unit: unit)
         case .sleepBaseline:
-            let segments = await HealthKitService.shared.sleepSegments(nights: days)
-            let nights = SleepScoreEngine.nights(from: segments, calendar: .current)
-            return seriesSnapshot(.sleepBaseline, series: sleepSeries(from: nights, days: days, calendar: .current), unit: unit)
+            let series = await HealthKitService.shared.dailySleepHours(days: days)
+            return seriesSnapshot(.sleepBaseline, series: series, unit: unit)
         case .stepsBaseline:
             let series = await HealthKitService.shared.dailySteps(days: days)
             return seriesSnapshot(.stepsBaseline, series: completedDays(series), unit: unit)

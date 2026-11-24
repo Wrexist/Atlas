@@ -9,6 +9,7 @@ struct ExportSection: View {
     @State private var isPreparingBackup = false
     @State private var isPreparingPDF = false
     @State private var hasWorkouts = false
+    @State private var showsSliceExports = false
     private var isPro: Bool { StoreService.shared.isProUser }
 
     var body: some View {
@@ -33,12 +34,11 @@ struct ExportSection: View {
                     VStack(alignment: .leading, spacing: Spacing.sm) { primaryExports }
                 }
 
-                // Per-domain CSVs surface as a secondary row of
-                // text buttons. The primary three above remain the
-                // canonical "everything" exports; these are for
-                // doctor-visit / nutritionist hand-offs that only
-                // need one slice. Hidden when the relevant data is
-                // empty so the row doesn't clutter a fresh install.
+                // Per-domain CSVs sit folded beneath the primary three,
+                // which remain the canonical "everything" exports; these
+                // are for doctor-visit / nutritionist hand-offs that only
+                // need one slice. Hidden when the relevant data is empty
+                // so the row doesn't clutter a fresh install.
                 domainExportsRow
             }
             .appAnimation(AppAnimation.settle, value: hasWorkouts)
@@ -111,7 +111,7 @@ struct ExportSection: View {
         share(ExportService.shared.writeCSV(csv, filename: "atlas-export-\(dateStamp).csv"))
     }
 
-    /// Text buttons stacked beneath the primary export row for the
+    /// A disclosure beneath the primary export row for the
     /// per-domain slices (workouts / labs / meals / outcomes). Each
     /// is gated on the user actually having data to share — no
     /// point offering "Export labs" to someone with zero entries.
@@ -121,35 +121,45 @@ struct ExportSection: View {
         let hasMeals = !dataStore.profile.mealHistory.isEmpty
         let hasOutcomes = !dataStore.profile.outcomeHistory.isEmpty
         if hasWorkouts || hasLabs || hasMeals || hasOutcomes {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Divider().overlay(AppColor.glassBorder).padding(.vertical, Spacing.xxs)
-                Text("By section")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .tracking(0.6)
-                    .textCase(.uppercase)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .padding(.horizontal, Spacing.xxs)
-                if hasWorkouts {
-                    sliceButton(title: "Workouts CSV", icon: "dumbbell.fill") {
-                        isPro ? exportWorkoutsCSV() : (showPaywall = true)
-                    }
-                    .transition(.opacity)
+            Divider().overlay(AppColor.glassBorder)
+            // Folded by default: the one-slice CSVs are for the odd
+            // hand-off, so they shouldn't lengthen Settings for everyone.
+            DisclosureGroup(isExpanded: $showsSliceExports) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    sliceButtons(hasLabs: hasLabs, hasMeals: hasMeals, hasOutcomes: hasOutcomes)
                 }
-                if hasLabs {
-                    sliceButton(title: "Labs CSV", icon: "testtube.2") {
-                        isPro ? exportLabsCSV() : (showPaywall = true)
-                    }
-                }
-                if hasMeals {
-                    sliceButton(title: "Meals CSV", icon: "fork.knife") {
-                        isPro ? exportMealsCSV() : (showPaywall = true)
-                    }
-                }
-                if hasOutcomes {
-                    sliceButton(title: "Check-ins CSV", icon: "heart.text.square") {
-                        isPro ? exportOutcomesCSV() : (showPaywall = true)
-                    }
-                }
+                .padding(.top, Spacing.sm)
+            } label: {
+                Text("Export one section")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .frame(minHeight: Spacing.minimumHitTarget, alignment: .leading)
+            }
+            .tint(AppColor.textSecondary)
+        }
+    }
+
+    @ViewBuilder
+    private func sliceButtons(hasLabs: Bool, hasMeals: Bool, hasOutcomes: Bool) -> some View {
+        if hasWorkouts {
+            sliceButton(title: "Workouts CSV", icon: "dumbbell.fill") {
+                isPro ? exportWorkoutsCSV() : (showPaywall = true)
+            }
+            .transition(.opacity)
+        }
+        if hasLabs {
+            sliceButton(title: "Labs CSV", icon: "testtube.2") {
+                isPro ? exportLabsCSV() : (showPaywall = true)
+            }
+        }
+        if hasMeals {
+            sliceButton(title: "Meals CSV", icon: "fork.knife") {
+                isPro ? exportMealsCSV() : (showPaywall = true)
+            }
+        }
+        if hasOutcomes {
+            sliceButton(title: "Check-ins CSV", icon: "heart.text.square") {
+                isPro ? exportOutcomesCSV() : (showPaywall = true)
             }
         }
     }
@@ -225,6 +235,8 @@ struct ExportSection: View {
         let personalRecords = dataStore.personalRecordsForBackup()
         let customPeptides = dataStore.customPeptides
         let fasts = SwiftDataRepository.shared.loadFasts()
+        let healthWeightIDs = SwiftDataRepository.shared.healthWeightImportIDs(in: profile)
+        let deviceLocal = DeviceLocalBackup.current()
         isPreparingBackup = true
         Task {
             let data = await Task.detached(priority: .userInitiated) {
@@ -237,7 +249,9 @@ struct ExportSection: View {
                     customExercises: customExercises,
                     personalRecords: personalRecords,
                     customPeptides: customPeptides,
-                    fasts: fasts
+                    fasts: fasts,
+                    healthWeightIDs: healthWeightIDs,
+                    deviceLocal: deviceLocal
                 )
             }.value
             isPreparingBackup = false

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct CycleTransitionCard: View {
-    let transitions: [StackRecommendationEngine.CycleTransition]
+    let transitions: [ProtocolRecommendationEngine.CycleTransition]
 
     var body: some View {
         GlassCard {
@@ -24,7 +24,7 @@ struct CycleTransitionCard: View {
         }
     }
 
-    private func transitionRow(_ transition: StackRecommendationEngine.CycleTransition) -> some View {
+    private func transitionRow(_ transition: ProtocolRecommendationEngine.CycleTransition) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: transition.weeksRemaining == 0 ? "exclamationmark.circle.fill" : "clock.fill")
                 .font(AppFont.scaled(13))

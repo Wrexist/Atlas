@@ -94,6 +94,8 @@ final class DataStoreTests: XCTestCase {
     }
 
     func test_restartProtocol_activeProtocolAtFreeCap_restartsCycle() throws {
+        StoreService.paywallEnabled = true
+        defer { StoreService.paywallEnabled = false }
         try XCTSkipIf(StoreService.shared.isProUser, "Free-tier cap only applies without Pro")
         let protos = (0..<4).map { index in
             PeptideProtocol(
@@ -452,6 +454,30 @@ final class DataStoreTests: XCTestCase {
 
         XCTAssertGreaterThan(store.revision, before,
                              "Strips keyed on revision must redraw after midnight")
+    }
+
+    func test_handleAppActivation_withNothingToSave_stillPushesWidget() {
+        store.handleAppActivation()
+        let baseline = store.widgetUpdateCountForTesting
+
+        store.handleAppActivation()
+
+        XCTAssertGreaterThan(store.widgetUpdateCountForTesting, baseline,
+                             "A rest-day activation must restamp the widget or it keeps asking to open Atlas")
+    }
+
+    // MARK: - Atlas Score day boundary
+
+    func test_momentumSnapshot_dayAfterAward_reportsNothingEarnedToday() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        let awardDay = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 3, day: 10, hour: 22)))
+        let nextMorning = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 3, day: 11, hour: 7)))
+        store.profile.lastMomentumAwardDay = calendar.startOfDay(for: awardDay)
+        store.profile.momentumAwardedToday = 40
+
+        XCTAssertEqual(store.momentumSnapshot(on: awardDay, calendar: calendar).todayEarned, 40)
+        XCTAssertEqual(store.momentumSnapshot(on: nextMorning, calendar: calendar).todayEarned, 0)
     }
 
     // MARK: - Meal reminder "Same as yesterday"
@@ -867,6 +893,34 @@ final class DataStoreTests: XCTestCase {
         let todays = store.entries.filter { $0.protocolId == proto.id && Calendar.current.isDateInToday($0.date) }
         XCTAssertEqual(todays.map { Calendar.current.component(.hour, from: $0.date) }, [10],
                        "Today's already-generated dose must move with the schedule")
+    }
+
+    func test_acknowledgeTimezone_movesOldZoneDoseBackToLocalWallClock() throws {
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "Keep test",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: Array(1...7), timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .active,
+            notes: ""
+        )
+        store.addProtocol(proto)
+        // Entry generated before the flight: 8:00 in the old zone reads
+        // as 13:00 here.
+        let oldZoneTime = try XCTUnwrap(Calendar.current.date(bySettingHour: 13, minute: 0, second: 0, of: Date()))
+        store.entries.removeAll { $0.protocolId == proto.id }
+        store.entries.append(ProtocolEntry(
+            id: UUID(), protocolId: proto.id, peptide: MockPeptides.bpc157,
+            date: oldZoneTime, dose: "250 mcg", notes: "", completed: false
+        ))
+
+        store.acknowledgeTimezone(TimeZone.current.identifier)
+
+        let todays = store.entries.filter { $0.protocolId == proto.id && Calendar.current.isDateInToday($0.date) }
+        XCTAssertEqual(todays.map { Calendar.current.component(.hour, from: $0.date) }, [8],
+                       "Keep must put today's dose at the wall-clock time its reminder fires")
     }
 
     // MARK: - Persistence failure must not update projections

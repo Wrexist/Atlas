@@ -1,9 +1,10 @@
 import SwiftUI
 
 /// The settings a training-first user reaches for most — display units,
-/// the daily step goal, the rest timer's fallback length, auto-progression,
-/// and the plates and bars the plate calculator loads — surfaced near the top of Profile
-/// instead of at the bottom of the general Settings card.
+/// the daily step goal, the rest timer's fallback length and
+/// auto-progression. The plates and bars the plate calculator loads are set
+/// once per gym, so they sit one tap in under "Gym equipment".
+/// `SettingsView` titles the card.
 struct TrainingSettingsSection: View {
     @Environment(DataStore.self) private var dataStore
 
@@ -12,10 +13,6 @@ struct TrainingSettingsSection: View {
 
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Training", systemImage: "dumbbell.fill")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-
                 MeasurementUnitRow(selection: $store.profile.bodyMetrics.unit)
                     .onChange(of: dataStore.profile.bodyMetrics.unit) { _, _ in
                         dataStore.persistProfile()
@@ -34,43 +31,15 @@ struct TrainingSettingsSection: View {
                 SettingsToggleRow(
                     icon: "arrow.up.right",
                     title: "Auto-progression",
-                    subtitle: "Start each exercise at the weight and reps to beat",
+                    subtitle: "Suggest the weight and reps to beat",
                     isOn: autoProgressionBinding
                 )
 
                 Divider().overlay(AppColor.glassBorder)
 
-                PlateInventoryRow(unit: unit, available: platesBinding)
-
-                Divider().overlay(AppColor.glassBorder)
-
-                BarWeightsRow(unit: unit, weight: barWeightBinding)
+                GymEquipmentEntryRow()
             }
         }
-    }
-
-    private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
-
-    private var platesBinding: Binding<[Double]> {
-        Binding(
-            get: { preferences.plates(for: unit) },
-            set: { plates in
-                var updated = preferences
-                updated.setPlates(plates, for: unit)
-                dataStore.updateTrainingPreferences(updated)
-            }
-        )
-    }
-
-    private func barWeightBinding(_ bar: BarKind) -> Binding<Double> {
-        Binding(
-            get: { preferences.barWeight(bar, unit: unit) },
-            set: { weight in
-                var updated = preferences
-                updated.setBarWeight(weight, for: bar, unit: unit)
-                dataStore.updateTrainingPreferences(updated)
-            }
-        )
     }
 
     /// `trainingPreferences` is nil until onboarding's training steps run,
@@ -104,6 +73,98 @@ struct TrainingSettingsSection: View {
             set: { enabled in
                 var updated = preferences
                 updated.autoProgression = enabled
+                dataStore.updateTrainingPreferences(updated)
+            }
+        )
+    }
+
+    private var preferences: TrainingPreferences {
+        dataStore.profile.trainingPreferences ?? TrainingPreferences()
+    }
+}
+
+/// The drill-in to `GymEquipmentView`, laid out like the card's other rows.
+private struct GymEquipmentEntryRow: View {
+    var body: some View {
+        NavigationLink {
+            GymEquipmentView()
+        } label: {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: "dumbbell.fill")
+                    .font(AppFont.scaled(13))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .frame(width: settingsIconColumnWidth)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("Gym equipment")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("Plates and bar weights")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// The plates and bars the plate calculator loads, pushed from Settings'
+/// Training card. Set once per gym, so they don't crowd the everyday rows.
+private struct GymEquipmentView: View {
+    @Environment(DataStore.self) private var dataStore
+
+    var body: some View {
+        ScrollView {
+            GlassCard {
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    PlateInventoryRow(unit: unit, available: platesBinding)
+
+                    Divider().overlay(AppColor.glassBorder)
+
+                    BarWeightsRow(unit: unit, weight: barWeightBinding)
+                }
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.top, Spacing.md)
+            .padding(.bottom, Spacing.xxxxl)
+            .readableContentWidth()
+        }
+        .pageBackground()
+        .navigationTitle("Gym equipment")
+        .navigationBarTitleDisplayMode(.inline)
+        .solidTopScrollEdge()
+    }
+
+    private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
+
+    private var platesBinding: Binding<[Double]> {
+        Binding(
+            get: { preferences.plates(for: unit) },
+            set: { plates in
+                var updated = preferences
+                updated.setPlates(plates, for: unit)
+                dataStore.updateTrainingPreferences(updated)
+            }
+        )
+    }
+
+    private func barWeightBinding(_ bar: BarKind) -> Binding<Double> {
+        Binding(
+            get: { preferences.barWeight(bar, unit: unit) },
+            set: { weight in
+                var updated = preferences
+                updated.setBarWeight(weight, for: bar, unit: unit)
                 dataStore.updateTrainingPreferences(updated)
             }
         )
@@ -206,12 +267,19 @@ private struct PlateInventoryRow: View {
         SettingsPickerRow(
             icon: "circle.circle.fill",
             title: "Plates",
-            subtitle: "The plate calculator and barbell jumps use these"
+            subtitle: "The plate calculator loads only these"
         ) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: Spacing.xs)], alignment: .leading, spacing: Spacing.sm) {
+            // Neutral ink, not the accent: a stocked plate is a fact about
+            // the gym, not a highlighted choice.
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 72), spacing: Spacing.chipSpacing)],
+                alignment: .leading,
+                spacing: Spacing.chipSpacing
+            ) {
                 ForEach(PlateCalculatorEngine.defaultPlates(for: unit), id: \.self) { plate in
                     GlassChip(
                         "\(plate.formatted(.number.precision(.fractionLength(0...2)))) \(unit.weightSuffix)",
+                        tint: AppColor.textPrimary,
                         isSelected: available.contains(plate)
                     ) {
                         toggle(plate)
@@ -249,7 +317,7 @@ private struct BarWeightsRow: View {
         SettingsPickerRow(
             icon: "scalemass.fill",
             title: "Bar weights",
-            subtitle: "What each empty bar weighs at your gym"
+            subtitle: "Empty weight of each bar"
         ) {
             VStack(spacing: Spacing.xs) {
                 ForEach(BarKind.allCases) { bar in

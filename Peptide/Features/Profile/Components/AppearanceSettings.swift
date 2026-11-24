@@ -16,10 +16,6 @@ struct AppearanceSettings: View {
 
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Preferences", systemImage: "gearshape.fill")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-
                 SettingsToggleRow(
                     icon: "hand.tap.fill",
                     title: "Haptic feedback",
@@ -135,7 +131,11 @@ private struct ThemePickerRow: View {
                 Spacer()
             }
 
-            HStack(spacing: Spacing.md) {
+            // No extra spacing: each swatch's 44 pt hit area already
+            // leaves 14 pt between circles. With more, the row outgrew the
+            // card on a 402 pt phone and pushed every Settings card out
+            // to a 5 pt gutter.
+            HStack(spacing: 0) {
                 ForEach(AppThemeColor.allCases) { theme in
                     swatch(for: theme)
                 }
@@ -186,7 +186,7 @@ private struct DisplayModeRow: View {
     var body: some View {
         SettingsPickerRow(
             icon: selection.iconName,
-            title: "Appearance",
+            title: "Mode",
             subtitle: LocalizedStringKey(selection.displayName)
         ) {
             GlassSegmentedControl(

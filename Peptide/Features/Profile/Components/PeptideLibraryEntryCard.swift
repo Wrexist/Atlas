@@ -9,7 +9,9 @@ import SwiftUI
 struct PeptideLibraryEntryCard: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
-    @Environment(\.dismiss) private var dismiss
+    /// Closes the Profile sheet itself; the card sits on a view pushed
+    /// inside it, whose own dismiss would only pop back.
+    let dismissProfile: DismissAction
 
     private var activeProtocols: Int { dataStore.activeProtocols.count }
 
@@ -26,7 +28,7 @@ struct PeptideLibraryEntryCard: View {
     private func openLibrary() {
         Haptics.impact(.light)
         let app = appState
-        dismiss()
+        dismissProfile()
         Task { @MainActor in
             try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
             app.showLibrary = true

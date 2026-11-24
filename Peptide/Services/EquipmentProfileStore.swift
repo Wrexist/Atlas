@@ -40,4 +40,20 @@ final class EquipmentProfileStore {
             defaults.set(data, forKey: Self.profilesKey)
         }
     }
+
+    /// A backup's places, merged by `DeviceLocalBackup`.
+    func restore(location: TrainingLocation, profiles: [TrainingLocation: EquipmentProfile]) {
+        select(location)
+        self.profiles = profiles
+        if let data = try? JSONEncoder().encode(profiles) {
+            defaults.set(data, forKey: Self.profilesKey)
+        }
+    }
+
+    func deleteAll() {
+        location = .gym
+        profiles = [:]
+        defaults.removeObject(forKey: Self.locationKey)
+        defaults.removeObject(forKey: Self.profilesKey)
+    }
 }

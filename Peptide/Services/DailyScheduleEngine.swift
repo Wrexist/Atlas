@@ -236,9 +236,6 @@ enum DailyScheduleEngine {
             let slotCount = slots.count
             var parts: [String] = []
             parts.append(String(localized: "\(totalDoses) doses across \(slotCount) windows"))
-            if combinationCount > 0 {
-                parts.append(String(localized: "\(combinationCount) research pairings"))
-            }
             if conflictCount > 0 {
                 parts.append(String(localized: "\(conflictCount) timing notes"))
             }
@@ -262,13 +259,12 @@ enum DailyScheduleEngine {
         let morningWindow = sharedMorningWindow(for: entries, calendar: calendar)
         let assignments: [(entry: ProtocolEntry, slot: DaySlot, fasted: Bool, note: String)] = entries.map { entry in
             let info = PeptideTimingData.timingRecommendations[entry.peptide.abbreviation]
-            let placement = resolveSlot(for: entry, timing: info, morningWindow: morningWindow, calendar: calendar)
+            let slot = resolveSlot(for: entry, timing: info, morningWindow: morningWindow, calendar: calendar)
             let fasted = info?.preferredWindows.contains(.morningFasted) == true
                 && (info?.notes.lowercased().contains("fasted") == true
                     || info?.notes.lowercased().contains("empty stomach") == true)
-            let usualWindow = placement.usualSlot.map { String(localized: "Usually taken: \($0.title).") }
-            let note = [usualWindow, info.map { PeptideCompatibilityData.displayText($0.notes) }].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
-            return (entry, placement.slot, fasted, note)
+            let note = info.map { PeptideCompatibilityData.displayText($0.notes) } ?? ""
+            return (entry, slot, fasted, note)
         }
 
         let grouped = Dictionary(grouping: assignments, by: \.slot)
@@ -315,25 +311,19 @@ enum DailyScheduleEngine {
     /// a window are analysed together. A morning dose takes the peptide's
     /// own morning window so knowledge-base timing (fasted or with food)
     /// shows; a morning dose with no morning window of its own joins
-    /// `morningWindow`, so a stack taken together stays together.
-    /// `usualSlot` names the preferred window when the schedule sits
-    /// outside every one of them.
+    /// `morningWindow`, so a stack taken together stays together. No
+    /// "usually taken" window is named: under the slot the user chose it
+    /// reads as a contradiction, not advice.
     private static func resolveSlot(
         for entry: ProtocolEntry,
         timing: PeptideTimingData.PeptideTiming?,
         morningWindow: DaySlot,
         calendar: Calendar
-    ) -> (slot: DaySlot, usualSlot: DaySlot?) {
+    ) -> DaySlot {
         let clockSlot = DaySlot.from(hour: calendar.component(.hour, from: entry.date))
-        let preferred = (timing?.preferredWindows ?? []).compactMap(DaySlot.from(_:)).sorted()
-        if clockSlot == .morning {
-            if let own = morningPreference(preferred) { return (own, nil) }
-            return (morningWindow, preferred.isEmpty ? nil : preferred.first)
-        }
-        if preferred.isEmpty || preferred.contains(clockSlot) {
-            return (clockSlot, nil)
-        }
-        return (clockSlot, preferred.first)
+        guard clockSlot == .morning else { return clockSlot }
+        let preferred = (timing?.preferredWindows ?? []).compactMap(DaySlot.from(_:))
+        return morningPreference(preferred) ?? morningWindow
     }
 
     /// The morning window that doses at a morning clock time share: the

@@ -90,9 +90,10 @@ final class TodayLayoutEngineTests: XCTestCase {
     func test_visibleSections_freshLayout_showsOnlyDefaultSections() {
         let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: [])
         XCTAssertEqual(visible, defaultVisible)
-        XCTAssertEqual(visible.first, .coaching)
-        XCTAssertFalse(visible.contains(.healthMonitor))
-        XCTAssertFalse(visible.contains(.timeline))
+        XCTAssertEqual(visible.first, .atAGlance)
+        XCTAssertTrue(visible.contains(.overview))
+        XCTAssertTrue(visible.contains(.healthMonitor))
+        XCTAssertFalse(visible.contains(.explore))
     }
 
     func test_visibleSections_hiddenSections_areSkipped() {
@@ -108,8 +109,8 @@ final class TodayLayoutEngineTests: XCTestCase {
     }
 
     func test_visibleSections_shownExtra_appearsInItsOrderSlot() {
-        let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: [], shownExtras: ["timeline"])
-        XCTAssertEqual(visible, TodaySection.allCases.filter { $0.isShownByDefault || $0 == .timeline })
+        let visible = TodayLayoutEngine.visibleSections(storedOrder: [], hidden: [], shownExtras: ["explore"])
+        XCTAssertEqual(visible, TodaySection.allCases)
     }
 
     func test_visibleSections_extraInHiddenOnly_staysOff() {
@@ -154,15 +155,15 @@ final class TodayLayoutEngineTests: XCTestCase {
 
     func test_setHidden_extraSection_togglesShownExtras() {
         var layout = TodayLayout.default
-        XCTAssertTrue(layout.isHidden(.timeline))
+        XCTAssertTrue(layout.isHidden(.explore))
 
-        layout.setHidden(.timeline, false)
-        layout.setHidden(.timeline, false)
-        XCTAssertEqual(layout.shownExtras, ["timeline"])
+        layout.setHidden(.explore, false)
+        layout.setHidden(.explore, false)
+        XCTAssertEqual(layout.shownExtras, ["explore"])
         XCTAssertTrue(layout.hidden.isEmpty)
-        XCTAssertTrue(layout.visibleSections.contains(.timeline))
+        XCTAssertTrue(layout.visibleSections.contains(.explore))
 
-        layout.setHidden(.timeline, true)
+        layout.setHidden(.explore, true)
         XCTAssertEqual(layout, .default)
     }
 
@@ -195,7 +196,7 @@ final class TodayLayoutEngineTests: XCTestCase {
         XCTAssertFalse(layout.visibleSections.contains(.habits))
 
         var withExtra = layout
-        withExtra.setHidden(.steps, false)
+        withExtra.setHidden(.explore, false)
         let decoded = try JSONDecoder().decode(TodayLayout.self, from: JSONEncoder().encode(withExtra))
         XCTAssertEqual(decoded, withExtra)
     }

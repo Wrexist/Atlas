@@ -50,6 +50,12 @@ final class HealthJournalStore {
         persist()
     }
 
+    /// A backup's journal, merged by `DeviceLocalBackup`.
+    func restore(_ restored: [HealthJournalEntry]) {
+        entries = restored.sorted { $0.day > $1.day }
+        persist()
+    }
+
     /// "Delete all data" — the journal must not survive an erase.
     func deleteAll() {
         entries = []

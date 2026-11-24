@@ -1,14 +1,5 @@
 import SwiftUI
 
-struct RecapCard<Content: View>: View {
-    @ViewBuilder let content: Content
-    var body: some View {
-        content.padding(Spacing.cardPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
-    }
-}
-
 /// Method notes on demand. Recap screens lead with the result; how it was
 /// counted sits one tap away in a popover instead of in permanent fine
 /// print — and never in a share image.
@@ -135,7 +126,7 @@ struct RecapMetrics: View {
     let unit: MeasurementUnit
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
-        RecapCard {
+        GlassCard {
             ViewThatFits(in: .horizontal) {
                 if !typeSize.isAccessibilitySize {
                     HStack(spacing: Spacing.md) { metrics(horizontal: true) }
@@ -143,6 +134,7 @@ struct RecapMetrics: View {
                 }
                 VStack(alignment: .leading, spacing: Spacing.lg) { metrics(horizontal: false) }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     @ViewBuilder private func metrics(horizontal: Bool) -> some View {

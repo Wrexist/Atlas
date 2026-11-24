@@ -314,7 +314,9 @@ final class ExportService {
         customExercises: [CustomExercise] = [],
         personalRecords: [PersonalRecord] = [],
         customPeptides: [Peptide] = [],
-        fasts: [FastSession] = []
+        fasts: [FastSession] = [],
+        healthWeightIDs: [UUID] = [],
+        deviceLocal: DeviceLocalBackup? = nil
     ) -> Data? {
         let backup = AppBackup(
             exportDate: Date(),
@@ -327,7 +329,9 @@ final class ExportService {
             customExercises: customExercises,
             personalRecords: personalRecords,
             customPeptides: customPeptides,
-            fasts: fasts
+            fasts: fasts,
+            healthWeightIDs: healthWeightIDs,
+            deviceLocal: deviceLocal
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -751,6 +755,13 @@ struct AppBackup: Codable, Sendable {
     /// Fasting history. Optional for the same reason: `nil` (a backup
     /// from before fasts were carried) leaves the live fasts alone.
     var fasts: [FastSession]?
+    /// The weigh-ins in `profile.weightHistory` that came from Apple
+    /// Health. A restore keeps them on the device it lands on instead of
+    /// writing them to the synced profile. Nil in older backups.
+    var healthWeightIDs: [UUID]?
+    /// This device's stores that never sync. Nil in older backups, and a
+    /// restore then leaves them as they are.
+    var deviceLocal: DeviceLocalBackup?
 
     init(
         exportDate: Date,
@@ -763,7 +774,9 @@ struct AppBackup: Codable, Sendable {
         customExercises: [CustomExercise]? = nil,
         personalRecords: [PersonalRecord]? = nil,
         customPeptides: [Peptide]? = nil,
-        fasts: [FastSession]? = nil
+        fasts: [FastSession]? = nil,
+        healthWeightIDs: [UUID]? = nil,
+        deviceLocal: DeviceLocalBackup? = nil
     ) {
         self.exportDate = exportDate
         self.version = version
@@ -776,6 +789,8 @@ struct AppBackup: Codable, Sendable {
         self.personalRecords = personalRecords
         self.customPeptides = customPeptides
         self.fasts = fasts
+        self.healthWeightIDs = healthWeightIDs
+        self.deviceLocal = deviceLocal
     }
 }
 

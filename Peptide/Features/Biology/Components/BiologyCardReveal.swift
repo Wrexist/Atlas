@@ -23,26 +23,3 @@ extension View {
         modifier(BiologyCardReveal())
     }
 }
-
-/// Section title shared by Biology's cards and the biomarker list.
-struct BiologySectionHeader: View {
-    let title: LocalizedStringKey
-    var subtitle: LocalizedStringKey?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            // A plain title, as Today's sections set theirs.
-            Text(title)
-                .font(AppFont.sectionTitle)
-                .foregroundStyle(AppColor.textPrimary)
-            if let subtitle {
-                Text(subtitle)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-}

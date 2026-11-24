@@ -16,7 +16,7 @@ lab panels), habits with streak tracking, and an AI research chat.
 For advanced users, a peptide-protocol tracker rides alongside the
 fitness surfaces — the legacy peptide name lives on in the bundle
 ID and StoreKit product IDs (`com.peptidesai.app`) so existing
-subscribers keep working through the rebrand. iOS 18+, Swift 6.0,
+subscribers keep working through the rebrand. iOS 18+, Swift 5 mode,
 SwiftData (CloudKit-backed). 5-tab navigation (Today / Train / Meals /
 Biology / Habits), companion Watch
 app, two widget targets, Live Activities, biometric lock, and
@@ -51,7 +51,7 @@ CI/CD to TestFlight via Fastlane.
 | **Watch app** | Redesigned | watchOS 10-style vertical pages (Today rings, Recovery, Sleep Score, Nutrition, Protocol) plus Recovery and Sleep complications. Vitals are computed on the phone (no watch HealthKit entitlement). **Needs a manual Xcode build and on-device check** |
 | **Achievements** | Complete | 14 achievements (dose milestones, streaks, protocol, logging), toast notifications |
 | **Export** | Complete | CSV, JSON and a paginated PDF report (`ExportService.exportPDF`) |
-| **Onboarding** | Complete | 9 steps: welcome → name → goal & experience → body metrics → training → permissions → referral → disclaimer → plan |
+| **Onboarding** | Complete | 8 steps: welcome → name → goal & experience → body metrics → training → permissions → disclaimer → plan |
 | **HealthKit** | Complete | Reads 7 data types (HR, HRV, sleep, weight, steps, energy); observer-based background delivery wired; daily-series helpers for HRV / RHR / Sleep used by Health Monitor grid |
 | **Biometric lock** | Complete | LocalAuthentication-backed lock screen with auto-Face-ID on appear, scene-phase re-lock on background, Reduce-Motion respect, haptic feedback, toggle in AppearanceSettings, `NSFaceIDUsageDescription` in project.yml |
 | **Persistence** | Complete | SwiftData @Model classes, CloudKit-backed private container with local + in-memory fallbacks |
@@ -100,7 +100,7 @@ CI/CD to TestFlight via Fastlane.
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
 | 3.1 | **Tab restructure** | Shipped | Shipped as Today / Train / Meals / Biology / Habits; Library + Protocols open as a modal |
-| 3.2 | **Performance Age engine** | Shipped (`PerformanceAgeEngine`) | Pure-function bio-age estimate from HRV + RHR + sleep + weight trend + lab markers; confidence-gated UI (hide if confidence < 60%) |
+| 3.2 | **Performance Age engine** | Shipped (`BiologicalAgeEngine`) | Pure-function bio-age estimate from HRV + RHR + sleep + weight trend + lab markers; confidence-gated UI (hide if confidence < 60%) |
 | 3.3 | **Biomarker trend cards** | Shipped (#282, #287) | 90-day charts for HRV / RHR / Sleep efficiency on the Biology tab |
 | 3.4 | **Lab photo OCR ingestion** | Shipped (`LabScanFlow`, #285) | Camera, photo or PDF pages → Claude vision extracts markers → user confirms each → Labs; pages kept on device (Pro) |
 | 3.5 | **Stack-effectiveness score** | 2 days | Atlas-unique: map each lab marker movement to active compounds in the cycle; surfaces "BPC-157 may be helping your IGF-1 trend" |

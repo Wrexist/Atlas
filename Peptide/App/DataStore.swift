@@ -124,11 +124,11 @@ final class DataStore {
     @ObservationIgnored private var _entriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
     @ObservationIgnored private var _activeEntriesByDay: (version: Int, value: [Date: [ProtocolEntry]])?
     @ObservationIgnored private var _stackPeptides: (version: Int, value: [Peptide])?
-    @ObservationIgnored private var _stackWarnings: (version: Int, value: [StackRecommendationEngine.Warning])?
-    @ObservationIgnored private var _stackRecommendations: (version: Int, value: [StackRecommendationEngine.Recommendation])?
+    @ObservationIgnored private var _stackWarnings: (version: Int, value: [ProtocolRecommendationEngine.Warning])?
+    @ObservationIgnored private var _stackRecommendations: (version: Int, value: [ProtocolRecommendationEngine.Recommendation])?
     @ObservationIgnored private var _smartCycleSuggestions: (version: Int, value: [SmartCyclePlanner.Suggestion])?
-    @ObservationIgnored private var _stackCompleteness: (version: Int, value: StackRecommendationEngine.StackCompleteness?)?
-    @ObservationIgnored private var _cycleTransitions: (version: Int, value: [StackRecommendationEngine.CycleTransition])?
+    @ObservationIgnored private var _stackCompleteness: (version: Int, value: ProtocolRecommendationEngine.ProtocolCompleteness?)?
+    @ObservationIgnored private var _cycleTransitions: (version: Int, value: [ProtocolRecommendationEngine.CycleTransition])?
     @ObservationIgnored private var _topInsight: (version: Int, value: InsightEngine.Insight?)?
 
     private func bumpVersionIfDayChanged() {
@@ -220,6 +220,10 @@ final class DataStore {
             if let savedProfile {
                 HealthSyncSettings.adoptSyncedNutritionFlag(savedProfile.healthKitNutritionEnabled)
                 adoptDeviceHealthConnection()
+            }
+            if syncCustomPeptides(), savedProfile != nil {
+                repo.saveProfile(profile, since: persistedProfile)
+                persistedProfile = profile
             }
             // Everything above came off disk and is already persisted.
             // A synthesised `.fresh` profile is the exception: there's no
@@ -320,6 +324,18 @@ final class DataStore {
             }
         }
 
+        // New Health samples while the app runs: the Watch glance would
+        // otherwise keep last night's missing sleep until the next activation.
+        NotificationCenter.default.addObserver(
+            forName: .healthSamplesDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshWatchVitals()
+            }
+        }
+
         // Ingest remote CloudKit changes. Before this observer existed,
         // rows written on another device reached memory only via one
         // pull-to-refresh or a relaunch — and the debounced save's
@@ -395,6 +411,12 @@ final class DataStore {
         protocols = []
         entries = []
         profile = .fresh
+        // The library file is gone when the previous account's
+        // device-local records were removed with it.
+        if let stored = Self.readCustomPeptides() {
+            customPeptides = stored
+            customPeptidesReadable = true
+        }
         WorkoutSessionService.shared.reloadActiveSession()
         isAwaitingCloudAccountDecision = repo.isAwaitingAccountDecision
         // SwiftDataRepository's identity handler swaps the container
@@ -479,6 +501,8 @@ final class DataStore {
 
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)
+        profile.customPeptides.append(peptide)
+        save()
         retryUnreadableCustomPeptides()
         guard customPeptidesReadable else {
             lastError = Self.saveFailureMessage
@@ -486,6 +510,33 @@ final class DataStore {
         }
         PersistenceService.shared.saveCustomPeptides(customPeptides)
         Haptics.success()
+    }
+
+    /// The synced library first, then whatever only this device's cache
+    /// holds. Custom peptides are never edited or deleted, so a union by
+    /// id loses nothing.
+    static func mergedCustomPeptides(synced: [Peptide], local: [Peptide]) -> [Peptide] {
+        let syncedIDs = Set(synced.map(\.id))
+        return synced + local.filter { !syncedIDs.contains($0.id) }
+    }
+
+    /// Brings the synced library and custom-peptides.json together: a
+    /// compound added on another device reaches the library here, and
+    /// one only this device had (saved before the library synced)
+    /// reaches iCloud. True when the profile changed and needs a save.
+    @discardableResult
+    private func syncCustomPeptides() -> Bool {
+        retryUnreadableCustomPeptides()
+        let merged = Self.mergedCustomPeptides(synced: profile.customPeptides, local: customPeptides)
+        if merged != customPeptides {
+            customPeptides = merged
+            // An unread file would be replaced by only what this session
+            // holds; the next successful read merges it in instead.
+            if customPeptidesReadable { PersistenceService.shared.saveCustomPeptides(merged) }
+        }
+        guard merged != profile.customPeptides else { return false }
+        profile.customPeptides = merged
+        return true
     }
 
     private static func readCustomPeptides() -> [Peptide]? {
@@ -1127,9 +1178,9 @@ final class DataStore {
         return result
     }
 
-    var stackWarnings: [StackRecommendationEngine.Warning] {
+    var stackWarnings: [ProtocolRecommendationEngine.Warning] {
         if let cached = _stackWarnings, cached.version == cacheVersion { return cached.value }
-        let result = StackRecommendationEngine.warnings(
+        let result = ProtocolRecommendationEngine.warnings(
             for: stackPeptides,
             activeProtocols: activeProtocols
         )
@@ -1137,16 +1188,16 @@ final class DataStore {
         return result
     }
 
-    var stackRecommendations: [StackRecommendationEngine.Recommendation] {
+    var stackRecommendations: [ProtocolRecommendationEngine.Recommendation] {
         if let cached = _stackRecommendations, cached.version == cacheVersion { return cached.value }
-        let context = StackRecommendationEngine.RecommendationContext(
+        let context = ProtocolRecommendationEngine.RecommendationContext(
             currentPeptides: stackPeptides,
             database: peptideDatabase,
             goals: profile.goals,
             activeProtocols: activeProtocols,
             entries: entries
         )
-        let result = StackRecommendationEngine.recommendations(context: context)
+        let result = ProtocolRecommendationEngine.recommendations(context: context)
         _stackRecommendations = (cacheVersion, result)
         return result
     }
@@ -1160,9 +1211,9 @@ final class DataStore {
         return result
     }
 
-    var stackCompleteness: StackRecommendationEngine.StackCompleteness? {
+    var stackCompleteness: ProtocolRecommendationEngine.ProtocolCompleteness? {
         if let cached = _stackCompleteness, cached.version == cacheVersion { return cached.value }
-        let result = StackRecommendationEngine.stackCompleteness(
+        let result = ProtocolRecommendationEngine.stackCompleteness(
             for: stackPeptides,
             goals: profile.goals,
             from: peptideDatabase
@@ -1171,9 +1222,9 @@ final class DataStore {
         return result
     }
 
-    var cycleTransitions: [StackRecommendationEngine.CycleTransition] {
+    var cycleTransitions: [ProtocolRecommendationEngine.CycleTransition] {
         if let cached = _cycleTransitions, cached.version == cacheVersion { return cached.value }
-        let result = StackRecommendationEngine.cycleTransitions(for: activeProtocols)
+        let result = ProtocolRecommendationEngine.cycleTransitions(for: activeProtocols)
         _cycleTransitions = (cacheVersion, result)
         return result
     }
@@ -1231,11 +1282,35 @@ final class DataStore {
         save()
     }
 
+    /// Saves the Profile editor's metrics. That card shows the latest
+    /// weigh-in, like Biology and the targets, so a weight the user changes
+    /// there is logged as today's weigh-in too; otherwise a recent weigh-in
+    /// would keep hiding the new value.
+    func saveEditedBodyMetrics(_ metrics: BodyMetrics) {
+        let shownKg = currentBodyMetrics.weightKg
+        updateBodyMetrics(metrics)
+        guard let kg = metrics.weightKg, kg != shownKg else { return }
+        logWeight(kg: kg)
+    }
+
     /// Updates the calorie + macro targets surfaced on the Meals tab.
     /// Pass `nil` to clear them and re-show the empty-state CTA.
     func updateNutritionTargets(_ targets: NutritionTargets?) {
         profile.nutritionTargets = targets
         save()
+    }
+
+    /// Saves the targets editor's result together with its adaptive
+    /// switch, so every device honours the one setting.
+    func updateNutritionTargets(_ targets: NutritionTargets, adaptive: AdaptiveTargetsSetting) {
+        profile.adaptiveTargets = adaptive
+        updateNutritionTargets(targets)
+    }
+
+    /// The adaptive-targets switch: the synced one once any device has
+    /// saved it, until then this device's own earlier setting.
+    var adaptiveTargetsSetting: AdaptiveTargetsSetting {
+        profile.adaptiveTargets ?? AdaptiveTDEESettings.legacySetting
     }
 
     /// Expenditure estimate from logged intake + weight trend, or the
@@ -1254,8 +1329,9 @@ final class DataStore {
     /// but only while they're still the recommendation the user accepted —
     /// hand-entered numbers are never overwritten.
     func refreshAdaptiveTargets(asOf now: Date = Date()) {
+        let setting = adaptiveTargetsSetting
         guard
-            AdaptiveTDEESettings.isEnabled,
+            setting.isEnabled,
             let current = profile.nutritionTargets,
             let estimate = expenditureEstimate(asOf: now),
             estimate.source == .adaptive,
@@ -1266,12 +1342,11 @@ final class DataStore {
             ),
             AdaptiveTDEEEngine.shouldFollow(
                 current: current,
-                followed: AdaptiveTDEESettings.followedTargets,
+                followed: setting.followedTargets,
                 next: next
             )
         else { return }
-        AdaptiveTDEESettings.followedTargets = next
-        updateNutritionTargets(next)
+        updateNutritionTargets(next, adaptive: AdaptiveTargetsSetting(isEnabled: true, followedTargets: next))
     }
 
     // MARK: - Lifestyle data
@@ -1288,6 +1363,7 @@ final class DataStore {
     func logWeight(kg: Double, date: Date = Date()) {
         LifestyleDataLogic.logWeight(into: &profile, kg: kg, date: date)
         save()
+        refreshAdaptiveTargets()
         guard HealthSyncSettings.isEnabled else { return }
         enqueueBodyMassHealthWrite { await HealthKitService.shared.writeBodyMass(kg: kg, date: date) }
     }
@@ -1349,9 +1425,16 @@ final class DataStore {
         mirrorWaterToHealth(fluidOunces: fluidOunces, date: date)
     }
 
+    /// An Undo right after a quick-add deletes by querying the day's
+    /// samples, so it must wait for the add to land or it finds nothing
+    /// and Health keeps the water. Each write waits for the one before it.
+    @ObservationIgnored private var waterHealthWriteTask: Task<Void, Never>?
+
     private func mirrorWaterToHealth(fluidOunces: Double, date: Date) {
         guard HealthSyncSettings.isEnabled else { return }
-        Task {
+        let previous = waterHealthWriteTask
+        waterHealthWriteTask = Task {
+            await previous?.value
             if fluidOunces > 0 {
                 await HealthKitService.shared.writeWater(fluidOunces: fluidOunces, date: date)
             } else {
@@ -1517,6 +1600,37 @@ final class DataStore {
         }
     }
 
+    /// A meal deleted or edited on another device, or by a restore,
+    /// reaches this one only as a replaced diary, so what this device
+    /// keeps beside it follows here: the Apple Health samples it wrote
+    /// (an edit is rewritten only where samples were found, so nothing is
+    /// mirrored that this device didn't mirror before), and a prep box
+    /// eaten as it. Table cut-outs are left alone: deleting a file isn't
+    /// worth risking on a reload. A Health delete that fails (device
+    /// locked) isn't retried; the samples then linger.
+    private func reconcileMealsChangedElsewhere(from previous: [MealEntry], to current: [MealEntry]) {
+        let changes = LifestyleDataLogic.mealChanges(from: previous, to: current)
+        for id in changes.removed {
+            WeeklyPrepStore.shared.returnBox(forMeal: id)
+        }
+        guard HealthSyncSettings.isNutritionEnabled,
+              !changes.removed.isEmpty || !changes.edited.isEmpty
+        else { return }
+        let removed = changes.removed
+        let edited = changes.edited
+        enqueueMealHealthWrite {
+            for id in removed {
+                await HealthKitService.shared.deleteSamples(forEntryID: id)
+            }
+            for entry in edited {
+                let deleted = await HealthKitService.shared.deleteSamples(forEntryID: entry.id)
+                if deleted > 0 {
+                    await HealthKitService.shared.writeMealEntry(entry)
+                }
+            }
+        }
+    }
+
     private func enqueueMealHealthWrite(_ work: @escaping @MainActor @Sendable () async -> Void) {
         let previous = mealHealthWriteTask
         mealHealthWriteTask = Task {
@@ -1573,6 +1687,7 @@ final class DataStore {
         guard !additions.isEmpty, repo.recordHealthWeightImports(additions) else { return }
         profile.weightHistory = (profile.weightHistory + additions).sorted { $0.date < $1.date }
         save()
+        refreshAdaptiveTargets()
     }
 
     /// Individual meal entries logged on a specific day, newest first.
@@ -1699,6 +1814,16 @@ final class DataStore {
     /// Activities to them.
     func applyTravelShift(toTimezone identifier: String, minutesDelta: Int) {
         TravelModeLogic.shiftProtocolTimes(in: &protocols, byMinutes: minutesDelta)
+        acknowledgeTimezone(identifier)
+    }
+
+    /// User declined the schedule shift but acknowledged the
+    /// detection. Records the new identifier so we don't keep
+    /// re-prompting at every launch, and rebuilds today's entries at
+    /// the same wall-clock times the reminders fire at in this zone
+    /// (entries made in the old zone sit at its absolute times), then
+    /// re-plans reminders and Live Activities to match.
+    func acknowledgeTimezone(_ identifier: String) {
         TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
         for proto in activeProtocols {
             regenerateTodayEntriesPreservingLogs(for: proto)
@@ -1706,14 +1831,6 @@ final class DataStore {
         save()
         rescheduleNotificationsIfEnabled()
         reconcileDoseLiveActivities()
-    }
-
-    /// User declined the schedule shift but acknowledged the
-    /// detection. Records the new identifier so we don't keep
-    /// re-prompting at every launch.
-    func acknowledgeTimezone(_ identifier: String) {
-        TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
-        save()
     }
 
     // MARK: - Streak freeze
@@ -2023,11 +2140,7 @@ final class DataStore {
             .map { Set($0.exercises.map(\.exerciseID)) } ?? []
         repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
-        // Not gated on the sync toggle: a workout mirrored while sync was
-        // on must still leave Health. It matches only Atlas's own sample
-        // and fails quietly without permission.
-        Task { await HealthKitService.shared.deleteWorkout(id: id) }
-        PRDetectionEngine.shared.recompute(exerciseIDs: affectedExercises)
+        PRDetectionService.shared.recompute(exerciseIDs: affectedExercises)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
         // Same reason as `recordWorkoutFinished`: a repo-level write is
@@ -2037,6 +2150,12 @@ final class DataStore {
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
+            // Only once the row is really gone, or Health would lose a
+            // workout Atlas still shows, with no path to write it back.
+            // Not gated on the sync toggle: a workout mirrored while sync
+            // was on must still leave Health. It matches only Atlas's own
+            // sample and fails quietly without permission.
+            Task { await HealthKitService.shared.deleteWorkout(id: id) }
             refreshTrainingGlanceables()
         }
     }
@@ -2121,20 +2240,23 @@ final class DataStore {
 
     /// Editing changes derived records and totals, but earns no second reward.
     func workoutWasEdited(exerciseIDs: Set<String>) {
-        PRDetectionEngine.shared.recompute(exerciseIDs: exerciseIDs)
+        PRDetectionService.shared.recompute(exerciseIDs: exerciseIDs)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
         workoutHistoryDidChange()
         refreshTrainingGlanceables()
     }
 
-    /// Start dates of workout sessions from the last `days` days. The
-    /// weekly recap counts training days as activity.
+    /// Start dates of finished workout sessions from the last `days`
+    /// days. The weekly recap counts training days as activity; a session
+    /// still in progress isn't logged yet, same as `workoutSummary`.
     func recentWorkoutDates(days: Int = 7) -> [Date] {
         let now = Date()
         let cal = Calendar.current
         guard let start = cal.date(byAdding: .day, value: -days, to: cal.startOfDay(for: now)) else { return [] }
-        return repo.loadWorkoutSessions(startedBetween: start..<now).map(\.dayAnchor)
+        return repo.loadWorkoutSessions(startedBetween: start..<now)
+            .filter { !$0.isActive }
+            .map(\.dayAnchor)
     }
 
     /// (count, totalMinutes) for finished workout sessions on `date`'s
@@ -2190,6 +2312,7 @@ final class DataStore {
         HealthSyncSettings.setConnected(true)
         profile.healthConnected = true
         save()
+        HealthKitService.shared.startObservingSampleChanges()
         await refreshWatchVitals()
         return true
     }
@@ -2286,9 +2409,7 @@ final class DataStore {
         // fires only on the not-complete → complete transition.
         let wasCompleted = HabitsService.summary(for: habit, entries: profile.habitEntries, on: date).isCompletedToday
         let target = habit.targetValue ?? 1
-        let existingIdx = profile.habitEntries.firstIndex {
-            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
-        }
+        let existingIdx = habitEntryIndex(habitId: habitId, day: day)
         if habit.isCountable {
             // Countable habit: increment by one toward the target. If
             // the user has already hit target, the next tap RESETS to
@@ -2343,9 +2464,7 @@ final class DataStore {
         let wasCompleted = habit.map {
             HabitsService.summary(for: $0, entries: profile.habitEntries, on: date).isCompletedToday
         } ?? false
-        let existingIdx = profile.habitEntries.firstIndex {
-            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
-        }
+        let existingIdx = habitEntryIndex(habitId: habitId, day: day)
         if value <= 0 {
             if let idx = existingIdx { profile.habitEntries.remove(at: idx) }
         } else if let idx = existingIdx {
@@ -2358,6 +2477,45 @@ final class DataStore {
             registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
         }
         Task { await rescheduleHabitReminders() }
+    }
+
+    /// The day's one entry for the habit. A CloudKit race can leave two;
+    /// they collapse into the first at the highest value — the one the
+    /// summary shows — so an edit acts on what the user sees.
+    private func habitEntryIndex(habitId: UUID, day: Date) -> Int? {
+        let indices = profile.habitEntries.indices.filter {
+            profile.habitEntries[$0].habitId == habitId
+                && Calendar.current.isDate(profile.habitEntries[$0].date, inSameDayAs: day)
+        }
+        guard let first = indices.first else { return nil }
+        guard indices.count > 1 else { return first }
+        profile.habitEntries[first].value = indices.map { profile.habitEntries[$0].value }.max() ?? 0
+        for index in indices.dropFirst().reversed() {
+            profile.habitEntries.remove(at: index)
+        }
+        return first
+    }
+
+    // MARK: - Health workout types
+
+    /// Saves the type picked for an Apple Health workout; nil goes back to
+    /// the type Health recorded.
+    func setWorkoutType(_ activity: CardioActivity?, forHealthWorkout workoutID: UUID) {
+        profile.workoutTypeOverrides = WorkoutTypeOverrideStore.setting(
+            activity, for: workoutID, in: profile.workoutTypeOverrides
+        )
+        save()
+    }
+
+    /// Moves picks an older build kept on this device into the synced
+    /// profile, where a pick made since wins. The device copy goes only
+    /// once the profile is on disk; a failed save retries next time.
+    func adoptLegacyWorkoutTypeOverrides() {
+        guard let legacy = WorkoutTypeOverrideStore.legacy() else { return }
+        profile.workoutTypeOverrides.merge(legacy) { synced, _ in synced }
+        flushPendingSave()
+        guard !profileNeedsSave else { return }
+        WorkoutTypeOverrideStore.deleteLegacy()
     }
 
     // MARK: - Supplements
@@ -2407,8 +2565,13 @@ final class DataStore {
 
     /// The user's current Atlas Score / level, derived from stored profile
     /// state. Cheap arithmetic, safe to read from a view body.
-    var momentum: MomentumEngine.Snapshot {
-        let earnedToday = (profile.lastMomentumAwardDay.map { Calendar.current.isDateInToday($0) } ?? false)
+    var momentum: MomentumEngine.Snapshot { momentumSnapshot(on: Date()) }
+
+    /// The Atlas Score as of `day`: points banked count as "today" only
+    /// on the day they were awarded. Views pass their day so a card
+    /// left on screen past midnight redraws without a profile write.
+    func momentumSnapshot(on day: Date, calendar: Calendar = .current) -> MomentumEngine.Snapshot {
+        let earnedToday = (profile.lastMomentumAwardDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false)
             ? profile.momentumAwardedToday
             : 0
         return MomentumEngine.snapshot(score: profile.atlasScore, todayEarned: earnedToday)
@@ -2448,8 +2611,7 @@ final class DataStore {
         let nowCompleted = HabitsService.summary(for: habit, entries: profile.habitEntries, on: date).isCompletedToday
         guard !wasCompleted, nowCompleted else { return }
 
-        let comps = Calendar.current.dateComponents([.year, .month, .day], from: date)
-        let dayKey = "\(comps.year ?? 0)-\(comps.month ?? 0)-\(comps.day ?? 0)"
+        let dayKey = DayKey.unpadded(date, calendar: .current)
         let isFreshPerfectDay = allHabitsDoneToday(on: date) && lastPerfectDayCelebratedKey != dayKey
         if isFreshPerfectDay { lastPerfectDayCelebratedKey = dayKey }
 
@@ -2767,8 +2929,7 @@ final class DataStore {
 
     /// Swaps the in-memory state for a demo seed and locks writes
     /// so user data on disk stays untouched. Called by
-    /// `ScreenshotMode.activate(in:)` on a toggle flip and on
-    /// every cold launch where the flag is already on.
+    /// `ScreenshotMode` on every cold launch where the flag is on.
     ///
     /// Bumps `cacheVersion` so every derived metric (streak,
     /// weeklyCompletion, topInsight) recomputes against the new
@@ -2857,6 +3018,11 @@ final class DataStore {
         async let recentRHR = kit.averageRestingHeartRate(days: 3)
         async let baseRHR = kit.averageRestingHeartRate(days: 30)
         async let segments = kit.recentSleepSegments()
+        // The Watch labels these "Resting" / "HRV" like the iPhone, so it
+        // shows the same latest daily reading; the 3-day means above feed
+        // Recovery only.
+        async let latestRHR = kit.latestRestingHeartRate()
+        async let latestHRV = kit.latestHRV()
 
         let hrv = await recentHRV
         let hrvBaseline = await baseHRV
@@ -2889,9 +3055,9 @@ final class DataStore {
         }
         let snapshot = WatchVitalsSnapshot(
             recoveryScore: recovery?.value,
-            restingHeartRate: rhr.map { Int($0.rounded()) },
+            restingHeartRate: await latestRHR.map { Int($0.rounded()) },
             restingHeartRateBaseline: rhrBaseline.map { Int($0.rounded()) },
-            hrv: hrv.map { Int($0.rounded()) },
+            hrv: await latestHRV.map { Int($0.rounded()) },
             hrvBaseline: hrvBaseline.map { Int($0.rounded()) },
             sleep: sleep,
             measuredAt: Date()
@@ -2909,7 +3075,6 @@ final class DataStore {
         #endif
         let data = WidgetSnapshotBuilder.build(
             today: todayEntries,
-            next: nextDose,
             hasActiveProtocol: !activeProtocols.isEmpty,
             consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
             targets: profile.nutritionTargets,
@@ -3119,7 +3284,15 @@ final class DataStore {
         // scheduled entries before the status change lands.
         performCycleAutoCompletion()
         regenerateTodayEntries()
+        // Today, the widget and the Watch read the saved targets, so they
+        // follow the estimate without waiting for the Meals view to appear.
+        refreshAdaptiveTargets(asOf: now)
+        // A rest day generates nothing to save, so nothing else would
+        // restamp the widget and it keeps saying "Open Atlas" after the
+        // user has. A no-op within the same day (`isRedundant`).
+        updateWidgetData()
         refreshHealthIfDue()
+        if profile.healthConnected { HealthKitService.shared.startObservingSampleChanges() }
         turnOffDeniedHealthWrites()
         // The unlock notification isn't delivered to a suspended app.
         retryUnreadableCustomPeptides()
@@ -3164,8 +3337,12 @@ final class DataStore {
     /// returns nil for that resource. Replaces unsaved in-memory edits;
     /// user-triggered refreshes go through `refreshFromStore`.
     func reloadFromDisk() {
-        // A pull can bring workouts finished, edited or deleted elsewhere.
+        // A pull can bring workouts finished, edited or deleted elsewhere,
+        // which also moves each lift's last set: the memo seeds the Watch
+        // catalog below and new sets in a running workout.
         workoutHistoryDidChange()
+        WorkoutSessionService.shared.invalidatePreviousSetCache()
+        WorkoutSessionService.shared.reconcileWithStore()
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
         // full-table decode would jank the refresh gesture), the tail
@@ -3179,12 +3356,17 @@ final class DataStore {
         let saved = repo.loadProfile()
         persistedProfile = saved
         if let saved {
+            let previousMeals = profile.mealHistory
             profile = saved
+            if repo.lastLoadedMealsDecodedCleanly {
+                reconcileMealsChangedElsewhere(from: previousMeals, to: saved.mealHistory)
+            }
             adoptDeviceHealthConnection()
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
             // marked clean without ever reaching disk.
             profileNeedsSave = false
+            if syncCustomPeptides() { save() }
         }
         // Protocols and entries always came straight from disk, so the
         // assignments above must not leave them marked dirty — the next
@@ -3229,7 +3411,7 @@ final class DataStore {
     // private by design — these keep the single-facade rule intact
     // instead of handing views the repository singleton.
     func allWorkoutSessionsForBackup() -> [WorkoutSession] { repo.loadAllWorkoutSessions() }
-    /// `fetchCount` only, so the export screen can gate its workout row
+    /// Session ids only, so the export screen can gate its workout row
     /// without decoding every session.
     var hasWorkoutHistory: Bool { repo.workoutSessionCount() > 0 }
     func routinesForBackup() -> [Routine] { repo.loadRoutines() }
@@ -3260,9 +3442,15 @@ final class DataStore {
         pendingProtocolDeletions.removeAll()
         pendingEntryDeletions.removeAll()
 
+        // The synced library is what the restore leaves in the local one:
+        // the backup's compounds, or with no v2 payload the current ones.
+        var newProfile = newProfile
+        newProfile.customPeptides = training?.customPeptides ?? customPeptides
+
         // Replace in-memory state first so any observers (Train tab,
         // calendar, etc.) re-render against the new data while the
         // disk write is in flight.
+        let previousMeals = profile.mealHistory
         protocols = newProtocols
         entries = newEntries
         profile = newProfile
@@ -3353,6 +3541,7 @@ final class DataStore {
         profileNeedsSave = false
         persistedProfile = newProfile
 
+        reconcileMealsChangedElsewhere(from: previousMeals, to: newProfile.mealHistory)
         regenerateTodayEntries()
         refreshTrainingGlanceables()
         // A restore with reminders off must still clear the weekly dose

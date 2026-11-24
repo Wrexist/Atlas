@@ -27,8 +27,12 @@ struct ExerciseHistorySection: View {
                         .font(AppFont.callout)
                     Button("Retry", action: reload).minimumHitArea()
                 } else if visits.isEmpty {
-                    Text("No completed working sets for this exercise in the last 90 days. Your next saved workout will appear here.")
-                        .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
+                    EmptyStateView(
+                        icon: "clock.arrow.circlepath",
+                        title: "No workouts logged yet",
+                        message: "No completed working sets for this exercise in the last 90 days. Your next saved workout will appear here.",
+                        style: .compact
+                    )
                 } else {
                     if visits.count > 1 { activityChart }
                     let shown = Array(visits.prefix(expanded ? visits.count : 3))

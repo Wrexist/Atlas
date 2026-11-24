@@ -95,7 +95,7 @@ struct TodayPage: View {
                 if let earned = data.atlasTodayEarned, earned > 0 {
                     Text("+\(earned)")
                         .monospacedDigit()
-                        .foregroundStyle(WatchPalette.health)
+                        .foregroundStyle(WatchPalette.accent(data.accent))
                 }
             }
             .font(.system(.footnote, design: .rounded, weight: .bold))
@@ -128,7 +128,7 @@ struct TodayPage: View {
         return VStack(spacing: 8) {
             Image(systemName: needsPhone ? "iphone.and.arrow.forward" : "checkmark.circle.fill")
                 .font(.system(size: 34))
-                .foregroundStyle(needsPhone ? Color.secondary : WatchPalette.health)
+                .foregroundStyle(needsPhone ? Color.secondary : WatchPalette.accent(data.accent))
                 .symbolEffect(.bounce, value: needsPhone)
             Text(message)
                 .font(.footnote)

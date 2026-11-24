@@ -98,7 +98,7 @@ struct FastingTimelineProvider: TimelineProvider {
 
 // MARK: - Pieces
 
-private let fastingTint = WidgetPalette.brand
+private var fastingTint: Color { WidgetPalette.accent }
 private let fastingGlyph = "moon.zzz.fill"
 
 private extension FastingEntry {

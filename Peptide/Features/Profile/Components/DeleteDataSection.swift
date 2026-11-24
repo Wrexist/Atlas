@@ -23,16 +23,15 @@ struct DeleteDataSection: View {
                 }
 
                 if authService.isSignedIn {
-                    GlassButton(title: "Delete account", icon: "trash.fill",
-                                style: .destructive, isFullWidth: true) {
+                    destructiveRow("Delete account", icon: "trash") {
                         isConfirmingDeletion = true
                     }
+                    Divider().overlay(AppColor.glassBorder)
                 }
 
                 // Shown to every user, guest or signed in — erasing your data
                 // must not depend on having an account.
-                GlassButton(title: "Delete all data", icon: "xmark.bin.fill",
-                            style: .destructive, isFullWidth: true) {
+                destructiveRow("Delete all data", icon: "xmark.bin") {
                     isConfirmingDataErase = true
                 }
             }
@@ -64,6 +63,29 @@ struct DeleteDataSection: View {
         } message: {
             Text(dataEraseMessage)
         }
+    }
+
+    /// Red text, not a filled bar: the action is rare, so it shouldn't be
+    /// the loudest thing on the page. The alert is the real safeguard.
+    private func destructiveRow(
+        _ title: LocalizedStringKey,
+        icon: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: icon)
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(AppFont.subheadline)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(AppColor.destructiveInk)
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
     }
 
     /// Covers the card while the revoke round-trip runs, so the wait reads

@@ -42,7 +42,7 @@ final class WorkoutDayAssignmentTests: XCTestCase {
         let mondayMorning = try date(calendar, day: 5, hour: 9)
 
         let widget = WidgetSnapshotBuilder.training(from: [session], now: mondayMorning, calendar: calendar)
-        let overview = TrainOverviewView.trainedDaysThisWeek([session], now: mondayMorning, calendar: calendar)
+        let overview = TrainWeekSummary.make(from: [session], now: mondayMorning, calendar: calendar).trainedDays.count
         let recap = WorkoutRecapEngine.week(sessions: [session], catalog: [:], now: mondayMorning, calendar: calendar)
 
         XCTAssertEqual(widget.workoutsThisWeek, 0)
@@ -58,7 +58,7 @@ final class WorkoutDayAssignmentTests: XCTestCase {
         let sunday = try date(calendar, day: 4, hour: 0)
 
         let widget = WidgetSnapshotBuilder.training(from: [session], now: sundayNoon, calendar: calendar)
-        let overview = TrainOverviewView.trainedDaysThisWeek([session], now: sundayNoon, calendar: calendar)
+        let overview = TrainWeekSummary.make(from: [session], now: sundayNoon, calendar: calendar).trainedDays.count
         let recap = WorkoutRecapEngine.week(sessions: [session], catalog: [:], anchor: session.startedAt,
                                             now: try date(calendar, day: 5, hour: 9), calendar: calendar)
 

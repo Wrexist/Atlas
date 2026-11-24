@@ -22,14 +22,6 @@ struct HomeView: View {
     /// step with the user's finger. Handed down as a binding and never
     /// read here, so scroll frames re-render only the header.
     @State private var stickyProgress: Double = 0
-    /// Device-local on purpose: the "Today shows less now" hint is for
-    /// whoever is holding this phone, and nothing synced can bring it back.
-    @AppStorage("today.hasOpenedEditToday") private var hasOpenedEditToday = false
-    /// The build that started most Today sections off. Only members from
-    /// before it had the longer Today, so only they need the hint.
-    private static let todaySimplifiedOn = DateComponents(
-        calendar: Calendar(identifier: .gregorian), timeZone: .gmt, year: 2026, month: 11, day: 15
-    ).date ?? .distantPast
     /// State of the Sunday-recap card on Today. Loads on the first
     /// appear of each weekend; cached entries pre-fill the .ready
     /// branch so re-appears don't refire the network call.
@@ -115,7 +107,6 @@ struct HomeView: View {
     /// after midnight and never reaches into the future.
     @State private var dayOffset = 0
     @State private var summaryService = OnDeviceSummaryService.shared
-    @Environment(\.requestReview) private var requestReview
     @Environment(\.scenePhase) private var scenePhase
 
     /// What `refreshDerived()` reruns on: any store mutation, or a
@@ -148,8 +139,8 @@ struct HomeView: View {
         var habits: HabitsHeroSnapshot = .empty
         /// Facts the on-device model may rephrase `primaryReason`'s body from.
         var coachingFacts: OnDeviceSummaryEngine.Facts?
-        /// Finished sessions this calendar week — the trio's first ring
-        /// for a user with no active protocol.
+        /// Distinct trained days this calendar week (`TrainingWeekEngine`)
+        /// — the trio's first ring for a user with no active protocol.
         var workoutsThisWeek = 0
         /// The day's session count and minutes — feeds the Movement card
         /// and the checklist's training row without a fetch from `body`.
@@ -197,6 +188,27 @@ struct HomeView: View {
         return stats.total > 0 ? stats.score : nil
     }
 
+    /// The hero card's goals: the day's food, movement and water, then
+    /// habits. Doses stay out: protocols are an optional extra with their
+    /// own section at the bottom of Today. Each shows only when
+    /// it has a target, so the ring never counts a goal the user hasn't set.
+    private var heroParts: [TodayHeroCard.Part] {
+        var parts: [TodayHeroCard.Part] = []
+        if let overview = derived.overview, let target = overview.calorieTarget, target > 0 {
+            parts.append(.init(kind: .calories, amount: Double(overview.caloriesToday), goal: Double(target)))
+        }
+        if let checklist = derived.checklist {
+            if let steps = checklist.steps {
+                parts.append(.init(kind: .steps, amount: steps, goal: Double(checklist.stepGoal)))
+            }
+            parts.append(.init(kind: .water, fraction: checklist.waterProgress, value: checklist.waterProgress.formatted(.percent.precision(.fractionLength(0)))))
+        }
+        if derived.habits.dueCount > 0 {
+            parts.append(.init(kind: .habits, done: derived.habits.doneCount, total: derived.habits.dueCount))
+        }
+        return parts
+    }
+
     private var selectedDay: Date { TodayDayEngine.day(offset: dayOffset) }
     private var isViewingToday: Bool { TodayDayEngine.isToday(offset: dayOffset) }
 
@@ -229,7 +241,8 @@ struct HomeView: View {
         // Today reads at the current time, so time-of-day copy (the next
         // meal) stays right; a past day reads at its start.
         let reference = isViewingToday ? Date() : day
-        let plan = DailyScheduleEngine.plan(for: doseEntries(on: day))
+        let dayEntries = doseEntries(on: day)
+        let plan = DailyScheduleEngine.plan(for: dayEntries)
         let habits = HabitsHeroSnapshot.build(
             activeHabits: dataStore.activeHabits,
             entries: dataStore.profile.habitEntries,
@@ -257,13 +270,13 @@ struct HomeView: View {
             primaryReason: reason,
             habits: habits,
             coachingFacts: reason.flatMap { coachingFacts(for: $0) },
-            workoutsThisWeek: weekSessions.count,
+            workoutsThisWeek: TrainingWeekEngine.trainedDaysThisWeek(weekSessions),
             workoutSummary: workoutSummary,
             checklist: TodayChecklistEngine.state(
                 profile: dataStore.profile,
                 consumption: dataStore.consumption(for: day),
                 trainedToday: workoutSummary.count > 0,
-                weekSessionCount: shownDay.weekCount,
+                weekTrainedDays: shownDay.weekTrainedDays,
                 steps: steps(on: day),
                 now: reference
             ),
@@ -334,15 +347,15 @@ struct HomeView: View {
             .filter { !$0.isActive }
     }
 
-    /// The shown day's finished sessions, and how many finished sessions
-    /// its week holds up to the end of that day — what the checklist's
-    /// weekly-target rule counts. The current week reuses the week fetch;
-    /// an earlier week reads its week-through-day window once and derives
-    /// both from it.
+    /// The shown day's finished sessions, and how many distinct days of
+    /// its week were trained up to the end of that day — what the
+    /// checklist's weekly-target rule counts. The current week reuses the
+    /// week fetch; an earlier week reads its week-through-day window once
+    /// and derives both from it.
     private func finishedSessions(
         on day: Date,
         thisWeek weekSessions: [WorkoutSession]
-    ) -> (day: [WorkoutSession], weekCount: Int) {
+    ) -> (day: [WorkoutSession], weekTrainedDays: Int) {
         let calendar = Calendar.current
         guard let week = calendar.dateInterval(of: .weekOfYear, for: day) else { return ([], 0) }
         let end = min(week.end, TodayDayEngine.dayRange(for: day).upperBound)
@@ -353,7 +366,8 @@ struct HomeView: View {
                 .loadWorkoutSessions(startedBetween: week.start..<end)
                 .filter { !$0.isActive }
         let daySessions = throughDay.filter { calendar.isDate($0.dayAnchor, inSameDayAs: day) }
-        return (daySessions, throughDay.count)
+        let trainedDays = TrainingWeekEngine.trainedDays(throughDay, in: week.start..<end, calendar: calendar)
+        return (daySessions, trainedDays)
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
@@ -370,6 +384,15 @@ struct HomeView: View {
         !dataStore.protocols.isEmpty && derived.plan != nil
     }
 
+    /// Today shows the dose state once, in the doses card; a coaching line
+    /// that only repeats it ("1 dose left today") goes while that card is
+    /// on screen.
+    private func restatesDoseCard(_ reason: PrimaryReasonEngine.Reason) -> Bool {
+        showsDoseSection
+            && dataStore.profile.todayLayout.visibleSections.contains(.doses)
+            && reason.restatesDosePlan(hasProtocols: !dataStore.activeProtocols.isEmpty)
+    }
+
     /// The "At a glance" trio only has meaning once there's a data
     /// source — an active protocol, a Health connection, or a workout
     /// logged this week. Hidden otherwise so a day-0 user isn't met with
@@ -383,9 +406,10 @@ struct HomeView: View {
     /// Adherence leads for protocol users; everyone else sees this
     /// week's training against their days-per-week target, so Today
     /// doesn't open on a dose metric they never asked for.
+    /// Workouts lead the rings for everyone: protocols are an optional
+    /// extra, so dose adherence no longer takes the first ring.
     private var heroLeading: HeroLeadingMetric {
-        guard dataStore.activeProtocols.isEmpty else { return .adherence }
-        return .workouts(
+        .workouts(
             done: derived.workoutsThisWeek,
             target: max(1, dataStore.profile.trainingPreferences?.daysPerWeek ?? TrainingPreferences().daysPerWeek)
         )
@@ -398,29 +422,33 @@ struct HomeView: View {
             ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: Spacing.xxl) {
-                    WelcomeHeader(
-                        greeting: greeting,
-                        name: dataStore.profile.name,
-                        date: dateString,
-                        logButton: shows(.quickActions) ? TodayLogButton(
-                            isOpen: showQuickLogSheet,
-                            includesDose: dataStore.nextDose != nil,
-                            action: openQuickLog
-                        ) : nil
-                    )
-                    .sectionAppear(index: 0)
-                    .scrollHandOff()
-
-                    // Browse back through earlier days — the Meals tab's
-                    // switcher, so both screens pick days the same way.
-                    VStack(spacing: Spacing.sm) {
-                        MealDaySwitcher(offset: $dayOffset)
+                    // Greeting and date, two lines of chrome before the
+                    // first card. The date row steps back through earlier
+                    // days on the same offsets as the Meals tab's strip.
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        WelcomeHeader(
+                            greeting: greeting,
+                            name: dataStore.profile.name,
+                            logButton: shows(.quickActions) ? TodayLogButton(
+                                isOpen: showQuickLogSheet,
+                                includesDose: dataStore.nextDose != nil,
+                                action: openQuickLog
+                            ) : nil
+                        )
+                        .scrollHandOff()
+                        TodayDayRow(offset: $dayOffset)
                         if let pastDayTitle {
                             PastDayBanner(dayTitle: pastDayTitle, onBackToToday: backToToday)
+                                .padding(.top, Spacing.xs)
                                 .transition(.move(edge: .top).combined(with: .opacity))
                         }
                     }
-                    .sectionAppear(index: 1)
+                    .sectionAppear(index: 0)
+
+                    if !heroParts.isEmpty {
+                        TodayHeroCard(parts: heroParts)
+                            .sectionAppear(index: 1)
+                    }
 
                     // Today reads status → recommendation → action
                     // (Product Architecture 07). The removed
@@ -455,9 +483,10 @@ struct HomeView: View {
                     }
 
                     // The user's arrangement of Today. The default order
-                    // reads status → recommendation → action → analysis
-                    // (Product Architecture 07). Entrance stagger follows
-                    // that order, after the header and day switcher.
+                    // leads with the day's actions — doses, then the
+                    // checklist — before recommendation, status and the
+                    // week's analysis. Entrance stagger follows that
+                    // order, after the header and day switcher.
                     ForEach(Array(dataStore.profile.todayLayout.visibleSections.enumerated()), id: \.element.id) { offset, section in
                         todaySection(section, appearIndex: 2 + offset, proxy: proxy)
                     }
@@ -479,12 +508,16 @@ struct HomeView: View {
             } action: { _, newValue in
                 stickyProgress = newValue
             }
-            .pageBackground()
+            .background {
+                TodayBackdrop(fade: $stickyProgress)
+                    .ignoresSafeArea()
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .solidTopScrollEdge()
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    HomeStickyHeader(firstName: firstNameForSticky, progress: $stickyProgress)
+                    HomeStickyHeader(greeting: greeting, firstName: firstNameForSticky, progress: $stickyProgress)
                 }
                 // The same 30pt entry, in the same place, as Train,
                 // Meals, Biology and Habits, so Profile doesn't jump in
@@ -532,8 +565,9 @@ struct HomeView: View {
                     bodyMetrics: dataStore.currentBodyMetrics,
                     goalRaw: dataStore.profile.primaryGoal,
                     expenditure: dataStore.expenditureEstimate(),
-                    onSave: { targets in
-                        dataStore.updateNutritionTargets(targets)
+                    adaptiveEnabled: dataStore.adaptiveTargetsSetting.isEnabled,
+                    onSave: { targets, adaptive in
+                        dataStore.updateNutritionTargets(targets, adaptive: adaptive)
                         showTargetsEditor = false
                     },
                     onCancel: { showTargetsEditor = false }
@@ -634,19 +668,12 @@ struct HomeView: View {
             }
             // Single handler for adherence-ratio changes: update only the
             // trio's Adherence ring so a logged/unlogged dose shows
-            // immediately without re-reading HealthKit, and fire the
-            // review prompt when the day first hits 100%. Keyed on the
+            // immediately without re-reading HealthKit. Keyed on the
             // optional ratio so going from no doses to N untaken (nil → 0)
             // still reaches the ring.
-            .onChange(of: adherenceRatio) { oldRatio, newRatio in
+            .onChange(of: adherenceRatio) { _, newRatio in
                 AppAnimation.with(AppAnimation.springSmooth) {
                     heroSnapshot = heroSnapshot.withAdherence(newRatio)
-                }
-                if (oldRatio ?? 0) < 1.0, (newRatio ?? 0) >= 1.0 {
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(1))
-                        ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
-                    }
                 }
             }
             // Recompute the derived Today models once per store mutation.
@@ -667,7 +694,10 @@ struct HomeView: View {
                 }
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { refreshForCurrentTime() }
+                guard phase == .active else { return }
+                refreshForCurrentTime()
+                // Re-checks a cycle prompt held back by a permission alert.
+                checkMilestonePrompt()
             }
             // Neither notification promises main-thread delivery.
             .onReceive(
@@ -680,6 +710,10 @@ struct HomeView: View {
                 NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)
                     .receive(on: DispatchQueue.main)
             ) { _ in
+                refreshForCurrentTime()
+            }
+            // Posted on the main actor once Health samples land.
+            .onReceive(NotificationCenter.default.publisher(for: .healthSamplesDidChange)) { _ in
                 refreshForCurrentTime()
             }
             // The coaching copy reads recovery + sleep off the hero snapshot,
@@ -825,7 +859,11 @@ struct HomeView: View {
     private func atAGlanceSection(appearIndex: Int) -> some View {
         if showsAtAGlance {
             VStack(spacing: Spacing.sm) {
-                HomeSectionHeader(title: "At a glance")
+                // A heading over a single hint line is a heading for
+                // nothing; it only labels the rings.
+                if HeroMetricTrio.showsRingRow(snapshot: heroSnapshot, leading: heroLeading, isLoading: isHeroLoading) {
+                    HomeSectionHeader(title: "At a glance")
+                }
 
                 // Bevel-style hero trio — Adherence / Recovery /
                 // Sleep. Three at-a-glance numbers mapping to the
@@ -857,7 +895,7 @@ struct HomeView: View {
     /// than coaching alone used to see.
     @ViewBuilder
     private func coachingSection(appearIndex: Int, proxy: ScrollViewProxy) -> some View {
-        if let reason = derived.primaryReason {
+        if let reason = derived.primaryReason, !restatesDoseCard(reason) {
             // Keyed on the title so a new recommendation
             // cross-fades in rather than swapping text in place.
             CoachingCard(
@@ -920,7 +958,7 @@ struct HomeView: View {
     /// shortcuts.
     @ViewBuilder
     private func checklistSection(appearIndex: Int) -> some View {
-        if let checklist = derived.checklist {
+        if let checklist = shownChecklist {
             TodayChecklistCard(
                 state: checklist,
                 unit: dataStore.profile.bodyMetrics.unit,
@@ -932,6 +970,16 @@ struct HomeView: View {
             )
             .sectionAppear(index: appearIndex)
         }
+    }
+
+    /// Checklist rows whose own card is on screen: the Training card
+    /// answers "trained today?" and the Steps card owns the step count,
+    /// so the checklist keeps only what nothing else on Today asks.
+    private var shownChecklist: TodayChecklistEngine.State? {
+        guard var checklist = derived.checklist else { return nil }
+        if rendersAnchor(.movement) { checklist.coveredElsewhere.insert(.training) }
+        if rendersAnchor(.steps) { checklist.coveredElsewhere.insert(.steps) }
+        return checklist
     }
 
     /// The ONE place doses appear on Today — the overview card and the
@@ -972,7 +1020,9 @@ struct HomeView: View {
                 }
             }
             .id(TodaySection.doses)
-            .scrollReveal()
+            // No scroll reveal: a day's dose list runs taller than the
+            // screen, so it never reached the fully-visible phase and sat
+            // dimmed under the hero.
         }
     }
 
@@ -983,7 +1033,11 @@ struct HomeView: View {
     }
 
     private var movementSection: some View {
-        HomeMovementSection(summary: derived.workoutSummary, isPastDay: !isViewingToday)
+        HomeMovementSection(
+            summary: derived.workoutSummary,
+            isTrainingDay: derived.checklist?.isTrainingDay ?? true,
+            isPastDay: !isViewingToday
+        )
             .id(TodaySection.movement)
             .scrollReveal()
     }
@@ -1016,7 +1070,6 @@ struct HomeView: View {
     private func overviewCard(_ overview: TodayOverviewSnapshot, proxy: ScrollViewProxy) -> some View {
         TodayOverviewCard(
             snapshot: overview,
-            unit: dataStore.profile.bodyMetrics.unit,
             onTapInsight: { insight in
                 switch insight {
                 case .latestLab:
@@ -1026,8 +1079,6 @@ struct HomeView: View {
                     showTargetsEditor = true
                 case .nudge(_, _, _, .logMeal):
                     appState.selectedTab = .meals
-                case .protocolInsight:
-                    break
                 }
             },
             // Tiles log and route for today; a past day's tiles are a
@@ -1058,8 +1109,10 @@ struct HomeView: View {
             .scrollReveal()
         }
 
-        AtlasScoreCard(onTap: { showProgress = true })
-            .scrollReveal()
+        if dataStore.momentum.score > 0 {
+            AtlasScoreCard(onTap: { showProgress = true })
+                .scrollReveal()
+        }
     }
 
     /// The AI research chat's only other entry is an icon in the Library
@@ -1144,15 +1197,8 @@ struct HomeView: View {
     /// start off went, so a returning user isn't left hunting for them.
     private var customizeTodayButton: some View {
         VStack(spacing: Spacing.sm) {
-            if !hasOpenedEditToday && dataStore.profile.memberSince < Self.todaySimplifiedOn {
-                Text("Today shows less now. Turn on Steps, Your day and more here.")
-                    .font(AppFont.footnote)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
             Button {
                 Haptics.impact(.light)
-                hasOpenedEditToday = true
                 showEditToday = true
             } label: {
                 Label("Edit Today", systemImage: "slider.horizontal.3")
@@ -1261,10 +1307,6 @@ struct HomeView: View {
             }
         case .mealStreak:
             appState.selectedTab = .meals
-        case .checkIn:
-            show(.wellness, proxy: proxy)
-        case .water:
-            logWaterGlass()
         }
     }
 
@@ -1457,7 +1499,9 @@ struct HomeView: View {
             healthConnected: dataStore.profile.healthConnected
         )
         AppAnimation.with(AppAnimation.springSmooth) {
-            heroSnapshot = snapshot
+            // A dose toggled while HealthKit answered already moved the
+            // ring; the ratio captured before the await is stale.
+            heroSnapshot = snapshot.withAdherence(adherenceRatio)
             isHeroLoading = false
         }
     }
@@ -1677,8 +1721,10 @@ struct HomeView: View {
     private func checkMilestonePrompt() {
         // TabView can call onAppear for retained, off-screen tabs during
         // modal transitions. A Today prompt must never replace Train's
-        // workout cover or completion summary.
-        guard appState.selectedTab == .today,
+        // workout cover or completion summary. Screenshot runs stay
+        // clear of prompts so captures and tab taps aren't covered.
+        guard !ScreenshotMode.shared.isEnabled,
+              appState.selectedTab == .today,
               milestonePrompt == nil,
               milestoneShareProtocol == nil,
               completionPrompt == nil
@@ -1700,7 +1746,7 @@ struct HomeView: View {
             let days = max(0, daysPastCycleEnd(of: pending))
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(800))
-                guard appState.selectedTab == .today, completionPrompt == nil else { return }
+                guard appState.selectedTab == .today, completionPrompt == nil, !Self.isAnotherPromptShowing else { return }
                 completionPrompt = CompletionPromptItem(proto: pending, daysPastEnd: days)
             }
             return
@@ -1712,9 +1758,21 @@ struct HomeView: View {
         // Defer slightly so the home tab's appear animation lands first.
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(800))
-            guard appState.selectedTab == .today, milestonePrompt == nil else { return }
+            guard appState.selectedTab == .today, milestonePrompt == nil, !Self.isAnotherPromptShowing else { return }
             milestonePrompt = MilestonePromptItem(proto: pending.proto, milestone: pending.milestone)
         }
+    }
+
+    /// A system permission alert leaves the app inactive, and onboarding,
+    /// the What's New tour or a trial offer present over the root. Either
+    /// way a cycle prompt would stack on top; it waits for the next
+    /// activation instead.
+    @MainActor private static var isAnotherPromptShowing: Bool {
+        UIApplication.shared.applicationState != .active
+            || UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .contains { $0.isKeyWindow && $0.rootViewController?.presentedViewController != nil }
     }
 
     private func daysPastCycleEnd(of proto: PeptideProtocol) -> Int {
@@ -1747,7 +1805,7 @@ struct HomeView: View {
     // that called them.
 
     /// First-name token for the sticky header. Trimmed +
-    /// space-split so "Alex Chen" reads as "Hi, Alex". Empty
+    /// space-split so "Alex Chen" reads as "Good evening, Alex". Empty
     /// string is handled by the sticky header's own fallback so
     /// this helper stays a pure transform.
     private var firstNameForSticky: String {
@@ -1766,10 +1824,6 @@ struct HomeView: View {
         case 17..<24: return String(localized: "Good evening")
         default: return String(localized: "Up late")
         }
-    }
-
-    private var dateString: String {
-        selectedDay.formatted(.dateTime.weekday(.wide).month(.wide).day())
     }
 }
 

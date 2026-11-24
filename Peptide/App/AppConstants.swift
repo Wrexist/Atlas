@@ -2,8 +2,8 @@ import Foundation
 
 enum AppConstants {
     /// Live App Store listing for Atlas (id6762042210). Storefront-neutral
-    /// and slug-free, so the share-card QR and "Rate Atlas" open the
-    /// viewer's own storefront without the legacy app name.
+    /// and slug-free, so the share-card QR opens the viewer's own
+    /// storefront without the legacy app name.
     static let appStoreURL = URL(string: appStoreURLString) ?? URL.staticHTTPS("https://apps.apple.com")
     static let marketingHost = "peptidex.site"
     static let watermarkText = String(localized: "Made with Atlas")

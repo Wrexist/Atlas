@@ -84,11 +84,10 @@ final class OnboardingFunnelTrackerTests: XCTestCase {
 
     func test_recordEvent_allowsDuplicates() {
         // Unlike step entries, events ARE duplicate-allowed — a user can
-        // tap the same attribution chip three times, and each tap is a
-        // real signal.
-        OnboardingFunnelTracker.recordEvent("attribution_friend")
-        OnboardingFunnelTracker.recordEvent("attribution_friend")
-        OnboardingFunnelTracker.recordEvent("attribution_friend")
+        // skip the same page three times, and each skip is a real signal.
+        OnboardingFunnelTracker.recordEvent("skip_permissions")
+        OnboardingFunnelTracker.recordEvent("skip_permissions")
+        OnboardingFunnelTracker.recordEvent("skip_permissions")
 
         XCTAssertEqual(OnboardingFunnelTracker.snapshot.events.count, 3)
     }

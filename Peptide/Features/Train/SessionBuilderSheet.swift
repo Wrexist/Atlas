@@ -96,7 +96,7 @@ struct SessionBuilderSheet: View {
             }
             // Each page opens at its top, not where the other was left.
             .scrollPosition($scroll)
-            .modifier(SolidTopEdge())
+            .solidTopScrollEdge()
             .onChange(of: built == nil) { scroll.scrollTo(edge: .top) }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle(built == nil ? "Plan a workout" : "Your workout")
@@ -162,7 +162,7 @@ struct SessionBuilderSheet: View {
             if let focus {
                 VStack(alignment: .leading, spacing: Spacing.xxl) {
                     statusCard(for: focus)
-                    section("TRAIN WITH IT") {
+                    section("Train with it") {
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             chips(focus.companions.filter { !resting.contains($0) },
                                   tint: Self.companionChipColor,
@@ -187,7 +187,7 @@ struct SessionBuilderSheet: View {
                 }
             }
 
-            section("MINUTES") {
+            section("Minutes") {
                 GlassSegmentedControl(options: Self.minuteOptions, selected: $minutes,
                                       label: { LocalizedStringKey("\($0)") })
             }
@@ -555,6 +555,7 @@ struct SessionBuilderSheet: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(title)
                 .font(AppFont.eyebrow)
+                .textCase(.uppercase)
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textTertiary)
                 .accessibilityAddTraits(.isHeader)
@@ -742,20 +743,6 @@ struct SessionBuilderSheet: View {
         Haptics.impact(.medium)
         onStart(routine, isSaved)
         dismiss()
-    }
-}
-
-/// iOS 26 lets content slide under the glass toolbar with only a soft
-/// fade, so chips and pictures read through the title and its buttons.
-/// The hard edge gives the bar a defined backdrop; earlier systems get
-/// the solid bar from `toolbarBackground`.
-private struct SolidTopEdge: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.scrollEdgeEffectStyle(.hard, for: .top)
-        } else {
-            content
-        }
     }
 }
 

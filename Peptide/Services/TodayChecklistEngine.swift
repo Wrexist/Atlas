@@ -31,10 +31,16 @@ enum TodayChecklistEngine {
         /// unreachable.
         var steps: Double? = nil
         var stepGoal: Int = StepGoalEngine.defaultGoal
+        /// Rows another Today card already shows — the Training card, the
+        /// Steps card — so the checklist doesn't ask the same question
+        /// twice. Hiding that card in Edit Today brings its row back.
+        var coveredElsewhere: Set<Item> = []
 
         /// The rows this day has, in display order.
         var items: [Item] {
-            Item.allCases.filter { $0 != .steps || steps != nil }
+            Item.allCases.filter {
+                ($0 != .steps || steps != nil) && !coveredElsewhere.contains($0)
+            }
         }
 
         /// The first unlogged main meal from the current window on. Nil
@@ -78,7 +84,7 @@ enum TodayChecklistEngine {
         profile: UserProfile,
         consumption: DailyConsumption,
         trainedToday: Bool,
-        weekSessionCount: Int = 0,
+        weekTrainedDays: Int = 0,
         steps: Double? = nil,
         now: Date = Date(),
         calendar: Calendar = .current
@@ -91,7 +97,7 @@ enum TodayChecklistEngine {
             isTrainingDay: isTrainingDay(
                 preferences: profile.trainingPreferences,
                 trainedToday: trainedToday,
-                weekSessionCount: weekSessionCount,
+                weekTrainedDays: weekTrainedDays,
                 now: now,
                 calendar: calendar
             ),
@@ -108,12 +114,13 @@ enum TodayChecklistEngine {
 
     /// A picked weekday is a training day. With no weekdays picked, the
     /// weekly target decides: until it's met every day is a training day,
-    /// and once it is the remaining days are recovery. `weekSessionCount`
-    /// is the finished sessions in the day's week up to the end of it.
+    /// and once it is the remaining days are recovery. `weekTrainedDays`
+    /// is the distinct days with a finished session in the day's week up
+    /// to the end of it (`TrainingWeekEngine`).
     static func isTrainingDay(
         preferences: TrainingPreferences?,
         trainedToday: Bool,
-        weekSessionCount: Int,
+        weekTrainedDays: Int,
         now: Date,
         calendar: Calendar
     ) -> Bool {
@@ -122,7 +129,7 @@ enum TodayChecklistEngine {
             let weekday = calendar.component(.weekday, from: now)
             return preferences.preferredDays.contains { $0.calendarWeekdayValue == weekday }
         }
-        return trainedToday || weekSessionCount < preferences.daysPerWeek
+        return trainedToday || weekTrainedDays < preferences.daysPerWeek
     }
 
     /// One tap on the water row: a 250 mL glass in metric, 8 oz in

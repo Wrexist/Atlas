@@ -18,8 +18,7 @@ import UIKit
 /// metric colours (`metric*`), `streak` / `achievement`, the anatomy
 /// primary/secondary tints in
 /// `MuscleMapView`, the notes mood-rating scale in `ProtocolNotesTimeline`,
-/// the multi-colour onboarding showcase in `WhatsNewPage`, and the
-/// deliberately-distinct Screenshot-mode dev row. These encode a real-world
+/// and the deliberately-distinct Screenshot-mode dev row. These encode a real-world
 /// concept, not the brand — but they still carry a light variant where the
 /// dark-mode value would fail contrast on a light surface.
 enum AppColor {
@@ -63,8 +62,6 @@ enum AppColor {
 
     // MARK: - Exercise demonstration
 
-    static let trainingSelection = Color(light: 0x2465DF, dark: 0x80ADFF)
-    static let trainingComplete = Color(light: 0x19843D, dark: 0x238943)
     static let trainingPrimaryMuscle = Color(light: 0xB84813, dark: 0xFFAC73)
     static let trainingSecondaryMuscle = Color(light: 0x2465DF, dark: 0x80ADFF)
     /// Tints multiplied onto the grey body figure. Brighter than the text
@@ -153,6 +150,14 @@ enum AppColor {
     /// dark stop carries `onAccent` at 5.3:1 or better in every theme and
     /// both schemes, which is why filled accent surfaces use this instead.
     static var accentFill: Color { ThemeManager.shared.theme.dark }
+
+    /// The shadowed corner of an accent hero card: `accentFill` pulled
+    /// toward black, so the fill reads as lit from one side. `onAccent`
+    /// clears AA on it in every theme, since it only ever gets darker.
+    static var accentDeep: Color { accentFill.mix(with: .black, by: 0.42) }
+    /// The lit corner of an accent hero card: halfway from `accentFill`
+    /// to the brand colour. Kept to a corner with no text over it.
+    static var accentSheen: Color { accentFill.mix(with: accentPrimary, by: 0.55) }
 
     // MARK: - Status
 

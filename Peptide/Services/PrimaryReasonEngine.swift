@@ -57,6 +57,19 @@ enum PrimaryReasonEngine {
     struct Reason: Equatable, Sendable {
         let message: CoachingMessageEngine.CoachingMessage
         let priority: Priority
+
+        /// True when the message only restates today's dose plan — the
+        /// catch-up count, or a protocol user's on-track "next dose" line.
+        /// Today's doses card already shows that state, so a second copy
+        /// above it could only disagree with it.
+        func restatesDosePlan(hasProtocols: Bool) -> Bool {
+            switch message.kind {
+            case .catchUp: true
+            case .onTrack: hasProtocols
+            case .welcome, .connectHealth, .other, .strongRecovery, .weakRecovery,
+                 .shortSleep, .habitsDue, .weeklyReview: false
+            }
+        }
     }
 
     struct Context: Sendable {

@@ -9,10 +9,15 @@ final class HeroMetricSnapshotTests: XCTestCase {
         XCTAssertEqual(snapshot.adherence.accessibilityLabel(for: .adherence), "Adherence, no doses today")
     }
 
-    func test_build_noneTakenOfScheduled_showsZeroPercent() async {
+    func test_build_noneTakenOfScheduled_leavesAdherenceUnavailable() async {
         let snapshot = await HeroMetricSnapshot.build(adherenceRatio: 0, healthConnected: false)
+        XCTAssertFalse(snapshot.adherence.isAvailable)
+    }
+
+    func test_build_someTakenOfScheduled_showsPercent() async {
+        let snapshot = await HeroMetricSnapshot.build(adherenceRatio: 0.25, healthConnected: false)
         XCTAssertTrue(snapshot.adherence.isAvailable)
-        XCTAssertEqual(snapshot.adherence.displayPercent, 0)
+        XCTAssertEqual(snapshot.adherence.displayPercent, 25)
     }
 
     func test_withAdherence_doseToggled_keepsHealthMetrics() {

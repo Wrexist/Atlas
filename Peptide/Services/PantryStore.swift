@@ -48,6 +48,12 @@ final class PantryStore {
         defaults.set(manualKeys.sorted(), forKey: Self.storageKey)
     }
 
+    /// A backup's ticks, merged by `DeviceLocalBackup`.
+    func restore(manualKeys restored: Set<String>) {
+        manualKeys = restored
+        defaults.set(manualKeys.sorted(), forKey: Self.storageKey)
+    }
+
     func deleteAll() {
         manualKeys = []
         defaults.removeObject(forKey: Self.storageKey)

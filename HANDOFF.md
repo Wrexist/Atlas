@@ -180,7 +180,7 @@ calculator on an iPhone SE and a Pro Max, plus Dynamic Type and VoiceOver.
 - Product: **Atlas** (iOS health & fitness). Repo / Xcode targets are
   named `Peptide` for legacy reasons — see the "Naming" section of
   [`README.md`](README.md).
-- iOS 18+, Swift 6.0, SwiftUI, SwiftData (CloudKit-backed). Companion
+- iOS 18+, Swift 5 mode (targeted concurrency), SwiftUI, SwiftData (CloudKit-backed). Companion
   Watch app, two widget targets, Live Activities.
 - Persistence runs through `SwiftDataRepository` (the JSON
   `PersistenceService` is retained only for custom peptides and

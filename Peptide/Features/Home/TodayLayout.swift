@@ -3,26 +3,30 @@ import SwiftUI
 /// A block of the Today scroll the user can move or hide from the
 /// "Edit Today" sheet. Raw values are persisted on the profile, so they
 /// are stable ids — rename a case freely, never its raw value. Case
-/// order is the default layout, and `isShownByDefault` decides which
-/// of them a fresh layout shows.
+/// order is the default layout — the whole body first (recovery and
+/// sleep, food, movement), the day's checklist and habits next, and a
+/// protocol's doses last, since they are an optional extra — and `isShownByDefault` decides which
+/// of them a fresh layout shows. Reordering cases moves every
+/// layout that was never rearranged (an empty stored `order`); a saved
+/// order is the user's and stays as they left it.
 ///
 /// The welcome header, day switcher and reminder banner are not here: they
 /// are Today's chrome and stay pinned above the sections.
 enum TodaySection: String, CaseIterable, Identifiable, Sendable {
-    case coaching = "coaching"
     case atAGlance = "atAGlance"
-    case weeklyRecap = "weeklyRecap"
-    case habits = "habits"
-    case checklist = "checklist"
-    case doses = "doses"
-    case wellness = "wellness"
+    case coaching = "coaching"
+    case overview = "overview"
     case movement = "movement"
     case steps = "steps"
-    case overview = "overview"
+    case checklist = "checklist"
+    case habits = "habits"
+    case wellness = "wellness"
+    case weeklyRecap = "weeklyRecap"
     case momentum = "momentum"
     case explore = "explore"
     case timeline = "timeline"
     case healthMonitor = "healthMonitor"
+    case doses = "doses"
 
     var id: String { rawValue }
 
@@ -68,18 +72,10 @@ enum TodaySection: String, CaseIterable, Identifiable, Sendable {
 }
 
 extension TodaySection {
-    /// Today answers "what do I do now" with the coaching card, the
-    /// day's status and the things to tick off. Everything else repeats
-    /// another tab or is analysis, so it starts off and the user turns
-    /// it on from Edit Today.
-    var isShownByDefault: Bool {
-        switch self {
-        case .coaching, .atAGlance, .weeklyRecap, .habits, .checklist, .doses, .wellness:
-            true
-        case .movement, .steps, .overview, .momentum, .explore, .timeline, .healthMonitor:
-            false
-        }
-    }
+    /// Today is the whole day's health at a glance, so every health block
+    /// shows until the user hides it from Edit Today. Explore is the
+    /// research library's shelf, not the day, so it starts off.
+    var isShownByDefault: Bool { self != .explore }
 
     /// The same block in `TodayDayEngine`'s terms, which decides whether
     /// it shows on a browsed past day.

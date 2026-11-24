@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Compact, low-key streak indicator for the Lifestyle tab's meal
-/// section. The flame color escalates with streak length and pulses
-/// on crossing a milestone, but stays visually contained so it
-/// doesn't compete with the macro rings for attention.
+/// Compact, low-key streak chip under the Meals diary: an accent flame
+/// that pulses on crossing a milestone, held in a neutral paper capsule
+/// so it reads as one object rather than loose text, without competing
+/// with the macro rings or Log food for attention.
 ///
 /// Hidden entirely when both the active and best streak are zero —
 /// a fresh-install Lifestyle tab shouldn't be cluttered with "0 day
@@ -23,12 +23,7 @@ struct MealStreakBadge: View {
     private static let milestones: Set<Int> = [3, 7, 14, 30, 60, 90, 180, 365]
 
     private var flameTint: Color {
-        switch currentStreak {
-        case 0:        return AppColor.textTertiary
-        case 1...2:    return AppColor.accentPrimary
-        case 3...6:    return AppColor.accentLight
-        default:       return AppColor.streak
-        }
+        currentStreak == 0 ? AppColor.textTertiary : AppColor.accentPrimary
     }
 
     private var isNewBest: Bool { currentStreak > 0 && currentStreak >= bestStreak }
@@ -49,18 +44,12 @@ struct MealStreakBadge: View {
                 headlineRow
                 subtitleRow
             }
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, Spacing.md)
+        .padding(.leading, Spacing.md)
+        .padding(.trailing, Spacing.lg)
         .padding(.vertical, Spacing.sm)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(flameTint.opacity(0.12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(flameTint.opacity(0.30), lineWidth: 0.5)
-                }
-        }
+        .glassSurfaceCapsule()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(voiceOverLabel)
         .onChange(of: currentStreak) { oldValue, newValue in
@@ -73,7 +62,7 @@ struct MealStreakBadge: View {
         MilestoneArtwork(
             symbol: "flame.fill",
             tint: flameTint,
-            size: 28,
+            size: 18,
             style: .symbol,
             trigger: pulseTrigger,
             playsOnArrival: false
@@ -109,7 +98,7 @@ struct MealStreakBadge: View {
         } else if isNewBest && currentStreak > 1 {
             Text("New personal best — keep going.")
                 .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(flameTint)
+                .foregroundStyle(AppColor.textSecondary)
         } else if let next = Self.nextMilestone(after: currentStreak),
                   currentStreak > 0, next < bestStreak || bestStreak <= currentStreak {
             // The nearer goal: a milestone ahead of the personal best is

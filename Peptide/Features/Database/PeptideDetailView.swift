@@ -250,7 +250,7 @@ struct PeptideDetailView: View {
                                     .foregroundStyle(AppColor.textPrimary)
                             }
 
-                            StackTagFlow(
+                            ProtocolTagFlow(
                                 stacks: peptide.commonStacks,
                                 fallbackColor: AppColor.accentPrimary,
                                 excludingPeptideID: peptide.id
@@ -309,6 +309,7 @@ struct PeptideDetailView: View {
         }
         .navigationTitle(peptide.abbreviation)
         .navigationBarTitleDisplayMode(.inline)
+        .solidTopScrollEdge(heroScrolledAway)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(peptide.abbreviation)

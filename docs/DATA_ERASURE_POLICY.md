@@ -16,6 +16,7 @@ future storage surface must be added to.
 | Progress photos | Documents/ProgressPhotos | `ProgressPhotoStorage.deleteAll()` |
 | Scanned lab reports | Documents/LabReports | `LabReportStorage.deleteAll()` |
 | Health journal | Documents/health-journal.json | `HealthJournalStore.shared.deleteAll()` |
+| Equipment profiles, Health-workout type overrides, accepted adaptive targets | UserDefaults | `EquipmentProfileStore.deleteAll()`, `WorkoutTypeOverrideStore.deleteLegacy()` (picks now sync in the profile), `AdaptiveTDEESettings.followedTargets = nil` |
 | Apple ID linkage (keychain email/name/identifier) | Keychain | `signOut()` |
 | Pending and delivered reminders | Notification Center | `NotificationService.cancelAll()` |
 | Recently scanned products | Caches | `BarcodeProductCache.clear()` |
@@ -23,6 +24,12 @@ future storage surface must be added to.
 | AI data-sharing consent (chat and coach summary) | UserDefaults | `AIDataConsent.revoke()` — the next scan or question asks again |
 | Onboarding funnel snapshot (step times, events, attribution channel) | UserDefaults | `OnboardingFunnelTracker.eraseAll()` |
 | Onboarding training-experience answer | UserDefaults (`experienceLevel`) | removed in `eraseAllLocalData()` |
+
+Every device-local row above (everything but the SwiftData store, the
+keychain, reminders and consent) is erased through
+`DeviceLocalData.eraseAll()`, which also runs when the user answers
+Remove to the iCloud account-change prompt (never unprompted) — so a
+new store goes on that list once and both paths cover it.
 
 ## Retained deliberately
 

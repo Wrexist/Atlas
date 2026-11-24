@@ -242,7 +242,15 @@ final class DailyScheduleEngineTests: XCTestCase {
         XCTAssertEqual(plan.slots.map(\.slot), [.morning, .midday])
         let late = plan.slots.last?.doses.first
         XCTAssertEqual(late?.entry.peptide.abbreviation, "AOD-9604")
-        XCTAssertTrue(late?.timingNote.contains("Usually taken") == true, late?.timingNote ?? "")
+        XCTAssertFalse(late?.timingNote.contains("Usually taken") == true, late?.timingNote ?? "")
+    }
+
+    func test_plan_preBedPeptideInMorning_noteKeepsGuidanceWithoutContradictingSlot() {
+        let plan = DailyScheduleEngine.plan(for: [entry("Epitalon", hour: 8)])
+        let dose = plan.slots.first?.doses.first
+        XCTAssertEqual(plan.slots.first?.slot, .morning)
+        XCTAssertFalse(dose?.timingNote.contains("Usually taken") == true, dose?.timingNote ?? "")
+        XCTAssertTrue(dose?.timingNote.contains("melatonin") == true, dose?.timingNote ?? "")
     }
 
     // MARK: - Headline follows what's left to take

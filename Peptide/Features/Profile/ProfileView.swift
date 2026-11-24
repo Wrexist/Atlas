@@ -12,7 +12,6 @@ struct ProfileView: View {
     @State private var healthWriteRefused = false
     @State private var healthDataVisible = true
     @State private var authService = AuthService.shared
-    @State private var showReconstitutionCalculator = false
     @State private var showProfileCustomization = false
     @State private var showProgress = false
     /// Read once on appear rather than in `body`: the count is a
@@ -41,7 +40,6 @@ struct ProfileView: View {
                     ProfileHeader(
                         name: dataStore.profile.name,
                         memberSince: dataStore.profile.memberSince,
-                        protocolCount: dataStore.protocols.count,
                         daysLogged: dataStore.totalDaysLogged,
                         workoutCount: workoutCount,
                         avatarImageData: dataStore.profile.avatarImageData,
@@ -50,27 +48,26 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 0)
 
-                    Group {
-                        if storeService.isProUser || storeService.isInBillingRetry {
-                            SubscriptionSection()
-                        } else {
-                            UpgradePromptCard()
+                    if StoreService.paywallEnabled {
+                        Group {
+                            if storeService.isProUser || storeService.isInBillingRetry {
+                                SubscriptionSection()
+                            } else {
+                                UpgradePromptCard()
+                            }
                         }
+                        // A purchase made from inside this sheet swaps the
+                        // card; cross-fade it rather than cut.
+                        .transition(.opacity.combined(with: .scale(0.98)))
+                        .appAnimation(AppAnimation.springSmooth, value: storeService.isProUser)
+                        .sectionAppear(index: 1)
                     }
-                    // A purchase made from inside this sheet swaps the
-                    // card; cross-fade it rather than cut.
-                    .transition(.opacity.combined(with: .scale(0.98)))
-                    .appAnimation(AppAnimation.springSmooth, value: storeService.isProUser)
-                    .sectionAppear(index: 1)
 
                     // Earned Atlas Score — the rewards identity. Taps open
                     // the full progress view, where the achievement badges
                     // it sums up live.
-                    AtlasScoreCard(onTap: { showProgress = true })
+                    ProfileLevelCard(onTap: { showProgress = true })
                         .sectionAppear(index: 2)
-
-                    CycleCardShareSection()
-                        .scrollReveal()
 
                     GoalsSectionCard(
                         goalCatalog: goalCatalog,
@@ -80,8 +77,8 @@ struct ProfileView: View {
                     .scrollReveal()
 
                     BodyMetricsCard(
-                        metrics: dataStore.profile.bodyMetrics,
-                        onUpdate: { dataStore.updateBodyMetrics($0) }
+                        metrics: dataStore.currentBodyMetrics,
+                        onUpdate: { dataStore.saveEditedBodyMetrics($0) }
                     )
                     .scrollReveal()
 
@@ -101,16 +98,16 @@ struct ProfileView: View {
                     )
                     .scrollReveal()
 
-                    // The library and its calculator are one toolset, so they
-                    // sit together rather than a full section gap apart.
-                    VStack(spacing: Spacing.sm) {
-                        PeptideLibraryEntryCard()
-
-                        // The calculator only matters to someone running a protocol.
-                        if !dataStore.protocols.isEmpty {
-                            ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
-                        }
+                    // Protocol tools are secondary: one quiet row closes
+                    // the page and the tools sit a tap in. Reachable,
+                    // never promoted.
+                    NavigationLink {
+                        ProfileProtocolToolsView(dismissProfile: dismiss)
+                    } label: {
+                        GlassEntryRowLabel(icon: "flask.fill", title: "Protocols")
                     }
+                    .buttonStyle(.cardPress)
+                    .padding(.top, Spacing.lg)
                     .scrollReveal()
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -119,6 +116,7 @@ struct ProfileView: View {
             }
             .pageBackground()
             .navigationTitle("Profile")
+            .solidTopScrollEdge()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
@@ -144,9 +142,6 @@ struct ProfileView: View {
             .task(id: "\(dataStore.profile.healthConnected)-\(scenePhase)") {
                 guard dataStore.profile.healthConnected, scenePhase == .active else { return }
                 healthDataVisible = await HealthKitService.shared.hasReadableData(days: 30)
-            }
-            .sheet(isPresented: $showReconstitutionCalculator) {
-                ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
             }
             .sheet(isPresented: $showProfileCustomization) {
                 ProfileCustomizationSheet()
@@ -177,6 +172,41 @@ struct ProfileView: View {
             current.insert(goal)
         }
         dataStore.updateGoals(current)
+    }
+}
+
+/// The protocol tools behind Profile's one "Protocols" row: the
+/// Library, the reconstitution calculator and the cycle card share.
+private struct ProfileProtocolToolsView: View {
+    /// Profile's own dismiss: the Library opens only once the Profile
+    /// sheet is gone, and this pushed view's dismiss would only pop it.
+    let dismissProfile: DismissAction
+
+    @Environment(DataStore.self) private var dataStore
+    @State private var showReconstitutionCalculator = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: Spacing.sm) {
+                PeptideLibraryEntryCard(dismissProfile: dismissProfile)
+
+                // The calculator only matters to someone running a protocol.
+                if !dataStore.protocols.isEmpty {
+                    ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
+                }
+
+                CycleCardShareSection()
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.vertical, Spacing.lg)
+            .readableContentWidth()
+        }
+        .pageBackground()
+        .navigationTitle("Protocols")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showReconstitutionCalculator) {
+            ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
+        }
     }
 }
 

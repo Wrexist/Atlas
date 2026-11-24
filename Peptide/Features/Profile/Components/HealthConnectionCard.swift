@@ -42,12 +42,12 @@ struct HealthConnectionCard: View {
 
                     HStack(spacing: Spacing.xs) {
                         Circle()
-                            .fill(isConnected ? AppColor.accentPrimary : AppColor.textTertiary)
+                            .fill(statusDotColor)
                             .frame(width: 8, height: 8)
 
-                        Text(isConnected ? "Connected" : "Not Connected")
+                        Text(statusLabel)
                             .font(AppFont.caption2)
-                            .foregroundStyle(isConnected ? AppColor.accentLight : AppColor.textTertiary)
+                            .foregroundStyle(statusTextColor)
                     }
                 }
 
@@ -97,13 +97,13 @@ struct HealthConnectionCard: View {
                         }
                         syncToggle(
                             title: "Sync workouts, weight and water",
-                            detail: "Finished workouts, weigh-ins and water show up in the Health app, and weigh-ins from a smart scale come back to Atlas.",
+                            detail: "Workouts, weigh-ins and water, both ways.",
                             isOn: activitySyncEnabled,
                             onChange: onToggleActivitySync
                         )
                         syncToggle(
                             title: "Write meals to Apple Health",
-                            detail: "Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.",
+                            detail: "Calories and macros in Health's nutrition log.",
                             isOn: nutritionWriteEnabled,
                             onChange: onToggleNutritionWrite
                         )
@@ -122,6 +122,30 @@ struct HealthConnectionCard: View {
         .onChange(of: isConnected) { _, connected in
             if connected { Haptics.success() }
         }
+    }
+
+    /// Reading is the connection itself; the toggles below only add
+    /// writing, so the status names which directions are actually on.
+    private var statusLabel: LocalizedStringKey {
+        if !isConnected { return "Not Connected" }
+        if !healthDataVisible { return "No data" }
+        return activitySyncEnabled || nutritionWriteEnabled ? "Read & write" : "Read only"
+    }
+
+    private var statusIsLive: Bool { isConnected && healthDataVisible }
+
+    /// Green marks two-way sync only; reading alone is the neutral
+    /// baseline, not a success state.
+    private var statusIsWriting: Bool { statusIsLive && (activitySyncEnabled || nutritionWriteEnabled) }
+
+    private var statusDotColor: Color {
+        if statusIsWriting { return AppColor.accentPrimary }
+        return statusIsLive ? AppColor.textSecondary : AppColor.textTertiary
+    }
+
+    private var statusTextColor: Color {
+        if statusIsWriting { return AppColor.accentLight }
+        return statusIsLive ? AppColor.textSecondary : AppColor.textTertiary
     }
 
     private var noVisibleDataNotice: some View {
@@ -157,7 +181,8 @@ struct HealthConnectionCard: View {
                 Text(detail)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
         }
         .tint(AppColor.accentPrimary)

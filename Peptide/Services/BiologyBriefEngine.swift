@@ -28,7 +28,7 @@ enum BiologyBriefEngine {
             lines += drivers.map { "- " + driverLine($0, unit: unit) }
         }
         let present = Set(drivers.map(\.kind))
-        let missing = PerformanceAgeEngine.Driver.Kind.allCases.filter { !present.contains($0) }
+        let missing = BiologicalAgeEngine.Driver.Kind.allCases.filter { !present.contains($0) }
         if !missing.isEmpty {
             lines.append("Not available: " + missing.map(\.displayName).joined(separator: ", ") + ".")
         }
@@ -58,14 +58,14 @@ enum BiologyBriefEngine {
             let confidence = Int((estimate.confidence * 100).rounded())
             return "Biological Age: \(BioAgeFormat.age(estimate.biologicalAge)), chronological age \(age), confidence \(confidence)%."
         case .building(let days, _):
-            return "No Biological Age yet: \(days) of \(PerformanceAgeEngine.windowDays) days of heart and sleep data so far. Chronological age \(age)."
+            return "No Biological Age yet: \(days) of \(BiologicalAgeEngine.windowDays) days of heart and sleep data so far. Chronological age \(age)."
         case .locked, .needsAge:
             return "No Biological Age available."
         }
     }
 
     /// Oldest and newest weekly points, so "how has it moved" has an answer.
-    private static func trendLine(_ trend: [PerformanceAgeEngine.TrendPoint]) -> String? {
+    private static func trendLine(_ trend: [BiologicalAgeEngine.TrendPoint]) -> String? {
         guard trend.count > 1, let first = trend.first, let last = trend.last else { return nil }
         return "Trend: \(BioAgeFormat.age(first.biologicalAge)) on \(first.date.formatted(dayFormat)), "
             + "\(BioAgeFormat.age(last.biologicalAge)) on \(last.date.formatted(dayFormat))."
@@ -80,12 +80,12 @@ enum BiologyBriefEngine {
     /// The estimate's drivers once unlocked; while building, the same
     /// signals scored from the inputs, so the chat can still say what's
     /// there and what's missing.
-    private static func signals(_ resolved: BioAgeStateResolver.Resolved) -> [PerformanceAgeEngine.Driver] {
+    private static func signals(_ resolved: BioAgeStateResolver.Resolved) -> [BiologicalAgeEngine.Driver] {
         if case .unlocked(let estimate) = resolved.state { return estimate.drivers }
-        return resolved.inputs.map(PerformanceAgeEngine.drivers(for:)) ?? []
+        return resolved.inputs.map(BiologicalAgeEngine.drivers(for:)) ?? []
     }
 
-    private static func driverLine(_ driver: PerformanceAgeEngine.Driver, unit: MeasurementUnit) -> String {
+    private static func driverLine(_ driver: BiologicalAgeEngine.Driver, unit: MeasurementUnit) -> String {
         var line = driver.kind.displayName
         if let value = driver.value {
             line += ": " + driver.kind.formattedValue(value, unit: unit)

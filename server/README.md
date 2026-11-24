@@ -39,12 +39,12 @@ needed; the payload carries app/OS version, device model and call stacks
 only — no user identifier, no health data. Per-IP limit `CRASH_REPORT_RPM`
 (default 10), 256 KB body cap.
 
-meal-scan, food-scan, lab-scan, fridge-scan and ai-research share
-`_lib/anthropic-proxy.js` —
+meal-scan, food-scan, lab-scan, fridge-scan, ai-research and
+weekly-summary share `_lib/anthropic-proxy.js` —
 auth, App Attest gate, per-principal limits, body sanitisation, model
 allowlist, and the forward to `api.anthropic.com/v1/messages` live
-there. weekly-summary owns its prompt and upstream call but uses the
-same auth, App Attest gate and limiter.
+there. food-scan and weekly-summary build their whole upstream request
+server-side from a small app payload.
 
 ## Deploy
 
@@ -56,15 +56,13 @@ same auth, App Attest gate and limiter.
      `openssl rand -hex 32` is fine.
    - Optional:
      - `ALLOWED_MODELS` — comma-separated Anthropic model IDs.
-       Defaults to `claude-sonnet-5,claude-sonnet-4-6`.
+       Defaults to `claude-sonnet-5`.
        **If you set this, list every model the app sends.** The meal
-       scanner and ai-research ask for `claude-sonnet-5`; older app
-       builds' ai-research still asks for `claude-sonnet-4-6`.
-       (weekly-summary picks its own model server-side.) A model that
+       scanner and ai-research ask for `claude-sonnet-5`
+       (weekly-summary picks its own model server-side). A model that
        isn't on the list is rewritten to the first entry rather than
        rejected, so an incomplete list looks like it works and just
-       quietly serves the wrong model. Existing deployments pinned to
-       `claude-sonnet-4-6` keep scanning on 4.6 until this is updated.
+       quietly serves the wrong model.
      - `FOOD_SCAN_MODEL` — model for `/api/food-scan`. Default
        `claude-opus-5-5`. Not subject to `ALLOWED_MODELS`: the app
        never names a model on this route, the server picks it.
@@ -85,8 +83,7 @@ same auth, App Attest gate and limiter.
        Upstash Redis integration from the Vercel Marketplace and these
        are injected automatically; rate limits and the daily budget
        then hold across all instances instead of per warm lambda.
-       The legacy `KV_REST_API_URL` / `KV_REST_API_TOKEN` names work
-       too. Unset → per-instance in-memory limiting (the old behavior).
+       Unset → per-instance in-memory limiting (the old behavior).
      - `ANTHROPIC_DAILY_REQUEST_BUDGET` — hard cap on upstream
        Anthropic cost units per UTC day across **all** routes combined.
        Once spent, routes return 503 until midnight UTC. Unset → 20 000
@@ -343,8 +340,7 @@ Pro-only, as they are in the app (the Labs scanner, the research chat
 and Meals diet coach, and the Sunday recap), and use the same check
 without a free allowance: no `X-Atlas-Entitlement` that verifies means
 `403 { error: { code: "pro_required" } }` before any quota or budget is
-spent. All three share `passesProGate` in `_lib/anthropic-proxy.js`
-(weekly-summary builds its own request, so it calls it directly). The
+spent. All three pass `requirePro` to `forwardToAnthropic`. The
 app answers a refused research question with an "Atlas Pro" alert and a
 refused recap with its offline summary. The check needs no env vars in production — it pins
 Apple Root CA - G3 and defaults to `com.peptidesai.app` (leave

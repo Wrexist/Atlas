@@ -1,0 +1,239 @@
+import XCTest
+@testable import Peptide
+
+/// Covers the PR detection engine's per-exercise upserts and the
+/// bodyweight-reps track added to fix audit Train H3 (a session of
+/// all-zero-weight bodyweight reps used to produce no PRs because
+/// `bestE1RM > 0` and `bestAbs > 0` both failed for weightKg == 0).
+///
+/// The engine writes through `SwiftDataRepository.shared`, so setUp
+/// points it at an in-memory store and loads the exercise library the
+/// engine reads equipment from. Records for the exercises used here are
+/// scrubbed in both setUp and tearDown so tests don't see each other's.
+@MainActor
+final class PRDetectionServiceTests: XCTestCase {
+
+    private let testExerciseIDs: Set<String> = [
+        "Pushups", "Barbell_Bench_Press_-_Medium_Grip", "Barbell_Squat",
+    ]
+
+    override func setUp() async throws {
+        try await super.setUp()
+        SwiftDataRepository.shared.configureForTesting()
+        await ExerciseLibrary.shared.load()
+        scrubTestRecords()
+    }
+
+    override func tearDown() {
+        scrubTestRecords()
+        super.tearDown()
+    }
+
+    private func scrubTestRecords() {
+        let repo = SwiftDataRepository.shared
+        for id in testExerciseIDs {
+            repo.deletePersonalRecord(exerciseID: id)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func session(
+        exerciseID: String,
+        sets: [SetEntry],
+        finishedAt: Date = Date()
+    ) -> WorkoutSession {
+        WorkoutSession(
+            startedAt: finishedAt.addingTimeInterval(-3600),
+            finishedAt: finishedAt,
+            exercises: [
+                WorkoutExerciseEntry(
+                    exerciseID: exerciseID,
+                    index: 1,
+                    sets: sets
+                )
+            ]
+        )
+    }
+
+    private func completedSet(weightKg: Double, reps: Int) -> SetEntry {
+        SetEntry(
+            index: 1,
+            weightKg: weightKg,
+            reps: reps,
+            completed: true,
+            isWarmup: false,
+            completedAt: Date()
+        )
+    }
+
+    // MARK: - Bodyweight reps (Train H3 regression)
+
+    func test_bodyweightPushUps_recordRepsPR_evenAtWeightZero() {
+        _ = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Pushups",
+            sets: [completedSet(weightKg: 0, reps: 20)]
+        ))
+        let pushUps25 = completedSet(weightKg: 0, reps: 25)
+        let s = session(exerciseID: "Pushups", sets: [pushUps25])
+
+        let detections = PRDetectionService.shared.ingest(session: s)
+
+        XCTAssertTrue(
+            detections.contains { $0.kind == .bodyweightReps && $0.value == 25 },
+            "Expected a bodyweightReps PR for 25 push-ups; got \(detections)"
+        )
+    }
+
+    func test_firstEverLog_storesBaselineWithoutDetectingPRs() {
+        let detections = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
+            sets: [completedSet(weightKg: 60, reps: 8)]
+        ))
+        XCTAssertTrue(detections.isEmpty, "Nothing to beat yet; got \(detections)")
+        let record = SwiftDataRepository.shared.loadPersonalRecords()
+            .first { $0.exerciseID == "Barbell_Bench_Press_-_Medium_Grip" }
+        XCTAssertEqual(record?.bestAbsoluteWeightKg, 60)
+    }
+
+    func test_bodyweightPushUps_betterSecondSession_firesAgain() {
+        // 25 reps today
+        _ = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Pushups",
+            sets: [completedSet(weightKg: 0, reps: 25)]
+        ))
+        // 30 reps next session
+        let detections = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Pushups",
+            sets: [completedSet(weightKg: 0, reps: 30)]
+        ))
+        XCTAssertTrue(
+            detections.contains { $0.kind == .bodyweightReps && $0.value == 30 },
+            "Improving from 25 → 30 should fire a fresh bodyweightReps PR"
+        )
+    }
+
+    func test_bodyweightPushUps_sameReps_doesNotFireAgain() {
+        _ = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Pushups",
+            sets: [completedSet(weightKg: 0, reps: 25)]
+        ))
+        let detections = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Pushups",
+            sets: [completedSet(weightKg: 0, reps: 25)]
+        ))
+        XCTAssertFalse(
+            detections.contains { $0.kind == .bodyweightReps },
+            "Tying the previous bodyweight PR should not produce a new PR"
+        )
+    }
+
+    func test_loadedLiftAtZeroKg_doesNotRecordRepsPR() {
+        _ = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
+            sets: [completedSet(weightKg: 0, reps: 3)]
+        ))
+        let detections = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
+            sets: [completedSet(weightKg: 0, reps: 8)]
+        ))
+        XCTAssertFalse(
+            detections.contains { $0.kind == .bodyweightReps },
+            "A barbell set left at its seeded 0 kg isn't a bodyweight rep PR"
+        )
+    }
+
+    /// After a relaunch the custom lift must resolve from the library, or
+    /// the engine falls back to treating its unknown id as bodyweight.
+    func test_customLoadedLiftAtZeroKg_afterRelaunch_doesNotRecordRepsPR() async {
+        let repo = SwiftDataRepository.shared
+        let custom = CustomExercise(name: "Zqx Barbell Row", primaryMuscles: ["lats"], equipment: "barbell")
+        repo.upsertCustomExercise(custom)
+        defer {
+            repo.deleteCustomExercise(id: custom.id)
+            repo.deletePersonalRecord(exerciseID: custom.id)
+            ExerciseLibrary.shared.attachCustomExercises([])
+        }
+        ExerciseLibrary.shared.attachCustomExercises([])
+        ExerciseLibrary.shared.reset()
+        await ExerciseLibrary.shared.load()
+
+        _ = PRDetectionService.shared.ingest(session: session(
+            exerciseID: custom.id,
+            sets: [completedSet(weightKg: 0, reps: 3)]
+        ))
+        let detections = PRDetectionService.shared.ingest(session: session(
+            exerciseID: custom.id,
+            sets: [completedSet(weightKg: 0, reps: 8)]
+        ))
+
+        XCTAssertFalse(
+            detections.contains { $0.kind == .bodyweightReps },
+            "A custom barbell lift at 0 kg isn't a bodyweight rep PR"
+        )
+    }
+
+    // MARK: - Weighted PRs (smoke test for the existing tracks)
+
+    func test_weightedSquat_recordsAllThreeWeightedKinds() {
+        _ = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Barbell_Squat",
+            sets: [completedSet(weightKg: 90, reps: 5)]
+        ))
+        let topSet = completedSet(weightKg: 100, reps: 5)
+        let detections = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Barbell_Squat",
+            sets: [topSet]
+        ))
+        let kinds = Set(detections.map(\.kind))
+        XCTAssertTrue(kinds.contains(.absoluteWeight))
+        XCTAssertTrue(kinds.contains(.estimatedOneRepMax))
+        XCTAssertTrue(kinds.contains(.sessionVolume))
+        // No bodyweight track when the set carries a weight.
+        XCTAssertFalse(kinds.contains(.bodyweightReps))
+    }
+
+    func test_completedZeroRepSet_doesNotSetHeaviestPR() {
+        _ = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Barbell_Squat",
+            sets: [completedSet(weightKg: 90, reps: 5)]
+        ))
+        let detections = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Barbell_Squat",
+            sets: [completedSet(weightKg: 120, reps: 0), completedSet(weightKg: 90, reps: 5)]
+        ))
+        XCTAssertFalse(detections.map(\.kind).contains(.absoluteWeight),
+                       "A set with no reps lifted nothing, so it can't be the heaviest")
+    }
+
+    // MARK: - Ignored sets
+
+    func test_warmupSets_doNotProducePRs() {
+        let warmup = SetEntry(
+            index: 1,
+            weightKg: 0,
+            reps: 50,
+            completed: true,
+            isWarmup: true
+        )
+        let detections = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Pushups",
+            sets: [warmup]
+        ))
+        XCTAssertTrue(detections.isEmpty, "Warm-up sets must be ignored by PR detection")
+    }
+
+    func test_incompleteSets_doNotProducePRs() {
+        let incomplete = SetEntry(
+            index: 1,
+            weightKg: 0,
+            reps: 100,
+            completed: false
+        )
+        let detections = PRDetectionService.shared.ingest(session: session(
+            exerciseID: "Pushups",
+            sets: [incomplete]
+        ))
+        XCTAssertTrue(detections.isEmpty, "Incomplete sets must be ignored by PR detection")
+    }
+}

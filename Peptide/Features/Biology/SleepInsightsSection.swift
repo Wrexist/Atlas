@@ -14,7 +14,7 @@ struct SleepInsightsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            BiologySectionHeader(
+            HomeSectionHeader(
                 title: "Sleep",
                 subtitle: "Last \(insights.nightCount) nights from Apple Health"
             )

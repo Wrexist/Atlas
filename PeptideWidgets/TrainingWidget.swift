@@ -263,10 +263,11 @@ private struct SessionCount: View {
             .lineLimit(1)
     }
 
-    /// Inflected as one phrase so the noun agrees with the count in any
-    /// language, then the count itself set large in the training tint.
+    /// Days trained this week — the days-per-week goal's unit, so two
+    /// workouts on one day read as one — with the count set large in the
+    /// training tint. Plural forms come from the catalog.
     private var label: AttributedString {
-        var text = AttributedString(localized: "^[\(count) session](inflect: true)")
+        var text = AttributedString(localized: "\(count) days trained")
         if let number = text.range(of: count.formatted()) {
             text[number].font = .system(.largeTitle, design: .rounded, weight: .bold).monospacedDigit()
             text[number].foregroundColor = trainingTint
@@ -478,7 +479,7 @@ private struct CircularTrainingView: View {
                     Text("\(entry.workoutsThisWeek)")
                         .font(.system(.title3, design: .rounded, weight: .bold))
                         .contentTransition(.numericText(value: Double(entry.workoutsThisWeek)))
-                        .accessibilityLabel(Text("\(entry.workoutsThisWeek) workouts this week"))
+                        .accessibilityLabel(Text("\(entry.workoutsThisWeek) days trained this week"))
                 }
             }
             .widgetAccentable()
@@ -499,7 +500,7 @@ private struct RectangularTrainingView: View {
             if entry.isActive {
                 WorkoutClock(entry: entry, font: .headline)
             } else {
-                Text("^[\(entry.workoutsThisWeek) session](inflect: true)")
+                Text("\(entry.workoutsThisWeek) days trained")
                     .font(.headline)
                 WeekStrip(days: entry.week, showsLetters: false, dot: 8)
             }
@@ -528,7 +529,7 @@ private struct InlineTrainingView: View {
                 Image(systemName: trainingGlyph)
             }
         } else {
-            Label("^[\(entry.workoutsThisWeek) session](inflect: true) this week", systemImage: trainingGlyph)
+            Label("\(entry.workoutsThisWeek) days trained this week", systemImage: trainingGlyph)
         }
     }
 }

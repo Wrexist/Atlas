@@ -212,6 +212,17 @@ final class TrainingStorageTests: XCTestCase {
 
     // MARK: - Rows CloudKit duplicated
 
+    func test_workoutSessionCount_twinRowsAndActiveSession_countsFinishedOnce() throws {
+        let finished = makeSession()
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(try StoredWorkoutSession.make(from: finished))
+        context.insert(try StoredWorkoutSession.make(from: finished))
+        try context.save()
+        repo.upsertWorkoutSession(WorkoutSession(name: "Active", startedAt: Date(), finishedAt: nil, exercises: []))
+
+        XCTAssertEqual(repo.workoutSessionCount(), 1)
+    }
+
     func test_upsertWorkoutSession_withDuplicateStoredRows_updatesEveryRowAndLoadsOne() throws {
         var session = makeSession()
         let context = try XCTUnwrap(repo.contextForTesting)
@@ -440,7 +451,7 @@ final class TrainingStorageTests: XCTestCase {
             ]
         )
 
-        let detected = PRDetectionEngine.shared.ingest(session: session)
+        let detected = PRDetectionService.shared.ingest(session: session)
 
         XCTAssertTrue(detected.isEmpty, "A first volume is a baseline and no merged best was beaten")
         let loaded = repo.loadPersonalRecords()

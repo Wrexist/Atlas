@@ -15,7 +15,7 @@ struct HealthJournalCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
-                BiologySectionHeader(title: "Journal", subtitle: "How are you feeling today?")
+                HomeSectionHeader(title: "Journal", subtitle: "How are you feeling today?")
                 if !store.entries.isEmpty {
                     Button("See all") { showHistory = true }
                         .font(AppFont.subheadline)
@@ -72,14 +72,18 @@ struct HealthJournalCard: View {
                     }
                 } label: {
                     VStack(spacing: Spacing.xs) {
+                        // Today's pick is the one filled disc, in the
+                        // page's accent: the label names the mood, so a
+                        // hue per mood would only add a palette.
                         Image(systemName: mood.icon)
                             .font(AppFont.scaled(20, weight: .semibold))
                             .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(selected ? mood.tint : AppColor.textTertiary)
+                            .foregroundStyle(selected ? AppColor.onAccent : AppColor.textSecondary)
                             .frame(width: 44, height: 44)
                             .background {
-                                Circle().fill(selected ? mood.tint.opacity(0.18) : AppColor.surfaceSecondary.opacity(0.5))
+                                Circle().fill(selected ? AppColor.accentFill : AppColor.surfaceSecondary.opacity(0.5))
                             }
+                            .scaleEffect(selected ? 1.08 : 1)
                         Text(mood.label)
                             .font(AppFont.scaled(11, weight: selected ? .semibold : .regular))
                             .foregroundStyle(selected ? AppColor.textPrimary : AppColor.textSecondary)

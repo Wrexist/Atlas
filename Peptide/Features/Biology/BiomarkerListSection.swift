@@ -2,7 +2,9 @@ import SwiftUI
 
 /// "Biomarkers" on the Biology tab. Section header with an Edit
 /// affordance; below it, one `BiomarkerTile` per visible biomarker in
-/// the user's curated order, two small cards to a row.
+/// the user's curated order, two small cards to a row. Wearable
+/// biomarkers with no data yet sit under the cards as compact, dimmed
+/// tiles, or as one line when they all wait for the same thing.
 ///
 /// Loads snapshots async via `BiomarkerSeriesService` so the view
 /// body stays synchronous. Refreshes on appear + when the user
@@ -11,6 +13,7 @@ import SwiftUI
 /// and HealthKit reads cost main-thread time).
 struct BiomarkerListSection: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// Which biomarkers to render, in order, from the user's
     /// `BiologyConfig`.
@@ -31,7 +34,7 @@ struct BiomarkerListSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
-                BiologySectionHeader(title: "Biomarkers")
+                HomeSectionHeader(title: "Biomarkers")
                 if onEditTapped != nil {
                     Button {
                         onEditTapped?()
@@ -57,14 +60,21 @@ struct BiomarkerListSection: View {
             if visibleBiomarkers.isEmpty {
                 emptyState
             } else if isLoading {
-                rows
+                rows(visibleBiomarkers)
                     .redacted(reason: .placeholder)
                     .shimmer()
                     .allowsHitTesting(false)
                     .transition(.opacity)
             } else {
-                rows
-                    .transition(.opacity)
+                let split = Biomarker.splitAwaitingWearable(visibleBiomarkers) { snapshot(for: $0).latest != nil }
+                if !split.tiles.isEmpty {
+                    rows(split.tiles)
+                        .transition(.opacity)
+                }
+                if !split.awaitingWearable.isEmpty {
+                    awaitingWearableTiles(split.awaitingWearable)
+                        .transition(.opacity)
+                }
             }
         }
         // Keyed on every input the snapshots read, compared by value: a
@@ -81,16 +91,81 @@ struct BiomarkerListSection: View {
         }
     }
 
-    private var rows: some View {
-        let layout = BiomarkerTileSize.rows(for: visibleBiomarkers, sizes: tileSizes)
+    /// One calm line when every waiting metric waits for the same thing;
+    /// identical ghost tiles in a row only repeated it. Per-tile ghosts
+    /// stay when the reasons differ.
+    @ViewBuilder
+    private func awaitingWearableTiles(_ biomarkers: [Biomarker]) -> some View {
+        let reasons = Set(biomarkers.map { awaitingReason(for: $0) })
+        if biomarkers.count > 1, reasons.count == 1, let reason = reasons.first {
+            awaitingSummary(biomarkers, reason: reason)
+        } else {
+            awaitingGrid(biomarkers)
+        }
+    }
+
+    private func awaitingSummary(_ biomarkers: [Biomarker], reason: AwaitingReason) -> some View {
+        let names = biomarkers.map(\.shortName).formatted(.list(type: .and))
+        return HStack(alignment: .top, spacing: Spacing.sm) {
+            Image(systemName: reason == .needsWatch ? "applewatch" : "heart.text.square")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textTertiary)
+                .accessibilityHidden(true)
+            Text(reason == .needsWatch
+                ? String(localized: "\(names) appear here once data arrives.")
+                : String(localized: "\(names) appear here once Apple Health is connected."))
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.md)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Three to a row; one per row at accessibility sizes, where a
+    /// third of the width can't hold the name.
+    private func awaitingGrid(_ biomarkers: [Biomarker]) -> some View {
+        let columnCount = dynamicTypeSize.isAccessibilitySize ? 1 : 3
+        let columns = Array(repeating: GridItem(.flexible(), spacing: Spacing.sm), count: columnCount)
+        return LazyVGrid(columns: columns, spacing: Spacing.sm) {
+            ForEach(biomarkers, id: \.self) { biomarker in
+                AwaitingBiomarkerTile(
+                    biomarker: biomarker,
+                    caption: awaitingReason(for: biomarker) == .needsWatch
+                        ? String(localized: "Needs Watch")
+                        : String(localized: "No data yet"),
+                    onTap: { onSelectBiomarker?(.empty(biomarker)) }
+                )
+            }
+        }
+    }
+
+    private enum AwaitingReason: Hashable {
+        case needsWatch
+        case noData
+    }
+
+    /// Steps also come from the iPhone, so only the Watch-only metrics
+    /// say they need one.
+    private func awaitingReason(for biomarker: Biomarker) -> AwaitingReason {
+        dataStore.profile.healthConnected && biomarker != .stepsBaseline ? .needsWatch : .noData
+    }
+
+    private func rows(_ biomarkers: [Biomarker]) -> some View {
+        let layout = BiomarkerTileSize.rows(for: biomarkers, sizes: tileSizes)
         return VStack(spacing: Spacing.sm) {
             ForEach(Array(layout.enumerated()), id: \.element) { index, row in
                 HStack(alignment: .top, spacing: Spacing.sm) {
                     ForEach(row, id: \.self) { biomarker in
                         tile(for: biomarker)
                     }
-                    // A small card without a partner keeps its half.
-                    if row.count == 1, tileSize(for: row[0]) == .small {
+                    // A small card without a partner keeps its half, so
+                    // the column lines up with the pairs above it. Alone
+                    // in the section there is no column to keep, and the
+                    // empty half read as a missing card.
+                    if row.count == 1, layout.count > 1, tileSize(for: row[0]) == .small {
                         Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
                     }
                 }

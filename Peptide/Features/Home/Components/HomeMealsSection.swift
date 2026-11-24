@@ -147,9 +147,13 @@ struct HomeMealsSection: View {
             )
             .scrollReveal()
 
-            if !dayEntries.isEmpty {
+            // Only once a logged food carries label data: a card of
+            // "Unavailable" rows answers nothing.
+            if DailyMealNutrientsCard.hasData(dayEntries) {
                 DailyMealNutrientsCard(entries: dayEntries, fiberTargetG: dataStore.profile.nutritionTargets?.fiberG)
                     .scrollReveal()
+            }
+            if DailyMicronutrientsCard.hasData(dayEntries) {
                 DailyMicronutrientsCard(entries: dayEntries)
                     .scrollReveal()
             }
@@ -209,8 +213,9 @@ struct HomeMealsSection: View {
                 bodyMetrics: dataStore.currentBodyMetrics,
                 goalRaw: dataStore.profile.primaryGoal,
                 expenditure: dataStore.expenditureEstimate(),
-                onSave: { targets in
-                    dataStore.updateNutritionTargets(targets)
+                adaptiveEnabled: dataStore.adaptiveTargetsSetting.isEnabled,
+                onSave: { targets, adaptive in
+                    dataStore.updateNutritionTargets(targets, adaptive: adaptive)
                     showTargetsEditor = false
                 },
                 onCancel: { showTargetsEditor = false }
@@ -401,7 +406,7 @@ struct HomeMealsSection: View {
             Button { showTargetsEditor = true } label: {
                 Label("Edit targets", systemImage: "slider.horizontal.3")
                     .font(AppFont.footnote.weight(.semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentPrimary)
                     .minimumHitArea()
             }
             .buttonStyle(ScalePressStyle())

@@ -35,8 +35,6 @@ function setEnv(t, vars) {
 const NO_REDIS = {
   UPSTASH_REDIS_REST_URL: undefined,
   UPSTASH_REDIS_REST_TOKEN: undefined,
-  KV_REST_API_URL: undefined,
-  KV_REST_API_TOKEN: undefined,
 };
 
 function stubFetch(t, impl) {

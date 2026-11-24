@@ -61,6 +61,26 @@
         }
       }
     },
+    "%@ appear here once Apple Health is connected.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ visas här när Apple Hälsa är ansluten."
+          }
+        }
+      }
+    },
+    "%@ appear here once data arrives.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ visas här när data kommer in."
+          }
+        }
+      }
+    },
     "%@ kcal": {
       "localizations": {
         "sv": {
@@ -97,6 +117,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ ± %2$@"
+          }
+        }
+      }
+    },
+    "%@ — your week in one recap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — din vecka i en sammanfattning"
           }
         }
       }
@@ -1398,16 +1428,6 @@
         }
       }
     },
-    "%@ — a recap of your training, nutrition and recovery.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ – en sammanfattning av din träning, kost och återhämtning."
-          }
-        }
-      }
-    },
     "%@ — cancel any time.": {
       "localizations": {
         "sv": {
@@ -1478,12 +1498,12 @@
         }
       }
     },
-    "%@%lld sessions this week — %@.": {
+    "%@%lld sessions in the last 7 days — %@.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@%#@arg2@ den här veckan – %3$@."
+            "value": "%1$@%#@arg2@ de senaste 7 dagarna – %3$@."
           },
           "substitutions": {
             "arg2": {
@@ -1511,7 +1531,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@%#@arg2@ this week — %3$@."
+            "value": "%1$@%#@arg2@ in the last 7 days — %3$@."
           },
           "substitutions": {
             "arg2": {
@@ -4053,6 +4073,16 @@
         }
       }
     },
+    "%lld pts · %lld to level %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld p · %2$lld till nivå %3$lld"
+          }
+        }
+      }
+    },
     "%lld reminders couldn't be scheduled": {
       "localizations": {
         "sv": {
@@ -4148,46 +4178,6 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld reps"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld research pairings": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld forskningskombination"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld forskningskombinationer"
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld research pairing"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld research pairings"
                 }
               }
             }
@@ -6178,6 +6168,16 @@
         }
       }
     },
+    "Add Steps, Your day and more with Edit Today.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till Steg, Din dag och mer med Redigera Idag."
+          }
+        }
+      }
+    },
     "Add a note about today": {
       "localizations": {
         "sv": {
@@ -6204,6 +6204,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lägg till resultat under Labbvärden"
+          }
+        }
+      }
+    },
+    "Add supplements": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till tillskott"
           }
         }
       }
@@ -6384,6 +6394,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Usel"
+          }
+        }
+      }
+    },
+    "Batch-cook for the week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matlådor för veckan"
           }
         }
       }
@@ -6588,6 +6608,26 @@
         }
       }
     },
+    "Calories and macros in Health's nutrition log.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalorier och makron i Hälsas näringslogg."
+          }
+        }
+      }
+    },
+    "Check Health access": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontrollera Hälsa-åtkomst"
+          }
+        }
+      }
+    },
     "CJC-1295 (GHRH analog) activates cAMP/PKA via the GHRH receptor while Ipamorelin (GHS-R agonist) activates phospholipase C via the ghrelin receptor. Different receptors produce synergistic GH release 2-3x greater than either alone.": {
       "localizations": {
         "sv": {
@@ -6668,6 +6708,16 @@
         }
       }
     },
+    "Connect Apple Health so Atlas can read your heart rate, HRV and sleep.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anslut Apple Hälsa så att Atlas kan läsa av din puls, HRV och sömn."
+          }
+        }
+      }
+    },
     "Connect Apple Health to fill this in": {
       "localizations": {
         "sv": {
@@ -6684,6 +6734,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kontinuerlig oral GHS-R-aktivering leder till gradvis nedreglering"
+          }
+        }
+      }
+    },
+    "Cook from what you have": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laga av det du har"
           }
         }
       }
@@ -6779,12 +6839,32 @@
         }
       }
     },
-    "DAYS PER WEEK": {
+    "Crash details only — never health data": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "DAGAR PER VECKA"
+            "value": "Bara kraschdetaljer – aldrig hälsodata"
+          }
+        }
+      }
+    },
+    "Creatine, vitamin D, omega-3 — one check a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kreatin, D-vitamin, omega-3 – en bock om dagen"
+          }
+        }
+      }
+    },
+    "Daily goals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagens mål"
           }
         }
       }
@@ -6839,22 +6919,12 @@
         }
       }
     },
-    "EQUIPMENT": {
+    "Edit goals": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "UTRUSTNING"
-          }
-        }
-      }
-    },
-    "EXPERIENCE": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ERFARENHET"
+            "value": "Redigera mål"
           }
         }
       }
@@ -6885,6 +6955,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fastande mage krävs. 30 min före sänggåendet eller vid uppvaknandet"
+          }
+        }
+      }
+    },
+    "Empty weight of each bar": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varje stångs vikt utan skivor"
           }
         }
       }
@@ -6975,6 +7055,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kväll/före sänggåendet för att stödja melatoninreglering och dygnsrytm"
+          }
+        }
+      }
+    },
+    "Every day — set days in your plan": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varje dag – välj dagar i din plan"
+          }
+        }
+      }
+    },
+    "Export one section": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportera en del"
           }
         }
       }
@@ -7151,16 +7251,6 @@
         }
       }
     },
-    "GOAL": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "MÅL"
-          }
-        }
-      }
-    },
     "Ghrelin receptor downregulation reduces GH response": {
       "localizations": {
         "sv": {
@@ -7207,6 +7297,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Toppen"
+          }
+        }
+      }
+    },
+    "Grows with every day you log.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Växer för varje dag du loggar."
+          }
+        }
+      }
+    },
+    "Gym equipment": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gymutrustning"
           }
         }
       }
@@ -7393,6 +7503,16 @@
         }
       }
     },
+    "Log your weight from the notification": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga din vikt direkt från aviseringen"
+          }
+        }
+      }
+    },
     "Logged %@.": {
       "comment": "Siri confirmation after logging a body weight, e.g. “Logged 82.4 kg.”",
       "localizations": {
@@ -7414,22 +7534,22 @@
         }
       }
     },
-    "MINUTES": {
+    "Meals for today's targets": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "MINUTER"
+            "value": "Måltider för dagens mål"
           }
         }
       }
     },
-    "MINUTES PER SESSION": {
+    "Minutes per session": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "MINUTER PER PASS"
+            "value": "Minuter per pass"
           }
         }
       }
@@ -7564,6 +7684,16 @@
         }
       }
     },
+    "Needs Watch": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver Watch"
+          }
+        }
+      }
+    },
     "Needs rest": {
       "localizations": {
         "sv": {
@@ -7600,6 +7730,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Neutral vid %lld mg/dL"
+          }
+        }
+      }
+    },
+    "Next day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa dag"
           }
         }
       }
@@ -7724,22 +7864,22 @@
         }
       }
     },
+    "Opens Settings, where Atlas's Apple Health access is set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Inställningar, där Atlas åtkomst till Apple Hälsa ställs in"
+          }
+        }
+      }
+    },
     "Opens the chart": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Öppnar grafen"
-          }
-        }
-      }
-    },
-    "Opens the dose log": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öppnar dosloggen"
           }
         }
       }
@@ -7814,6 +7954,26 @@
         }
       }
     },
+    "Pick what you're working toward.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj vad du siktar mot."
+          }
+        }
+      }
+    },
+    "Plates and bar weights": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viktskivor och stångvikter"
+          }
+        }
+      }
+    },
     "Post-workout": {
       "localizations": {
         "sv": {
@@ -7874,6 +8034,16 @@
         }
       }
     },
+    "Previous day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föregående dag"
+          }
+        }
+      }
+    },
     "Prolonged IGF-1 elevation risks insulin resistance and organ growth": {
       "localizations": {
         "sv": {
@@ -7904,6 +8074,36 @@
         }
       }
     },
+    "Read & write": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läsning och skrivning"
+          }
+        }
+      }
+    },
+    "Read full recap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läs hela sammanfattningen"
+          }
+        }
+      }
+    },
+    "Read only": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endast läsning"
+          }
+        }
+      }
+    },
     "Redundant GHS-R1a activation. Both have unfavorable side effect profiles (cortisol, prolactin). Combining them worsens these without proportional efficacy gain.": {
       "localizations": {
         "sv": {
@@ -7930,6 +8130,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Retatrutide är en trippelagonist (GLP-1/GIP/glukagon). Att lägga till semaglutide dubblerar GLP-1-aktiveringen och förstärker mag-tarmbiverkningar utan påvisad additiv nytta."
+          }
+        }
+      }
+    },
+    "Review your week with AI": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gå igenom veckan med AI"
           }
         }
       }
@@ -8045,6 +8255,16 @@
         }
       }
     },
+    "Small wins, every day. Watch your streak — and your Atlas Score — climb.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Små vinster, varje dag. Se din svit – och din Atlas-poäng – klättra."
+          }
+        }
+      }
+    },
     "Strong appetite stimulation — time around meals if desired": {
       "localizations": {
         "sv": {
@@ -8081,6 +8301,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Subkutant. Flexibel tidpunkt för immunmodulering"
+          }
+        }
+      }
+    },
+    "Suggest the weight and reps to beat": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föreslå vikten och repsen att slå"
           }
         }
       }
@@ -8125,6 +8355,16 @@
         }
       }
     },
+    "The plate calculator loads only these": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viktskivekalkylatorn använder bara dessa"
+          }
+        }
+      }
+    },
     "The Wolverine combination (BPC-157 + TB-500) for tissue repair, GHK-Cu for collagen remodeling, Ipamorelin for GH-mediated protein synthesis. Covers inflammation, cell migration, extracellular matrix rebuilding, and systemic recovery.": {
       "localizations": {
         "sv": {
@@ -8161,6 +8401,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vävnadsreparation (flera vägar)"
+          }
+        }
+      }
+    },
+    "Training days this week, %lld of %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningsdagar den här veckan, %lld av %lld"
           }
         }
       }
@@ -8271,6 +8521,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mycket kortverkande — använd kring träningen för akuta pulser"
+          }
+        }
+      }
+    },
+    "Workouts, weigh-ins and water, both ways.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pass, vägningar och vatten, åt båda hållen."
           }
         }
       }
@@ -8555,6 +8815,16 @@
         }
       }
     },
+    "Start small — pick one below or make your own.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börja smått – välj en nedan eller skapa en egen."
+          }
+        }
+      }
+    },
     "Started a %lld-hour fast. You'll reach your goal at %@.": {
       "comment": "Siri confirmation after starting a fast. Values: target length in hours, clock time the goal is reached.",
       "localizations": {
@@ -8602,16 +8872,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Systoliskt"
-          }
-        }
-      }
-    },
-    "TRAIN WITH IT": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TRÄNA MED"
           }
         }
       }
@@ -8726,6 +8986,16 @@
         }
       }
     },
+    "Wear Apple Watch overnight. Atlas reads your heart rate, HRV and sleep.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bär Apple Watch över natten. Atlas läser av din puls, HRV och sömn."
+          }
+        }
+      }
+    },
     "Weekly volume": {
       "localizations": {
         "sv": {
@@ -8786,6 +9056,16 @@
         }
       }
     },
+    "Written on this device — nothing is sent": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skrivs på enheten – inget skickas"
+          }
+        }
+      }
+    },
     "You don't have a fast running.": {
       "comment": "Siri response to “End fast” when no fast is open.",
       "localizations": {
@@ -8814,6 +9094,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina åldersfaktorer"
+          }
+        }
+      }
+    },
+    "Your current data is copied first": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina nuvarande data kopieras först"
           }
         }
       }
@@ -8914,6 +9204,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina sovtider varierar med upp till en timme. Jämnare tider hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Your week fills in as you train.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckan fylls i när du tränar."
           }
         }
       }
@@ -9039,16 +9339,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "En egen Insikter-flik för trender"
-          }
-        }
-      }
-    },
-    "A friend": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En vän"
           }
         }
       }
@@ -9429,16 +9719,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Atlas ser ingen data från Hälsa. Kontrollera att Atlas har läsåtkomst i Inställningar › Hälsa › Dataåtkomst och enheter › Atlas."
-          }
-        }
-      }
-    },
-    "Atlas can't see any heart or sleep data. Check that Atlas has read access in the Health app, and wear Apple Watch overnight.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Atlas ser ingen hjärt- eller sömndata. Kontrollera att Atlas har läsbehörighet i appen Hälsa och bär Apple Watch över natten."
           }
         }
       }
@@ -9899,6 +10179,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lägg till övning"
+          }
+        }
+      }
+    },
+    "Add exercises as you go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till övningar medan du tränar"
           }
         }
       }
@@ -10443,16 +10733,6 @@
         }
       }
     },
-    "All doses completed for today": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alla doser tagna för idag"
-          }
-        }
-      }
-    },
     "All exercises": {
       "localizations": {
         "sv": {
@@ -10769,16 +11049,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "När som helst"
-          }
-        }
-      }
-    },
-    "App Store": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App Store"
           }
         }
       }
@@ -12699,16 +12969,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Byggd på livsmedel du har loggat eller sparat. Allmän vägledning, inte medicinska eller dietistråd."
-          }
-        }
-      }
-    },
-    "By section": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Per sektion"
           }
         }
       }
@@ -14803,16 +15063,6 @@
         }
       }
     },
-    "When Atlas crashes or freezes, send the technical report so it can be fixed: app version, device model and where in the code it happened. No health data, nothing that identifies you.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "När Atlas kraschar eller fryser skickas den tekniska rapporten så att felet kan rättas: appversion, enhetsmodell och var i koden det hände. Inga hälsodata, inget som identifierar dig."
-          }
-        }
-      }
-    },
     "You're all set, %@.": {
       "localizations": {
         "sv": {
@@ -15505,16 +15755,6 @@
         }
       }
     },
-    "Connected": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ansluten"
-          }
-        }
-      }
-    },
     "Connecting…": {
       "localizations": {
         "sv": {
@@ -15623,16 +15863,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Konsekvent"
-          }
-        }
-      }
-    },
-    "Contact Support": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kontakta support"
           }
         }
       }
@@ -17017,6 +17247,16 @@
         }
       }
     },
+    "Data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data"
+          }
+        }
+      }
+    },
     "Data Driven": {
       "localizations": {
         "sv": {
@@ -17573,16 +17813,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Diagnostisk"
-          }
-        }
-      }
-    },
-    "Diagnostics": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diagnostik"
           }
         }
       }
@@ -18957,16 +19187,6 @@
         }
       }
     },
-    "Every day — pick training days in your plan": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Varje dag – välj träningsdagar i din plan"
-          }
-        }
-      }
-    },
     "Every dose now gets a Live Activity 30 minutes before it's due. Tap Log right from the lock screen — no unlock, no app launch.": {
       "localizations": {
         "sv": {
@@ -19723,16 +19943,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avslutade cykler"
-          }
-        }
-      }
-    },
-    "Finished workouts, weigh-ins and water show up in the Health app, and weigh-ins from a smart scale come back to Atlas.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avslutade pass, vägningar och vatten visas i appen Hälsa, och vägningar från en smart våg kommer tillbaka till Atlas."
           }
         }
       }
@@ -22435,12 +22645,12 @@
         }
       }
     },
-    "LAST NIGHT": {
+    "Last night": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "I NATT"
+            "value": "I natt"
           }
         }
       }
@@ -22881,16 +23091,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nivå %lld · %@"
-          }
-        }
-      }
-    },
-    "Level %lld · %lld pts": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nivå %lld · %lld p"
           }
         }
       }
@@ -23773,16 +23973,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Loggad kl."
-          }
-        }
-      }
-    },
-    "Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Loggade kalorier, protein, kolhydrater och fett visas i kosttidslinjen i appen Hälsa."
           }
         }
       }
@@ -25699,16 +25889,6 @@
         }
       }
     },
-    "Next dose: %@, %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nästa dos: %@, %@ kl. %@"
-          }
-        }
-      }
-    },
     "Next exercise": {
       "localizations": {
         "sv": {
@@ -25765,16 +25945,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nästa: %@ kl. %@. Håll jämn takt."
-          }
-        }
-      }
-    },
-    "Next: %@ • %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nästa: %@ • %@"
           }
         }
       }
@@ -26151,16 +26321,6 @@
         }
       }
     },
-    "No entries": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inga poster"
-          }
-        }
-      }
-    },
     "No entries yet": {
       "localizations": {
         "sv": {
@@ -26461,16 +26621,6 @@
         }
       }
     },
-    "No reports captured yet — appears after first crash or hang.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inga rapporter än – visas efter första kraschen eller hänget."
-          }
-        }
-      }
-    },
     "No reports yet": {
       "localizations": {
         "sv": {
@@ -26497,16 +26647,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inga rutiner än"
-          }
-        }
-      }
-    },
-    "No sessions yet": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inga pass än"
           }
         }
       }
@@ -26993,16 +27133,6 @@
         }
       }
     },
-    "Often researched with %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Studeras ofta tillsammans med %@"
-          }
-        }
-      }
-    },
     "Often rotated with %@. Discuss changes with a qualified clinician.": {
       "localizations": {
         "sv": {
@@ -27329,16 +27459,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vid uppvaknandet, fastande"
-          }
-        }
-      }
-    },
-    "On — every tab shows demo data. Toggle off to restore your real protocols.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "På – alla flikar visar demodata. Stäng av för att få tillbaka dina riktiga protokoll."
           }
         }
       }
@@ -28201,16 +28321,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Valfritt – vi använder det för att anpassa din översikt"
-          }
-        }
-      }
-    },
-    "Optional.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Valfritt."
           }
         }
       }
@@ -29119,16 +29229,6 @@
         }
       }
     },
-    "Pick something small — 10 push-ups, 5 minutes of stretching, a glass of water. Consistency compounds.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Välj något litet – 10 armhävningar, 5 minuters stretching, ett glas vatten. Kontinuitet ger ränta på ränta."
-          }
-        }
-      }
-    },
     "Pick the biomarkers you care about": {
       "localizations": {
         "sv": {
@@ -29335,16 +29435,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plus allt från 2.0"
-          }
-        }
-      }
-    },
-    "Podcast": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Podd"
           }
         }
       }
@@ -30571,26 +30661,6 @@
         }
       }
     },
-    "Rate Atlas": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Betygsätt Atlas"
-          }
-        }
-      }
-    },
-    "Re-import a previously-exported JSON backup. A safety copy of your current data is saved on this device first.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importera en tidigare exporterad JSON-säkerhetskopia. En säkerhetskopia av dina nuvarande data sparas först på enheten."
-          }
-        }
-      }
-    },
     "Reach the app without opening it": {
       "localizations": {
         "sv": {
@@ -30617,16 +30687,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avläst från förpackningen av Atlas AI"
-          }
-        }
-      }
-    },
-    "Read full recap": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Läs hela sammanfattningen"
           }
         }
       }
@@ -31181,16 +31241,6 @@
         }
       }
     },
-    "Reddit": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reddit"
-          }
-        }
-      }
-    },
     "Redeem code": {
       "localizations": {
         "sv": {
@@ -31681,16 +31731,6 @@
         }
       }
     },
-    "Replace every tab with polished demo data for App Store screenshots. Your real data stays safe.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ersätt alla flikar med snygga demodata för skärmdumpar till App Store. Dina riktiga data är i säkerhet."
-          }
-        }
-      }
-    },
     "Replace food": {
       "localizations": {
         "sv": {
@@ -31711,42 +31751,12 @@
         }
       }
     },
-    "Replaces every tab with polished demo data so you can capture App Store screenshots. Your real protocols, labs, and meals stay safe on disk — toggle off any time to bring them back.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ersätter alla flikar med snygga demodata så att du kan ta skärmdumpar till App Store. Dina riktiga protokoll, labbvärden och måltider ligger kvar på disken – stäng av när du vill för att få tillbaka dem."
-          }
-        }
-      }
-    },
     "Replay": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Spela igen"
-          }
-        }
-      }
-    },
-    "Replay What's New tour": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visa nyhetsrundturen igen"
-          }
-        }
-      }
-    },
-    "Reply with your weight right from the notification": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Svara med din vikt direkt från aviseringen"
           }
         }
       }
@@ -32628,16 +32638,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "SHBG"
-          }
-        }
-      }
-    },
-    "Short workout and coaching recaps written by Apple Intelligence on this device. Nothing is sent anywhere.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Korta tränings- och coachningssammanfattningar skrivna av Apple Intelligence på den här enheten. Inget skickas någonstans."
           }
         }
       }
@@ -34053,46 +34053,6 @@
         }
       }
     },
-    "Show %lld more time slots": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Visa %lld tidsfönster till"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Visa %lld tidsfönster till"
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Show %lld more time slot"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Show %lld more time slots"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "Show ^[%lld exercise](inflect: true)": {
       "localizations": {
         "sv": {
@@ -34153,26 +34113,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Visa alla (%lld)"
-          }
-        }
-      }
-    },
-    "Show demo data": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visa demodata"
-          }
-        }
-      }
-    },
-    "Show demo data?": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Visa demodata?"
           }
         }
       }
@@ -34573,16 +34513,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sov"
-          }
-        }
-      }
-    },
-    "Small wins, every day. Watch your streak — and your Atlas Score — climb.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Små vinster, varje dag. Se din svit – och din Atlas-poäng – klättra."
           }
         }
       }
@@ -35005,26 +34935,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Starta ett pass"
-          }
-        }
-      }
-    },
-    "Start a workout or pick a routine — it'll land here.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Starta ett pass eller välj en rutin – det hamnar här."
-          }
-        }
-      }
-    },
-    "Start each exercise at the weight and reps to beat": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Börja varje övning på vikten och reps att slå"
           }
         }
       }
@@ -36077,16 +35987,6 @@
         }
       }
     },
-    "TODAY'S DOSES": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DAGENS DOSER"
-          }
-        }
-      }
-    },
     "Today's training": {
       "localizations": {
         "sv": {
@@ -36935,16 +36835,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fotot av förpackningen som du tar eller väljer."
-          }
-        }
-      }
-    },
-    "The plate calculator and barbell jumps use these": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Viktskivekalkylatorn och skivstångsstegen använder dessa"
           }
         }
       }
@@ -39241,16 +39131,6 @@
         }
       }
     },
-    "Usually taken: %@.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tas vanligtvis: %@."
-          }
-        }
-      }
-    },
     "Values are converted to the unit Atlas charts. Compare each one with your report before saving.": {
       "localizations": {
         "sv": {
@@ -39723,22 +39603,12 @@
         }
       }
     },
-    "WHAT'S DRIVING IT": {
+    "Why it matters": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "VAD SOM DRIVER DET"
-          }
-        }
-      }
-    },
-    "WHY IT MATTERS": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "VARFÖR DET SPELAR ROLL"
+            "value": "Varför det spelar roll"
           }
         }
       }
@@ -40383,16 +40253,6 @@
         }
       }
     },
-    "What each empty bar weighs at your gym": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vad varje tom stång väger på ditt gym"
-          }
-        }
-      }
-    },
     "What gear do you have?": {
       "localizations": {
         "sv": {
@@ -40993,16 +40853,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pass grupperas efter startdatum i din nuvarande kalender och tidszon. Avslutade pass med arbetsset och sparade manuella pass räknas. Pass med bara uppvärmning och ofärdiga pass räknas inte."
-          }
-        }
-      }
-    },
-    "Workouts this week, %lld of %lld": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pass den här veckan, %lld av %lld"
           }
         }
       }
@@ -44551,16 +44401,6 @@
         }
       }
     },
-    "Next dose: %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nästa dos: %@ kl. %@"
-          }
-        }
-      }
-    },
     "Meal streak paused, best was %lld days.": {
       "localizations": {
         "en": {
@@ -45107,16 +44947,6 @@
         }
       }
     },
-    "Training days this week": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Träningsdagar den här veckan"
-          }
-        }
-      }
-    },
     "Saved as “%@” unless you name it.": {
       "localizations": {
         "sv": {
@@ -45133,56 +44963,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Förkortning (valfritt)"
-          }
-        }
-      }
-    },
-    "Opens Today": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öppnar Idag"
-          }
-        }
-      }
-    },
-    "Overdue dose: %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad dos: %@ kl. %@"
-          }
-        }
-      }
-    },
-    "Overdue dose: %@, %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad dos: %@, %@ kl. %@"
-          }
-        }
-      }
-    },
-    "Overdue: %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad: %@"
-          }
-        }
-      }
-    },
-    "Overdue: %@ • %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad: %@ • %@"
           }
         }
       }
@@ -46028,16 +45808,6 @@
         }
       }
     },
-    "Scan a barcode or a photo to see vitamins and minerals.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Skanna en streckkod eller ett foto för att se vitaminer och mineraler."
-          }
-        }
-      }
-    },
     "Data for %lld of %lld nutrients": {
       "localizations": {
         "sv": {
@@ -46464,16 +46234,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Öppnar din lista med tillskott"
-          }
-        }
-      }
-    },
-    "Creatine, vitamin D, omega-3 — one check a day": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kreatin, D-vitamin, omega-3 – en bock om dagen"
           }
         }
       }
@@ -47730,22 +47490,22 @@
         }
       }
     },
-    "Tap the heart on a recipe to keep it here.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck på hjärtat på ett recept så hamnar det här."
-          }
-        }
-      }
-    },
     "Tap the heart on any recipe and it shows up here and on the Meals tab.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Tryck på hjärtat på ett recept så syns det här och under Måltider."
+          }
+        }
+      }
+    },
+    "Tap the heart to save a recipe to your favorites.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på hjärtat för att spara ett recept i dina favoriter."
           }
         }
       }
@@ -47946,16 +47706,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hur tränar du?"
-          }
-        }
-      }
-    },
-    "How did you find Atlas?": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hur hittade du Atlas?"
           }
         }
       }
@@ -49860,46 +49610,6 @@
         }
       }
     },
-    "%lld doses": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld dose"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld doses"
-                }
-              }
-            }
-          }
-        },
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld dos"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld doser"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "^[%lld reminder](inflect: true) scheduled": {
       "localizations": {
         "sv": {
@@ -50599,16 +50309,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gå igenom dina måltider de senaste 7 dagarna med AI"
-          }
-        }
-      }
-    },
-    "Today shows less now. Turn on Steps, Your day and more here.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Idag visar mindre nu. Slå på Steg, Din dag och mer här."
           }
         }
       }
@@ -53759,42 +53459,42 @@
         }
       }
     },
-    "FREE WEIGHTS": {
+    "Free weights": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "FRIA VIKTER"
+            "value": "Fria vikter"
           }
         }
       }
     },
-    "STATIONS": {
+    "Stations": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "STATIONER"
+            "value": "Stationer"
           }
         }
       }
     },
-    "MACHINES": {
+    "Machines": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "MASKINER"
+            "value": "Maskiner"
           }
         }
       }
     },
-    "SMALL KIT": {
+    "Small kit": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "ÖVRIGT"
+            "value": "Övrigt"
           }
         }
       }
@@ -54135,6 +53835,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Övning %lld, %@, %lld set à %lld reps, RPE %@, %@ vila"
+          }
+        }
+      }
+    },
+    "%lld taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld tagna"
+          }
+        }
+      }
+    },
+    "Shows the doses in this window": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar doserna i det här fönstret"
           }
         }
       }

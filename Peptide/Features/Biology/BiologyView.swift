@@ -50,6 +50,7 @@ struct BiologyView: View {
                             ?? BioAgeStateResolver.chronologicalAgeFallback,
                         noHealthData: dataStore.profile.healthConnected
                             && resolved?.inputs?.healthDataDays == 0,
+                        onConnectHealth: heroOffersConnect ? { connectHealth() } : nil,
                         onExplainTapped: { showBioAgeExplainer = true },
                         onAddAge: { appState.showProfile = true }
                     )
@@ -113,6 +114,7 @@ struct BiologyView: View {
             .navigationTitle("Biology")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .solidTopScrollEdge()
             .toolbar {
                 // In the bar, not floating over the page: a floating pill
                 // covered card values ("-1,") wherever the list stopped.
@@ -176,6 +178,10 @@ struct BiologyView: View {
             ) { _ in
                 refreshForCurrentTime()
             }
+            // Posted on the main actor once Health samples land.
+            .onReceive(NotificationCenter.default.publisher(for: .healthSamplesDidChange)) { _ in
+                refreshForCurrentTime()
+            }
         }
         .appAnimation(AppAnimation.springSmooth, value: healthPromptState)
         // Single `.task(id:)` keyed on the inputs `refreshState` reads.
@@ -213,7 +219,7 @@ struct BiologyView: View {
     @ViewBuilder
     private var healthPrompt: some View {
         Group {
-            if needsHealthConnection {
+            if needsHealthConnection && !heroOffersConnect {
                 GlassEntryRow(
                     icon: "heart.text.square.fill",
                     title: "Connect Apple Health",
@@ -237,7 +243,15 @@ struct BiologyView: View {
 
     /// Which Health prompt is showing, so its exit animates.
     private var healthPromptState: Int {
-        needsHealthConnection ? 2 : (needsHealthUpgrade ? 1 : 0)
+        if needsHealthConnection { return heroOffersConnect ? 3 : 2 }
+        return needsHealthUpgrade ? 1 : 0
+    }
+
+    /// While the estimate is building, the hero carries the one Connect
+    /// button, so the row below it would ask twice.
+    private var heroOffersConnect: Bool {
+        guard needsHealthConnection, case .building(_, _)? = resolved?.state else { return false }
+        return true
     }
 
     /// The estimate's explanation, at the top of "Why this number": what
@@ -351,12 +365,13 @@ struct BiologyView: View {
 
     private func refreshState() async {
         let profile = dataStore.profile
-        let latestWeight = profile.weightHistory.max(by: { $0.date < $1.date })?.kg
-            ?? profile.bodyMetrics.weightKg
+        // The weight Today's targets use: a weigh-in from the last 30
+        // days, else the stored weight, never a months-old weigh-in.
+        let latestWeight = LifestyleDataLogic.currentBodyMetrics(profile).weightKg
         let fresh = await BioAgeStateResolver.resolve(
             chronologicalAge: profile.bodyMetrics.age,
             sex: profile.bodyMetrics.sex,
-            bodyMassIndex: PerformanceAgeEngine.bodyMassIndex(
+            bodyMassIndex: BiologicalAgeEngine.bodyMassIndex(
                 weightKg: latestWeight,
                 heightCm: profile.bodyMetrics.heightCm
             ),

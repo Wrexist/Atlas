@@ -64,6 +64,7 @@ struct ExerciseDetailView: View {
         }
         .navigationTitle(showsTitle ? exercise?.name ?? "" : "")
         .navigationBarTitleDisplayMode(.inline)
+        .solidTopScrollEdge(showsTitle)
         .task { await loadLibrary() }
     }
 

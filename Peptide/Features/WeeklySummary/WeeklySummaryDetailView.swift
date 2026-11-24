@@ -139,19 +139,18 @@ struct WeeklySummaryDetailView: View {
             spacing: Spacing.sm
         ) {
             // A week with no scheduled doses has nothing to adhere to, and
-            // no dose streak — "0 days" would read as failure.
+            // no dose streak — "0 days" would read as failure. Figures stay
+            // in neutral ink; only the HRV delta's sign earns a colour.
             if summary.keyStats.dosesTotal > 0 {
                 StatTile(
                     label: "Adherence",
                     value: summary.keyStats.compliancePct.formatted(.percent.precision(.fractionLength(0))),
-                    tint: accent,
                     footnote: String(localized: "\(summary.keyStats.dosesCompleted) of \(summary.keyStats.dosesTotal) doses"),
                     size: .large
                 )
                 StatTile(
                     label: "Dose streak",
                     value: "\(summary.keyStats.currentStreak)",
-                    tint: AppColor.streak,
                     footnote: summary.keyStats.currentStreak == 1 ? String(localized: "day") : String(localized: "days"),
                     size: .large
                 )
@@ -160,7 +159,6 @@ struct WeeklySummaryDetailView: View {
                 StatTile(
                     label: "Check-in",
                     value: composite.formatted(.number.precision(.fractionLength(1))),
-                    tint: AppColor.metricHRV,
                     footnote: String(localized: "of 5.0"),
                     size: .large
                 )
@@ -169,7 +167,6 @@ struct WeeklySummaryDetailView: View {
                 StatTile(
                     label: "Avg kcal",
                     value: calories.formatted(),
-                    tint: AppColor.macroProtein,
                     footnote: String(localized: "per day"),
                     size: .large
                 )

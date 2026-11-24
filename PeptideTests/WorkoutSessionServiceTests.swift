@@ -142,6 +142,35 @@ final class WorkoutSessionServiceTests: XCTestCase {
                      "Service should drop activeSession after finish")
     }
 
+    /// A retry after a failed save keeps the first attempt's finish time
+    /// but saves the live session, so a set ticked on the Watch or Live
+    /// Activity while the error showed isn't dropped.
+    func test_finishWorkout_retryAfterFailure_keepsSetsLoggedInBetween() throws {
+        let started = service.startWorkout(routine: Routine(name: "Test", exercises: [
+            RoutineExercise(exerciseID: "Incline_Dumbbell_Press", index: 0, targetSets: 2, targetReps: 10)
+        ]))
+        let entry = try XCTUnwrap(service.activeSession?.exercises.first)
+        var set = try XCTUnwrap(entry.sets.first)
+        set.completed = true
+        set.weightKg = 25
+        service.updateSet(set, inExerciseEntryID: entry.id)
+        let firstTap = Date()
+
+        repo.forceCommitFailureForTesting = true
+        defer { repo.forceCommitFailureForTesting = false }
+        XCTAssertNil(service.finishWorkout(at: firstTap))
+        var second = try XCTUnwrap(entry.sets.last)
+        second.completed = true
+        second.weightKg = 25
+        service.updateSet(second, inExerciseEntryID: entry.id)
+        repo.forceCommitFailureForTesting = false
+        let finished = try XCTUnwrap(service.finishWorkout(at: firstTap.addingTimeInterval(120))?.session)
+
+        XCTAssertEqual(finished.completedSetCount, 2)
+        XCTAssertEqual(finished.finishedAt, firstTap)
+        XCTAssertEqual(repo.loadWorkoutSession(id: started.id)?.completedSetCount, 2)
+    }
+
     func test_finishWorkout_withoutActiveSession_returnsNil() {
         XCTAssertNil(service.finishWorkout())
     }
@@ -441,7 +470,7 @@ final class WorkoutSessionServiceTests: XCTestCase {
                        "The in-flight session never counts as 'previous'")
     }
 
-    func test_reloadActiveSessionAfterAccountSwitch_readsTheNewAccountsHistory() {
+    func test_reloadActiveSessionAfterAccountSwitch_readsTheNewAccountsHistory() throws {
         logBenchWorkout(weightKg: 80, reps: 5)
         _ = service.startWorkout()
         XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [80])
@@ -453,10 +482,21 @@ final class WorkoutSessionServiceTests: XCTestCase {
                 SetEntry(index: 1, weightKg: 60, reps: 5, completed: true),
             ]),
         ]))
-        repo.upsertWorkoutSession(WorkoutSession(startedAt: Date()))
+        // The new account's in-progress workout was started on another device.
+        let otherDevicesWorkout = WorkoutSession(startedAt: Date())
+        repo.upsertWorkoutSession(otherDevicesWorkout)
         service.reloadActiveSession()
 
+        XCTAssertNil(service.activeSession, "Neither the old account's workout nor another device's is resumed")
         XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [60])
+        XCTAssertNil(try XCTUnwrap(repo.loadWorkoutSession(id: otherDevicesWorkout.id)).finishedAt,
+                     "Reloading leaves the other device's workout untouched")
+    }
+
+    func test_reloadActiveSession_resumesThisDevicesWorkout() {
+        let started = service.startWorkout()
+        service.reloadActiveSession()
+        XCTAssertEqual(service.activeSession?.id, started.id)
     }
 
     func test_previousSessionSets_refreshAfterFinishingAWorkout() {
@@ -920,15 +960,73 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertNil(service.activeSession?.name,
                      "Whitespace-only rename should clear name to nil")
     }
+
+    // MARK: - Workouts finished on another device
+
+    func test_reconcileWithStore_rowFinishedElsewhere_dropsActiveWithoutOverwriting() throws {
+        try service.startWorkoutWithOneCompletedSet()
+        var finishedElsewhere = try XCTUnwrap(service.activeSession)
+        let end = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
+        finishedElsewhere.finishedAt = end
+        finishedElsewhere.perceivedEffort = 8
+        finishedElsewhere.note = "Finished on the iPad"
+        repo.upsertWorkoutSession(finishedElsewhere)
+
+        service.reconcileWithStore()
+
+        XCTAssertNil(service.activeSession)
+        XCTAssertNil(service.closeIfStale())
+        let stored = try XCTUnwrap(repo.loadWorkoutSession(id: finishedElsewhere.id))
+        XCTAssertEqual(stored.note, "Finished on the iPad")
+        XCTAssertEqual(stored.perceivedEffort, 8)
+        XCTAssertEqual(try XCTUnwrap(stored.finishedAt).timeIntervalSince1970, end.timeIntervalSince1970, accuracy: 0.001)
+    }
+
+    func test_reconcileWithStore_rowStillInProgress_keepsActive() throws {
+        let started = try service.startWorkoutWithOneCompletedSet()
+        service.reconcileWithStore()
+        XCTAssertEqual(service.activeSession?.id, started.id)
+    }
+
+    func test_workoutSessionClaim_adoptsOnlyThisDevicesWorkout() {
+        let mine = WorkoutSession(startedAt: Date().addingTimeInterval(-600))
+        let otherDevice = WorkoutSession(startedAt: Date())
+        let unfinished = [otherDevice, mine]
+
+        XCTAssertEqual(WorkoutSessionClaim.session(mine.id).adoptable(from: unfinished)?.id, mine.id)
+        XCTAssertNil(WorkoutSessionClaim.idle.adoptable(from: unfinished))
+        XCTAssertNil(WorkoutSessionClaim.session(UUID()).adoptable(from: unfinished))
+        XCTAssertEqual(WorkoutSessionClaim.unknown.adoptable(from: unfinished)?.id, otherDevice.id,
+                       "Before claims were kept, the newest unfinished row was resumed")
+    }
+
+    func test_workoutSessionClaim_roundTripsThroughDefaults() throws {
+        let suite = "WorkoutSessionClaimTests"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        XCTAssertEqual(WorkoutSessionClaim.load(from: defaults), .unknown)
+        let id = UUID()
+        WorkoutSessionClaim.save(.session(id), to: defaults)
+        XCTAssertEqual(WorkoutSessionClaim.load(from: defaults), .session(id))
+        WorkoutSessionClaim.save(.idle, to: defaults)
+        XCTAssertEqual(WorkoutSessionClaim.load(from: defaults), .idle)
+    }
+
+    func test_startAndFinish_recordThisDevicesClaim() throws {
+        let started = try service.startWorkoutWithOneCompletedSet()
+        XCTAssertEqual(WorkoutSessionClaim.load(), .session(started.id))
+        service.finishWorkout()
+        XCTAssertEqual(WorkoutSessionClaim.load(), .idle)
+    }
 }
 
-// Renamed from `PRDetectionEngineTests` — that name is already taken
-// by the dedicated `PRDetectionEngineTests.swift` (bodyweight-rep PR
+// Renamed from `PRDetectionServiceTests` — that name is already taken
+// by the dedicated `PRDetectionServiceTests.swift` (bodyweight-rep PR
 // coverage). Two classes with the same name failed the test build with
 // "invalid redeclaration". These ingest-focused tests keep a distinct
 // name so both suites compile and run.
 @MainActor
-final class PRDetectionEngineIngestTests: XCTestCase {
+final class PRDetectionServiceIngestTests: XCTestCase {
 
     private var repo: SwiftDataRepository!
 
@@ -956,7 +1054,7 @@ final class PRDetectionEngineIngestTests: XCTestCase {
             SetEntry(index: 1, weightKg: 100, reps: 5, completed: true),
             SetEntry(index: 2, weightKg: 100, reps: 5, completed: true),
         ])
-        let detected = PRDetectionEngine.shared.ingest(session: s)
+        let detected = PRDetectionService.shared.ingest(session: s)
         XCTAssertTrue(detected.isEmpty,
                       "The first log of an exercise is a baseline, not a PR")
         let stored = repo.loadPersonalRecords()
@@ -969,12 +1067,12 @@ final class PRDetectionEngineIngestTests: XCTestCase {
         let big = session(exerciseID: "Bench", sets: [
             SetEntry(index: 1, weightKg: 120, reps: 5, completed: true),
         ])
-        PRDetectionEngine.shared.ingest(session: big)
+        PRDetectionService.shared.ingest(session: big)
 
         let small = session(exerciseID: "Bench", sets: [
             SetEntry(index: 1, weightKg: 80, reps: 5, completed: true),
         ])
-        let detected = PRDetectionEngine.shared.ingest(session: small)
+        let detected = PRDetectionService.shared.ingest(session: small)
         XCTAssertTrue(detected.isEmpty,
                       "A weaker session should not detect new PRs")
         let stored = repo.loadPersonalRecords().first
@@ -987,7 +1085,7 @@ final class PRDetectionEngineIngestTests: XCTestCase {
             SetEntry(index: 2, weightKg: 150, reps: 1, completed: false),
             SetEntry(index: 3, weightKg: 100, reps: 5, completed: true),
         ])
-        PRDetectionEngine.shared.ingest(session: s)
+        PRDetectionService.shared.ingest(session: s)
         let stored = repo.loadPersonalRecords().first
         XCTAssertEqual(stored?.bestAbsoluteWeightKg, 100,
                        "Warmup + incomplete sets should not contribute to PRs")
@@ -1000,7 +1098,7 @@ final class PRDetectionEngineIngestTests: XCTestCase {
             exercises: [WorkoutExerciseEntry(exerciseID: "Bench", index: 0,
                 sets: [SetEntry(index: 1, weightKg: 999, reps: 1, completed: true)])]
         )
-        let detected = PRDetectionEngine.shared.ingest(session: s)
+        let detected = PRDetectionService.shared.ingest(session: s)
         XCTAssertTrue(detected.isEmpty,
                       "Only finished sessions should produce PRs")
         XCTAssertTrue(repo.loadPersonalRecords().isEmpty)

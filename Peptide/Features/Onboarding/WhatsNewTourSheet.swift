@@ -7,7 +7,7 @@ import UIKit
 /// instead, so this prompt is invisible to them.
 ///
 /// Design intent: feel like Apple's "What's New in <App>" splash
-/// screens. Big hero glyph in a tinted gradient card, generous
+/// screens. Big hero glyph in a tinted glass card, generous
 /// type hierarchy, page-indicator dots, single primary CTA on
 /// the last page, soft cross-fade between pages. Haptic feedback
 /// on every page swipe. Reduces motion gracefully when the user
@@ -21,12 +21,6 @@ struct WhatsNewTourSheet: View {
     let onComplete: () -> Void
 
     @State private var currentIndex: Int = 0
-
-    /// Nil only for an empty `pages`, which renders a bare sheet whose
-    /// CTA dismisses.
-    private var currentPage: WhatsNewPage? {
-        pages.indices.contains(currentIndex) ? pages[currentIndex] : nil
-    }
 
     private var isLastPage: Bool {
         currentIndex >= pages.count - 1
@@ -58,25 +52,17 @@ struct WhatsNewTourSheet: View {
 
     // MARK: - Background
 
-    /// Full-bleed gradient wash that cross-fades when the user
-    /// swipes between pages. Subtle radial vignette in the
-    /// corners keeps the centre content readable on every theme.
+    /// One soft accent wash from the top, the same on every page, with a
+    /// vignette that keeps the centre content readable on every theme.
     private var backgroundLayer: some View {
         ZStack {
             LinearGradient(
-                colors: [
-                    currentPage?.gradient.first?.opacity(0.30) ?? AppColor.background,
-                    AppColor.background,
-                    currentPage?.gradient.last?.opacity(0.20) ?? AppColor.background,
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colors: [AppColor.accentPrimary.opacity(0.18), AppColor.background],
+                startPoint: .top,
+                endPoint: .center
             )
             .ignoresSafeArea()
-            .appAnimation(AppAnimation.springSmooth, value: currentIndex)
 
-            // Soft corner vignette so the gradient never washes
-            // out the text on lighter accents.
             RadialGradient(
                 colors: [AppColor.background.opacity(0.0), AppColor.background.opacity(0.55)],
                 center: .center,
@@ -136,8 +122,6 @@ struct WhatsNewTourSheet: View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 heroCard(page: page)
                 VStack(alignment: .leading, spacing: Spacing.sm) {
-                    // Eyebrow in ink, not the page accent: the pastel
-                    // accents fell to ~2:1 on the light background.
                     Text(page.eyebrow)
                         .font(AppFont.eyebrow)
                         .tracking(1.0)
@@ -160,62 +144,37 @@ struct WhatsNewTourSheet: View {
         .scrollIndicators(.hidden)
     }
 
-    /// Big tinted card holding the hero glyph. The glyph bounces once
-    /// on page change so the eye catches it as new content;
+    /// Tinted glass card holding the hero glyph in the accent. The glyph
+    /// bounces once on page change so the eye catches it as new content;
     /// `symbolEffect` sits it out under Reduce Motion on its own.
     private func heroCard(page: WhatsNewPage) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: page.gradient,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(height: 160)
-
-            // Decorative circle ornaments give the hero card depth
-            // without an illustration commitment. Two ovals + the
-            // SF symbol read as a "polished marketing card" idiom.
-            Circle()
-                .fill(AppColor.onAccent.opacity(0.10))
-                .frame(width: 220, height: 220)
-                .offset(x: 120, y: -60)
-            Circle()
-                .fill(AppColor.onAccent.opacity(0.08))
-                .frame(width: 140, height: 140)
-                .offset(x: -120, y: 70)
-
-            Image(systemName: page.icon)
-                .font(AppFont.scaled(60, weight: .semibold, relativeTo: .title1))
-                .foregroundStyle(AppColor.onAccent)
-                .appShadow(AppShadow.glassSubtle)
-                .symbolEffect(.bounce, value: currentIndex)
-                .accessibilityHidden(true)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
-        .appShadow(AppShadow.glassElevated)
-        .frame(height: 160)
+        Image(systemName: page.icon)
+            .font(AppFont.scaled(60, weight: .semibold, relativeTo: .title1))
+            .foregroundStyle(AppColor.accentPrimary)
+            .symbolEffect(.bounce, value: currentIndex)
+            .accessibilityHidden(true)
+            .frame(maxWidth: .infinity)
+            .frame(height: 160)
+            .glassSurface(cornerRadius: Spacing.sheetCornerRadius, tinted: true)
     }
 
     private func bulletList(page: WhatsNewPage) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             ForEach(Array(page.bullets.enumerated()), id: \.offset) { _, bullet in
-                bulletRow(bullet, tint: page.accent)
+                bulletRow(bullet)
             }
         }
     }
 
-    private func bulletRow(_ text: LocalizedStringKey, tint: Color) -> some View {
+    private func bulletRow(_ text: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             ZStack {
                 Circle()
-                    .fill(tint.opacity(0.22))
+                    .fill(AppColor.accentPrimary.opacity(0.22))
                     .frame(width: 22, height: 22)
                 Image(systemName: "checkmark")
                     .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(tint)
+                    .foregroundStyle(AppColor.accentPrimary)
             }
             .accessibilityHidden(true)
             Text(text)
@@ -236,15 +195,15 @@ struct WhatsNewTourSheet: View {
         }
     }
 
-    /// Dots indicator drawn manually so we can tint the active
-    /// dot to match the current page's accent. SwiftUI's built-in
-    /// `.page` indicator can't be coloured per-page.
+    /// Dots indicator drawn manually so the active dot takes the
+    /// accent and stretches into a capsule, which SwiftUI's built-in
+    /// `.page` indicator can't do.
     private var pageIndicator: some View {
         HStack(spacing: 6) {
             ForEach(0..<pages.count, id: \.self) { index in
                 let isActive = index == currentIndex
                 Capsule()
-                    .fill(isActive ? pages[index].accent : AppColor.textTertiary.opacity(0.4))
+                    .fill(isActive ? AppColor.accentPrimary : AppColor.textTertiary.opacity(0.4))
                     .frame(width: isActive ? 22 : 6, height: 6)
                     .appAnimation(AppAnimation.springSnappy, value: currentIndex)
             }
@@ -256,11 +215,8 @@ struct WhatsNewTourSheet: View {
     /// Primary CTA. Reads "Continue" until the last page, then
     /// becomes "Get started" — psychologically that final button
     /// feels like a commitment rather than another page-turn.
-    /// The app's one primary CTA. It used to fill with the page's own
-    /// pastel gradient, which put `onAccent` ink under 2:1 on the mint
-    /// and orange pages; `PrimaryCTAButton` fills with the contrast-
-    /// checked CTA stops instead, and the page colour stays on the hero
-    /// card and the active dot.
+    /// The app's one primary CTA, filled with the contrast-checked CTA
+    /// stops.
     private var primaryButton: some View {
         PrimaryCTAButton(title: isLastPage ? "Get started" : "Continue") {
             advance()

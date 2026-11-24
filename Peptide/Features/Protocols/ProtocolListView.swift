@@ -10,7 +10,7 @@ struct ProtocolListView: View {
     @State private var showingBuilder = false
     @State private var showingPaywall = false
     // Type-erased — this stack pushes three distinct value types
-    // (PeptideProtocol, CommunityStack, StackLibraryRoute). A typed
+    // (PeptideProtocol, CommunityStack, ProtocolLibraryRoute). A typed
     // `[PeptideProtocol]` binding couldn't represent the other two,
     // desyncing navigation state once a stack/library route was pushed.
     @State private var path = NavigationPath()
@@ -37,7 +37,7 @@ struct ProtocolListView: View {
                                     showingBuilder = true
                                 },
                                 secondary: .init(title: "Browse the library", icon: "books.vertical") {
-                                    path.append(StackLibraryRoute())
+                                    path.append(ProtocolLibraryRoute())
                                 }
                             )
                             .padding(.top, Spacing.xxl)
@@ -117,7 +117,7 @@ struct ProtocolListView: View {
                             // Templates start something new; they aren't
                             // part of the user's stack, so they close the
                             // list instead of leading it.
-                            NavigationLink(value: StackLibraryRoute()) {
+                            NavigationLink(value: ProtocolLibraryRoute()) {
                                 GlassEntryRowLabel(
                                     icon: "books.vertical.fill",
                                     title: "Browse the protocol library",
@@ -175,8 +175,8 @@ struct ProtocolListView: View {
             .navigationDestination(for: CommunityStack.self) { stack in
                 CommunityStackDetailView(stack: stack)
             }
-            .navigationDestination(for: StackLibraryRoute.self) { _ in
-                StackLibraryView()
+            .navigationDestination(for: ProtocolLibraryRoute.self) { _ in
+                ProtocolLibraryView()
             }
             .glassSheet(isPresented: $showingBuilder) {
                 ProtocolBuilderView()
@@ -212,8 +212,8 @@ struct ProtocolListView: View {
 }
 
 /// Token-only routing value used by the entry card so SwiftUI's
-/// `NavigationLink(value:)` resolves to `StackLibraryView`.
-struct StackLibraryRoute: Hashable {}
+/// `NavigationLink(value:)` resolves to `ProtocolLibraryView`.
+struct ProtocolLibraryRoute: Hashable {}
 
 private struct ProtocolSection: View {
     let title: LocalizedStringKey

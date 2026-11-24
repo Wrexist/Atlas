@@ -6,6 +6,8 @@ import SwiftUI
 /// today's number — so the card answers "what's left" and closes the gap
 /// in the same place. Steps fill from Health, so that row only reports.
 /// Daily supplements follow as one-tap checks and count toward the total.
+/// The training and steps rows step aside while Today shows their own
+/// cards (`State.coveredElsewhere`).
 /// Without `onAction` it's a read-only record of a past day.
 struct TodayChecklistCard: View {
     let state: TodayChecklistEngine.State

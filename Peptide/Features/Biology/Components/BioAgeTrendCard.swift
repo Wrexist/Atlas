@@ -4,7 +4,7 @@ import SwiftUI
 /// 30 or 90 days, drawn against a dashed line at chronological age. The
 /// line draws itself in when the card appears and when the range changes.
 struct BioAgeTrendCard: View {
-    let points: [PerformanceAgeEngine.TrendPoint]
+    let points: [BiologicalAgeEngine.TrendPoint]
     let chronologicalAge: Int
 
     enum Window: Int, CaseIterable {
@@ -23,7 +23,7 @@ struct BioAgeTrendCard: View {
     @State private var range: Window = .quarter
     @State private var drawProgress: CGFloat = 0
 
-    private var visiblePoints: [PerformanceAgeEngine.TrendPoint] {
+    private var visiblePoints: [BiologicalAgeEngine.TrendPoint] {
         guard let last = points.last?.date,
               let cutoff = Calendar.current.date(byAdding: .day, value: -range.rawValue, to: last)
         else { return [] }
@@ -36,16 +36,16 @@ struct BioAgeTrendCard: View {
             if points.count >= 2 {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .firstTextBaseline) {
-                        BiologySectionHeader(title: "Trend")
+                        HomeSectionHeader(title: "Trend")
                         rangePicker
                     }
                     VStack(alignment: .leading, spacing: Spacing.sm) {
-                        BiologySectionHeader(title: "Trend")
+                        HomeSectionHeader(title: "Trend")
                         rangePicker
                     }
                 }
             } else {
-                BiologySectionHeader(title: "Trend")
+                HomeSectionHeader(title: "Trend")
             }
 
             GlassCard {
@@ -146,7 +146,7 @@ struct BioAgeTrendCard: View {
 
     /// Days the shown points actually cover. A new user's history can be
     /// far shorter than the selected window.
-    private func spanDays(_ shown: [PerformanceAgeEngine.TrendPoint]) -> Int {
+    private func spanDays(_ shown: [BiologicalAgeEngine.TrendPoint]) -> Int {
         guard let first = shown.first?.date, let last = shown.last?.date else { return 0 }
         return Calendar.current.dateComponents([.day], from: first, to: last).day ?? 0
     }
@@ -160,7 +160,7 @@ struct BioAgeTrendCard: View {
             : String(localized: "Older over \(days) days")
     }
 
-    private func accessibilitySummary(_ shown: [PerformanceAgeEngine.TrendPoint], days: Int) -> String {
+    private func accessibilitySummary(_ shown: [BiologicalAgeEngine.TrendPoint], days: Int) -> String {
         let start = BioAgeFormat.age(shown.first?.biologicalAge ?? 0)
         let end = BioAgeFormat.age(shown.last?.biologicalAge ?? 0)
         return String(localized: "From \(start) to \(end) years over \(days) days")
@@ -192,7 +192,7 @@ struct BioAgeTrendCard: View {
 /// breaks across a week the engine couldn't estimate, rather than closing
 /// up.
 private struct TrendPlot: View {
-    let points: [PerformanceAgeEngine.TrendPoint]
+    let points: [BiologicalAgeEngine.TrendPoint]
     let baseline: Double
     let tint: Color
     let drawProgress: CGFloat
@@ -280,14 +280,14 @@ private struct TrendPlot: View {
 
     /// A little over one stride, so a daylight-saving week still joins.
     private static let maximumJoinedGap: TimeInterval =
-        Double(PerformanceAgeEngine.trendStrideDays) * 86_400 * 1.5
+        Double(BiologicalAgeEngine.trendStrideDays) * 86_400 * 1.5
 }
 
 #Preview {
     let today = Calendar.current.startOfDay(for: Date())
     let ages: [Double] = [36.1, 35.9, 35.8, 35.4, 35.5, 35.1, 34.9, 34.8, 34.6, 34.7, 34.4, 34.2, 34.1, 33.9]
     let points = ages.enumerated().map { index, age in
-        PerformanceAgeEngine.TrendPoint(
+        BiologicalAgeEngine.TrendPoint(
             date: Calendar.current.date(byAdding: .day, value: (index - ages.count + 1) * 7, to: today) ?? today,
             biologicalAge: age
         )

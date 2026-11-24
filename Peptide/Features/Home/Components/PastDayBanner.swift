@@ -1,9 +1,8 @@
 import SwiftUI
 
-/// Sits under Today's day switcher while an earlier day is shown: names
-/// the day, says the view is a read-only look back, and is the one-tap
-/// way home. The switcher's own "Tap for today" title is easy to miss;
-/// this is the affordance nobody has to discover.
+/// Sits under Today's date row while an earlier day is shown: names the
+/// day, says the view is a read-only look back, and is the one-tap way
+/// home, so nobody has to page forward day by day.
 struct PastDayBanner: View {
     let dayTitle: String
     let onBackToToday: () -> Void

@@ -6,7 +6,8 @@ HRV / RHR / sleep biology and a derived Performance Age, an AI
 research chat with citations, and optional supplement / protocol
 tracking with reminders and weekly recaps.
 
-iOS 18+, SwiftUI, SwiftData (CloudKit-backed), Swift 6.0. Companion
+iOS 18+, SwiftUI, SwiftData (CloudKit-backed), Swift 5 language mode
+with targeted strict-concurrency checking (see `project.yml`). Companion
 Watch app, two widget targets, and Live Activities for in-progress
 workouts and dose windows.
 

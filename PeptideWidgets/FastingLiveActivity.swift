@@ -94,14 +94,14 @@ struct FastingLiveActivity: Widget {
 
 /// Status → colour, glyph and copy, in one place.
 private enum FastingActivityStyle {
-    /// Brand emerald while fasting, matching the Meals tab's fasting
+    /// The theme accent while fasting, matching the Meals tab's fasting
     /// ring; green once the goal is reached, and on the ended beat only
     /// when the fast got there.
     static func accent(for state: FastingActivityAttributes.ContentState) -> Color {
         switch state.status() {
-        case .fasting: WidgetPalette.brand
+        case .fasting: WidgetPalette.accent
         case .goalReached: WidgetPalette.done
-        case .ended: state.reachedGoal() ? WidgetPalette.done : WidgetPalette.brand
+        case .ended: state.reachedGoal() ? WidgetPalette.done : WidgetPalette.accent
         }
     }
 

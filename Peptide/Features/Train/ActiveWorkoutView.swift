@@ -10,7 +10,6 @@ struct ActiveWorkoutView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
-    @Environment(\.requestReview) private var requestReview
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var sessionService = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
@@ -21,10 +20,7 @@ struct ActiveWorkoutView: View {
     /// the cover slides away after a discard.
     @State private var discarding = false
     @State private var finishedSession: WorkoutSession?
-    @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
-    /// Set at finish when this workout earns a review prompt (a new PR or
-    /// the third workout); consumed once the finish screen has landed.
-    @State private var isReviewMoment = false
+    @State private var finishedPRs: [PRDetectionService.DetectedPR] = []
     @State private var workoutName: String = ""
     @FocusState private var nameFieldFocused: Bool
     @State private var showOverview = false
@@ -63,7 +59,6 @@ struct ActiveWorkoutView: View {
                         unit: unit,
                         onClose: { dismiss() }
                     )
-                    .task { await requestReviewIfEarned() }
                     .transition(Self.phaseTransition)
                 } else if discarding {
                     AppColor.background.ignoresSafeArea()
@@ -111,17 +106,6 @@ struct ActiveWorkoutView: View {
     /// Saving → summary (or back to the workout) settles in rather than
     /// cutting.
     private static var phaseTransition: AnyTransition { .opacity.combined(with: .scale(scale: 0.98)) }
-
-    /// Lets the finish screen's celebration play before iOS decides
-    /// whether to show its review sheet. `ReviewPromptService` still
-    /// applies its own engagement and cooldown gates.
-    private func requestReviewIfEarned() async {
-        guard isReviewMoment else { return }
-        isReviewMoment = false
-        try? await Task.sleep(for: .seconds(2))
-        guard !Task.isCancelled else { return }
-        ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
-    }
 
     /// Saves an in-progress name edit. The field only commits on Return,
     /// so anything that leaves the screen has to commit it explicitly.
@@ -175,9 +159,6 @@ struct ActiveWorkoutView: View {
             if let finished = sessionService.finishWorkout(perceivedEffort: perceivedEffort, note: note) {
                 finishedSession = finished.session
                 finishedPRs = finished.detectedPRs
-                isReviewMoment = ReviewPromptService.isWorkoutReviewMoment(
-                    detectedPRCount: finished.detectedPRs.count,
-                    completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount())
             } else {
                 saveError = sessionService.lastFinishError ?? String(localized: "Could not save workout. Return to your workout and try again.")
                 AccessibilityNotification.Announcement(String(localized: "Could not save workout")).post()

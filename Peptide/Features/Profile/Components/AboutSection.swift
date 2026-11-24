@@ -2,7 +2,6 @@ import SwiftUI
 
 struct AboutSection: View {
     @State private var showDisclaimer = false
-    @State private var showWhatsNewReplay = false
 
     /// Read the marketing version + build straight from the bundle so
     /// the About card never drifts from what TestFlight / the App
@@ -16,21 +15,11 @@ struct AboutSection: View {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
     }
 
-    private static let termsURL = URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
     private static let privacyURL = URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")
-    private static let supportURL = URL.staticHTTPS("mailto:support@peptidesai.com")
-    /// A user-tapped "Rate" opens the App Store review page directly:
-    /// `requestReview` is rate-limited by iOS and can silently show nothing.
-    private static let writeReviewURL = AppConstants.appStoreURL
-        .appending(queryItems: [URLQueryItem(name: "action", value: "write-review")])
 
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("About", systemImage: "info.circle.fill")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-
                 // Rows carry their own 44pt height; tighter spacing keeps
                 // the card's density.
                 VStack(spacing: Spacing.xs) {
@@ -68,28 +57,15 @@ struct AboutSection: View {
                     }
                     .buttonStyle(.plain)
                     Divider().overlay(AppColor.glassBorder)
-                    AboutLinkRow(title: "Terms of Use", destination: Self.termsURL)
-                    Divider().overlay(AppColor.glassBorder)
                     AboutLinkRow(title: "Privacy Policy", destination: Self.privacyURL)
-                    Divider().overlay(AppColor.glassBorder)
-                    AboutLinkRow(title: "Contact Support", destination: Self.supportURL)
-                    Divider().overlay(AppColor.glassBorder)
-                    AboutLinkRow(title: "Rate Atlas", destination: Self.writeReviewURL)
-                    Divider().overlay(AppColor.glassBorder)
-                    Button { showWhatsNewReplay = true } label: {
-                        HStack {
-                            Text("Replay What's New tour")
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textSecondary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(AppFont.scaled(11, weight: .semibold))
-                                .foregroundStyle(AppColor.textTertiary)
-                                .accessibilityHidden(true)
-                        }
-                        .aboutRowHitTarget()
+                    // Developer surfaces stay out of customer builds, and
+                    // out of debug ones until there's a report to open.
+                    #if DEBUG
+                    if !DiagnosticsService.shared.records.isEmpty {
+                        Divider().overlay(AppColor.glassBorder)
+                        DiagnosticsRow()
                     }
-                    .buttonStyle(.plain)
+                    #endif
                 }
 
                 HStack {
@@ -111,17 +87,6 @@ struct AboutSection: View {
         .sheet(isPresented: $showDisclaimer) {
             MedicalDisclaimerSheet()
                 .liquidGlassPresentation()
-        }
-        .sheet(isPresented: $showWhatsNewReplay) {
-            // Doesn't mark-as-seen since this is a manual replay
-            // initiated by the user — leaving the version stamp
-            // alone keeps the auto-fire behaviour predictable
-            // (the tour fires on next launch only if the user
-            // actually bumps to a newer version).
-            WhatsNewTourSheet(
-                pages: WhatsNewPage.current,
-                onComplete: { showWhatsNewReplay = false }
-            )
         }
     }
 }

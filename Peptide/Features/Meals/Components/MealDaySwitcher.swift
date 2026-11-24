@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Day picker for the Meals tab and Today: a week strip to tap any day, chevrons
+/// Day picker for the Meals tab: a week strip to tap any day, chevrons
 /// to page a week back or forward, and a title that jumps back to today.
 /// Driven by a day offset (0 = today, -1 = yesterday) so a screen left
 /// open past midnight keeps meaning "today". Never selects the future.
@@ -40,7 +40,7 @@ struct MealDaySwitcher: View {
                     if !isToday {
                         Text("Tap for today")
                             .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.accentPrimary)
                             .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
@@ -94,7 +94,7 @@ struct MealDaySwitcher: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(isDisabled ? AppColor.textTertiary : AppColor.accentLight)
+                .foregroundStyle(isDisabled ? AppColor.textTertiary : AppColor.accentPrimary)
                 .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.9))

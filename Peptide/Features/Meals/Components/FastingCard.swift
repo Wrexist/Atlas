@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Compact fasting tracker on the Meals tab: a progress ring with the
-/// time fasted, the current stage, and a one-tap Start / End. Tapping
-/// the ring or text opens `FastingSheet` for presets, history and the
+/// Quiet one-row fasting tracker on the Meals tab: a small progress
+/// ring, the current stage or "Intermittent fasting", its status, and a
+/// one-tap Start / End. It sits under Log food without competing with
+/// it. Tapping the row opens `FastingSheet` for presets, history and the
 /// stage guide.
 struct FastingCard: View {
     @State private var store = FastingStore.shared
@@ -14,7 +15,8 @@ struct FastingCard: View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             content(now: context.date)
         }
-        .padding(Spacing.cardPadding)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .task { store.load() }
         .sheet(isPresented: $showSheet) {
@@ -25,10 +27,10 @@ struct FastingCard: View {
     }
 
     /// At accessibility sizes Start / End moves under the summary, so the
-    /// stage name keeps the card's width instead of breaking mid-word.
+    /// stage name keeps the row's width instead of breaking mid-word.
     private func content(now: Date) -> some View {
         let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.md))
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
             : AnyLayout(HStackLayout(spacing: Spacing.md))
         return layout {
             Button {
@@ -49,45 +51,29 @@ struct FastingCard: View {
         }
     }
 
+    /// Progress alone: the time left reads in the status line, so the
+    /// ring stays a glyph-sized mark instead of a second clock.
     private func ring(now: Date) -> some View {
         let progress = store.active.map { FastingEngine.progress($0, at: now) } ?? 0
         return MetricRing(
             progress: progress,
-            diameter: 64,
-            strokeWidth: 7,
+            diameter: 36,
+            strokeWidth: 4,
             gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
             celebrateAtCompletion: true
         ) {
-            if let active = store.active {
-                let elapsed = FastingEngine.elapsed(active, at: now)
-                Text(FastingEngine.clock(elapsed))
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .padding(.horizontal, Spacing.xs)
-                    // "16:05" would be read as a time of day.
-                    .accessibilityLabel(FastingIntentEngine.spokenDuration(elapsed))
-            } else {
-                Image(systemName: "moon.zzz.fill")
-                    .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                    .accessibilityHidden(true)
-            }
+            Image(systemName: "moon.zzz.fill")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+                .accessibilityHidden(true)
         }
     }
 
     private func summary(now: Date) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text("Fasting")
-                .font(AppFont.eyebrow)
-                .tracking(0.8)
-                .textCase(.uppercase)
-                .foregroundStyle(AppColor.accentLight)
+        VStack(alignment: .leading, spacing: 2) {
             if let active = store.active {
                 Text(FastingEngine.stage(of: active, at: now).title)
-                    .font(AppFont.headline)
+                    .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(activeSubtitle(active, now: now))
                     .font(AppFont.caption2)
@@ -95,7 +81,7 @@ struct FastingCard: View {
                     .accessibilityLabel(activeSubtitle(active, now: now, duration: FastingIntentEngine.spokenDuration))
             } else {
                 Text("Intermittent fasting")
-                    .font(AppFont.headline)
+                    .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(idleSubtitle(now: now))
                     .font(AppFont.caption2)
@@ -106,12 +92,10 @@ struct FastingCard: View {
         .multilineTextAlignment(.leading)
     }
 
+    /// A small accent pill rather than a full button: Log food stays the
+    /// one primary action on the tab.
     private var quickAction: some View {
-        GlassButton(
-            title: store.active == nil ? "Start" : "End",
-            icon: store.active == nil ? "play.fill" : "stop.fill",
-            style: .secondary
-        ) {
+        Button {
             if store.active == nil {
                 let last = store.lastPlan
                 store.start(
@@ -125,8 +109,31 @@ struct FastingCard: View {
             } else {
                 endFast()
             }
+        } label: {
+            quickActionLabel
+                .font(AppFont.footnote.weight(.semibold))
+                .foregroundStyle(AppColor.accentInkOnWash)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.xs)
+                .glassControl(
+                    .capsule,
+                    tint: AppColor.accentPrimary.opacity(0.15),
+                    border: AppColor.accentPrimary.opacity(0.30),
+                    interactive: false
+                )
+                .minimumHitArea()
         }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.94))
         .accessibilityLabel(store.active == nil ? "Start fast" : "End fast")
+    }
+
+    @ViewBuilder
+    private var quickActionLabel: some View {
+        if store.active == nil {
+            Label("Start", systemImage: "play.fill")
+        } else {
+            Label("End", systemImage: "stop.fill")
+        }
     }
 
     private func endFast() {

@@ -52,7 +52,7 @@ final class NotificationService {
     /// the current dose schedule. A habit pass that runs first (a habit
     /// edit, the once-per-launch sync) reads the previous one, and the
     /// next activation corrects it.
-    @ObservationIgnored private var doseReminderSlots: [(weekday: Int, hour: Int, minute: Int)] = []
+    @ObservationIgnored private(set) var doseReminderSlots: [(weekday: Int, hour: Int, minute: Int)] = []
 
     /// iOS limit on pending notification requests per app.
     static let pendingRequestLimit = 64
@@ -263,7 +263,7 @@ final class NotificationService {
 
             let grouped = Self.weeklySlotGroups(for: proto, invalidWeekdays: &invalidWeekdaysSet)
 
-            if proto.washoutWeeks > 0 {
+            if Self.needsDatedWeeklyReminders(proto, now: now, calendar: calendar) {
                 appendCycleBoundedWeeklyRequests(
                     proto,
                     grouped: grouped,
@@ -646,6 +646,7 @@ final class NotificationService {
         center.removeAllPendingNotificationRequests()
         center.removeAllDeliveredNotifications()
         currentIDs.removeAll()
+        doseReminderSlots = []
         scheduledCount = 0
         requestedCount = 0
         lastReport = .empty
@@ -675,6 +676,9 @@ final class NotificationService {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
         }
         currentIDs = toKeep
+        // Habit reminders stop stepping around doses that no longer fire
+        // on their next re-plan.
+        doseReminderSlots = []
         scheduledCount = 0
         requestedCount = 0
         lastReport = .empty
@@ -700,8 +704,8 @@ final class NotificationService {
     /// topped up as occurrences fire.
     private static let intervalLookahead: Int = 12
 
-    /// Days of dated reminders pre-scheduled for a weekly protocol with a
-    /// wash-out. Same top-up-on-activation model as `intervalLookahead`.
+    /// Days of dated reminders pre-scheduled for a weekly protocol near a
+    /// cycle boundary. Same top-up-on-activation model as `intervalLookahead`.
     private static let cycleBoundedLookaheadDays: Int = 14
 
     private func makeContent(
@@ -740,6 +744,24 @@ final class NotificationService {
         return content
     }
 
+    /// First dose day of an every-N-days schedule on or after `today`.
+    /// A schedule with no stored anchor counts from the protocol's start,
+    /// the same rule `ProtocolSchedule.isActive(on:protocolStart:)` gives
+    /// Today and the dose calendar.
+    nonisolated static func firstIntervalDay(
+        _ schedule: ProtocolSchedule,
+        protocolStart: Date,
+        onOrAfter today: Date,
+        calendar: Calendar
+    ) -> Date? {
+        guard let n = schedule.intervalDays, n >= 1 else { return nil }
+        let anchor = calendar.startOfDay(for: schedule.intervalAnchor ?? protocolStart)
+        let day = calendar.startOfDay(for: today)
+        let diff = calendar.dateComponents([.day], from: anchor, to: day).day ?? 0
+        let offset = diff <= 0 ? -diff : (n - diff % n) % n
+        return calendar.date(byAdding: .day, value: offset, to: day)
+    }
+
     /// Generates one-shot notification requests for the next several
     /// occurrences of an interval-cadence peptide. Each occurrence produces
     /// one request per preferred time, identified by absolute date so the
@@ -763,19 +785,13 @@ final class NotificationService {
 
         for peptide in proto.peptides {
             let schedule = proto.schedule(for: peptide.id)
-            guard schedule.isInterval, let n = schedule.intervalDays, n >= 1 else { continue }
-            let anchor = calendar.startOfDay(for: schedule.intervalAnchor ?? today)
-
-            // Next active day on or after today, anchor-relative.
-            let diff = calendar.dateComponents([.day], from: anchor, to: today).day ?? 0
-            let offsetToNextActive: Int
-            if diff <= 0 {
-                offsetToNextActive = -diff
-            } else {
-                let mod = diff % n
-                offsetToNextActive = mod == 0 ? 0 : (n - mod)
-            }
-            guard let firstActive = calendar.date(byAdding: .day, value: offsetToNextActive, to: today) else { continue }
+            guard schedule.isInterval, let n = schedule.intervalDays, n >= 1,
+                  let firstActive = Self.firstIntervalDay(
+                      schedule,
+                      protocolStart: proto.startDate,
+                      onOrAfter: today,
+                      calendar: calendar
+                  ) else { continue }
 
             for occurrence in 0..<Self.intervalLookahead {
                 guard let day = calendar.date(byAdding: .day, value: occurrence * n, to: firstActive),
@@ -819,9 +835,23 @@ final class NotificationService {
         }
     }
 
-    /// Weekly slots for a protocol with a wash-out. A repeating weekly
-    /// trigger would keep firing through the off weeks, so these become
-    /// dated one-shots on the on-cycle days inside the lookahead window.
+    /// True when a repeating weekly trigger would fire on a day Today shows
+    /// no dose: any protocol with a wash-out, or a single cycle that starts
+    /// or ends inside the look-ahead window. Those slots become dated
+    /// one-shots filtered by `CyclePhaseEngine.isOnCycle`.
+    static func needsDatedWeeklyReminders(_ proto: PeptideProtocol, now: Date, calendar: Calendar) -> Bool {
+        guard proto.washoutWeeks == 0 else { return true }
+        let today = calendar.startOfDay(for: now)
+        return (0..<cycleBoundedLookaheadDays).contains { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: today) else { return false }
+            return !CyclePhaseEngine.isOnCycle(day, protocol: proto, calendar: calendar)
+        }
+    }
+
+    /// Weekly slots for a protocol whose cycle boundaries fall in the
+    /// look-ahead window (see `needsDatedWeeklyReminders`). A repeating
+    /// weekly trigger would keep firing through the off days, so these
+    /// become dated one-shots on the on-cycle days inside the window.
     private func appendCycleBoundedWeeklyRequests(
         _ proto: PeptideProtocol,
         grouped: [TimeslotKey: [Peptide]],

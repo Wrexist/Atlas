@@ -133,6 +133,32 @@ final class CardioWorkoutEngineTests: XCTestCase {
         XCTAssertEqual(shown.map(\.id), [other.id])
     }
 
+    func test_watchStrengthWorkoutOverlappingAtlasWorkout_leavesTheHealthList() {
+        let watch = workout(start: october(7, 18), minutes: 60).categorized(as: .strength)
+        let atlas = WorkoutSession(startedAt: october(7, 18).addingTimeInterval(36),
+                                   finishedAt: october(7, 18).addingTimeInterval(55 * 60))
+
+        XCTAssertTrue(CardioWorkoutEngine.unlogged([watch], sessions: [atlas]).isEmpty)
+    }
+
+    func test_runOverlappingAtlasWorkout_staysInTheHealthList() {
+        let run = workout(start: october(7, 18), minutes: 60)
+        // Offset start: a start matching to the second means "exercises
+        // logged from this Health workout", a different rule.
+        let atlas = WorkoutSession(startedAt: october(7, 18).addingTimeInterval(36),
+                                   finishedAt: october(7, 19).addingTimeInterval(-60))
+
+        XCTAssertEqual(CardioWorkoutEngine.unlogged([run], sessions: [atlas]).map(\.id), [run.id])
+    }
+
+    func test_strengthWorkoutBarelyOverlappingAtlasWorkout_staysInTheHealthList() {
+        let watch = workout(start: october(7, 18), minutes: 60).categorized(as: .strength)
+        let atlas = WorkoutSession(startedAt: october(7, 18).addingTimeInterval(50 * 60),
+                                   finishedAt: october(7, 20))
+
+        XCTAssertEqual(CardioWorkoutEngine.unlogged([watch], sessions: [atlas]).map(\.id), [watch.id])
+    }
+
     func test_unlistedType_mapsToOther() {
         XCTAssertEqual(CardioActivity(.archery), .other)
         XCTAssertEqual(CardioActivity(.fishing), .other)

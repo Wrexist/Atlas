@@ -322,7 +322,7 @@ final class SwiftDataRepository {
         guard isAwaitingAccountDecision else { return true }
         if removingLocalData {
             guard Self.destroySharedStore() else { return false }
-            forgetDeviceLocalRecords()
+            removeDeviceLocalData()
         }
         isAwaitingAccountDecision = false
         UserDefaults.standard.removeObject(forKey: AccountChangeKey.holdPending)
@@ -567,7 +567,10 @@ final class SwiftDataRepository {
     /// Weekly recaps, Apple Health weigh-ins (with their dismissed sample
     /// ids), scan corrections — sent to the proxy with every scan — barcode
     /// history and the "Recently scanned" product cache are device-local
-    /// and never synced, so they belong to whoever was signed in.
+    /// and never synced, so they belong to whoever was signed in. Runs
+    /// unprompted on a sign-out or switch over an empty store, so it
+    /// stays to these derived records; the user's own files wait for
+    /// `removeDeviceLocalData()`.
     func forgetDeviceLocalRecords() {
         summaryStore.deleteAll()
         healthWeightStore.deleteAll()
@@ -576,6 +579,14 @@ final class SwiftDataRepository {
             await BarcodeScanHistory.shared.removeAll()
             await BarcodeProductCache.shared.clear()
         }
+    }
+
+    /// The user's Remove answer to the account-change prompt: everything
+    /// `DeviceLocalData` lists goes with the previous account's store.
+    /// Only that explicit choice reaches this.
+    func removeDeviceLocalData() {
+        forgetDeviceLocalRecords()
+        DeviceLocalData.eraseAll()
     }
 
     // MARK: - Test Support
@@ -1208,6 +1219,12 @@ final class SwiftDataRepository {
         healthWeightStore.isImported(id)
     }
 
+    /// The weigh-ins in `profile` that came from Apple Health, for a
+    /// backup to carry so its restore keeps them off iCloud.
+    func healthWeightImportIDs(in profile: UserProfile) -> [UUID] {
+        profile.weightHistory.map(\.id).filter { healthWeightStore.isImported($0) }
+    }
+
     /// Keeps a deleted imported weigh-in from coming back on the next
     /// import pass. A no-op for a weight logged in Atlas.
     func dismissHealthWeight(id: UUID) {
@@ -1230,7 +1247,12 @@ final class SwiftDataRepository {
         return try row.update(from: rebased, since: baseline)
     }
 
+    /// Whether the last profile `loadProfile` returned had its whole meal
+    /// diary readable (`StoredProfile.mealsDecodeCleanly`).
+    private(set) var lastLoadedMealsDecodedCleanly = false
+
     func loadProfile() -> UserProfile? {
+        lastLoadedMealsDecodedCleanly = false
         guard let context else { return nil }
         let stored: StoredProfile?
         do {
@@ -1248,6 +1270,7 @@ final class SwiftDataRepository {
         var profile: UserProfile
         do {
             profile = try stored.toUserProfile()
+            lastLoadedMealsDecodedCleanly = stored.mealsDecodeCleanly
         } catch {
             AppLog.swiftData.error("Decode StoredProfile failed: \(error.localizedDescription, privacy: .public)")
             return nil
@@ -1509,13 +1532,16 @@ final class SwiftDataRepository {
         }
     }
 
-    /// Cheap lifetime count of workout sessions via `fetchCount` (no row
-    /// materialization). Used by the training-achievement check so it
-    /// doesn't load the whole session table on a workout finish.
+    /// Lifetime count of finished workouts, reading ids only (no session
+    /// payloads). Used by the training-achievement check so it doesn't
+    /// load the whole session table on a workout finish. The workout in
+    /// progress doesn't count, and CloudKit twins of one id count once.
     func workoutSessionCount() -> Int {
         guard let context else { return 0 }
+        var descriptor = FetchDescriptor<StoredWorkoutSession>(predicate: #Predicate { $0.finishedAt != nil })
+        descriptor.propertiesToFetch = [\.id]
         do {
-            return try context.fetchCount(FetchDescriptor<StoredWorkoutSession>())
+            return Set(try context.fetch(descriptor).map(\.id)).count
         } catch {
             AppLog.swiftData.error("workoutSessionCount failed: \(error.localizedDescription, privacy: .public)")
             return 0
@@ -1664,35 +1690,31 @@ final class SwiftDataRepository {
         }
     }
 
-    /// Writes a whole reordered library in one commit, so a drag-reorder
-    /// is one save and one CloudKit export rather than one per routine.
-    func upsertRoutines(_ routines: [Routine]) {
+    /// Writes a reordered library's `sortIndex` in one commit, so a
+    /// drag-reorder is one save and one CloudKit export rather than one
+    /// per routine. Only the order of rows still stored is written: a list
+    /// read before another device's delete or edit synced in can't
+    /// re-insert the deleted routine or revert the edit.
+    func updateRoutineOrder(_ routines: [Routine]) {
         guard let context, !routines.isEmpty else { return }
-        var existing: [StoredRoutine] = []
+        let sortIndexByID = Dictionary(
+            routines.map { ($0.id, $0.sortIndex ?? 0) },
+            uniquingKeysWith: { first, _ in first }
+        )
         do {
-            for chunk in Self.predicateChunks(routines.map(\.id)) {
-                existing += try context.fetch(FetchDescriptor<StoredRoutine>(
+            for chunk in Self.predicateChunks(Array(sortIndexByID.keys)) {
+                let rows = try context.fetch(FetchDescriptor<StoredRoutine>(
                     predicate: #Predicate { chunk.contains($0.id) }
                 ))
+                for stored in rows {
+                    guard let sortIndex = sortIndexByID[stored.id] else { continue }
+                    assignIfChanged(stored, \.sortIndex, sortIndex)
+                }
             }
         } catch {
-            // Inserting blind would duplicate every routine that exists.
-            AppLog.swiftData.error("Fetch (upsert) routines failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.swiftData.error("Fetch (reorder) routines failed: \(error.localizedDescription, privacy: .public)")
             commitDidFail = true
             return
-        }
-        let existingByID = Dictionary(grouping: existing, by: \.id)
-        for routine in routines {
-            do {
-                if let rows = existingByID[routine.id] {
-                    for stored in rows { try stored.update(from: routine) }
-                } else {
-                    context.insert(try StoredRoutine.make(from: routine))
-                }
-            } catch {
-                AppLog.swiftData.error("upsert routine failed: \(error.localizedDescription, privacy: .public)")
-                commitDidFail = true
-            }
         }
         commit()
     }

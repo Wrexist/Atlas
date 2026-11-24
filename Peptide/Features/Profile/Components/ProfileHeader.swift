@@ -3,7 +3,6 @@ import SwiftUI
 struct ProfileHeader: View {
     let name: String
     let memberSince: Date
-    let protocolCount: Int
     let daysLogged: Int
     var workoutCount: Int = 0
     var avatarImageData: Data? = nil
@@ -22,6 +21,8 @@ struct ProfileHeader: View {
     }
 
     var body: some View {
+        // The faint accent wash marks this card as the person's own,
+        // distinct from the neutral data cards below it.
         GlassCard(tinted: true) {
             VStack(spacing: Spacing.lg) {
                 editableAvatar
@@ -43,15 +44,21 @@ struct ProfileHeader: View {
                         .padding(.horizontal, Spacing.sm)
                 }
 
-                // Training and days are everyone's stats; Protocols joins
-                // them only for users who run one, so it never shows a zero.
-                HStack(spacing: Spacing.xxl) {
+                // Training and days only: protocols are a secondary feature
+                // and their count lives with the library, not the identity.
+                // Equal columns either side of a hairline, so the pair sits
+                // centred under the name instead of drifting left.
+                HStack(spacing: 0) {
                     ProfileStat(value: workoutCount, label: "Workouts")
+                        .frame(maxWidth: .infinity)
+                    Rectangle()
+                        .fill(AppColor.glassBorder)
+                        .frame(width: 1, height: 32)
+                        .accessibilityHidden(true)
                     ProfileStat(value: daysLogged, label: "Days")
-                    if protocolCount > 0 {
-                        ProfileStat(value: protocolCount, label: "Protocols")
-                    }
+                        .frame(maxWidth: .infinity)
                 }
+                .frame(maxWidth: 260)
             }
             .frame(maxWidth: .infinity)
             .overlay(alignment: .topTrailing) {
@@ -108,7 +115,7 @@ struct ProfileHeader: View {
         } else {
             ZStack {
                 Circle()
-                    .fill(AppColor.accentPrimary.opacity(0.2))
+                    .fill(AppColor.surfaceElevated)
                     .frame(width: 80, height: 80)
                     .overlay(avatarBorder)
 
@@ -131,7 +138,7 @@ struct ProfileHeader: View {
 
     private var avatarBorder: some View {
         Circle()
-            .strokeBorder(AppColor.glassBorderActive, lineWidth: 1.5)
+            .strokeBorder(AppColor.accentPrimary, lineWidth: 2)
     }
 }
 
@@ -143,7 +150,7 @@ private struct ProfileStat: View {
         VStack(spacing: Spacing.xxs) {
             Text(value, format: .number)
                 .font(AppFont.title2)
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
                 .appAnimation(AppAnimation.springSnappy, value: value)
             Text(label)
@@ -160,7 +167,6 @@ private struct ProfileStat: View {
         ProfileHeader(
             name: "Alex",
             memberSince: .now.addingTimeInterval(-90 * 86_400),
-            protocolCount: 4,
             daysLogged: 45,
             bio: "Optimizing recovery and sleep."
         )
@@ -172,7 +178,7 @@ private struct ProfileStat: View {
 #Preview("New User") {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        ProfileHeader(name: "", memberSince: .now, protocolCount: 0, daysLogged: 0)
+        ProfileHeader(name: "", memberSince: .now, daysLogged: 0)
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

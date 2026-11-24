@@ -21,7 +21,7 @@ struct RecapWeeklyVolume: View {
     var body: some View {
         Group {
             if !rows.isEmpty {
-                RecapCard {
+                GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         Text("Weekly volume").font(AppFont.headline)
                         ForEach(rows) { row in
@@ -36,6 +36,7 @@ struct RecapWeeklyVolume: View {
                             .accessibilityElement(children: .combine)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }

@@ -204,4 +204,19 @@ final class BiologyConfigTests: XCTestCase {
         )
         XCTAssertEqual(rows, [[.hrvBaseline, .rhrBaseline], [.sleepBaseline], [.weight], [.stepsBaseline]])
     }
+
+    // MARK: - Empty wearable cards
+
+    func test_splitAwaitingWearable_emptyWearables_foldIntoOneLine() {
+        let visible: [Biomarker] = [.weight, .hrvBaseline, .rhrBaseline, .sleepBaseline]
+        let split = Biomarker.splitAwaitingWearable(visible) { $0 == .weight }
+        XCTAssertEqual(split.tiles, [.weight])
+        XCTAssertEqual(split.awaitingWearable, [.hrvBaseline, .rhrBaseline, .sleepBaseline])
+    }
+
+    func test_splitAwaitingWearable_emptyManualBiomarker_keepsItsCard() {
+        let split = Biomarker.splitAwaitingWearable([.bodyFat, .sleepBaseline]) { $0 == .sleepBaseline }
+        XCTAssertEqual(split.tiles, [.bodyFat, .sleepBaseline])
+        XCTAssertTrue(split.awaitingWearable.isEmpty)
+    }
 }
