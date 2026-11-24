@@ -6648,12 +6648,12 @@
         }
       }
     },
-    "Connect Apple Health to fill in %@": {
+    "Connect Apple Health so Atlas can read your heart rate, HRV and sleep.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anslut Apple Hälsa för att fylla i %@"
+            "value": "Anslut Apple Hälsa så att Atlas kan läsa av din puls, HRV och sömn."
           }
         }
       }
@@ -7191,16 +7191,6 @@
         }
       }
     },
-    "How to get your biological age": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Så får du din biologiska ålder"
-          }
-        }
-      }
-    },
     "IGF-1 Receptor": {
       "localizations": {
         "sv": {
@@ -7530,6 +7520,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Måste tas fastande. Ät inte på 30 min efter injektionen"
+          }
+        }
+      }
+    },
+    "Needs Watch": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver Watch"
           }
         }
       }
@@ -8726,16 +8726,6 @@
         }
       }
     },
-    "Wear Apple Watch to record %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bär Apple Watch för att registrera %@"
-          }
-        }
-      }
-    },
     "Weekly volume": {
       "localizations": {
         "sv": {
@@ -9429,16 +9419,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Atlas ser ingen data från Hälsa. Kontrollera att Atlas har läsåtkomst i Inställningar › Hälsa › Dataåtkomst och enheter › Atlas."
-          }
-        }
-      }
-    },
-    "Atlas can't see any heart or sleep data. Check that Atlas has read access in the Health app, and wear Apple Watch overnight.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Atlas ser ingen hjärt- eller sömndata. Kontrollera att Atlas har läsbehörighet i appen Hälsa och bär Apple Watch över natten."
           }
         }
       }

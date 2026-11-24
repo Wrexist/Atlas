@@ -3,8 +3,8 @@ import SwiftUI
 /// "Biomarkers" on the Biology tab. Section header with an Edit
 /// affordance; below it, one `BiomarkerTile` per visible biomarker in
 /// the user's curated order, two small cards to a row. Wearable
-/// biomarkers with no data yet fold into one line under the cards
-/// instead of a "No data yet" card each.
+/// biomarkers with no data yet sit under the cards as compact, dimmed
+/// tiles, so the grid shows what will fill in.
 ///
 /// Loads snapshots async via `BiomarkerSeriesService` so the view
 /// body stays synchronous. Refreshes on appear + when the user
@@ -13,6 +13,7 @@ import SwiftUI
 /// and HealthKit reads cost main-thread time).
 struct BiomarkerListSection: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// Which biomarkers to render, in order, from the user's
     /// `BiologyConfig`.
@@ -71,7 +72,7 @@ struct BiomarkerListSection: View {
                         .transition(.opacity)
                 }
                 if !split.awaitingWearable.isEmpty {
-                    awaitingWearableNote(split.awaitingWearable)
+                    awaitingWearableTiles(split.awaitingWearable)
                         .transition(.opacity)
                 }
             }
@@ -90,22 +91,28 @@ struct BiomarkerListSection: View {
         }
     }
 
-    private func awaitingWearableNote(_ biomarkers: [Biomarker]) -> some View {
-        let names = biomarkers.map(\.shortName).formatted(.list(type: .and))
-        return HStack(spacing: Spacing.sm) {
-            Image(systemName: "applewatch")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.accentLight)
-                .accessibilityHidden(true)
-            Text(dataStore.profile.healthConnected
-                 ? String(localized: "Wear Apple Watch to record \(names)")
-                 : String(localized: "Connect Apple Health to fill in \(names)"))
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+    /// Three to a row; one per row at accessibility sizes, where a
+    /// third of the width can't hold the name.
+    private func awaitingWearableTiles(_ biomarkers: [Biomarker]) -> some View {
+        let columnCount = dynamicTypeSize.isAccessibilitySize ? 1 : 3
+        let columns = Array(repeating: GridItem(.flexible(), spacing: Spacing.sm), count: columnCount)
+        return LazyVGrid(columns: columns, spacing: Spacing.sm) {
+            ForEach(biomarkers, id: \.self) { biomarker in
+                AwaitingBiomarkerTile(
+                    biomarker: biomarker,
+                    caption: awaitingCaption(for: biomarker),
+                    onTap: { onSelectBiomarker?(.empty(biomarker)) }
+                )
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+    }
+
+    /// Steps also come from the iPhone, so only the Watch-only metrics
+    /// say they need one.
+    private func awaitingCaption(for biomarker: Biomarker) -> String {
+        dataStore.profile.healthConnected && biomarker != .stepsBaseline
+            ? String(localized: "Needs Watch")
+            : String(localized: "No data yet")
     }
 
     private func rows(_ biomarkers: [Biomarker]) -> some View {

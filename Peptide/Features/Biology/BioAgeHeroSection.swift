@@ -1,15 +1,15 @@
 import SwiftUI
 
-/// Top of the Biology tab. The dial shows only once there is a number
-/// to put on it; until then a compact card says how to get one:
+/// Top of the Biology tab. Until there is a number, a ghosted dial holds
+/// its place with a dash, and one line under it names the step to get one:
 ///
 ///   • `.locked` — free tier: nothing here. The host's promo card carries
 ///     the one CTA, so an empty dial above it added nothing.
 ///   • `.needsAge` — Pro tier with no age (or under 18) in Profile: the
-///     card asks for it instead of estimating against a made-up age.
+///     line asks for it instead of estimating against a made-up age.
 ///   • `.building(days:requiredDays:)` — Pro tier without enough data:
-///     the card names the step, with the day count and a progress bar,
-///     or asks for more signals when more days alone can't unlock it.
+///     the one action is connecting Apple Health while it isn't; after
+///     that, the Watch guidance with the day count and a progress bar.
 ///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the arc sweeps
 ///     up to the estimate as the number rolls to it, then the delta against
 ///     chronological age and how sure the estimate is.
@@ -24,6 +24,9 @@ struct BioAgeHeroSection: View {
     /// read access denied, or no Watch. Waiting won't help, so the
     /// building state says so instead of counting days.
     var noHealthData = false
+    /// Set while Apple Health isn't connected: the building state's one
+    /// button asks for access. Nil once connected.
+    var onConnectHealth: (() -> Void)?
     var onExplainTapped: () -> Void = {}
     /// Opens where the age is entered. Nil hides the button.
     var onAddAge: (() -> Void)?
@@ -62,8 +65,16 @@ struct BioAgeHeroSection: View {
             case .locked?:
                 EmptyView()
             case .needsAge?, .building(_, _)?:
-                setupCard
-                    .transition(Self.stateTransition)
+                VStack(spacing: Spacing.lg) {
+                    VStack(spacing: Spacing.md) {
+                        header
+                        ghostDial
+                    }
+                    setupStep
+                        .frame(maxWidth: Self.setupWidth)
+                }
+                .padding(.top, Spacing.sm)
+                .transition(Self.stateTransition)
             }
         }
         .frame(maxWidth: .infinity)
@@ -181,29 +192,33 @@ struct BioAgeHeroSection: View {
         .accessibilityHint("Shows what moved your Biological Age and how it's calculated")
     }
 
-    // MARK: - Setup card
+    // MARK: - Setup
 
-    /// Stands in for the dial while there is no number: what the estimate
-    /// is waiting for, in a card a few lines tall instead of an empty
-    /// 280pt gauge.
-    private var setupCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: state == .needsAge ? "person.crop.circle.badge.questionmark" : "hourglass")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.accentLight)
-                        .accessibilityHidden(true)
-                    Text("How to get your biological age")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .accessibilityAddTraits(.isHeader)
-                }
-                setupStep
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+    /// The dial's shape with nothing on it: the scale is left off, since
+    /// there is no reading to place against it, and a dash holds the
+    /// number's spot. Decorative — the line below says what's missing.
+    private var ghostDial: some View {
+        ZStack {
+            BioAgeDial(
+                chronologicalAge: chronologicalAge,
+                bioAge: nil,
+                size: Self.ghostDialSize,
+                showsScale: false
+            )
+            Text(verbatim: "—")
+                .font(AppFont.scaled(56, weight: .light, relativeTo: .largeTitle, in: centreTypeSize))
+                .foregroundStyle(AppColor.textTertiary)
+                .dynamicTypeSize(...Self.centreTypeSizeLimit)
         }
+        .frame(height: Self.ghostDialSize)
+        .padding(.bottom, -BioAgeDial.openBandHeight(size: Self.ghostDialSize))
+        .accessibilityHidden(true)
     }
+
+    /// Smaller than the live dial: a placeholder shouldn't push the
+    /// biomarkers further down than the reading it stands in for.
+    private static let ghostDialSize: CGFloat = 220
+    private static let setupWidth: CGFloat = 320
 
     @ViewBuilder
     private var setupStep: some View {
@@ -219,14 +234,14 @@ struct BioAgeHeroSection: View {
 
     private var needsAgeStep: some View {
         let isUnderage = (1..<BioAgeStateResolver.minimumAge).contains(chronologicalAge)
-        return VStack(alignment: .leading, spacing: Spacing.md) {
+        return VStack(spacing: Spacing.md) {
             setupText(isUnderage
                 ? String(localized: "Biological Age is available for users 18+.")
                 : String(localized: "Add your age in Profile to see your Biological Age."))
             // The one step between the user and the estimate, one tap
             // away instead of a hunt through Profile.
             if !isUnderage, let onAddAge {
-                GlassButton(title: "Open Profile", icon: "person.crop.circle", style: .secondary) {
+                GlassButton(title: "Open Profile", icon: "person.crop.circle", style: .primary) {
                     Haptics.impact(.light)
                     onAddAge()
                 }
@@ -234,22 +249,29 @@ struct BioAgeHeroSection: View {
         }
     }
 
-    /// Days against the unlock day when more days will get there;
-    /// otherwise the missing signals are what's holding it back.
+    /// Health access first; once granted, days against the unlock day
+    /// when more days will get there, otherwise the missing signals.
     @ViewBuilder
     private func buildingStep(days: Int, requiredDays: Int?) -> some View {
-        if noHealthData {
-            setupText(String(localized: "Atlas can't see any heart or sleep data. Check that Atlas has read access in the Health app, and wear Apple Watch overnight."))
+        if let onConnectHealth {
+            VStack(spacing: Spacing.md) {
+                setupText(String(localized: "Connect Apple Health so Atlas can read your heart rate, HRV and sleep."))
+                GlassButton(title: "Connect Apple Health", icon: "heart.fill", style: .primary, action: onConnectHealth)
+                    .accessibilityHint("Asks for read access to Apple Health")
+            }
         } else {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
+            VStack(spacing: Spacing.sm) {
                 setupText(String(localized: "Wear Apple Watch overnight. Atlas reads your heart rate, HRV and sleep."))
-                if let requiredDays {
-                    GlassProgressBar(progress: Self.buildingProgress(days: days, requiredDays: requiredDays))
-                    Text("\(min(days, requiredDays)) of \(requiredDays) days of data collected")
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textSecondary)
-                } else {
-                    setupText(String(localized: "A few more signals will unlock your estimate."))
+                // No data at all: a day count would only count zeros.
+                if !noHealthData {
+                    if let requiredDays {
+                        GlassProgressBar(progress: Self.buildingProgress(days: days, requiredDays: requiredDays))
+                        Text("\(min(days, requiredDays)) of \(requiredDays) days of data collected")
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.textSecondary)
+                    } else {
+                        setupText(String(localized: "A few more signals will unlock your estimate."))
+                    }
                 }
             }
         }
@@ -259,6 +281,7 @@ struct BioAgeHeroSection: View {
         Text(text)
             .font(AppFont.subheadline)
             .foregroundStyle(AppColor.textSecondary)
+            .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -387,6 +410,18 @@ struct BioAgeHeroSection: View {
         BioAgeHeroSection(
             state: .building(days: 4, requiredDays: 15),
             chronologicalAge: 26
+        )
+        .padding(Spacing.screenPadding)
+    }
+}
+
+#Preview("Health not connected") {
+    ZStack {
+        PageBackdrop().ignoresSafeArea()
+        BioAgeHeroSection(
+            state: .building(days: 0, requiredDays: 15),
+            chronologicalAge: 26,
+            onConnectHealth: {}
         )
         .padding(Spacing.screenPadding)
     }
