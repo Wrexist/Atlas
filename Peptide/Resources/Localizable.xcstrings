@@ -4053,6 +4053,16 @@
         }
       }
     },
+    "%lld pts · %lld to level %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld p · %2$lld till nivå %3$lld"
+          }
+        }
+      }
+    },
     "%lld reminders couldn't be scheduled": {
       "localizations": {
         "sv": {
@@ -7201,6 +7211,16 @@
         }
       }
     },
+    "Grows with every day you log.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Växer för varje dag du loggar."
+          }
+        }
+      }
+    },
     "How has it moved over the last 90 days?": {
       "localizations": {
         "sv": {
@@ -7914,12 +7934,32 @@
         }
       }
     },
+    "Read & write": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läsning och skrivning"
+          }
+        }
+      }
+    },
     "Read full recap": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Läs hela sammanfattningen"
+          }
+        }
+      }
+    },
+    "Read only": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endast läsning"
           }
         }
       }
@@ -15525,16 +15565,6 @@
         }
       }
     },
-    "Connected": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ansluten"
-          }
-        }
-      }
-    },
     "Connecting…": {
       "localizations": {
         "sv": {
@@ -22881,16 +22911,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nivå %lld · %@"
-          }
-        }
-      }
-    },
-    "Level %lld · %lld pts": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nivå %lld · %lld p"
           }
         }
       }

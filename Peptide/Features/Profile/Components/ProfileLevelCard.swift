@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Profile's read of the Atlas Score: the level ring filling toward the
 /// next level, and the numbers behind it. Unlike Today's `AtlasScoreCard`
-/// it carries no tier colour or streak ink, so the page keeps one accent.
+/// the tier is a neutral badge, not tier colour, so the page keeps one accent.
 /// Tapping opens the full progress view, where the badges live.
 struct ProfileLevelCard: View {
     @Environment(DataStore.self) private var dataStore
@@ -38,14 +38,17 @@ struct ProfileLevelCard: View {
             }
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Atlas Score")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text("Level \(momentum.level) · \(momentum.score) pts")
+                HStack(spacing: Spacing.sm) {
+                    Text("Atlas Score")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    tierBadge(momentum.tier)
+                }
+                Text("Grows with every day you log.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
-                    .contentTransition(.numericText())
-                Text("\(momentum.pointsToNextLevel) to level \(momentum.level + 1)")
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("\(momentum.score) pts · \(momentum.pointsToNextLevel) to level \(momentum.level + 1)")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .contentTransition(.numericText())
@@ -63,5 +66,20 @@ struct ProfileLevelCard: View {
         .accessibilityLabel(String(
             localized: "Atlas Score: level \(momentum.level), \(momentum.tier.name) tier, \(momentum.score) points. \(momentum.pointsToNextLevel) to the next level."
         ))
+    }
+
+    private func tierBadge(_ tier: MomentumEngine.Tier) -> some View {
+        HStack(spacing: Spacing.xxs) {
+            Image(systemName: tier.symbol)
+                .accessibilityHidden(true)
+            Text(tier.name)
+        }
+        .font(AppFont.badgeSmall)
+        .lineLimit(1)
+        .fixedSize()
+        .foregroundStyle(AppColor.textSecondary)
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xxs)
+        .background(Capsule().fill(AppColor.textTertiary.opacity(0.15)))
     }
 }

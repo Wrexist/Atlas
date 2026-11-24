@@ -42,12 +42,12 @@ struct HealthConnectionCard: View {
 
                     HStack(spacing: Spacing.xs) {
                         Circle()
-                            .fill(isConnected ? AppColor.accentPrimary : AppColor.textTertiary)
+                            .fill(statusIsLive ? AppColor.accentPrimary : AppColor.textTertiary)
                             .frame(width: 8, height: 8)
 
-                        Text(isConnected ? "Connected" : "Not Connected")
+                        Text(statusLabel)
                             .font(AppFont.caption2)
-                            .foregroundStyle(isConnected ? AppColor.accentLight : AppColor.textTertiary)
+                            .foregroundStyle(statusIsLive ? AppColor.accentLight : AppColor.textTertiary)
                     }
                 }
 
@@ -123,6 +123,16 @@ struct HealthConnectionCard: View {
             if connected { Haptics.success() }
         }
     }
+
+    /// Reading is the connection itself; the toggles below only add
+    /// writing, so the status names which directions are actually on.
+    private var statusLabel: LocalizedStringKey {
+        if !isConnected { return "Not Connected" }
+        if !healthDataVisible { return "No data" }
+        return activitySyncEnabled || nutritionWriteEnabled ? "Read & write" : "Read only"
+    }
+
+    private var statusIsLive: Bool { isConnected && healthDataVisible }
 
     private var noVisibleDataNotice: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {

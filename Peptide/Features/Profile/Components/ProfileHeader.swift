@@ -21,9 +21,9 @@ struct ProfileHeader: View {
     }
 
     var body: some View {
-        // Neutral glass: the accent lives on the avatar ring alone, so the
-        // identity reads calm and the one tinted thing is the person.
-        GlassCard {
+        // The faint accent wash marks this card as the person's own,
+        // distinct from the neutral data cards below it.
+        GlassCard(tinted: true) {
             VStack(spacing: Spacing.lg) {
                 editableAvatar
 
@@ -46,10 +46,19 @@ struct ProfileHeader: View {
 
                 // Training and days only: protocols are a secondary feature
                 // and their count lives with the library, not the identity.
-                HStack(spacing: Spacing.xxl) {
+                // Equal columns either side of a hairline, so the pair sits
+                // centred under the name instead of drifting left.
+                HStack(spacing: 0) {
                     ProfileStat(value: workoutCount, label: "Workouts")
+                        .frame(maxWidth: .infinity)
+                    Rectangle()
+                        .fill(AppColor.glassBorder)
+                        .frame(width: 1, height: 32)
+                        .accessibilityHidden(true)
                     ProfileStat(value: daysLogged, label: "Days")
+                        .frame(maxWidth: .infinity)
                 }
+                .frame(maxWidth: 260)
             }
             .frame(maxWidth: .infinity)
             .overlay(alignment: .topTrailing) {
