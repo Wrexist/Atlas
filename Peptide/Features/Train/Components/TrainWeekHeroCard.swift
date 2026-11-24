@@ -31,7 +31,7 @@ struct TrainWeekSummary: Equatable {
 
 /// Train's lit hero: the week as seven day marks, with the count against
 /// the user's training-days goal when they set one. Same accent body and
-/// lift as Today's hero, held still so the tab reads calm. An empty week
+/// lift as Today's hero, and the same tilt with the phone. An empty week
 /// sits on tinted paper instead: a saturated slab for nothing done yet
 /// shouts louder than the "Plan a workout" button under it.
 struct TrainWeekHeroCard: View {
@@ -42,6 +42,15 @@ struct TrainWeekHeroCard: View {
     var calendar: Calendar = .current
 
     @ScaledMetric(relativeTo: .caption2) private var markHeight: CGFloat = 40
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isOnScreen = true
+    @State private var isShown = false
+
+    /// Tilts like Today's hero while on screen; an empty week stays flat
+    /// paper, and screenshots need still frames.
+    private var isLive: Bool {
+        !isEmptyWeek && isOnScreen && isShown && !reduceMotion && !ScreenshotMode.shared.isEnabled
+    }
 
     private var trainedCount: Int { summary.trainedDays.count }
     private var isEmptyWeek: Bool { summary.workoutCount == 0 }
@@ -69,6 +78,12 @@ struct TrainWeekHeroCard: View {
                 TrainHeroSurface()
             }
         }
+        // Train's scroll view starts under the tab's pills, so the card
+        // rests where Today's would already be folding away.
+        .heroTilt(isLive: isLive, foldsOnScroll: false)
+        .onScrollVisibilityChange { isOnScreen = $0 }
+        .onAppear { isShown = true }
+        .onDisappear { isShown = false }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("train-weekly-goal")
     }

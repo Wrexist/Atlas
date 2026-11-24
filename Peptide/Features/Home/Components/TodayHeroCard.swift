@@ -63,7 +63,7 @@ struct TodayHeroCard: View {
             .padding(Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background { TodayHeroSurface(isLive: isLive) }
-            .modifier(TodayHeroTilt(isLive: isLive))
+            .heroTilt(isLive: isLive)
             .onScrollVisibilityChange { isOnScreen = $0 }
             .onAppear {
                 isShown = true
@@ -215,59 +215,6 @@ private struct TodayHeroSurface: View {
                 fill, fill, deep,
             ]
         )
-    }
-}
-
-// MARK: - Tilt
-
-/// Two sources of depth: the phone's own tilt nudges the card a few
-/// degrees toward the hand, and scrolling it under the bar tips it back
-/// like a lid closing.
-private struct TodayHeroTilt: ViewModifier {
-    let isLive: Bool
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var tilt = DeviceTilt.shared
-    @State private var leased = false
-
-    /// Degrees of card swing per radian of phone tilt.
-    private static let gain = 22.0
-
-    func body(content: Content) -> some View {
-        content
-            .rotation3DEffect(
-                .degrees(isLive ? tilt.pitch * Self.gain : 0),
-                axis: (x: 1, y: 0, z: 0),
-                perspective: 0.6
-            )
-            .rotation3DEffect(
-                .degrees(isLive ? -tilt.roll * Self.gain : 0),
-                axis: (x: 0, y: 1, z: 0),
-                perspective: 0.6
-            )
-            .appAnimation(AppAnimation.springSnappy, value: tilt.pitch)
-            .appAnimation(AppAnimation.springSnappy, value: tilt.roll)
-            .visualEffect { [reduceMotion] effect, proxy in
-                let lift = reduceMotion ? 0 : Self.scrollLift(minY: proxy.frame(in: .scrollView).minY)
-                return effect
-                    .rotation3DEffect(.degrees(lift * 18), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.5)
-                    .scaleEffect(1 - lift * 0.06, anchor: .bottom)
-                    .opacity(1 - lift * 0.5)
-            }
-            .onChange(of: isLive, initial: true) { _, live in lease(live) }
-            .onDisappear { lease(false) }
-    }
-
-    /// 0 while the card sits below the bar, rising to 1 over the next
-    /// 160pt as it scrolls up beneath it.
-    private nonisolated static func scrollLift(minY: CGFloat) -> Double {
-        min(max((96 - minY) / 160, 0), 1)
-    }
-
-    private func lease(_ live: Bool) {
-        guard live != leased else { return }
-        leased = live
-        live ? tilt.start() : tilt.stop()
     }
 }
 
