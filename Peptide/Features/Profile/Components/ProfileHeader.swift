@@ -3,7 +3,6 @@ import SwiftUI
 struct ProfileHeader: View {
     let name: String
     let memberSince: Date
-    let protocolCount: Int
     let daysLogged: Int
     var workoutCount: Int = 0
     var avatarImageData: Data? = nil
@@ -43,14 +42,11 @@ struct ProfileHeader: View {
                         .padding(.horizontal, Spacing.sm)
                 }
 
-                // Training and days are everyone's stats; Protocols joins
-                // them only for users who run one, so it never shows a zero.
+                // Training and days only: protocols are a secondary feature
+                // and their count lives with the library, not the identity.
                 HStack(spacing: Spacing.xxl) {
                     ProfileStat(value: workoutCount, label: "Workouts")
                     ProfileStat(value: daysLogged, label: "Days")
-                    if protocolCount > 0 {
-                        ProfileStat(value: protocolCount, label: "Protocols")
-                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -160,7 +156,6 @@ private struct ProfileStat: View {
         ProfileHeader(
             name: "Alex",
             memberSince: .now.addingTimeInterval(-90 * 86_400),
-            protocolCount: 4,
             daysLogged: 45,
             bio: "Optimizing recovery and sleep."
         )
@@ -172,7 +167,7 @@ private struct ProfileStat: View {
 #Preview("New User") {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        ProfileHeader(name: "", memberSince: .now, protocolCount: 0, daysLogged: 0)
+        ProfileHeader(name: "", memberSince: .now, daysLogged: 0)
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

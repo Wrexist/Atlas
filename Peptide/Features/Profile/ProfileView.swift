@@ -41,7 +41,6 @@ struct ProfileView: View {
                     ProfileHeader(
                         name: dataStore.profile.name,
                         memberSince: dataStore.profile.memberSince,
-                        protocolCount: dataStore.protocols.count,
                         daysLogged: dataStore.totalDaysLogged,
                         workoutCount: workoutCount,
                         avatarImageData: dataStore.profile.avatarImageData,
