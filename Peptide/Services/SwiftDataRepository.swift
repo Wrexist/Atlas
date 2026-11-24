@@ -1510,13 +1510,16 @@ final class SwiftDataRepository {
         }
     }
 
-    /// Cheap lifetime count of workout sessions via `fetchCount` (no row
-    /// materialization). Used by the training-achievement check so it
-    /// doesn't load the whole session table on a workout finish.
+    /// Lifetime count of finished workouts, reading ids only (no session
+    /// payloads). Used by the training-achievement check so it doesn't
+    /// load the whole session table on a workout finish. The workout in
+    /// progress doesn't count, and CloudKit twins of one id count once.
     func workoutSessionCount() -> Int {
         guard let context else { return 0 }
+        var descriptor = FetchDescriptor<StoredWorkoutSession>(predicate: #Predicate { $0.finishedAt != nil })
+        descriptor.propertiesToFetch = [\.id]
         do {
-            return try context.fetchCount(FetchDescriptor<StoredWorkoutSession>())
+            return Set(try context.fetch(descriptor).map(\.id)).count
         } catch {
             AppLog.swiftData.error("workoutSessionCount failed: \(error.localizedDescription, privacy: .public)")
             return 0
