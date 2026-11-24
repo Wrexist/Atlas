@@ -72,6 +72,38 @@ final class LifestyleDataStoreTests: XCTestCase {
         XCTAssertEqual(sameDayEntries.first?.kg, 80.5)
     }
 
+    /// Profile showed the stored onboarding weight while Biology showed
+    /// the latest weigh-in, so the same person read 172.8 and 172.7 lb.
+    func test_currentBodyMetrics_recentWeighIn_replacesStoredWeight() {
+        let store = makeStore()
+        var metrics = store.profile.bodyMetrics
+        metrics.weightKg = 78.4
+        store.updateBodyMetrics(metrics)
+        store.logWeight(kg: 78.3)
+        XCTAssertEqual(store.currentBodyMetrics.weightKg, 78.3)
+    }
+
+    func test_saveEditedBodyMetrics_changedWeight_logsWeighIn() {
+        let store = makeStore()
+        store.logWeight(kg: 78.3)
+        var edited = store.currentBodyMetrics
+        edited.weightKg = 77
+        store.saveEditedBodyMetrics(edited)
+        XCTAssertEqual(store.currentBodyMetrics.weightKg, 77)
+        XCTAssertEqual(store.profile.weightHistory.last?.kg, 77)
+    }
+
+    func test_saveEditedBodyMetrics_unchangedWeight_addsNoWeighIn() {
+        let store = makeStore()
+        store.logWeight(kg: 78.3, date: Date().addingTimeInterval(-86_400))
+        let count = store.profile.weightHistory.count
+        var edited = store.currentBodyMetrics
+        edited.heightCm = 182
+        store.saveEditedBodyMetrics(edited)
+        XCTAssertEqual(store.profile.weightHistory.count, count)
+        XCTAssertEqual(store.profile.bodyMetrics.heightCm, 182)
+    }
+
     func test_logWeight_keepsArraySorted() {
         let store = makeStore()
         let now = Date()

@@ -77,8 +77,8 @@ struct ProfileView: View {
                     .scrollReveal()
 
                     BodyMetricsCard(
-                        metrics: dataStore.profile.bodyMetrics,
-                        onUpdate: { dataStore.updateBodyMetrics($0) }
+                        metrics: dataStore.currentBodyMetrics,
+                        onUpdate: { dataStore.saveEditedBodyMetrics($0) }
                     )
                     .scrollReveal()
 
