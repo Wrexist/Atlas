@@ -12,7 +12,6 @@ struct ProfileView: View {
     @State private var healthWriteRefused = false
     @State private var healthDataVisible = true
     @State private var authService = AuthService.shared
-    @State private var showReconstitutionCalculator = false
     @State private var showProfileCustomization = false
     @State private var showProgress = false
     /// Read once on appear rather than in `body`: the count is a
@@ -99,26 +98,15 @@ struct ProfileView: View {
                     )
                     .scrollReveal()
 
-                    // Protocol tools are secondary, so they close the page
-                    // under a quiet label: reachable, never promoted.
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        Text("Protocols")
-                            .font(AppFont.eyebrow)
-                            .tracking(0.6)
-                            .textCase(.uppercase)
-                            .foregroundStyle(AppColor.textTertiary)
-                            .padding(.horizontal, Spacing.xs)
-                            .accessibilityAddTraits(.isHeader)
-
-                        PeptideLibraryEntryCard()
-
-                        // The calculator only matters to someone running a protocol.
-                        if !dataStore.protocols.isEmpty {
-                            ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
-                        }
-
-                        CycleCardShareSection()
+                    // Protocol tools are secondary: one quiet row closes
+                    // the page and the tools sit a tap in. Reachable,
+                    // never promoted.
+                    NavigationLink {
+                        ProfileProtocolToolsView(dismissProfile: dismiss)
+                    } label: {
+                        GlassEntryRowLabel(icon: "flask.fill", title: "Protocols")
                     }
+                    .buttonStyle(.cardPress)
                     .padding(.top, Spacing.lg)
                     .scrollReveal()
                 }
@@ -155,9 +143,6 @@ struct ProfileView: View {
                 guard dataStore.profile.healthConnected, scenePhase == .active else { return }
                 healthDataVisible = await HealthKitService.shared.hasReadableData(days: 30)
             }
-            .sheet(isPresented: $showReconstitutionCalculator) {
-                ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
-            }
             .sheet(isPresented: $showProfileCustomization) {
                 ProfileCustomizationSheet()
                     .environment(dataStore)
@@ -187,6 +172,41 @@ struct ProfileView: View {
             current.insert(goal)
         }
         dataStore.updateGoals(current)
+    }
+}
+
+/// The protocol tools behind Profile's one "Protocols" row: the
+/// Library, the reconstitution calculator and the cycle card share.
+private struct ProfileProtocolToolsView: View {
+    /// Profile's own dismiss: the Library opens only once the Profile
+    /// sheet is gone, and this pushed view's dismiss would only pop it.
+    let dismissProfile: DismissAction
+
+    @Environment(DataStore.self) private var dataStore
+    @State private var showReconstitutionCalculator = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: Spacing.sm) {
+                PeptideLibraryEntryCard(dismissProfile: dismissProfile)
+
+                // The calculator only matters to someone running a protocol.
+                if !dataStore.protocols.isEmpty {
+                    ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
+                }
+
+                CycleCardShareSection()
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.vertical, Spacing.lg)
+            .readableContentWidth()
+        }
+        .pageBackground()
+        .navigationTitle("Protocols")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showReconstitutionCalculator) {
+            ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
+        }
     }
 }
 
