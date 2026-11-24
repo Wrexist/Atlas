@@ -20,6 +20,9 @@ final class HealthKitService {
     /// Live for the rest of the process once started.
     private var observerQueries: [HKObserverQuery] = []
     private var pendingChangePost: Task<Void, Never>?
+    /// Each observer query fires once as it starts, with nothing new.
+    private var observingSince: Date?
+    private static let initialFireSeconds: TimeInterval = 2
     /// A Watch sync lands as a burst of callbacks, one per type and batch;
     /// they become one notification this long after the first.
     private static let changeCoalesceSeconds = 5
@@ -81,9 +84,10 @@ final class HealthKitService {
     }
 
     /// The types Today, Biology and the Watch glance re-read on change.
+    /// Not steps: Today already ticks those, and a walk would refresh
+    /// everything every few minutes.
     private var observedSampleTypes: [HKSampleType] {
         [
-            HKQuantityType(.stepCount),
             HKCategoryType(.sleepAnalysis),
             HKQuantityType(.heartRateVariabilitySDNN),
             HKQuantityType(.restingHeartRate),
@@ -95,6 +99,7 @@ final class HealthKitService {
     /// entitlement, and activation re-reads everything anyway.
     func startObservingSampleChanges() {
         guard isAvailable, observerQueries.isEmpty else { return }
+        observingSince = Date()
         observerQueries = observedSampleTypes.map(Self.makeObserverQuery(for:))
         for query in observerQueries {
             store.execute(query)
@@ -114,6 +119,7 @@ final class HealthKitService {
     }
 
     private func coalesceSampleChange() {
+        if let observingSince, Date().timeIntervalSince(observingSince) < Self.initialFireSeconds { return }
         guard pendingChangePost == nil else { return }
         pendingChangePost = Task {
             try? await Task.sleep(for: .seconds(Self.changeCoalesceSeconds))
@@ -459,13 +465,26 @@ final class HealthKitService {
         try await builder.beginCollection(at: start)
         try await builder.addMetadata([HKMetadataKeyExternalUUID: id.uuidString])
         // Health subtracts paused stretches from the workout's duration.
-        let events = pauses.flatMap { pause in [
-            HKWorkoutEvent(type: .pause, dateInterval: DateInterval(start: pause.start, duration: 0), metadata: nil),
-            HKWorkoutEvent(type: .resume, dateInterval: DateInterval(start: pause.end, duration: 0), metadata: nil),
-        ] }
-        if !events.isEmpty { try await builder.addWorkoutEvents(events) }
+        // Best effort: a rejected event still files the workout, as before.
+        let events = pauseEvents(pauses, end: end)
+        if !events.isEmpty {
+            do { try await builder.addWorkoutEvents(events) } catch {
+                AppLog.healthKit.error("Workout pause events failed: \(error.localizedDescription, privacy: .private)")
+            }
+        }
         try await builder.endCollection(at: end)
         _ = try await builder.finishWorkout()
+    }
+
+    /// A pause/resume pair per stretch. A stretch running to `end` gets no
+    /// resume: the workout ends paused rather than resuming at its end.
+    nonisolated private static func pauseEvents(_ pauses: [DateInterval], end: Date) -> [HKWorkoutEvent] {
+        pauses.filter { $0.start < end }.flatMap { pause -> [HKWorkoutEvent] in
+            let paused = HKWorkoutEvent(type: .pause, dateInterval: DateInterval(start: pause.start, duration: 0), metadata: nil)
+            guard pause.end < end else { return [paused] }
+            let resumed = HKWorkoutEvent(type: .resume, dateInterval: DateInterval(start: pause.end, duration: 0), metadata: nil)
+            return [paused, resumed]
+        }
     }
 
     /// Mirrors the day's Atlas weigh-in. Atlas keeps one weight per day,

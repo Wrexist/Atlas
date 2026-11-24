@@ -2420,12 +2420,14 @@ final class DataStore {
     }
 
     /// Moves picks an older build kept on this device into the synced
-    /// profile, where a pick made since wins. Saved at once, because the
-    /// device copy is already gone.
+    /// profile, where a pick made since wins. The device copy goes only
+    /// once the profile is on disk; a failed save retries next time.
     func adoptLegacyWorkoutTypeOverrides() {
-        guard let legacy = WorkoutTypeOverrideStore.takeLegacy() else { return }
+        guard let legacy = WorkoutTypeOverrideStore.legacy() else { return }
         profile.workoutTypeOverrides.merge(legacy) { synced, _ in synced }
         flushPendingSave()
+        guard !profileNeedsSave else { return }
+        WorkoutTypeOverrideStore.deleteLegacy()
     }
 
     // MARK: - Supplements

@@ -97,14 +97,16 @@ final class WorkoutTypeOverrideStoreTests: XCTestCase {
         ])
     }
 
-    func test_takeLegacy_movesDevicePicksOutOfDefaultsOnce() throws {
+    func test_legacy_readsDevicePicksUntilDeleted() throws {
         let suite = "WorkoutTypeOverrideStoreTests"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let id = UUID().uuidString
         defaults.set([id: CardioActivity.diving.rawValue], forKey: "workoutTypeOverrides.v1")
 
-        XCTAssertEqual(WorkoutTypeOverrideStore.takeLegacy(from: defaults), [id: CardioActivity.diving.rawValue])
-        XCTAssertNil(WorkoutTypeOverrideStore.takeLegacy(from: defaults))
+        XCTAssertEqual(WorkoutTypeOverrideStore.legacy(from: defaults), [id: CardioActivity.diving.rawValue])
+        XCTAssertEqual(WorkoutTypeOverrideStore.legacy(from: defaults), [id: CardioActivity.diving.rawValue])
+        WorkoutTypeOverrideStore.deleteLegacy(from: defaults)
+        XCTAssertNil(WorkoutTypeOverrideStore.legacy(from: defaults))
     }
 }

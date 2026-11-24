@@ -470,7 +470,7 @@ final class WorkoutSessionServiceTests: XCTestCase {
                        "The in-flight session never counts as 'previous'")
     }
 
-    func test_reloadActiveSessionAfterAccountSwitch_readsTheNewAccountsHistory() {
+    func test_reloadActiveSessionAfterAccountSwitch_readsTheNewAccountsHistory() throws {
         logBenchWorkout(weightKg: 80, reps: 5)
         _ = service.startWorkout()
         XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [80])
@@ -482,10 +482,21 @@ final class WorkoutSessionServiceTests: XCTestCase {
                 SetEntry(index: 1, weightKg: 60, reps: 5, completed: true),
             ]),
         ]))
-        repo.upsertWorkoutSession(WorkoutSession(startedAt: Date()))
+        // The new account's in-progress workout was started on another device.
+        let otherDevicesWorkout = WorkoutSession(startedAt: Date())
+        repo.upsertWorkoutSession(otherDevicesWorkout)
         service.reloadActiveSession()
 
+        XCTAssertNil(service.activeSession, "Neither the old account's workout nor another device's is resumed")
         XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [60])
+        XCTAssertNil(try XCTUnwrap(repo.loadWorkoutSession(id: otherDevicesWorkout.id)).finishedAt,
+                     "Reloading leaves the other device's workout untouched")
+    }
+
+    func test_reloadActiveSession_resumesThisDevicesWorkout() {
+        let started = service.startWorkout()
+        service.reloadActiveSession()
+        XCTAssertEqual(service.activeSession?.id, started.id)
     }
 
     func test_previousSessionSets_refreshAfterFinishingAWorkout() {

@@ -30,12 +30,11 @@ enum WorkoutTypeOverrideStore {
 
     private static let legacyKey = "workoutTypeOverrides.v1"
 
-    /// Picks an older build kept in this device's defaults, removed from
-    /// there once read. Nil when there are none.
-    static func takeLegacy(from defaults: UserDefaults = .standard) -> [String: String]? {
-        guard let legacy = defaults.dictionary(forKey: legacyKey) as? [String: String] else { return nil }
-        defaults.removeObject(forKey: legacyKey)
-        return legacy.isEmpty ? nil : legacy
+    /// Picks an older build kept in this device's defaults. Nil when there
+    /// are none. Left in place until `deleteLegacy`.
+    static func legacy(from defaults: UserDefaults = .standard) -> [String: String]? {
+        guard let legacy = defaults.dictionary(forKey: legacyKey) as? [String: String], !legacy.isEmpty else { return nil }
+        return legacy
     }
 
     static func deleteLegacy(from defaults: UserDefaults = .standard) {
