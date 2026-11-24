@@ -148,7 +148,7 @@ final class TodayOverviewSnapshotTests: XCTestCase {
 
     // MARK: - Bottom insight selection
 
-    func test_build_bottomInsight_prioritisesProtocolInsightOverLab() {
+    func test_build_bottomInsight_doseStreak_leavesLabInsight() {
         let store = DataStore(seedSampleData: false)
         // Streak math counts only entries belonging to a currently active
         // protocol — same rule as the home ring — so the entries need a
@@ -169,8 +169,8 @@ final class TodayOverviewSnapshotTests: XCTestCase {
             notes: ""
         )
         store.protocols.append(proto)
-        // Insight engine fires a streak insight at 7+ consecutive days.
-        // Add a fresh lab too — the engine output should still win the slot.
+        // A 7+ day dose streak fires a protocol insight in the engine;
+        // Today's overview leaves it out, so the fresh lab keeps the slot.
         for offset in 0..<10 {
             let date = Calendar.current.date(byAdding: .day, value: -offset, to: Date())!
             store.entries.append(
@@ -187,12 +187,9 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         }
         store.saveLabValue(LabValue(date: Date(), panel: .igf1, value: 180))
         let snapshot = TodayOverviewSnapshot.build(from: store)
-        guard case .protocolInsight = snapshot.bottomInsight else {
-            XCTFail("Expected protocol insight to win over latest-lab")
-            return
+        guard case .latestLab = snapshot.bottomInsight else {
+            return XCTFail("Expected the lab insight, got \(String(describing: snapshot.bottomInsight))")
         }
-        // A protocol insight is reason enough to show the card, even
-        // though doses themselves no longer count as a signal.
         XCTAssertTrue(snapshot.hasAnySignal)
     }
 

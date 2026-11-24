@@ -179,7 +179,7 @@ struct HeroMetricTrio: View {
                         .contentTransition(.numericText())
                 }
 
-                Text("Workouts")
+                Text("Training days")
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
@@ -189,7 +189,7 @@ struct HeroMetricTrio: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.96))
-        .accessibilityLabel("Workouts this week, \(done) of \(target)")
+        .accessibilityLabel("Training days this week, \(done) of \(target)")
         .accessibilityHint("Opens Train")
     }
 
