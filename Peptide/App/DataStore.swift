@@ -1699,6 +1699,16 @@ final class DataStore {
     /// Activities to them.
     func applyTravelShift(toTimezone identifier: String, minutesDelta: Int) {
         TravelModeLogic.shiftProtocolTimes(in: &protocols, byMinutes: minutesDelta)
+        acknowledgeTimezone(identifier)
+    }
+
+    /// User declined the schedule shift but acknowledged the
+    /// detection. Records the new identifier so we don't keep
+    /// re-prompting at every launch, and rebuilds today's entries at
+    /// the same wall-clock times the reminders fire at in this zone
+    /// (entries made in the old zone sit at its absolute times), then
+    /// re-plans reminders and Live Activities to match.
+    func acknowledgeTimezone(_ identifier: String) {
         TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
         for proto in activeProtocols {
             regenerateTodayEntriesPreservingLogs(for: proto)
@@ -1706,14 +1716,6 @@ final class DataStore {
         save()
         rescheduleNotificationsIfEnabled()
         reconcileDoseLiveActivities()
-    }
-
-    /// User declined the schedule shift but acknowledged the
-    /// detection. Records the new identifier so we don't keep
-    /// re-prompting at every launch.
-    func acknowledgeTimezone(_ identifier: String) {
-        TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
-        save()
     }
 
     // MARK: - Streak freeze
