@@ -225,7 +225,7 @@ enum AppColor {
         dark: Color.black.opacity(0.18)
     )
     static let ringCrest = Color.adaptive(
-        light: Color.white.opacity(0.2),
+        light: Color.white.opacity(0.12),
         dark: Color.white.opacity(0.13)
     )
     static let ringGroove = Color.adaptive(
@@ -236,7 +236,7 @@ enum AppColor {
     /// cut into the card rather than painted on it.
     static let ringGrooveLip = Color.adaptive(
         light: Color.white.opacity(0.7),
-        dark: Color.white.opacity(0.06)
+        dark: Color.white.opacity(0.1)
     )
 
     // MARK: - Directional feedback
