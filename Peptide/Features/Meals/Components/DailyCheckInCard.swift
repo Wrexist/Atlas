@@ -17,7 +17,6 @@ struct DailyCheckInCard: View {
     let onTap: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var completionTrigger = 0
 
     var body: some View {
@@ -71,43 +70,27 @@ struct DailyCheckInCard: View {
 
     // MARK: - Filled (summary) state
 
+    /// The header on one row and the five scores on a full-width row of
+    /// their own, so each score has room for its name. Squeezed between
+    /// the artwork and "Edit" the strip had only icons, which nobody could
+    /// read without guessing, and at accessibility sizes it pushed the
+    /// Today stack past both screen edges.
     private func filled(entry: OutcomeEntry) -> some View {
-        Group {
-            // The five score glyphs don't compress, so at accessibility
-            // sizes they take the card's full width on a row of their own.
-            // Squeezed between the artwork and "Edit" they needed ~400pt and
-            // pushed the whole Today stack past both screen edges.
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    HStack(alignment: .center, spacing: Spacing.md) {
-                        filledArtwork
-                        filledEyebrow
-                        Spacer(minLength: 0)
-                        editAffordance
-                    }
-                    scoreStrip(entry)
-                }
-            } else {
-                HStack(alignment: .center, spacing: Spacing.md) {
-                    filledArtwork
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        filledEyebrow
-                        scoreStrip(entry)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    editAffordance
-                }
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(alignment: .center, spacing: Spacing.md) {
+                filledArtwork
+                filledEyebrow
+                Spacer(minLength: 0)
+                editAffordance
             }
+            scoreStrip(entry)
         }
         .padding(Spacing.md)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     private var filledArtwork: some View {
-        MilestoneArtwork(size: 48, trigger: completionTrigger, isActive: completionTrigger > 0)
+        MilestoneArtwork(size: 36, trigger: completionTrigger, isActive: completionTrigger > 0)
     }
 
     private var filledEyebrow: some View {
@@ -139,9 +122,14 @@ struct DailyCheckInCard: View {
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.accentPrimary)
                     Text("\(value)")
-                        .font(AppFont.scaled(13, weight: .semibold))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
+                    Text(dim.displayName)
+                        .font(AppFont.scaled(11, weight: .medium))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
                 .frame(maxWidth: .infinity)
                 .accessibilityElement(children: .ignore)

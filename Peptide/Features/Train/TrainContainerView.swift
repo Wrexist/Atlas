@@ -149,16 +149,30 @@ struct TrainContainerView: View {
     }
 
     private var trainRoot: some View {
-        VStack(spacing: 0) {
+        // Keyed on the section so the body moves with the pill
+        // instead of swapping under it. A ZStack, so the outgoing and
+        // incoming panels overlap rather than splitting the height.
+        ZStack {
+            content
+                .id(section)
+                .transition(.sectionSwap(forward: sectionMovedForward))
+        }
+        // The pills ride in the top safe area rather than in a VStack
+        // above the scroll view: with a view stacked above it, the
+        // navigation bar can't find the scroll view, so the large "Train"
+        // title never collapsed into the inline title on scroll.
+        .safeAreaInset(edge: .top, spacing: 0) {
             sectionPicker
-            // Keyed on the section so the body moves with the pill
-            // instead of swapping under it. A ZStack, so the outgoing and
-            // incoming panels overlap rather than splitting the height.
-            ZStack {
-                content
-                    .id(section)
-                    .transition(.sectionSwap(forward: sectionMovedForward))
-            }
+                .background {
+                    // iOS 26 draws the hard scroll edge behind the bar;
+                    // earlier systems need a floor so cards don't show
+                    // through the pills as they scroll under.
+                    if #available(iOS 26.0, *) {
+                        Color.clear
+                    } else {
+                        AppColor.background.ignoresSafeArea(edges: .top)
+                    }
+                }
         }
         .pageBackground()
         .overlay(alignment: .top) {
