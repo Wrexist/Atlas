@@ -6989,6 +6989,16 @@
         }
       }
     },
+    "Export one section": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportera en del"
+          }
+        }
+      }
+    },
     "Fast ended after %@.": {
       "comment": "Siri confirmation after ending a fast before its goal. The value is its length, e.g. “14 hours, 5 minutes”.",
       "localizations": {
@@ -12779,16 +12789,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Byggd på livsmedel du har loggat eller sparat. Allmän vägledning, inte medicinska eller dietistråd."
-          }
-        }
-      }
-    },
-    "By section": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Per sektion"
           }
         }
       }
