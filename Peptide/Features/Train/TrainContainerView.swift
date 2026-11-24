@@ -157,23 +157,11 @@ struct TrainContainerView: View {
                 .id(section)
                 .transition(.sectionSwap(forward: sectionMovedForward))
         }
-        // The pills ride in the top safe area rather than in a VStack
-        // above the scroll view: with a view stacked above it, the
-        // navigation bar can't find the scroll view, so the large "Train"
-        // title never collapsed into the inline title on scroll.
-        .safeAreaInset(edge: .top, spacing: 0) {
-            sectionPicker
-                .background {
-                    // iOS 26 draws the hard scroll edge behind the bar;
-                    // earlier systems need a floor so cards don't show
-                    // through the pills as they scroll under.
-                    if #available(iOS 26.0, *) {
-                        Color.clear
-                    } else {
-                        AppColor.background.ignoresSafeArea(edges: .top)
-                    }
-                }
-        }
+        // The pills ride in a top bar rather than in a VStack above the
+        // scroll view: with a view stacked above it, the navigation bar
+        // can't find the scroll view, so the large "Train" title never
+        // collapsed into the inline title on scroll.
+        .topScrollBar { sectionPicker }
         .pageBackground()
         .overlay(alignment: .top) {
             SyncToast(

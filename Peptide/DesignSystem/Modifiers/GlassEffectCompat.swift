@@ -218,6 +218,22 @@ struct GlassBarBackground: View {
 }
 
 extension View {
+    /// Pins `content` under the navigation bar as part of the scroll
+    /// edge: on iOS 26 a `safeAreaBar`, which gets the same scroll-edge
+    /// treatment as the bar above it, so cards scrolling under it soften
+    /// instead of showing through; earlier systems get a solid floor.
+    @ViewBuilder
+    func topScrollBar<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        if #available(iOS 26.0, *) {
+            safeAreaBar(edge: .top, spacing: 0, content: content)
+        } else {
+            safeAreaInset(edge: .top, spacing: 0) {
+                content()
+                    .background(AppColor.background.ignoresSafeArea(edges: .top))
+            }
+        }
+    }
+
     /// iOS 26 lets content slide under the glass toolbar with only a soft
     /// fade, so text scrolling up reads through the title and its buttons.
     /// The hard edge gives the bar a defined backdrop; earlier systems get
