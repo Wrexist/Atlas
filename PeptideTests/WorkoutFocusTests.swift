@@ -20,6 +20,45 @@ final class WorkoutFocusStateTests: XCTestCase {
         XCTAssertEqual(session.focus?.rest?.endsAt, start.addingTimeInterval(270))
     }
 
+    func test_resume_recordsEachPauseForHealth() {
+        var session = WorkoutSession(startedAt: start)
+        session.focus = WorkoutFocusState()
+        session.focus?.pause(at: start.addingTimeInterval(600))
+        session.focus?.resume(at: start.addingTimeInterval(900))
+        session.focus?.pause(at: start.addingTimeInterval(1_800))
+        session.focus?.resume(at: start.addingTimeInterval(2_100))
+        let end = start.addingTimeInterval(3_600)
+
+        XCTAssertEqual(session.healthPauseIntervals(end: end), [
+            DateInterval(start: start.addingTimeInterval(600), end: start.addingTimeInterval(900)),
+            DateInterval(start: start.addingTimeInterval(1_800), end: start.addingTimeInterval(2_100)),
+        ])
+        XCTAssertEqual(session.elapsedSeconds(now: end),
+                       Int(end.timeIntervalSince(start) - session.healthPauseIntervals(end: end).reduce(0) { $0 + $1.duration }))
+    }
+
+    func test_healthPauseIntervals_pausedTotalWithoutRecordedPauses_placedAtTheEnd() {
+        let session = WorkoutSession(startedAt: start, focus: WorkoutFocusState(timing: .tracked, pausedSeconds: 1_200))
+        let end = start.addingTimeInterval(3_600)
+        XCTAssertEqual(session.healthPauseIntervals(end: end), [
+            DateInterval(start: start.addingTimeInterval(2_400), end: end),
+        ])
+    }
+
+    func test_healthPauseIntervals_noPauses_isEmpty() {
+        XCTAssertTrue(WorkoutSession(startedAt: start).healthPauseIntervals(end: start.addingTimeInterval(3_600)).isEmpty)
+        let session = WorkoutSession(startedAt: start, focus: WorkoutFocusState())
+        XCTAssertTrue(session.healthPauseIntervals(end: start.addingTimeInterval(3_600)).isEmpty)
+    }
+
+    func test_pausesSurviveFocusJSONRoundTrip() throws {
+        var focus = WorkoutFocusState()
+        focus.pause(at: start.addingTimeInterval(60))
+        focus.resume(at: start.addingTimeInterval(120))
+        let restored = try JSONDecoder().decode(WorkoutFocusState.self, from: JSONEncoder().encode(focus))
+        XCTAssertEqual(restored.pauses, [DateInterval(start: start.addingTimeInterval(60), end: start.addingTimeInterval(120))])
+    }
+
     func test_oldSessionJSONDecodesWithoutFocus() throws {
         let session = WorkoutSession(startedAt: start)
         let data = try JSONEncoder().encode(session)

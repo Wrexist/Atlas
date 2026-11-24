@@ -370,7 +370,10 @@ final class HealthKitService {
     func writeWorkout(_ session: WorkoutSession) async {
         guard isAvailable, let end = session.finishedAt else { return }
         do {
-            try await Self.saveStrengthWorkout(store: store, id: session.id, start: session.startedAt, end: end)
+            try await Self.saveStrengthWorkout(
+                store: store, id: session.id, start: session.startedAt, end: end,
+                pauses: session.healthPauseIntervals(end: end)
+            )
         } catch {
             AppLog.healthKit.error("writeWorkout failed: \(error.localizedDescription, privacy: .private)")
         }
@@ -391,7 +394,8 @@ final class HealthKitService {
         store: HKHealthStore,
         id: UUID,
         start: Date,
-        end: Date
+        end: Date,
+        pauses: [DateInterval]
     ) async throws {
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .traditionalStrengthTraining
@@ -399,6 +403,12 @@ final class HealthKitService {
         let builder = HKWorkoutBuilder(healthStore: store, configuration: configuration, device: .local())
         try await builder.beginCollection(at: start)
         try await builder.addMetadata([HKMetadataKeyExternalUUID: id.uuidString])
+        // Health subtracts paused stretches from the workout's duration.
+        let events = pauses.flatMap { pause in [
+            HKWorkoutEvent(type: .pause, dateInterval: DateInterval(start: pause.start, duration: 0), metadata: nil),
+            HKWorkoutEvent(type: .resume, dateInterval: DateInterval(start: pause.end, duration: 0), metadata: nil),
+        ] }
+        if !events.isEmpty { try await builder.addWorkoutEvents(events) }
         try await builder.endCollection(at: end)
         _ = try await builder.finishWorkout()
     }
