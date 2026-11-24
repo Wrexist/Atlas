@@ -522,15 +522,10 @@ struct TrainOverviewView: View {
     /// tap; a starter runs unsaved, so trying one doesn't add a routine.
     private var quickStartCard: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Quick start")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .accessibilityAddTraits(.isHeader)
-                Text("No workouts yet. Start one in a tap.")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textSecondary)
-            }
+            Text("Quick start")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .accessibilityAddTraits(.isHeader)
             VStack(spacing: Spacing.sm) {
                 ForEach(quickStartRoutines) { routine in
                     quickStartRow(routine)

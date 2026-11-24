@@ -7604,16 +7604,6 @@
         }
       }
     },
-    "No workouts yet. Start one in a tap.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inga pass än. Starta ett med ett tryck."
-          }
-        }
-      }
-    },
     "None": {
       "localizations": {
         "sv": {
