@@ -1,14 +1,17 @@
 import SwiftUI
 
 /// Train tab landing surface — "Översikt" in the Lyfta reference.
-/// Built around three layered cards:
+/// Built around layered cards:
 ///
+///   0. **This week** — the lit hero: a mark per day trained, counted
+///      against the training-days goal when the user set one.
 ///   1. **Weekly muscle map** — anatomical figure that lights up the
 ///      muscles the user actually trained over the past 7 days. The
 ///      whole body stays visible at a low baseline so the surface
 ///      reads even on a fresh install.
 ///   2. **Latest workout** — the most recent session, with "View all"
-///      pushing the full history.
+///      pushing the full history; before the first session, a few
+///      one-tap starters instead.
 ///   3. **Month calendar** — heat-by-day grid for the current month.
 ///      Days the user trained pulse with the accent colour; rest days
 ///      stay calm. Mirrors the shape of the existing peptide
@@ -33,6 +36,7 @@ struct TrainOverviewView: View {
     /// both touched the computed property. Recomputed only when
     /// `refresh()` runs (i.e. when sessions actually change).
     @State private var frequencies: [AnatomicalMuscle: Double] = [:]
+    @State private var weekSummary = TrainWeekSummary.empty
     /// All-time per-muscle volume + 12-week training regularity for the
     /// "Muscle gains" card. Memoised alongside `frequencies` — same
     /// O(sessions × exercises × muscles) scan, same refresh cadence.
@@ -89,9 +93,9 @@ struct TrainOverviewView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                startWorkoutButton
+                weekHero
                     .sectionAppear(index: 0)
-                weeklyGoalCard
+                startWorkoutButton
                     .sectionAppear(index: 1)
                 recentWorkoutsCard
                     .sectionAppear(index: 2)
@@ -203,9 +207,11 @@ struct TrainOverviewView: View {
 
     /// One painted action: start the routine that comes next in the
     /// rotation, or plan a workout when there's no routine yet. The other
-    /// ways in sit under it as two quiet buttons instead of three equal
-    /// ones. Hidden while a workout is in progress — the container's
-    /// "Resume" banner is the action then.
+    /// ways in sit under it as bare text, so the page has one primary.
+    /// Before the first session "Empty workout" lives in the Quick start
+    /// card instead, so the top holds at most two ways in.
+    /// Hidden while a workout is in progress — the container's "Resume"
+    /// banner is the action then.
     @ViewBuilder
     private var startWorkoutButton: some View {
         if sessionService.activeSession == nil {
@@ -220,10 +226,14 @@ struct TrainOverviewView: View {
                 } else {
                     planWorkoutCTA
                 }
-                // Side by side only while both titles fit on one line each.
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: Spacing.sm) { otherStarts(showsPlan: nextRoutine != nil) }
-                    VStack(spacing: Spacing.sm) { otherStarts(showsPlan: nextRoutine != nil) }
+                let showsEmpty = !sessions.isEmpty
+                let showsPlan = nextRoutine != nil
+                if showsEmpty || showsPlan {
+                    // Side by side only while both titles fit on one line each.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: Spacing.xl) { otherStarts(showsEmpty: showsEmpty, showsPlan: showsPlan) }
+                        VStack(spacing: Spacing.sm) { otherStarts(showsEmpty: showsEmpty, showsPlan: showsPlan) }
+                    }
                 }
             }
         }
@@ -243,18 +253,18 @@ struct TrainOverviewView: View {
         sessionService.startWorkout(routine: built.routine, linksRoutine: built.linksRoutine)
     }
 
-    /// Quiet starts under the painted one, at its full width so the stack
-    /// shares both edges; the secondary fill keeps one primary.
+    /// Quiet starts under the painted one: accent text with no fill, so
+    /// they read as alternatives rather than rivals to the primary.
     @ViewBuilder
-    private func otherStarts(showsPlan: Bool) -> some View {
-        // A ringed outline: a bare triangle carried less ink than the
-        // wand and stars on "Plan a workout" beside it.
-        GlassButton(title: "Empty workout", icon: "play.circle", style: .secondary, isFullWidth: true) {
-            Haptics.impact(.medium)
-            sessionService.startWorkout()
+    private func otherStarts(showsEmpty: Bool, showsPlan: Bool) -> some View {
+        if showsEmpty {
+            GlassButton(title: "Empty workout", icon: "play.circle", style: .ghost) {
+                Haptics.impact(.medium)
+                sessionService.startWorkout()
+            }
         }
         if showsPlan {
-            GlassButton(title: "Plan a workout", icon: "wand.and.stars", style: .secondary, isFullWidth: true) {
+            GlassButton(title: "Plan a workout", icon: "wand.and.stars", style: .ghost) {
                 Haptics.impact(.medium)
                 showsSessionBuilder = true
             }
@@ -279,58 +289,16 @@ struct TrainOverviewView: View {
         return ready[(index + 1) % ready.count]
     }
 
-    // MARK: - Weekly goal
+    // MARK: - This week
 
-    /// Days trained this calendar week against the days-per-week the user
-    /// set in onboarding — the goal had no progress shown anywhere in Train.
-    @ViewBuilder
-    private var weeklyGoalCard: some View {
-        if let target = dataStore.profile.trainingPreferences?.daysPerWeek, target > 0 {
-            let done = TrainingWeekEngine.trainedDaysThisWeek(sessions)
-            let reached = done >= target
-            GlassCard {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    HStack(spacing: Spacing.sm) {
-                        Text("Training days this week")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Spacer(minLength: Spacing.sm)
-                        if reached {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(AppColor.success)
-                                .transition(.scale.combined(with: .opacity))
-                                .accessibilityHidden(true)
-                        }
-                        Text("\(done) of \(target)")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
-                            .monospacedDigit()
-                            .fixedSize()
-                            .contentTransition(.numericText())
-                    }
-                    // One connected track, a segment per planned day.
-                    HStack(spacing: Spacing.xxs) {
-                        ForEach(0..<target, id: \.self) { day in
-                            Capsule()
-                                .fill(day < done ? AppColor.accentFill : AppColor.surfaceSecondary)
-                                .frame(height: Spacing.sm)
-                        }
-                    }
-                    if reached {
-                        Text("Goal reached")
-                            .font(AppFont.caption2)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .transition(.opacity)
-                    }
-                }
-                // One transaction for the count, the track and the goal
-                // line, so a finished workout rolls the number and fills
-                // its segment together instead of only the track moving.
-                .appAnimation(AppAnimation.springSnappy, value: done)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("train-weekly-goal")
-        }
+    /// Always shown, goal or not: an empty week draws outlined day marks
+    /// rather than leaving the top of the tab blank.
+    private var weekHero: some View {
+        TrainWeekHeroCard(
+            summary: weekSummary,
+            target: (dataStore.profile.trainingPreferences?.daysPerWeek).flatMap { $0 > 0 ? $0 : nil },
+            unit: unit
+        )
     }
 
     /// Pulls the latest sessions out of SwiftData. Called on appear and
@@ -351,6 +319,7 @@ struct TrainOverviewView: View {
             library: library
         )
         trainingContextCaption = Self.trainingContextCaption(for: sessions)
+        weekSummary = TrainWeekSummary.make(from: sessions, calendar: .current)
     }
 
     /// Newest first, without the in-progress workout: a minimized
@@ -503,8 +472,6 @@ struct TrainOverviewView: View {
             .foregroundStyle(AppColor.textPrimary)
     }
 
-    /// Always offered: the history also lists Apple Health workouts (Watch
-    /// dives, runs), which exist even before the first Atlas session.
     private var viewAllWorkoutsLink: some View {
         NavigationLink(value: TrainNavigation.workoutHistory) {
             Text("View all").font(AppFont.subheadline).minimumHitArea()
@@ -515,7 +482,7 @@ struct TrainOverviewView: View {
     private var recentWorkoutsCard: some View {
         GlassCard {
             if sessions.isEmpty {
-                emptyRecentWorkouts
+                quickStartCard
             } else {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     latestWorkoutHeader
@@ -546,30 +513,106 @@ struct TrainOverviewView: View {
         }
     }
 
-    /// One row, not a full empty state: Start workout sits directly above,
-    /// so a centred icon and pitch only pushed Trends below the fold.
-    private var emptyRecentWorkouts: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: Spacing.md) {
-                emptyRecentWorkoutsLabel
-                Spacer()
-                viewAllWorkoutsLink
-            }
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                emptyRecentWorkoutsLabel
-                viewAllWorkoutsLink
+    // MARK: - Quick start
+
+    /// Before the first session there's nothing to look back on, so the
+    /// card offers a first workout instead: the user's own routines when
+    /// they have more than the one the primary button starts, else the
+    /// bundled starters. Each row starts in one
+    /// tap; a starter runs unsaved, so trying one doesn't add a routine.
+    private var quickStartCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Quick start")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+            VStack(spacing: Spacing.sm) {
+                ForEach(quickStartRoutines) { routine in
+                    quickStartRow(routine)
+                }
+                emptyWorkoutRow
             }
         }
     }
 
-    private var emptyRecentWorkoutsLabel: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            latestWorkoutTitle
-            Text("No sessions yet")
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
+    private var quickStartRoutines: [Routine] {
+        // Without the routine the primary button already offers.
+        let suggested = Self.suggestedRoutine(from: routineStore.routines, history: sessions)?.id
+        let own = routineStore.routines.filter { !$0.exercises.isEmpty && $0.id != suggested }
+        guard own.isEmpty else { return Array(own.prefix(Self.quickStartCount)) }
+        return Self.starterRoutines
+    }
+
+    private static let quickStartCount = 3
+
+    /// Built once: fresh ids per render would rebuild every row.
+    private static let starterRoutines: [Routine] = RoutineTemplate.starters
+        .prefix(quickStartCount)
+        .map { Routine(name: $0.name, subtitle: $0.summary, exercises: $0.makeExercises()) }
+
+    private func quickStartDetail(_ routine: Routine) -> Text {
+        let count = routine.exercises.count
+        guard let subtitle = routine.subtitle, !subtitle.isEmpty else {
+            return Text("^[\(count) exercise](inflect: true)")
         }
+        return Text("\(subtitle) · ^[\(count) exercise](inflect: true)")
+    }
+
+    private func quickStartRow(_ routine: Routine) -> some View {
+        let isSaved = routineStore.routines.contains { $0.id == routine.id }
+        return quickStartButton(
+            title: Text(routine.name),
+            detail: quickStartDetail(routine),
+            label: Text("Start \(routine.name)")
+        ) {
+            sessionService.startWorkout(routine: routine, linksRoutine: isSaved)
+        }
+    }
+
+    /// Last in the list, so the blank start is still one tap away without
+    /// a third button competing with "Plan a workout" up top. Labelled
+    /// "Empty workout" like the button it replaces, which UI tests tap.
+    private var emptyWorkoutRow: some View {
+        quickStartButton(
+            title: Text("Empty workout"),
+            detail: Text("Add exercises as you go"),
+            label: Text("Empty workout")
+        ) {
+            sessionService.startWorkout()
+        }
+    }
+
+    private func quickStartButton(
+        title: Text, detail: Text, label: Text, action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.impact(.medium)
+            action()
+        } label: {
+            HStack(spacing: Spacing.md) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    title
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    detail
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: Spacing.sm)
+                Image(systemName: "play.fill")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .accessibilityHidden(true)
+            }
+            .padding(Spacing.md)
+            .frame(minHeight: Spacing.minimumHitTarget)
+            .insetRowBackground()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
     }
 
     /// A recent-session row, now a real NavigationLink into
