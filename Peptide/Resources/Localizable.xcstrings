@@ -8956,16 +8956,6 @@
         }
       }
     },
-    "Weekly volume": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Veckovolym"
-          }
-        }
-      }
-    },
     "What patterns do you see in my journal?": {
       "localizations": {
         "sv": {
@@ -21674,7 +21664,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Så räknas de"
+            "value": "Så räknas siffrorna"
           }
         }
       }
@@ -53895,6 +53885,96 @@
           "stringUnit": {
             "state": "translated",
             "value": "Varierar med %@"
+          }
+        }
+      }
+    },
+    "Level": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nivå"
+          }
+        }
+      }
+    },
+    "+%lld XP": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%lld XP"
+          }
+        }
+      }
+    },
+    "Level up! You reached level %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ny nivå! Du är nu på nivå %lld"
+          }
+        }
+      }
+    },
+    "%lld XP to level %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld XP kvar till nivå %2$lld"
+          }
+        }
+      }
+    },
+    "Earned %lld XP": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld XP intjänat"
+          }
+        }
+      }
+    },
+    "Level %lld, %lld XP to level %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nivå %1$lld, %2$lld XP kvar till nivå %3$lld"
+          }
+        }
+      }
+    },
+    "Stronger this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starkare den här veckan"
+          }
+        }
+      }
+    },
+    "Sets toward each muscle's weekly growth target": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set mot varje muskels veckomål för tillväxt"
+          }
+        }
+      }
+    },
+    "%@, %lld of %lld sets this week, %lld from this workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld av %3$lld set denna vecka, %4$lld från det här passet"
           }
         }
       }
