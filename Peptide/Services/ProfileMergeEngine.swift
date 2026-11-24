@@ -212,13 +212,29 @@ enum ProfileMergeEngine {
                 }
             )
         }
+
+        /// An ordered list of unique ids (progress photos), rebased like
+        /// `idSet`: `remote`'s order kept, this device's adds appended.
+        static func idList(_ keyPath: WritableKeyPath<UserProfile, [String]>) -> BlobField {
+            BlobField(
+                changed: { $0[keyPath: keyPath] != $1[keyPath: keyPath] },
+                rebase: { merged, baseline, remote in
+                    let local = merged[keyPath: keyPath]
+                    let base = Set(baseline[keyPath: keyPath])
+                    let removed = base.subtracting(local)
+                    let kept = remote[keyPath: keyPath].filter { !removed.contains($0) }
+                    let keptSet = Set(kept)
+                    merged[keyPath: keyPath] = kept + local.filter { !base.contains($0) && !keptSet.contains($0) }
+                }
+            )
+        }
     }
 
     private static var recordLists: [RecordList] {
         [
             .of(\.habits), .of(\.habitEntries), .of(\.weightHistory), .of(\.labHistory),
             .of(\.outcomeHistory), .of(\.customFoods), .of(\.recipes), .of(\.protocolNotes),
-            .supplements,
+            .of(\.workoutHistory), .supplements,
         ]
     }
 
@@ -229,9 +245,9 @@ enum ProfileMergeEngine {
         [
             .idSet(\.favoriteFoodIDs), .idSet(\.favoriteRecipeIDs),
             .of(\.nutritionTargets),
-            .of(\.emailSubscription), .of(\.progressPhotoFilenames), .of(\.workoutHistory),
+            .of(\.emailSubscription), .idList(\.progressPhotoFilenames),
             .of(\.healthKitNutritionEnabled), .of(\.workoutLegacyMigrationCompleted),
-            .of(\.lastKnownTimezoneIdentifier), .of(\.streakFreezeDays), .of(\.biologyConfig),
+            .of(\.lastKnownTimezoneIdentifier), .idSet(\.streakFreezeDays), .of(\.biologyConfig),
             .of(\.todayLayout), .of(\.trainingPreferences), .of(\.weeklySummaryEnabled),
             .of(\.weeklySummaryOptInConfirmed), .of(\.goalDate),
         ]

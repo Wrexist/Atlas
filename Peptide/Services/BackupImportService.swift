@@ -333,7 +333,7 @@ enum BackupImportService {
             try dataStore.applyImport(
                 protocols: resolvedProtocols,
                 entries: resolvedEntries,
-                profile: resolvedProfile,
+                profile: keepingHealthWeightsLocal(resolvedProfile, ids: backup.healthWeightIDs),
                 training: training
             )
         } catch {
@@ -426,6 +426,23 @@ enum BackupImportService {
                 deletesUncarried = false
             }
         }
+    }
+
+    /// Records the backup's Apple Health weigh-ins as this device's
+    /// imports, so the save keeps them off iCloud and deleting one
+    /// dismisses its sample. One that can't be recorded is left out, as
+    /// an import pass does; Health brings it back.
+    private static func keepingHealthWeightsLocal(_ profile: UserProfile, ids: [UUID]?) -> UserProfile {
+        let repository = SwiftDataRepository.shared
+        let healthIDs = Set(ids ?? [])
+        let unrecorded = profile.weightHistory.filter {
+            healthIDs.contains($0.id) && !repository.isHealthWeightImport($0.id)
+        }
+        guard !unrecorded.isEmpty, !repository.recordHealthWeightImports(unrecorded) else { return profile }
+        let unrecordedIDs = Set(unrecorded.map(\.id))
+        var kept = profile
+        kept.weightHistory.removeAll { unrecordedIDs.contains($0.id) }
+        return kept
     }
 
     /// Fasting history lives in its own store, outside `applyImport`.

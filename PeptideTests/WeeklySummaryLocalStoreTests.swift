@@ -66,6 +66,34 @@ final class WeeklySummaryLocalStoreTests: XCTestCase {
         XCTAssertTrue(ScanCorrectionMemory().corrections.isEmpty, "erased from disk too")
     }
 
+    func test_forgetDeviceLocalRecords_unpromptedAccountChange_keepsHealthJournal() throws {
+        let journal = HealthJournalStore.shared
+        defer { journal.deleteAll() }
+        try saveJournalEntry(in: journal)
+
+        repo.forgetDeviceLocalRecords()
+
+        XCTAssertFalse(journal.entries.isEmpty)
+        XCTAssertFalse(HealthJournalStore().entries.isEmpty, "still on disk")
+    }
+
+    func test_removeDeviceLocalData_userChoseRemove_emptiesHealthJournal() throws {
+        let journal = HealthJournalStore.shared
+        try saveJournalEntry(in: journal)
+
+        repo.removeDeviceLocalData()
+
+        XCTAssertTrue(journal.entries.isEmpty)
+        XCTAssertTrue(HealthJournalStore().entries.isEmpty, "erased from disk too")
+    }
+
+    private func saveJournalEntry(in journal: HealthJournalStore) throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        journal.save(mood: .good, note: "Slept well", on: Date(timeIntervalSince1970: 1_700_000_000), calendar: calendar)
+        XCTAssertFalse(journal.entries.isEmpty)
+    }
+
     func test_saveProfile_neverWritesSummariesToSyncedRow_butLoadsThemBack() throws {
         var profile = UserProfile.fresh
         profile.weeklySummaries = [summary().weekStart: summary()]
