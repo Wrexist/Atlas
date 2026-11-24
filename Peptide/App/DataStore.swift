@@ -1282,6 +1282,17 @@ final class DataStore {
         save()
     }
 
+    /// Saves the Profile editor's metrics. That card shows the latest
+    /// weigh-in, like Biology and the targets, so a weight the user changes
+    /// there is logged as today's weigh-in too; otherwise a recent weigh-in
+    /// would keep hiding the new value.
+    func saveEditedBodyMetrics(_ metrics: BodyMetrics) {
+        let shownKg = currentBodyMetrics.weightKg
+        updateBodyMetrics(metrics)
+        guard let kg = metrics.weightKg, kg != shownKg else { return }
+        logWeight(kg: kg)
+    }
+
     /// Updates the calorie + macro targets surfaced on the Meals tab.
     /// Pass `nil` to clear them and re-show the empty-state CTA.
     func updateNutritionTargets(_ targets: NutritionTargets?) {
