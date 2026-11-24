@@ -11,6 +11,10 @@ import SwiftUI
 struct HomeWellnessSection: View {
     @Environment(DataStore.self) private var dataStore
 
+    /// Built per parent render, so the card empties at midnight even
+    /// though no profile property it reads changed.
+    var day: Date = Calendar.current.startOfDay(for: Date())
+
     @State private var showOutcomeCheckIn = false
 
     var body: some View {
@@ -18,7 +22,7 @@ struct HomeWellnessSection: View {
             HomeSectionHeader(title: "How you're feeling")
 
             DailyCheckInCard(
-                todayEntry: dataStore.outcome(),
+                todayEntry: dataStore.outcome(for: day),
                 onTap: { showOutcomeCheckIn = true }
             )
         }

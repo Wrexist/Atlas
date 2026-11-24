@@ -25,8 +25,8 @@ struct Habit: Codable, Identifiable, Hashable, Sendable {
     /// user logs an integer value per day toward the target.
     var targetValue: Int?
     /// Reminder fires at this time on scheduled days. `nil` = no
-    /// reminder. Only the hour + minute components are honored; the
-    /// date portion is ignored.
+    /// reminder. Read it through `reminderClock`, never as an instant:
+    /// see `Habit.reminderTime(hour:minute:)` for the encoding.
     var reminderTime: Date?
     var category: HabitCategory
     let createdAt: Date
@@ -64,6 +64,27 @@ struct Habit: Codable, Identifiable, Hashable, Sendable {
     }
 
     var tint: Color { HabitTintCatalog.color(for: tintHex) }
+
+    /// Stores a wall-clock reminder time as minutes past the reference
+    /// date, so it means "08:00 wherever I am", like dose and meal
+    /// reminders, instead of an instant that moves with the time zone.
+    static func reminderTime(hour: Int, minute: Int) -> Date {
+        Date(timeIntervalSinceReferenceDate: TimeInterval(hour * 3600 + minute * 60))
+    }
+
+    /// Hour and minute the reminder fires at, in local wall-clock time.
+    /// Values saved before the wall-clock encoding are real timestamps
+    /// and keep their old reading in `calendar` until the habit is saved
+    /// again.
+    func reminderClock(calendar: Calendar = .current) -> (hour: Int, minute: Int)? {
+        guard let reminderTime else { return nil }
+        let offset = reminderTime.timeIntervalSinceReferenceDate
+        if offset >= 0, offset < 86_400 {
+            let minutes = Int(offset) / 60
+            return (minutes / 60, minutes % 60)
+        }
+        return (calendar.component(.hour, from: reminderTime), calendar.component(.minute, from: reminderTime))
+    }
 
     /// True for habits with a numeric target (8 glasses, 10k steps).
     /// Drives the editor UI's value-input visibility.

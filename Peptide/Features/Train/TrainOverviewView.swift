@@ -352,6 +352,9 @@ struct TrainOverviewView: View {
             baseline.confidence > .insufficientHistory
         else { return nil }
 
+        // A rolling window, like the baseline it's compared to — so the
+        // copy says "last 7 days", not "this week", which on Today and
+        // Train's goal card means the calendar week's trained days.
         let thisWeek = TrainingPatternEngine.currentRollingWeekCount(sessionDates: dates)
         guard let result = ChangeDetectionEngine.evaluate(current: Double(thisWeek), against: baseline)
         else { return nil }
@@ -372,7 +375,7 @@ struct TrainOverviewView: View {
         // says hedge, not stay silent) — just flagged as an early read
         // rather than stated as flatly as an established baseline would be.
         let prefix = baseline.confidence == .emergingBaseline ? String(localized: "Early read: ") : ""
-        return String(localized: "\(prefix)\(thisWeek) sessions this week — \(tail).")
+        return String(localized: "\(prefix)\(thisWeek) sessions in the last 7 days — \(tail).")
     }
 
     // MARK: - Weekly muscle map

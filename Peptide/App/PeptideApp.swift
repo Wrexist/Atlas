@@ -808,7 +808,7 @@ struct PeptideApp: App {
 /// finishes, or when iOS's budget runs out first. An unended task at
 /// expiry gets the app terminated rather than suspended.
 @MainActor
-private final class BackgroundTaskHandle {
+final class BackgroundTaskHandle {
     private var identifier: UIBackgroundTaskIdentifier = .invalid
 
     init(name: String) {
