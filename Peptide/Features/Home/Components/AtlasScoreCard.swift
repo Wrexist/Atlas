@@ -10,6 +10,9 @@ struct AtlasScoreCard: View {
     /// When set, the card becomes tappable (opens the progress surface)
     /// and shows a trailing chevron.
     var onTap: (() -> Void)? = nil
+    /// Built per parent render, so the card's "+N today" drops at
+    /// midnight even though no profile property it reads changed.
+    var day: Date = Calendar.current.startOfDay(for: Date())
 
     var body: some View {
         if let onTap {
@@ -22,7 +25,7 @@ struct AtlasScoreCard: View {
     }
 
     private var card: some View {
-        let momentum = dataStore.momentum
+        let momentum = dataStore.momentumSnapshot(on: day)
         let tint = momentum.tier.tint
 
         return HStack(spacing: Spacing.lg) {

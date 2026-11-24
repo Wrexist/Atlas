@@ -139,8 +139,8 @@ struct HomeView: View {
         var habits: HabitsHeroSnapshot = .empty
         /// Facts the on-device model may rephrase `primaryReason`'s body from.
         var coachingFacts: OnDeviceSummaryEngine.Facts?
-        /// Finished sessions this calendar week — the trio's first ring
-        /// for a user with no active protocol.
+        /// Distinct trained days this calendar week (`TrainingWeekEngine`)
+        /// — the trio's first ring for a user with no active protocol.
         var workoutsThisWeek = 0
         /// The day's session count and minutes — feeds the Movement card
         /// and the checklist's training row without a fetch from `body`.
@@ -270,13 +270,13 @@ struct HomeView: View {
             primaryReason: reason,
             habits: habits,
             coachingFacts: reason.flatMap { coachingFacts(for: $0) },
-            workoutsThisWeek: weekSessions.count,
+            workoutsThisWeek: TrainingWeekEngine.trainedDaysThisWeek(weekSessions),
             workoutSummary: workoutSummary,
             checklist: TodayChecklistEngine.state(
                 profile: dataStore.profile,
                 consumption: dataStore.consumption(for: day),
                 trainedToday: workoutSummary.count > 0,
-                weekSessionCount: shownDay.weekCount,
+                weekTrainedDays: shownDay.weekTrainedDays,
                 steps: steps(on: day),
                 now: reference
             ),
@@ -347,15 +347,15 @@ struct HomeView: View {
             .filter { !$0.isActive }
     }
 
-    /// The shown day's finished sessions, and how many finished sessions
-    /// its week holds up to the end of that day — what the checklist's
-    /// weekly-target rule counts. The current week reuses the week fetch;
-    /// an earlier week reads its week-through-day window once and derives
-    /// both from it.
+    /// The shown day's finished sessions, and how many distinct days of
+    /// its week were trained up to the end of that day — what the
+    /// checklist's weekly-target rule counts. The current week reuses the
+    /// week fetch; an earlier week reads its week-through-day window once
+    /// and derives both from it.
     private func finishedSessions(
         on day: Date,
         thisWeek weekSessions: [WorkoutSession]
-    ) -> (day: [WorkoutSession], weekCount: Int) {
+    ) -> (day: [WorkoutSession], weekTrainedDays: Int) {
         let calendar = Calendar.current
         guard let week = calendar.dateInterval(of: .weekOfYear, for: day) else { return ([], 0) }
         let end = min(week.end, TodayDayEngine.dayRange(for: day).upperBound)
@@ -366,7 +366,8 @@ struct HomeView: View {
                 .loadWorkoutSessions(startedBetween: week.start..<end)
                 .filter { !$0.isActive }
         let daySessions = throughDay.filter { calendar.isDate($0.dayAnchor, inSameDayAs: day) }
-        return (daySessions, throughDay.count)
+        let trainedDays = TrainingWeekEngine.trainedDays(throughDay, in: week.start..<end, calendar: calendar)
+        return (daySessions, trainedDays)
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
@@ -1479,7 +1480,9 @@ struct HomeView: View {
             healthConnected: dataStore.profile.healthConnected
         )
         AppAnimation.with(AppAnimation.springSmooth) {
-            heroSnapshot = snapshot
+            // A dose toggled while HealthKit answered already moved the
+            // ring; the ratio captured before the await is stale.
+            heroSnapshot = snapshot.withAdherence(adherenceRatio)
             isHeroLoading = false
         }
     }

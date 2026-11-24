@@ -66,4 +66,50 @@ final class DoseReminderTriggerTests: XCTestCase {
         XCTAssertNotEqual(today, NotificationService.doseSlotKey(protocolID: id, date: october(20, 8), calendar: calendar))
         XCTAssertNotEqual(today, NotificationService.doseSlotKey(protocolID: UUID(), date: october(19, 8), calendar: calendar))
     }
+
+    private func everyThreeDays(anchor: Date?) -> ProtocolSchedule {
+        ProtocolSchedule(daysOfWeek: [], timesPerDay: 1, preferredTimes: ["8:00 AM"], intervalDays: 3, intervalAnchor: anchor)
+    }
+
+    func test_firstIntervalDay_noAnchor_countsFromProtocolStart() {
+        // Started Monday the 19th: dose days are the 19th, 22nd, 25th...
+        let first = NotificationService.firstIntervalDay(
+            everyThreeDays(anchor: nil),
+            protocolStart: october(19, 0),
+            onOrAfter: october(21, 7),
+            calendar: calendar
+        )
+        XCTAssertEqual(first, october(22, 0))
+    }
+
+    func test_firstIntervalDay_noAnchor_matchesTodayAndDoseCalendar() {
+        let schedule = everyThreeDays(anchor: nil)
+        let first = NotificationService.firstIntervalDay(
+            schedule,
+            protocolStart: october(19, 0),
+            onOrAfter: october(21, 7),
+            calendar: calendar
+        )
+        XCTAssertEqual(first.map { schedule.isActive(on: $0, protocolStart: october(19, 0), calendar: calendar) }, true)
+    }
+
+    func test_firstIntervalDay_storedAnchor_winsOverProtocolStart() {
+        let first = NotificationService.firstIntervalDay(
+            everyThreeDays(anchor: october(20, 0)),
+            protocolStart: october(19, 0),
+            onOrAfter: october(21, 7),
+            calendar: calendar
+        )
+        XCTAssertEqual(first, october(23, 0))
+    }
+
+    func test_firstIntervalDay_futureStart_returnsStartDay() {
+        let first = NotificationService.firstIntervalDay(
+            everyThreeDays(anchor: nil),
+            protocolStart: october(24, 0),
+            onOrAfter: october(21, 7),
+            calendar: calendar
+        )
+        XCTAssertEqual(first, october(24, 0))
+    }
 }

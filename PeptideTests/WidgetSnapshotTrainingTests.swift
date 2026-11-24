@@ -68,6 +68,18 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         XCTAssertEqual(result.weeklyVolumeKg, 1_000, accuracy: 0.001) // 500 + 500
     }
 
+    /// Same count as Today's ring and Train's goal card: the target is
+    /// days per week, so two sessions on one day count once.
+    func test_workoutsThisWeek_twoSessionsOneDay_countsTheDayOnce() {
+        let result = snapshot([
+            session(startedAt: now.addingTimeInterval(-3 * 3_600), finishedAt: now.addingTimeInterval(-2 * 3_600)),
+            session(startedAt: now.addingTimeInterval(-3_600), finishedAt: now),
+        ])
+
+        XCTAssertEqual(result.workoutsThisWeek, 1)
+        XCTAssertEqual(result.trainingDays.count, 1)
+    }
+
     func test_weeklyVolume_excludesWarmupAndUncheckedSets() {
         let result = snapshot([
             session(startedAt: now.addingTimeInterval(-3_600), finishedAt: now, sets: [
@@ -183,7 +195,7 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
     func test_build_reportsTheActiveSessionStartTime() {
         let active = session(startedAt: now.addingTimeInterval(-900), finishedAt: nil)
         let data = WidgetSnapshotBuilder.build(
-            today: [], next: nil,
+            today: [],
             workouts: [active],
             activeWorkout: active,
             now: now,
@@ -199,7 +211,7 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         let pausedAt = now.addingTimeInterval(-300)
         active.focus = WorkoutFocusState(pausedAt: pausedAt, pausedSeconds: 120)
         let data = WidgetSnapshotBuilder.build(
-            today: [], next: nil,
+            today: [],
             activeWorkout: active,
             now: now,
             calendar: calendar
@@ -212,7 +224,7 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
     func test_build_runningWorkout_hasNoOpenPause() {
         let active = session(startedAt: now.addingTimeInterval(-900), finishedAt: nil)
         let data = WidgetSnapshotBuilder.build(
-            today: [], next: nil,
+            today: [],
             activeWorkout: active,
             now: now,
             calendar: calendar
@@ -227,7 +239,7 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         // widget must not claim a workout is running off a stale hand-off.
         let stale = session(startedAt: now.addingTimeInterval(-3_600), finishedAt: now)
         let data = WidgetSnapshotBuilder.build(
-            today: [], next: nil,
+            today: [],
             activeWorkout: stale,
             now: now,
             calendar: calendar
@@ -239,13 +251,13 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
 
     func test_build_carriesTheMeasurementUnitThroughToDisplay() {
         let imperial = WidgetSnapshotBuilder.build(
-            today: [], next: nil, unit: .imperial, now: now, calendar: calendar
+            today: [], unit: .imperial, now: now, calendar: calendar
         )
         XCTAssertEqual(imperial.weightSuffix, "lb")
         XCTAssertEqual(imperial.volumeInUserUnit(100), 220.462, accuracy: 0.001)
 
         let metric = WidgetSnapshotBuilder.build(
-            today: [], next: nil, unit: .metric, now: now, calendar: calendar
+            today: [], unit: .metric, now: now, calendar: calendar
         )
         XCTAssertEqual(metric.weightSuffix, "kg")
         XCTAssertEqual(metric.volumeInUserUnit(100), 100, accuracy: 0.001)
@@ -314,7 +326,7 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
 
     func test_trainingFields_roundTripThroughTheSharedContainerCodec() {
         let source = WidgetSnapshotBuilder.build(
-            today: [], next: nil,
+            today: [],
             workouts: [session(name: "Pull B",
                                startedAt: now.addingTimeInterval(-3_600),
                                finishedAt: now,
@@ -342,7 +354,7 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
 
     func test_build_carriesMacroTargets_forTheWidgetBars() {
         let data = WidgetSnapshotBuilder.build(
-            today: [], next: nil,
+            today: [],
             targets: NutritionTargets(calories: 2400, proteinG: 180, carbsG: 240, fatG: 80, fiberG: 30),
             now: now,
             calendar: calendar
