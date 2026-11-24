@@ -355,6 +355,15 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertEqual(resolved.minute, 30)
     }
 
+    func test_cancelProtocolReminders_clearsDoseSlotsHabitsAvoid() {
+        service.scheduleNotifications(for: [makeProtocol(times: ["8:00 AM"], days: [1])])
+        XCTAssertFalse(service.doseReminderSlots.isEmpty)
+
+        service.cancelProtocolReminders()
+
+        XCTAssertTrue(service.doseReminderSlots.isEmpty)
+    }
+
     // MARK: - Wash-out cycles
 
     func test_scheduleNotifications_protocolInWashoutForWholeWindow_schedulesNothing() {

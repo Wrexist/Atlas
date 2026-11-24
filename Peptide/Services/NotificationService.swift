@@ -52,7 +52,7 @@ final class NotificationService {
     /// the current dose schedule. A habit pass that runs first (a habit
     /// edit, the once-per-launch sync) reads the previous one, and the
     /// next activation corrects it.
-    @ObservationIgnored private var doseReminderSlots: [(weekday: Int, hour: Int, minute: Int)] = []
+    @ObservationIgnored private(set) var doseReminderSlots: [(weekday: Int, hour: Int, minute: Int)] = []
 
     /// iOS limit on pending notification requests per app.
     static let pendingRequestLimit = 64
@@ -646,6 +646,7 @@ final class NotificationService {
         center.removeAllPendingNotificationRequests()
         center.removeAllDeliveredNotifications()
         currentIDs.removeAll()
+        doseReminderSlots = []
         scheduledCount = 0
         requestedCount = 0
         lastReport = .empty
@@ -675,6 +676,9 @@ final class NotificationService {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
         }
         currentIDs = toKeep
+        // Habit reminders stop stepping around doses that no longer fire
+        // on their next re-plan.
+        doseReminderSlots = []
         scheduledCount = 0
         requestedCount = 0
         lastReport = .empty
