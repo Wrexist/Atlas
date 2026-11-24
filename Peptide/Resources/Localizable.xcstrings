@@ -33297,16 +33297,6 @@
         }
       }
     },
-    "Pick something small — 10 push-ups, 5 minutes of stretching, a glass of water. Consistency compounds.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Välj något litet – 10 armhävningar, 5 minuters stretching, ett glas vatten. Kontinuitet ger ränta på ränta."
-          }
-        }
-      }
-    },
     "Pick the biomarkers you care about": {
       "localizations": {
         "sv": {
@@ -41048,6 +41038,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Börja om"
+          }
+        }
+      }
+    },
+    "Start small — pick one below or make your own.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börja smått – välj en nedan eller skapa en egen."
           }
         }
       }
