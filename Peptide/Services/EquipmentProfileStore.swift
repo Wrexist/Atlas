@@ -40,4 +40,11 @@ final class EquipmentProfileStore {
             defaults.set(data, forKey: Self.profilesKey)
         }
     }
+
+    func deleteAll() {
+        location = .gym
+        profiles = [:]
+        defaults.removeObject(forKey: Self.locationKey)
+        defaults.removeObject(forKey: Self.profilesKey)
+    }
 }

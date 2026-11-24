@@ -395,6 +395,12 @@ final class DataStore {
         protocols = []
         entries = []
         profile = .fresh
+        // The library file is gone when the previous account's
+        // device-local records were removed with it.
+        if let stored = Self.readCustomPeptides() {
+            customPeptides = stored
+            customPeptidesReadable = true
+        }
         WorkoutSessionService.shared.reloadActiveSession()
         isAwaitingCloudAccountDecision = repo.isAwaitingAccountDecision
         // SwiftDataRepository's identity handler swaps the container
@@ -2302,9 +2308,7 @@ final class DataStore {
         // fires only on the not-complete → complete transition.
         let wasCompleted = HabitsService.summary(for: habit, entries: profile.habitEntries, on: date).isCompletedToday
         let target = habit.targetValue ?? 1
-        let existingIdx = profile.habitEntries.firstIndex {
-            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
-        }
+        let existingIdx = habitEntryIndex(habitId: habitId, day: day)
         if habit.isCountable {
             // Countable habit: increment by one toward the target. If
             // the user has already hit target, the next tap RESETS to
@@ -2359,9 +2363,7 @@ final class DataStore {
         let wasCompleted = habit.map {
             HabitsService.summary(for: $0, entries: profile.habitEntries, on: date).isCompletedToday
         } ?? false
-        let existingIdx = profile.habitEntries.firstIndex {
-            $0.habitId == habitId && Calendar.current.isDate($0.date, inSameDayAs: day)
-        }
+        let existingIdx = habitEntryIndex(habitId: habitId, day: day)
         if value <= 0 {
             if let idx = existingIdx { profile.habitEntries.remove(at: idx) }
         } else if let idx = existingIdx {
@@ -2374,6 +2376,23 @@ final class DataStore {
             registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
         }
         Task { await rescheduleHabitReminders() }
+    }
+
+    /// The day's one entry for the habit. A CloudKit race can leave two;
+    /// they collapse into the first at the highest value — the one the
+    /// summary shows — so an edit acts on what the user sees.
+    private func habitEntryIndex(habitId: UUID, day: Date) -> Int? {
+        let indices = profile.habitEntries.indices.filter {
+            profile.habitEntries[$0].habitId == habitId
+                && Calendar.current.isDate(profile.habitEntries[$0].date, inSameDayAs: day)
+        }
+        guard let first = indices.first else { return nil }
+        guard indices.count > 1 else { return first }
+        profile.habitEntries[first].value = indices.map { profile.habitEntries[$0].value }.max() ?? 0
+        for index in indices.dropFirst().reversed() {
+            profile.habitEntries.remove(at: index)
+        }
+        return first
     }
 
     // MARK: - Supplements
@@ -3262,7 +3281,7 @@ final class DataStore {
     // private by design — these keep the single-facade rule intact
     // instead of handing views the repository singleton.
     func allWorkoutSessionsForBackup() -> [WorkoutSession] { repo.loadAllWorkoutSessions() }
-    /// `fetchCount` only, so the export screen can gate its workout row
+    /// Session ids only, so the export screen can gate its workout row
     /// without decoding every session.
     var hasWorkoutHistory: Bool { repo.workoutSessionCount() > 0 }
     func routinesForBackup() -> [Routine] { repo.loadRoutines() }

@@ -124,7 +124,11 @@ final class RoutineStore {
         var reordered = routines
         let position = reordered.firstIndex { $0.id == id }.map { $0 + 1 } ?? reordered.count
         reordered.insert(copy, at: position)
-        persist(RoutineEditEngine.reindexed(reordered))
+        let ordered = RoutineEditEngine.reindexed(reordered)
+        if let indexedCopy = ordered.first(where: { $0.id == copy.id }) {
+            repository.upsertRoutine(indexedCopy)
+        }
+        persist(ordered)
         return copy
     }
 
@@ -155,11 +159,11 @@ final class RoutineStore {
         (routines.compactMap(\.sortIndex).max() ?? routines.count - 1) + 1
     }
 
-    /// Writes an already-ordered list back and adopts it as the in-memory
-    /// order, rather than re-reading — a fetch would re-sort by the values
-    /// we just wrote and cost a round-trip to show the same array.
+    /// Writes an already-ordered list's order back and adopts it as the
+    /// in-memory order, rather than re-reading — a fetch would re-sort by
+    /// the values we just wrote and cost a round-trip to show the same array.
     private func persist(_ ordered: [Routine]) {
-        repository.upsertRoutines(ordered)
+        repository.updateRoutineOrder(ordered)
         routines = ordered
         DataStore.current?.pushTrainingCatalogToWatch()
     }
