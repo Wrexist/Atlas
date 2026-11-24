@@ -208,6 +208,8 @@ struct TrainOverviewView: View {
     /// One painted action: start the routine that comes next in the
     /// rotation, or plan a workout when there's no routine yet. The other
     /// ways in sit under it as bare text, so the page has one primary.
+    /// Before the first session "Empty workout" lives in the Quick start
+    /// card instead, so the top holds at most two ways in.
     /// Hidden while a workout is in progress — the container's "Resume"
     /// banner is the action then.
     @ViewBuilder
@@ -224,10 +226,14 @@ struct TrainOverviewView: View {
                 } else {
                     planWorkoutCTA
                 }
-                // Side by side only while both titles fit on one line each.
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: Spacing.xl) { otherStarts(showsPlan: nextRoutine != nil) }
-                    VStack(spacing: Spacing.sm) { otherStarts(showsPlan: nextRoutine != nil) }
+                let showsEmpty = !sessions.isEmpty
+                let showsPlan = nextRoutine != nil
+                if showsEmpty || showsPlan {
+                    // Side by side only while both titles fit on one line each.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: Spacing.xl) { otherStarts(showsEmpty: showsEmpty, showsPlan: showsPlan) }
+                        VStack(spacing: Spacing.sm) { otherStarts(showsEmpty: showsEmpty, showsPlan: showsPlan) }
+                    }
                 }
             }
         }
@@ -250,10 +256,12 @@ struct TrainOverviewView: View {
     /// Quiet starts under the painted one: accent text with no fill, so
     /// they read as alternatives rather than rivals to the primary.
     @ViewBuilder
-    private func otherStarts(showsPlan: Bool) -> some View {
-        GlassButton(title: "Empty workout", icon: "play.circle", style: .ghost) {
-            Haptics.impact(.medium)
-            sessionService.startWorkout()
+    private func otherStarts(showsEmpty: Bool, showsPlan: Bool) -> some View {
+        if showsEmpty {
+            GlassButton(title: "Empty workout", icon: "play.circle", style: .ghost) {
+                Haptics.impact(.medium)
+                sessionService.startWorkout()
+            }
         }
         if showsPlan {
             GlassButton(title: "Plan a workout", icon: "wand.and.stars", style: .ghost) {
@@ -524,6 +532,7 @@ struct TrainOverviewView: View {
                 ForEach(quickStartRoutines) { routine in
                     quickStartRow(routine)
                 }
+                emptyWorkoutRow
             }
         }
     }
@@ -553,16 +562,41 @@ struct TrainOverviewView: View {
 
     private func quickStartRow(_ routine: Routine) -> some View {
         let isSaved = routineStore.routines.contains { $0.id == routine.id }
-        return Button {
-            Haptics.impact(.medium)
+        return quickStartButton(
+            title: Text(routine.name),
+            detail: quickStartDetail(routine),
+            label: Text("Start \(routine.name)")
+        ) {
             sessionService.startWorkout(routine: routine, linksRoutine: isSaved)
+        }
+    }
+
+    /// Last in the list, so the blank start is still one tap away without
+    /// a third button competing with "Plan a workout" up top. Labelled
+    /// "Empty workout" like the button it replaces, which UI tests tap.
+    private var emptyWorkoutRow: some View {
+        quickStartButton(
+            title: Text("Empty workout"),
+            detail: Text("Add exercises as you go"),
+            label: Text("Empty workout")
+        ) {
+            sessionService.startWorkout()
+        }
+    }
+
+    private func quickStartButton(
+        title: Text, detail: Text, label: Text, action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.impact(.medium)
+            action()
         } label: {
             HStack(spacing: Spacing.md) {
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(routine.name)
+                    title
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                    quickStartDetail(routine)
+                    detail
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(2)
@@ -580,7 +614,7 @@ struct TrainOverviewView: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("Start \(routine.name)"))
+        .accessibilityLabel(label)
     }
 
     /// A recent-session row, now a real NavigationLink into

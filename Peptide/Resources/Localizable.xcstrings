@@ -9923,6 +9923,16 @@
         }
       }
     },
+    "Add exercises as you go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till övningar medan du tränar"
+          }
+        }
+      }
+    },
     "Add habit": {
       "localizations": {
         "sv": {

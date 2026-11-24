@@ -31,7 +31,9 @@ struct TrainWeekSummary: Equatable {
 
 /// Train's lit hero: the week as seven day marks, with the count against
 /// the user's training-days goal when they set one. Same accent body and
-/// lift as Today's hero, held still so the tab reads calm.
+/// lift as Today's hero, held still so the tab reads calm. An empty week
+/// sits on tinted paper instead: a saturated slab for nothing done yet
+/// shouts louder than the "Plan a workout" button under it.
 struct TrainWeekHeroCard: View {
     let summary: TrainWeekSummary
     /// Days per week from onboarding; nil shows the plain workout count.
@@ -42,6 +44,9 @@ struct TrainWeekHeroCard: View {
     @ScaledMetric(relativeTo: .caption2) private var markHeight: CGFloat = 40
 
     private var trainedCount: Int { summary.trainedDays.count }
+    private var isEmptyWeek: Bool { summary.workoutCount == 0 }
+    private var ink: Color { isEmptyWeek ? AppColor.textPrimary : AppColor.onAccent }
+    private var softInk: Color { isEmptyWeek ? AppColor.textSecondary : AppColor.onAccent.opacity(0.78) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -49,7 +54,7 @@ struct TrainWeekHeroCard: View {
                 .font(AppFont.eyebrow)
                 .textCase(.uppercase)
                 .tracking(0.8)
-                .foregroundStyle(AppColor.onAccent.opacity(0.78))
+                .foregroundStyle(softInk)
             headline
             dayMarks
                 .accessibilityHidden(true)
@@ -57,33 +62,42 @@ struct TrainWeekHeroCard: View {
         }
         .padding(Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background { TrainHeroSurface() }
+        .background {
+            if isEmptyWeek {
+                Color.clear.glassSurface(cornerRadius: Spacing.sheetCornerRadius, tinted: true)
+            } else {
+                TrainHeroSurface()
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("train-weekly-goal")
     }
 
+    /// The number outweighs its label: a light numeral beside regular
+    /// text read as two equal words.
     private var headline: some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             if let target {
-                Text("\(trainedCount)/\(target)")
-                    .font(AppFont.statValueSmall)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
+                headlineNumber(Text("\(trainedCount)/\(target)"))
                 Text("Training days")
                     .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.onAccent.opacity(0.78))
+                    .foregroundStyle(softInk)
             } else {
-                Text("\(summary.workoutCount)")
-                    .font(AppFont.statValueSmall)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
+                headlineNumber(Text("\(summary.workoutCount)"))
                 Text("Workouts")
                     .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.onAccent.opacity(0.78))
+                    .foregroundStyle(softInk)
             }
         }
-        .foregroundStyle(AppColor.onAccent)
+        .foregroundStyle(ink)
         .appAnimation(AppAnimation.springSnappy, value: trainedCount)
+    }
+
+    private func headlineNumber(_ value: Text) -> some View {
+        value
+            .font(AppFont.statValueSmall.weight(.semibold))
+            .monospacedDigit()
+            .contentTransition(.numericText())
     }
 
     private var dayMarks: some View {
@@ -103,16 +117,16 @@ struct TrainWeekHeroCard: View {
         let symbol = calendar.veryShortStandaloneWeekdaySymbols[calendar.component(.weekday, from: day) - 1]
         return VStack(spacing: Spacing.sm) {
             Capsule(style: .continuous)
-                .fill(AppColor.onAccent.opacity(trained ? 1 : 0))
+                .fill(ink.opacity(trained ? 1 : 0))
                 .overlay {
                     Capsule(style: .continuous)
-                        .strokeBorder(AppColor.onAccent.opacity(isToday ? 0.9 : 0.32), lineWidth: isToday ? 1.5 : 1)
+                        .strokeBorder(ink.opacity(isToday ? 0.9 : 0.32), lineWidth: isToday ? 1.5 : 1)
                         .opacity(trained ? 0 : 1)
                 }
                 .frame(width: Spacing.md, height: markHeight)
             Text(symbol)
                 .font(AppFont.caption2.weight(isToday ? .bold : .regular))
-                .foregroundStyle(AppColor.onAccent.opacity(isToday ? 1 : 0.7))
+                .foregroundStyle(isToday ? ink : softInk)
         }
     }
 
@@ -130,7 +144,7 @@ struct TrainWeekHeroCard: View {
             }
         }
         .font(AppFont.footnote)
-        .foregroundStyle(AppColor.onAccent.opacity(0.78))
+        .foregroundStyle(softInk)
     }
 
     private var durationLabel: String {
