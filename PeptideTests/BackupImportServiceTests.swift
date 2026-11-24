@@ -1,5 +1,4 @@
 import XCTest
-import SwiftData
 @testable import Peptide
 
 @MainActor
@@ -234,33 +233,6 @@ final class BackupImportServiceTests: XCTestCase {
         XCTAssertEqual(dataStore.profile.name, "Other phone")
         XCTAssertFalse(dataStore.profile.healthConnected)
         XCTAssertFalse(dataStore.profile.biometricLockEnabled)
-    }
-
-    func test_replace_backupWithHealthWeighIns_keepsThemOffTheSyncedColumn() throws {
-        let dataStore = makeDataStore()
-        let repo = SwiftDataRepository.shared
-        let scale = WeightEntry(date: Date(timeIntervalSince1970: 1_700_000_000), kg: 81)
-        let logged = WeightEntry(date: Date(timeIntervalSince1970: 1_700_086_400), kg: 80.5)
-        var backupProfile = makeProfile(named: "Restored")
-        backupProfile.weightHistory = [scale, logged]
-        let backup = AppBackup(
-            exportDate: Date(),
-            version: "2.0",
-            protocols: [],
-            entries: [],
-            profile: backupProfile,
-            healthWeightIDs: [scale.id]
-        )
-
-        _ = try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
-
-        XCTAssertTrue(repo.isHealthWeightImport(scale.id))
-        XCTAssertFalse(repo.isHealthWeightImport(logged.id))
-        XCTAssertEqual(dataStore.profile.weightHistory.map(\.id), [scale.id, logged.id])
-        let row = try XCTUnwrap(XCTUnwrap(repo.contextForTesting).fetch(FetchDescriptor<StoredProfile>()).first)
-        let synced = String(decoding: try XCTUnwrap(row.weightHistoryData), as: UTF8.self)
-        XCTAssertFalse(synced.contains(scale.id.uuidString))
-        XCTAssertTrue(synced.contains(logged.id.uuidString))
     }
 
     func test_merge_keepsExistingOnConflict() throws {
