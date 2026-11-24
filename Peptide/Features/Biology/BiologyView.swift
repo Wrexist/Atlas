@@ -50,6 +50,7 @@ struct BiologyView: View {
                             ?? BioAgeStateResolver.chronologicalAgeFallback,
                         noHealthData: dataStore.profile.healthConnected
                             && resolved?.inputs?.healthDataDays == 0,
+                        onConnectHealth: heroOffersConnect ? { connectHealth() } : nil,
                         onExplainTapped: { showBioAgeExplainer = true },
                         onAddAge: { appState.showProfile = true }
                     )
@@ -218,7 +219,7 @@ struct BiologyView: View {
     @ViewBuilder
     private var healthPrompt: some View {
         Group {
-            if needsHealthConnection {
+            if needsHealthConnection && !heroOffersConnect {
                 GlassEntryRow(
                     icon: "heart.text.square.fill",
                     title: "Connect Apple Health",
@@ -242,7 +243,15 @@ struct BiologyView: View {
 
     /// Which Health prompt is showing, so its exit animates.
     private var healthPromptState: Int {
-        needsHealthConnection ? 2 : (needsHealthUpgrade ? 1 : 0)
+        if needsHealthConnection { return heroOffersConnect ? 3 : 2 }
+        return needsHealthUpgrade ? 1 : 0
+    }
+
+    /// While the estimate is building, the hero carries the one Connect
+    /// button, so the row below it would ask twice.
+    private var heroOffersConnect: Bool {
+        guard needsHealthConnection, case .building(_, _)? = resolved?.state else { return false }
+        return true
     }
 
     /// The estimate's explanation, at the top of "Why this number": what

@@ -200,3 +200,46 @@ struct BiomarkerTile: View {
         }
     }
 }
+
+/// A wearable biomarker with no reading yet: the card's header over a
+/// dash, all in tertiary ink, so it reads as a slot waiting to fill
+/// rather than a card with something to say.
+struct AwaitingBiomarkerTile: View {
+    let biomarker: Biomarker
+    let caption: String
+    var onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: biomarker.icon)
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .accessibilityHidden(true)
+                    Text(biomarker.shortName)
+                        .font(AppFont.scaled(13, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .accessibilityLabel(Text(biomarker.displayName))
+                }
+                .foregroundStyle(AppColor.textSecondary)
+                Text(verbatim: "—")
+                    .font(AppFont.scaled(24, weight: .light, relativeTo: .title2))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+                Text(caption)
+                    .font(AppFont.scaled(11, weight: .medium))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Spacing.md)
+            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+            .opacity(0.75)
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens the chart")
+    }
+}
