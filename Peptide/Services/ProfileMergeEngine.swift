@@ -23,6 +23,7 @@ enum ProfileMergeEngine {
         merged.primaryGoal = merged.primaryGoal ?? other.primaryGoal
         merged.avatarImageData = merged.avatarImageData ?? other.avatarImageData
         merged.nutritionTargets = merged.nutritionTargets ?? other.nutritionTargets
+        merged.adaptiveTargets = merged.adaptiveTargets ?? other.adaptiveTargets
         merged.trainingPreferences = merged.trainingPreferences ?? other.trainingPreferences
         merged.goalDate = merged.goalDate ?? other.goalDate
 
@@ -245,7 +246,7 @@ enum ProfileMergeEngine {
     private static var blobFields: [BlobField] {
         [
             .idSet(\.favoriteFoodIDs), .idSet(\.favoriteRecipeIDs),
-            .of(\.nutritionTargets),
+            .of(\.nutritionTargets), .of(\.adaptiveTargets),
             .of(\.emailSubscription), .idList(\.progressPhotoFilenames),
             .of(\.healthKitNutritionEnabled), .of(\.workoutLegacyMigrationCompleted),
             .of(\.lastKnownTimezoneIdentifier), .idSet(\.streakFreezeDays), .of(\.biologyConfig),

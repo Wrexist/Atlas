@@ -745,7 +745,8 @@ final class StoredProfile {
             lastMomentumAwardDay: momentum.lastMomentumAwardDay,
             momentumHistory: momentum.momentumHistory,
             supplements: ext.supplements,
-            customPeptides: ext.customPeptides
+            customPeptides: ext.customPeptides,
+            adaptiveTargets: ext.adaptiveTargets
         )
     }
 }
@@ -1002,6 +1003,8 @@ private struct ProfileExtension: Codable {
     /// The user's own peptide-library compounds, here for the same reason
     /// as `supplements`: syncing them needs no new column.
     var customPeptides: [Peptide] = []
+    /// The adaptive-targets switch, beside the `nutritionTargets` it moves.
+    var adaptiveTargets: AdaptiveTargetsSetting? = nil
 
     static let empty = ProfileExtension()
 
@@ -1049,6 +1052,7 @@ private struct ProfileExtension: Codable {
         momentumHistory = try c.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
         supplements = try c.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
         customPeptides = try c.decodeIfPresent([Peptide].self, forKey: .customPeptides) ?? []
+        adaptiveTargets = try c.decodeIfPresent(AdaptiveTargetsSetting.self, forKey: .adaptiveTargets)
     }
 
     /// Snapshot of everything that still lives in the blob. The split
@@ -1078,6 +1082,7 @@ private struct ProfileExtension: Codable {
         ext.goalDate = profile.goalDate
         ext.supplements = profile.supplements
         ext.customPeptides = profile.customPeptides
+        ext.adaptiveTargets = profile.adaptiveTargets
         return ext
     }
 }

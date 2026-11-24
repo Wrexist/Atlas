@@ -1277,6 +1277,19 @@ final class DataStore {
         save()
     }
 
+    /// Saves the targets editor's result together with its adaptive
+    /// switch, so every device honours the one setting.
+    func updateNutritionTargets(_ targets: NutritionTargets, adaptive: AdaptiveTargetsSetting) {
+        profile.adaptiveTargets = adaptive
+        updateNutritionTargets(targets)
+    }
+
+    /// The adaptive-targets switch: the synced one once any device has
+    /// saved it, until then this device's own earlier setting.
+    var adaptiveTargetsSetting: AdaptiveTargetsSetting {
+        profile.adaptiveTargets ?? AdaptiveTDEESettings.legacySetting
+    }
+
     /// Expenditure estimate from logged intake + weight trend, or the
     /// formula when there isn't enough data yet. Nil only when there's
     /// neither logging history nor complete body stats.
@@ -1293,8 +1306,9 @@ final class DataStore {
     /// but only while they're still the recommendation the user accepted —
     /// hand-entered numbers are never overwritten.
     func refreshAdaptiveTargets(asOf now: Date = Date()) {
+        let setting = adaptiveTargetsSetting
         guard
-            AdaptiveTDEESettings.isEnabled,
+            setting.isEnabled,
             let current = profile.nutritionTargets,
             let estimate = expenditureEstimate(asOf: now),
             estimate.source == .adaptive,
@@ -1305,12 +1319,11 @@ final class DataStore {
             ),
             AdaptiveTDEEEngine.shouldFollow(
                 current: current,
-                followed: AdaptiveTDEESettings.followedTargets,
+                followed: setting.followedTargets,
                 next: next
             )
         else { return }
-        AdaptiveTDEESettings.followedTargets = next
-        updateNutritionTargets(next)
+        updateNutritionTargets(next, adaptive: AdaptiveTargetsSetting(isEnabled: true, followedTargets: next))
     }
 
     // MARK: - Lifestyle data

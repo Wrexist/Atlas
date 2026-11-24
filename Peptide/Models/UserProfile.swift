@@ -579,6 +579,10 @@ struct UserProfile: Codable, Sendable {
     /// library matches on every device; `custom-peptides.json` stays this
     /// device's cache. Never edited or deleted, so copies union by id.
     var customPeptides: [Peptide]
+    /// The adaptive calorie-targets switch. Nil until a device first saves
+    /// it; `DataStore.adaptiveTargetsSetting` then reads the device's
+    /// older UserDefaults value.
+    var adaptiveTargets: AdaptiveTargetsSetting?
 
     init(
         name: String,
@@ -625,7 +629,8 @@ struct UserProfile: Codable, Sendable {
         lastMomentumAwardDay: Date? = nil,
         momentumHistory: [MomentumDayPoint] = [],
         supplements: [Supplement] = [],
-        customPeptides: [Peptide] = []
+        customPeptides: [Peptide] = [],
+        adaptiveTargets: AdaptiveTargetsSetting? = nil
     ) {
         self.name = name
         self.goals = goals
@@ -672,6 +677,7 @@ struct UserProfile: Codable, Sendable {
         self.momentumHistory = momentumHistory
         self.supplements = supplements
         self.customPeptides = customPeptides
+        self.adaptiveTargets = adaptiveTargets
     }
 
     init(from decoder: Decoder) throws {
@@ -728,6 +734,7 @@ struct UserProfile: Codable, Sendable {
         momentumHistory = try container.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
         supplements = try container.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
         customPeptides = try container.decodeIfPresent([Peptide].self, forKey: .customPeptides) ?? []
+        adaptiveTargets = try container.decodeIfPresent(AdaptiveTargetsSetting.self, forKey: .adaptiveTargets)
     }
 
     static var fresh: UserProfile {
