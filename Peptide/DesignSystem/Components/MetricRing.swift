@@ -328,6 +328,10 @@ struct RaisedRingFinish: View {
                 light
             }
         }
+        // The stroke straddles the ring's path, so half of it lies outside
+        // `diameter`. The light is laid over the whole stroke's box, or the
+        // gradients stop at the path's box and cut a seam across the arc.
+        .frame(width: diameter + strokeWidth, height: diameter + strokeWidth)
         .frame(width: diameter, height: diameter)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
@@ -354,6 +358,7 @@ struct RaisedRingFinish: View {
 
     private func arc(width: CGFloat) -> some View {
         Circle()
+            .inset(by: strokeWidth / 2)
             .trim(from: 0, to: progress)
             .stroke(style: StrokeStyle(lineWidth: width, lineCap: .round))
             .rotationEffect(.degrees(-90))
@@ -364,13 +369,14 @@ struct RaisedRingFinish: View {
     private var tip: some View {
         let angle = progress * 2 * .pi
         let radius = diameter / 2
+        let centre = radius + strokeWidth / 2
         let reach = strokeWidth * 0.3
         let shadow = AppShadow.ringTip
         return Circle()
             .fill(tipColor)
             .frame(width: strokeWidth, height: strokeWidth)
             .shadow(color: shadow.color, radius: shadow.radius, x: cos(angle) * reach, y: sin(angle) * reach)
-            .position(x: radius + sin(angle) * radius, y: radius - cos(angle) * radius)
+            .position(x: centre + sin(angle) * radius, y: centre - cos(angle) * radius)
     }
 }
 
