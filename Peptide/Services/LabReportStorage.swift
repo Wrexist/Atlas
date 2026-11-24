@@ -45,26 +45,6 @@ enum LabReportStorage {
         }
     }
 
-    /// Deletes each report no lab value in `referenced` points at, once
-    /// it is older than `cutoff`. A scan saves its pages before the
-    /// values that cite them are kept, so a newer folder may still be
-    /// waiting for them and is left alone.
-    static func deleteOrphans(referenced: Set<UUID>, olderThan cutoff: Date) {
-        guard let root = try? root(),
-              let folders = try? FileManager.default.contentsOfDirectory(
-                  at: root,
-                  includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey]
-              )
-        else { return }
-        for folder in folders {
-            guard let reportID = UUID(uuidString: folder.lastPathComponent),
-                  !referenced.contains(reportID),
-                  FileAge.isOlder(folder, than: cutoff)
-            else { continue }
-            delete(reportID)
-        }
-    }
-
     /// "Delete all data" / account deletion: reports must not survive it.
     static func deleteAll() {
         guard let root = try? root() else { return }
@@ -105,19 +85,5 @@ enum LabReportStorage {
     private static func root() throws -> URL {
         try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appendingPathComponent(folderName, isDirectory: true)
-    }
-}
-
-/// When a scan file was last written, for sweeps that must never touch
-/// one still in the middle of being kept.
-enum FileAge {
-    /// True when `url` was both created and last modified before `cutoff`.
-    /// A file whose dates can't be read counts as new.
-    static func isOlder(_ url: URL, than cutoff: Date) -> Bool {
-        guard let values = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey]),
-              let created = values.creationDate,
-              let modified = values.contentModificationDate
-        else { return false }
-        return max(created, modified) < cutoff
     }
 }

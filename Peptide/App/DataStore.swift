@@ -1607,21 +1607,6 @@ final class DataStore {
         }
     }
 
-    /// Scanned lab pages and table cut-outs whose lab value or table is
-    /// gone, deleted on another device or by a restore. Only files over
-    /// a day old go: a scan writes its files before the records that
-    /// cite them are kept, and those must not be swept mid-keep.
-    private func deleteOrphanedScanFiles(now: Date = Date()) {
-        let cutoff = now.addingTimeInterval(-Self.orphanedScanFileAge)
-        let reportIDs = Set(profile.labHistory.compactMap(\.reportID))
-        Task.detached(priority: .utility) {
-            LabReportStorage.deleteOrphans(referenced: reportIDs, olderThan: cutoff)
-        }
-        TableMomentStore.shared.deleteOrphanStickers(olderThan: cutoff)
-    }
-
-    static let orphanedScanFileAge: TimeInterval = 24 * 60 * 60
-
     private func enqueueMealHealthWrite(_ work: @escaping @MainActor @Sendable () async -> Void) {
         let previous = mealHealthWriteTask
         mealHealthWriteTask = Task {
@@ -3325,7 +3310,6 @@ final class DataStore {
             let previousMeals = profile.mealHistory
             profile = saved
             reconcileMealsChangedElsewhere(from: previousMeals, to: saved.mealHistory)
-            deleteOrphanedScanFiles()
             adoptDeviceHealthConnection()
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
@@ -3507,7 +3491,6 @@ final class DataStore {
         persistedProfile = newProfile
 
         reconcileMealsChangedElsewhere(from: previousMeals, to: newProfile.mealHistory)
-        deleteOrphanedScanFiles()
         regenerateTodayEntries()
         refreshTrainingGlanceables()
         // A restore with reminders off must still clear the weekly dose

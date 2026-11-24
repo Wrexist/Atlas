@@ -227,28 +227,6 @@ final class TableScanTests: XCTestCase {
         XCTAssertEqual(store.moments.first?.dishes.map(\.name), ["Soup", "Bread"])
     }
 
-    func test_deleteOrphanStickers_removesOnlyOldUnreferencedCutOuts() async throws {
-        let dataStore = DataStore(seedSampleData: false)
-        let store = TableMomentStore(directory: directory)
-        let date = Date()
-        await store.keep(.init(date: date, category: .lunch, dishes: [dish("Soup", date: date)]), in: dataStore)
-        let kept = try XCTUnwrap(store.moments.first?.dishes.first?.stickerFilename)
-        let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let dayAgo = now.addingTimeInterval(-2 * 24 * 60 * 60)
-        let oldOrphan = try writeFile("dish-old.png", dated: dayAgo)
-        let newOrphan = try writeFile("dish-new.png", dated: now)
-        try FileManager.default.setAttributes(
-            [.creationDate: dayAgo, .modificationDate: dayAgo],
-            ofItemAtPath: directory.appendingPathComponent(kept).path
-        )
-
-        await store.deleteOrphanStickers(olderThan: now.addingTimeInterval(-24 * 60 * 60))?.value
-
-        XCTAssertFalse(FileManager.default.fileExists(atPath: oldOrphan.path))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: newOrphan.path))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: directory.appendingPathComponent(kept).path))
-    }
-
     func test_removeLastDish_dropsTheTable() async throws {
         let dataStore = DataStore(seedSampleData: false)
         let store = TableMomentStore(directory: directory)
@@ -320,13 +298,6 @@ final class TableScanTests: XCTestCase {
 
     private func drinkReading() -> TableDishReader.Reading {
         TableDishReader.reading(insight: insight(kind: .drink, title: "Iced coffee"), items: [item("iced coffee", calories: 120)])
-    }
-
-    private func writeFile(_ name: String, dated date: Date) throws -> URL {
-        let url = directory.appendingPathComponent(name)
-        try Data([0]).write(to: url)
-        try FileManager.default.setAttributes([.creationDate: date, .modificationDate: date], ofItemAtPath: url.path)
-        return url
     }
 
     private func sticker() -> UIImage {

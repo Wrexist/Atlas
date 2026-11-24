@@ -180,42 +180,11 @@ final class TableMomentStore {
         remove(dishID: id, from: moment.id)
     }
 
-    /// Deletes cut-outs no table points at any more, once they are older
-    /// than `cutoff`. A keep writes its stickers before the table that
-    /// lists them, so a newer file may still be on its way in.
-    @discardableResult
-    func deleteOrphanStickers(olderThan cutoff: Date) -> Task<Void, Never>? {
-        guard let directory else { return nil }
-        let referenced = Set(moments.flatMap { $0.dishes.compactMap(\.stickerFilename) })
-        return Task.detached(priority: .utility) {
-            guard let files = try? FileManager.default.contentsOfDirectory(
-                at: directory,
-                includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey]
-            ) else { return }
-            for file in files where file.lastPathComponent.hasPrefix("dish-")
-                && file.pathExtension == "png"
-                && !referenced.contains(file.lastPathComponent)
-                && FileAge.isOlder(file, than: cutoff) {
-                try? FileManager.default.removeItem(at: file)
-            }
-        }
-    }
-
     /// A backup's tables, merged by `DeviceLocalBackup`. The backup carries
-    /// no cut-outs, so a dish whose PNG isn't on this device draws as a
-    /// plain plate.
+    /// no cut-outs: a dish whose PNG isn't on this device draws as a plain
+    /// plate, as `sticker(for:)` already does for a missing file.
     func restore(_ restored: [TableMoment]) {
-        moments = restored.map { moment in
-            var moment = moment
-            for index in moment.dishes.indices {
-                guard let filename = moment.dishes[index].stickerFilename,
-                      let url = directory?.appendingPathComponent(filename),
-                      !FileManager.default.fileExists(atPath: url.path)
-                else { continue }
-                moment.dishes[index].stickerFilename = nil
-            }
-            return moment
-        }
+        moments = restored
         persist()
     }
 
