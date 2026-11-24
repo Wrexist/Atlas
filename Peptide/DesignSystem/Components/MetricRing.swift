@@ -394,6 +394,15 @@ struct RaisedRingFinish: View {
             .frame(width: strokeWidth, height: strokeWidth)
             .shadow(color: shadow.color, radius: shadow.radius, x: cos(angle) * reach, y: sin(angle) * reach)
             .position(x: centre + sin(angle) * radius, y: centre - cos(angle) * radius)
+            .mask { shadowOnly }
+    }
+
+    /// Everything but the stroke, so the tip's disc only casts its shadow
+    /// ahead and never sits on the cap as a second, differently lit coin.
+    private var shadowOnly: some View {
+        Rectangle()
+            .overlay { arc(width: strokeWidth).blendMode(.destinationOut) }
+            .compositingGroup()
     }
 }
 
