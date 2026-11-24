@@ -221,6 +221,10 @@ final class DataStore {
                 HealthSyncSettings.adoptSyncedNutritionFlag(savedProfile.healthKitNutritionEnabled)
                 adoptDeviceHealthConnection()
             }
+            if syncCustomPeptides(), savedProfile != nil {
+                repo.saveProfile(profile, since: persistedProfile)
+                persistedProfile = profile
+            }
             // Everything above came off disk and is already persisted.
             // A synthesised `.fresh` profile is the exception: there's no
             // row for it yet, so it stays dirty until the first save
@@ -485,6 +489,8 @@ final class DataStore {
 
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)
+        profile.customPeptides.append(peptide)
+        save()
         retryUnreadableCustomPeptides()
         guard customPeptidesReadable else {
             lastError = Self.saveFailureMessage
@@ -492,6 +498,33 @@ final class DataStore {
         }
         PersistenceService.shared.saveCustomPeptides(customPeptides)
         Haptics.success()
+    }
+
+    /// The synced library first, then whatever only this device's cache
+    /// holds. Custom peptides are never edited or deleted, so a union by
+    /// id loses nothing.
+    static func mergedCustomPeptides(synced: [Peptide], local: [Peptide]) -> [Peptide] {
+        let syncedIDs = Set(synced.map(\.id))
+        return synced + local.filter { !syncedIDs.contains($0.id) }
+    }
+
+    /// Brings the synced library and custom-peptides.json together: a
+    /// compound added on another device reaches the library here, and
+    /// one only this device had (saved before the library synced)
+    /// reaches iCloud. True when the profile changed and needs a save.
+    @discardableResult
+    private func syncCustomPeptides() -> Bool {
+        retryUnreadableCustomPeptides()
+        let merged = Self.mergedCustomPeptides(synced: profile.customPeptides, local: customPeptides)
+        if merged != customPeptides {
+            customPeptides = merged
+            // An unread file would be replaced by only what this session
+            // holds; the next successful read merges it in instead.
+            if customPeptidesReadable { PersistenceService.shared.saveCustomPeptides(merged) }
+        }
+        guard merged != profile.customPeptides else { return false }
+        profile.customPeptides = merged
+        return true
     }
 
     private static func readCustomPeptides() -> [Peptide]? {
@@ -3285,6 +3318,7 @@ final class DataStore {
             // it — otherwise an unsaved in-memory profile edit would be
             // marked clean without ever reaching disk.
             profileNeedsSave = false
+            if syncCustomPeptides() { save() }
         }
         // Protocols and entries always came straight from disk, so the
         // assignments above must not leave them marked dirty — the next
@@ -3359,6 +3393,11 @@ final class DataStore {
         entryBackfillTask?.cancel()
         pendingProtocolDeletions.removeAll()
         pendingEntryDeletions.removeAll()
+
+        // The synced library is what the restore leaves in the local one:
+        // the backup's compounds, or with no v2 payload the current ones.
+        var newProfile = newProfile
+        newProfile.customPeptides = training?.customPeptides ?? customPeptides
 
         // Replace in-memory state first so any observers (Train tab,
         // calendar, etc.) re-render against the new data while the

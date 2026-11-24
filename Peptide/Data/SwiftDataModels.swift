@@ -536,6 +536,7 @@ final class StoredProfile {
             .of(ProtocolNote.self, at: "protocolNotes"),
             .of(WorkoutEntry.self, at: "workoutHistory"),
             .of(Supplement.self, at: "supplements"),
+            .of(Peptide.self, at: "customPeptides"),
         ]
     }
 
@@ -743,7 +744,8 @@ final class StoredProfile {
             momentumAwardedToday: momentum.momentumAwardedToday,
             lastMomentumAwardDay: momentum.lastMomentumAwardDay,
             momentumHistory: momentum.momentumHistory,
-            supplements: ext.supplements
+            supplements: ext.supplements,
+            customPeptides: ext.customPeptides
         )
     }
 }
@@ -997,6 +999,9 @@ private struct ProfileExtension: Codable {
     /// two devices at once, so it rides the residual blob rather than a
     /// column of its own — a new column would mean a CloudKit schema deploy.
     var supplements: [Supplement] = []
+    /// The user's own peptide-library compounds, here for the same reason
+    /// as `supplements`: syncing them needs no new column.
+    var customPeptides: [Peptide] = []
 
     static let empty = ProfileExtension()
 
@@ -1043,6 +1048,7 @@ private struct ProfileExtension: Codable {
         lastMomentumAwardDay = try c.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
         momentumHistory = try c.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
         supplements = try c.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
+        customPeptides = try c.decodeIfPresent([Peptide].self, forKey: .customPeptides) ?? []
     }
 
     /// Snapshot of everything that still lives in the blob. The split
@@ -1071,6 +1077,7 @@ private struct ProfileExtension: Codable {
         ext.weeklySummaryOptInConfirmed = profile.weeklySummaryOptInConfirmed
         ext.goalDate = profile.goalDate
         ext.supplements = profile.supplements
+        ext.customPeptides = profile.customPeptides
         return ext
     }
 }

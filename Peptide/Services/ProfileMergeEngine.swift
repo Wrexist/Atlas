@@ -36,6 +36,7 @@ enum ProfileMergeEngine {
         merged.recipes = union(primary.recipes, other.recipes)
         merged.protocolNotes = union(primary.protocolNotes, other.protocolNotes)
         merged.supplements = mergeSupplements(primary.supplements, other.supplements)
+        merged.customPeptides = union(primary.customPeptides, other.customPeptides)
         merged.favoriteFoodIDs.formUnion(other.favoriteFoodIDs)
         merged.favoriteRecipeIDs.formUnion(other.favoriteRecipeIDs)
         merged.streakFreezeDays = StreakFreezeService.migratingLegacyKeys(
@@ -234,7 +235,7 @@ enum ProfileMergeEngine {
         [
             .of(\.habits), .of(\.habitEntries), .of(\.weightHistory), .of(\.labHistory),
             .of(\.outcomeHistory), .of(\.customFoods), .of(\.recipes), .of(\.protocolNotes),
-            .of(\.workoutHistory), .supplements,
+            .of(\.workoutHistory), .of(\.customPeptides), .supplements,
         ]
     }
 

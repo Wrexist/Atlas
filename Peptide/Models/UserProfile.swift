@@ -575,6 +575,10 @@ struct UserProfile: Codable, Sendable {
     /// taken days. Older profiles decode to an empty list. See
     /// `SupplementEngine` for the streak and reminder rules.
     var supplements: [Supplement]
+    /// Compounds the user added to the peptide library. Synced here so the
+    /// library matches on every device; `custom-peptides.json` stays this
+    /// device's cache. Never edited or deleted, so copies union by id.
+    var customPeptides: [Peptide]
 
     init(
         name: String,
@@ -620,7 +624,8 @@ struct UserProfile: Codable, Sendable {
         momentumAwardedToday: Int = 0,
         lastMomentumAwardDay: Date? = nil,
         momentumHistory: [MomentumDayPoint] = [],
-        supplements: [Supplement] = []
+        supplements: [Supplement] = [],
+        customPeptides: [Peptide] = []
     ) {
         self.name = name
         self.goals = goals
@@ -666,6 +671,7 @@ struct UserProfile: Codable, Sendable {
         self.lastMomentumAwardDay = lastMomentumAwardDay
         self.momentumHistory = momentumHistory
         self.supplements = supplements
+        self.customPeptides = customPeptides
     }
 
     init(from decoder: Decoder) throws {
@@ -721,6 +727,7 @@ struct UserProfile: Codable, Sendable {
         lastMomentumAwardDay = try container.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
         momentumHistory = try container.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
         supplements = try container.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
+        customPeptides = try container.decodeIfPresent([Peptide].self, forKey: .customPeptides) ?? []
     }
 
     static var fresh: UserProfile {
