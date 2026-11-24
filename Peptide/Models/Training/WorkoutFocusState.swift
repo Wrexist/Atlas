@@ -13,6 +13,10 @@ struct WorkoutFocusState: Codable, Hashable, Sendable {
     /// Kept here, in the session's JSON state, so history can tell a
     /// deliberately light session from a stall without a new stored column.
     var adjustment: ProgressionEngine.Adjustment?
+    /// Each pause, recorded on resume so Apple Health can leave it out of
+    /// the workout's duration. Kept in the same JSON state as `pausedAt`;
+    /// nil on sessions from before it was recorded.
+    var pauses: [DateInterval]?
 
     mutating func pause(at now: Date) {
         guard pausedAt == nil else { return }
@@ -27,6 +31,9 @@ struct WorkoutFocusState: Codable, Hashable, Sendable {
     mutating func resume(at now: Date) {
         guard let pausedAt else { return }
         pausedSeconds += max(0, now.timeIntervalSince(pausedAt))
+        if now > pausedAt {
+            pauses = (pauses ?? []) + [DateInterval(start: pausedAt, end: now)]
+        }
         self.pausedAt = nil
         if var rest, let remaining = rest.frozenSeconds {
             rest.endsAt = now.addingTimeInterval(remaining)
@@ -69,6 +76,28 @@ extension WorkoutSession {
     }
 
     var isPaused: Bool { focus?.pausedAt != nil }
+
+    /// The stretches Apple Health should count as paused, inside
+    /// `startedAt...end`, so its duration matches the active time Atlas
+    /// shows. Paused time with no recorded stretch — a session from an
+    /// older build, or one the Watch ran offline, which sends only the
+    /// total — is placed at the end, where it still shortens the duration.
+    func healthPauseIntervals(end: Date) -> [DateInterval] {
+        guard let focus, end > startedAt else { return [] }
+        var intervals: [DateInterval] = []
+        for pause in (focus.pauses ?? []).sorted(by: { $0.start < $1.start }) {
+            let start = max(pause.start, intervals.last?.end ?? startedAt)
+            let stop = min(pause.end, end)
+            if stop > start { intervals.append(DateInterval(start: start, end: stop)) }
+        }
+        let recorded = intervals.reduce(0) { $0 + $1.duration }
+        let unplaced = focus.pausedSeconds - recorded
+        let tailStart = max(end.addingTimeInterval(-unplaced), intervals.last?.end ?? startedAt)
+        if unplaced >= 1, end > tailStart {
+            intervals.append(DateInterval(start: tailStart, end: end))
+        }
+        return intervals
+    }
 
     /// The adjustment this workout's suggestions ran under: nil for a
     /// normal session, `.deload` or `.lowRecovery` for a deliberately

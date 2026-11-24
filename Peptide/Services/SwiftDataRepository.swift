@@ -1247,7 +1247,12 @@ final class SwiftDataRepository {
         return try row.update(from: rebased, since: baseline)
     }
 
+    /// Whether the last profile `loadProfile` returned had its whole meal
+    /// diary readable (`StoredProfile.mealsDecodeCleanly`).
+    private(set) var lastLoadedMealsDecodedCleanly = false
+
     func loadProfile() -> UserProfile? {
+        lastLoadedMealsDecodedCleanly = false
         guard let context else { return nil }
         let stored: StoredProfile?
         do {
@@ -1265,6 +1270,7 @@ final class SwiftDataRepository {
         var profile: UserProfile
         do {
             profile = try stored.toUserProfile()
+            lastLoadedMealsDecodedCleanly = stored.mealsDecodeCleanly
         } catch {
             AppLog.swiftData.error("Decode StoredProfile failed: \(error.localizedDescription, privacy: .public)")
             return nil

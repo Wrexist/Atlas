@@ -23,6 +23,7 @@ enum ProfileMergeEngine {
         merged.primaryGoal = merged.primaryGoal ?? other.primaryGoal
         merged.avatarImageData = merged.avatarImageData ?? other.avatarImageData
         merged.nutritionTargets = merged.nutritionTargets ?? other.nutritionTargets
+        merged.adaptiveTargets = merged.adaptiveTargets ?? other.adaptiveTargets
         merged.trainingPreferences = merged.trainingPreferences ?? other.trainingPreferences
         merged.goalDate = merged.goalDate ?? other.goalDate
 
@@ -36,8 +37,10 @@ enum ProfileMergeEngine {
         merged.recipes = union(primary.recipes, other.recipes)
         merged.protocolNotes = union(primary.protocolNotes, other.protocolNotes)
         merged.supplements = mergeSupplements(primary.supplements, other.supplements)
+        merged.customPeptides = union(primary.customPeptides, other.customPeptides)
         merged.favoriteFoodIDs.formUnion(other.favoriteFoodIDs)
         merged.favoriteRecipeIDs.formUnion(other.favoriteRecipeIDs)
+        merged.workoutTypeOverrides.merge(other.workoutTypeOverrides) { mine, _ in mine }
         merged.streakFreezeDays = StreakFreezeService.migratingLegacyKeys(
             primary.streakFreezeDays.union(other.streakFreezeDays)
         )
@@ -213,6 +216,24 @@ enum ProfileMergeEngine {
             )
         }
 
+        /// A dictionary (workout type picks): this device's added, changed
+        /// and removed keys since `baseline` replayed onto `remote`, so two
+        /// devices picking types for different workouts both keep theirs.
+        static func keyed(_ keyPath: WritableKeyPath<UserProfile, [String: String]>) -> BlobField {
+            BlobField(
+                changed: { $0[keyPath: keyPath] != $1[keyPath: keyPath] },
+                rebase: { merged, baseline, remote in
+                    let local = merged[keyPath: keyPath]
+                    let base = baseline[keyPath: keyPath]
+                    var rebased = remote[keyPath: keyPath]
+                    for key in Set(local.keys).union(base.keys) where local[key] != base[key] {
+                        rebased[key] = local[key]
+                    }
+                    merged[keyPath: keyPath] = rebased
+                }
+            )
+        }
+
         /// An ordered list of unique ids (progress photos), rebased like
         /// `idSet`: `remote`'s order kept, this device's adds appended.
         static func idList(_ keyPath: WritableKeyPath<UserProfile, [String]>) -> BlobField {
@@ -234,7 +255,7 @@ enum ProfileMergeEngine {
         [
             .of(\.habits), .of(\.habitEntries), .of(\.weightHistory), .of(\.labHistory),
             .of(\.outcomeHistory), .of(\.customFoods), .of(\.recipes), .of(\.protocolNotes),
-            .of(\.workoutHistory), .supplements,
+            .of(\.workoutHistory), .of(\.customPeptides), .supplements,
         ]
     }
 
@@ -244,12 +265,12 @@ enum ProfileMergeEngine {
     private static var blobFields: [BlobField] {
         [
             .idSet(\.favoriteFoodIDs), .idSet(\.favoriteRecipeIDs),
-            .of(\.nutritionTargets),
+            .of(\.nutritionTargets), .of(\.adaptiveTargets),
             .of(\.emailSubscription), .idList(\.progressPhotoFilenames),
             .of(\.healthKitNutritionEnabled), .of(\.workoutLegacyMigrationCompleted),
             .of(\.lastKnownTimezoneIdentifier), .idSet(\.streakFreezeDays), .of(\.biologyConfig),
             .of(\.todayLayout), .of(\.trainingPreferences), .of(\.weeklySummaryEnabled),
-            .of(\.weeklySummaryOptInConfirmed), .of(\.goalDate),
+            .of(\.weeklySummaryOptInConfirmed), .of(\.goalDate), .keyed(\.workoutTypeOverrides),
         ]
     }
 
