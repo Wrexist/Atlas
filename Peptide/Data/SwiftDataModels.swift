@@ -629,6 +629,18 @@ final class StoredProfile {
         return metrics.lacksAgeRecordedAt
     }
 
+    /// True when the meal diary column decodes as stored: no record
+    /// skipped as unreadable and no fall-back to the legacy blob. A reload
+    /// compares diaries only then, so a meal this build can't read never
+    /// counts as deleted.
+    var mealsDecodeCleanly: Bool {
+        if let mealsData {
+            return (try? sdDecoder.decode(MealsSlice.self, from: mealsData)) != nil
+        }
+        guard let extensionData else { return true }
+        return (try? sdDecoder.decode(ProfileExtension.self, from: extensionData)) != nil
+    }
+
     func toUserProfile() throws -> UserProfile {
         let goals: [String]
         do {

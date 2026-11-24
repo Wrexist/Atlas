@@ -212,4 +212,40 @@ final class MealLoggingLogicTests: XCTestCase {
         XCTAssertTrue(changes.removed.isEmpty)
         XCTAssertTrue(changes.edited.isEmpty)
     }
+
+    func test_mealChanges_reloadedCopyLosesSubSecondDate_reportsNoEdit() {
+        let logged = entry(name: "Lunch", at: Date(timeIntervalSince1970: 1_759_996_800.734))
+        var reloaded = logged
+        reloaded.date = Date(timeIntervalSince1970: 1_759_996_800)
+
+        let changes = LifestyleDataLogic.mealChanges(from: [logged], to: [reloaded])
+
+        XCTAssertTrue(changes.removed.isEmpty)
+        XCTAssertTrue(changes.edited.isEmpty)
+    }
+
+    func test_mealChanges_diaryCameBackEmpty_reportsNothing() {
+        let meals = [entry(name: "Oats", at: date(2025, 3, 4, 8))]
+        let changes = LifestyleDataLogic.mealChanges(from: meals, to: [])
+        XCTAssertTrue(changes.removed.isEmpty)
+        XCTAssertTrue(changes.edited.isEmpty)
+    }
+
+    func test_mealsDecodeCleanly_readableColumn_isTrue() throws {
+        var profile = UserProfile.fresh
+        profile.mealHistory = [entry(name: "Oats", at: date(2025, 3, 4, 8))]
+        XCTAssertTrue(try StoredProfile.make(from: profile).mealsDecodeCleanly)
+    }
+
+    func test_mealsDecodeCleanly_recordThisBuildCantRead_isFalse() throws {
+        let stored = try StoredProfile.make(from: .fresh)
+        stored.mealsData = Data(#"{"mealHistory":[{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","kind":"future"}],"dailyConsumption":{}}"#.utf8)
+        XCTAssertFalse(stored.mealsDecodeCleanly)
+    }
+
+    func test_mealsDecodeCleanly_corruptColumn_isFalse() throws {
+        let stored = try StoredProfile.make(from: .fresh)
+        stored.mealsData = Data("not json".utf8)
+        XCTAssertFalse(stored.mealsDecodeCleanly)
+    }
 }

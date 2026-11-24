@@ -1579,14 +1579,15 @@ final class DataStore {
 
     /// A meal deleted or edited on another device, or by a restore,
     /// reaches this one only as a replaced diary, so what this device
-    /// keeps beside it follows
-    /// here: the Apple Health samples it wrote (an edit is rewritten only
-    /// where samples were found, so nothing is mirrored that this device
-    /// didn't mirror before), and a prep box or table plate eaten as it.
+    /// keeps beside it follows here: the Apple Health samples it wrote
+    /// (an edit is rewritten only where samples were found, so nothing is
+    /// mirrored that this device didn't mirror before), and a prep box
+    /// eaten as it. Table cut-outs are left alone: deleting a file isn't
+    /// worth risking on a reload. A Health delete that fails (device
+    /// locked) isn't retried; the samples then linger.
     private func reconcileMealsChangedElsewhere(from previous: [MealEntry], to current: [MealEntry]) {
         let changes = LifestyleDataLogic.mealChanges(from: previous, to: current)
         for id in changes.removed {
-            TableMomentStore.shared.removeDish(id: id)
             WeeklyPrepStore.shared.returnBox(forMeal: id)
         }
         guard HealthSyncSettings.isNutritionEnabled,
@@ -3309,7 +3310,9 @@ final class DataStore {
         if let saved {
             let previousMeals = profile.mealHistory
             profile = saved
-            reconcileMealsChangedElsewhere(from: previousMeals, to: saved.mealHistory)
+            if repo.lastLoadedMealsDecodedCleanly {
+                reconcileMealsChangedElsewhere(from: previousMeals, to: saved.mealHistory)
+            }
             adoptDeviceHealthConnection()
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
