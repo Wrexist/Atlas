@@ -34,7 +34,8 @@ struct AtlasScoreCard: View {
                 diameter: 72,
                 strokeWidth: 8,
                 gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
-                appearAnimated: true
+                appearAnimated: true,
+                raised: true
             ) {
                 VStack(spacing: 0) {
                     Text("LV")

@@ -20,6 +20,12 @@ enum AppShadow {
     /// light mode, where a dark-weight halo smudges the pale card.
     static let ringLap = Shadow(color: ink(light: 0.12, dark: 0.35), radius: 2.5, x: 0, y: 0)
 
+    /// A raised ring's arc standing off its track.
+    static let ringRaise = Shadow(color: ink(light: 0.14, dark: 0.45), radius: 3, x: 0, y: 2)
+    /// The shadow a raised ring's leading end casts on the track ahead,
+    /// offset along the arc by the caller.
+    static let ringTip = Shadow(color: ink(light: 0.28, dark: 0.6), radius: 2, x: 0, y: 0)
+
     /// An accent hero card's lift: a tinted drop, so the card reads as a
     /// lit object over the page rather than a sticker on it.
     static var heroLift: Shadow {

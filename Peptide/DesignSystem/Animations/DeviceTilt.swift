@@ -16,7 +16,7 @@ final class DeviceTilt {
     private(set) var roll: Double = 0
 
     /// Past ~14° the card would swing more than the eye follows.
-    private static let limit = 0.25
+    static let limit = 0.25
     /// Thirty reads a second is smooth through the spring that follows.
     private static let interval: TimeInterval = 1.0 / 30
 
@@ -53,5 +53,54 @@ final class DeviceTilt {
         attitude.multiply(byInverseOf: reference)
         pitch = min(max(attitude.pitch, -Self.limit), Self.limit)
         roll = min(max(attitude.roll, -Self.limit), Self.limit)
+    }
+}
+
+/// Lets a view float a few points over the surface under it: as the phone
+/// tips, the view drifts the opposite way, the way a near object slides
+/// across a far one. Runs only while the view is on screen, and never
+/// under Reduce Motion or in screenshot captures, which need still frames.
+private struct TiltParallax: ViewModifier {
+    /// Points of drift at the tilt limit.
+    let depth: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var tilt = DeviceTilt.shared
+    @State private var isOnScreen = true
+    @State private var isShown = false
+    @State private var leased = false
+
+    private var isLive: Bool {
+        isOnScreen && isShown && !reduceMotion && !ScreenshotMode.shared.isEnabled
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .offset(
+                x: isLive ? -tilt.roll / DeviceTilt.limit * depth : 0,
+                y: isLive ? -tilt.pitch / DeviceTilt.limit * depth : 0
+            )
+            .appAnimation(AppAnimation.springSnappy, value: tilt.roll)
+            .appAnimation(AppAnimation.springSnappy, value: tilt.pitch)
+            .onScrollVisibilityChange { isOnScreen = $0 }
+            .onAppear { isShown = true }
+            .onDisappear {
+                isShown = false
+                lease(false)
+            }
+            .onChange(of: isLive, initial: true) { _, live in lease(live) }
+    }
+
+    private func lease(_ live: Bool) {
+        guard live != leased else { return }
+        leased = live
+        live ? tilt.start() : tilt.stop()
+    }
+}
+
+extension View {
+    /// Floats the view `depth` points over its surface as the phone tips.
+    func tiltParallax(depth: CGFloat) -> some View {
+        modifier(TiltParallax(depth: depth))
     }
 }

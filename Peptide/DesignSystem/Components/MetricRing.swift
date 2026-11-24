@@ -38,6 +38,13 @@ struct MetricRing<Center: View>: View {
     /// the centre content so a finished day reads as a moment, not
     /// just a number flip. Suppressed under Reduce Motion.
     let celebrateAtCompletion: Bool
+    /// Draws the ring as a lit object: the track sunk as a groove, the arc
+    /// raised off it with a sheen, a crest and a shadow cast by its leading
+    /// end. Defaults off so flat rings stay flat until a screen opts in.
+    let raised: Bool
+    /// Seconds to hold the appear sweep, so a row of rings fills one after
+    /// another instead of all at once.
+    let appearDelay: Double
     /// Content centred inside the ring, typically the value and its label.
     @ViewBuilder let center: () -> Center
 
@@ -54,6 +61,8 @@ struct MetricRing<Center: View>: View {
         hatchedFraction: Double? = nil,
         appearAnimated: Bool = false,
         celebrateAtCompletion: Bool = false,
+        raised: Bool = false,
+        appearDelay: Double = 0,
         @ViewBuilder center: @escaping () -> Center
     ) {
         self.progress = progress.unitClamped
@@ -63,6 +72,8 @@ struct MetricRing<Center: View>: View {
         self.hatchedFraction = hatchedFraction.map(\.unitClamped)
         self.appearAnimated = appearAnimated
         self.celebrateAtCompletion = celebrateAtCompletion
+        self.raised = raised
+        self.appearDelay = appearDelay
         self.center = center
     }
 
@@ -70,8 +81,7 @@ struct MetricRing<Center: View>: View {
         ZStack {
             // Track — the unfilled portion of the ring, so a low value
             // still reads as part of a whole in both schemes.
-            Circle()
-                .stroke(AppColor.track, lineWidth: strokeWidth)
+            track
 
             // Hatched capacity band (optional). Drawn on top of the
             // track but underneath the progress arc.
@@ -95,6 +105,20 @@ struct MetricRing<Center: View>: View {
         .onAppear { handleAppear() }
         .onChange(of: progress) { oldValue, newValue in
             handleProgressChange(from: oldValue, to: newValue)
+        }
+    }
+
+    /// A raised ring sits in a groove: the track's own inner shadow is the
+    /// wall the arc stands out of.
+    @ViewBuilder
+    private var track: some View {
+        if raised {
+            Circle().stroke(
+                AppColor.track.shadow(.inner(color: AppColor.ringGroove, radius: strokeWidth * 0.18, y: strokeWidth * 0.12)),
+                lineWidth: strokeWidth
+            )
+        } else {
+            Circle().stroke(AppColor.track, lineWidth: strokeWidth)
         }
     }
 
@@ -123,7 +147,31 @@ struct MetricRing<Center: View>: View {
             .rotationEffect(.degrees(-90))
             .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: renderedProgress)
 
-        arc
+        if raised {
+            ZStack {
+                arc.appShadow(AppShadow.ringRaise)
+                RaisedRingFinish(
+                    progress: renderedProgress,
+                    diameter: diameter,
+                    strokeWidth: strokeWidth,
+                    tipColor: color(at: renderedProgress)
+                )
+                .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: renderedProgress)
+            }
+        } else {
+            arc
+        }
+    }
+
+    /// The open gradient's colour where the arc ends, so the raised tip
+    /// matches the stroke under it. The stops are spread evenly over the
+    /// cap-shifted turn the angular gradient draws.
+    private func color(at progress: Double) -> Color {
+        guard let first = gradient.first else { return AppColor.track }
+        guard gradient.count > 1 else { return first }
+        let position = (progress + capDegrees / 360).unitClamped * Double(gradient.count - 1)
+        let index = min(Int(position), gradient.count - 2)
+        return gradient[index].mix(with: gradient[index + 1], by: position - Double(index))
     }
 
     /// The angle a round cap of `strokeWidth` spans on this ring.
@@ -171,7 +219,7 @@ struct MetricRing<Center: View>: View {
             animatedProgress = progress
         } else {
             hasAppeared = true
-            withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
+            withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth.delay(appearDelay), reduceMotion: reduceMotion)) {
                 animatedProgress = progress
             }
         }
@@ -210,7 +258,8 @@ extension MetricRing where Center == EmptyView {
         gradient: [Color],
         hatchedFraction: Double? = nil,
         appearAnimated: Bool = false,
-        celebrateAtCompletion: Bool = false
+        celebrateAtCompletion: Bool = false,
+        raised: Bool = false
     ) {
         self.init(
             progress: progress,
@@ -220,6 +269,7 @@ extension MetricRing where Center == EmptyView {
             hatchedFraction: hatchedFraction,
             appearAnimated: appearAnimated,
             celebrateAtCompletion: celebrateAtCompletion,
+            raised: raised,
             center: { EmptyView() }
         )
     }
@@ -251,6 +301,67 @@ extension MetricRing where Center == EmptyView {
         }
     }
     .preferredColorScheme(.dark)
+}
+
+// MARK: - Raised finish
+
+/// Light falling on a raised ring from the top left: a sheen over the
+/// tube's near side fading to shade on its far side, a bright crest along
+/// its centre, and the arc's leading end casting a shadow onto the track
+/// ahead, the cue that makes the arc read as lying on top of it.
+private struct RaisedRingFinish: View {
+    let progress: Double
+    let diameter: CGFloat
+    let strokeWidth: CGFloat
+    let tipColor: Color
+
+    /// Below this the arc is little more than its own caps, and a tip
+    /// shadow would read as a smudge.
+    private static let minTipProgress = 0.04
+
+    var body: some View {
+        ZStack {
+            if progress > Self.minTipProgress, progress < 1 {
+                tip
+            }
+            LinearGradient(
+                colors: [AppColor.ringSheen, .clear, AppColor.ringShade],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .mask { arc(width: strokeWidth) }
+            LinearGradient(
+                colors: [AppColor.ringCrest, .clear],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .mask { arc(width: strokeWidth * 0.26) }
+        }
+        .frame(width: diameter, height: diameter)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func arc(width: CGFloat) -> some View {
+        Circle()
+            .trim(from: 0, to: max(progress, 0.001))
+            .stroke(style: StrokeStyle(lineWidth: width, lineCap: .round))
+            .rotationEffect(.degrees(-90))
+    }
+
+    /// The end cap redrawn on top of the arc so it can throw its shadow a
+    /// little way along the direction of travel.
+    private var tip: some View {
+        let angle = progress * 2 * .pi
+        let radius = diameter / 2
+        let reach = strokeWidth * 0.3
+        let shadow = AppShadow.ringTip
+        return Circle()
+            .fill(tipColor)
+            .frame(width: strokeWidth, height: strokeWidth)
+            .shadow(color: shadow.color, radius: shadow.radius, x: cos(angle) * reach, y: sin(angle) * reach)
+            .position(x: radius + sin(angle) * radius, y: radius - cos(angle) * radius)
+    }
 }
 
 /// Geometry shared by the gradient rings.
