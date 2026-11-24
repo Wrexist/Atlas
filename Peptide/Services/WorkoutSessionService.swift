@@ -17,7 +17,9 @@ final class WorkoutSessionService {
     /// "one active session at a time" invariant.
     private(set) var activeSession: WorkoutSession?
     private(set) var lastFinishError: String?
-    private var pendingFinish: WorkoutSession?
+    /// The finish time of a failed finish attempt, so a retry records the
+    /// moment the user first tapped Finish.
+    private var pendingFinish: (sessionID: UUID, end: Date)?
     /// Set when `closeIfStale` closed a forgotten workout, so the Train
     /// tab can say so once. Cleared by `acknowledgeStaleClosure`.
     private(set) var staleClosure: StaleClosure?
@@ -192,13 +194,16 @@ final class WorkoutSessionService {
             lastFinishError = String(localized: "Complete at least one working set before finishing.")
             return nil
         }
-        session.focus?.resume(at: end)
+        // Everything but the end time comes from the live session: sets
+        // logged from the Watch or Live Activity while the error showed
+        // must reach the saved workout.
+        let finishedAt = pendingFinish.flatMap { $0.sessionID == session.id ? $0.end : nil } ?? end
+        pendingFinish = (session.id, finishedAt)
+        session.focus?.resume(at: finishedAt)
         session.focus?.rest = nil
-        session.finishedAt = end
+        session.finishedAt = finishedAt
         session.perceivedEffort = perceivedEffort
         session.note = note
-        if let pendingFinish, pendingFinish.id == session.id { session = pendingFinish }
-        else { pendingFinish = session }
         do { try SwiftDataRepository.shared.saveWorkoutDurably(session) }
         catch {
             lastFinishError = error.localizedDescription
