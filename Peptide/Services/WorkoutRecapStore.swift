@@ -7,6 +7,9 @@ final class WorkoutRecapStore {
     private(set) var week: WorkoutRecapEngine.Week?
     private(set) var metadataUnavailable = false
     private(set) var historyUnavailable = false
+    /// XP and level this workout earned. Only for a fresh save: a recap
+    /// reopened from history doesn't replay the level-up.
+    private(set) var levelGain: TrainingLevelEngine.Gain?
     /// Set once the user saves an edit, so the summary stops celebrating
     /// records the edit may have removed.
     private(set) var wasEdited = false
@@ -44,6 +47,9 @@ final class WorkoutRecapStore {
         summary = WorkoutRecapEngine.derive(session, catalog: catalog)
         week = historyUnavailable ? nil : WorkoutRecapEngine.week(
             sessions: history, catalog: catalog, anchor: anchor, now: now, calendar: calendar)
+        if !anchorsWeekOnSession {
+            levelGain = TrainingLevelEngine.gain(for: session, history: repo.loadAllWorkoutSessions())
+        }
     }
 
     func saveEdits(_ edited: WorkoutSession) throws {

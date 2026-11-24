@@ -30,7 +30,7 @@ struct WorkoutFinishView: View {
         ScrollView {
             if let summary = store.summary {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
-                    header(summary)
+                    hero(summary)
                         .sectionAppear(index: 0)
                     // The peak of the workout goes straight under the
                     // headline, not below the weekly roll-up.
@@ -41,31 +41,16 @@ struct WorkoutFinishView: View {
                     if let facts = recapFacts(summary), let text = summaryService.text(for: facts) {
                         RecapSummaryLine(text: text)
                     }
-                    NavigationLink {
-                        WorkoutWeeklyProgressView(store: store, unit: unit)
-                    } label: {
-                        RecapNavigationRow(icon: "chart.bar.fill") {
-                            if let week = store.week {
-                                Text("^[\(week.count) workout](inflect: true) \(week.phrase)")
-                            } else {
-                                Text("Weekly progress unavailable")
-                            }
-                        }
-                    }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-weekly")
-                        .sectionAppear(index: 2)
                     VStack(alignment: .trailing, spacing: 0) {
                         RecapMetrics(summary: summary, unit: unit)
                         RecapCalculationNotes(summary: summary)
+                            .foregroundStyle(AppColor.textSecondary)
                     }
-                    .sectionAppear(index: 3)
-                    NavigationLink {
-                        WorkoutRecapExercisesView(store: store, unit: unit)
-                    } label: {
-                        RecapNavigationRow(icon: "list.bullet") {
-                            Text("^[\(summary.entries.count) exercise](inflect: true) · View workout")
-                        }
-                    }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-exercises")
-                        .sectionAppear(index: 4)
+                    .sectionAppear(index: 2)
+                    // What the workout did for each muscle's week, right
+                    // under the totals: the "you got stronger" moment.
+                    RecapWeeklyVolume(session: summary.session)
+                        .sectionAppear(index: 3)
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Muscle focus").font(AppFont.headline)
@@ -92,9 +77,28 @@ struct WorkoutFinishView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .sectionAppear(index: 4)
+                    VStack(spacing: Spacing.sm) {
+                        NavigationLink {
+                            WorkoutRecapExercisesView(store: store, unit: unit)
+                        } label: {
+                            RecapNavigationRow(icon: "list.bullet") {
+                                Text("^[\(summary.entries.count) exercise](inflect: true) · View workout")
+                            }
+                        }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-exercises")
+                        NavigationLink {
+                            WorkoutWeeklyProgressView(store: store, unit: unit)
+                        } label: {
+                            RecapNavigationRow(icon: "chart.bar.fill") {
+                                if let week = store.week {
+                                    Text("^[\(week.count) workout](inflect: true) \(week.phrase)")
+                                } else {
+                                    Text("Weekly progress unavailable")
+                                }
+                            }
+                        }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-weekly")
+                    }
                     .sectionAppear(index: 5)
-                    RecapWeeklyVolume(session: summary.session)
-                        .sectionAppear(index: 6)
                     if store.metadataUnavailable {
                         Text("Exercise metadata is unavailable. Your saved sets are still shown.").font(AppFont.subheadline)
                         Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: Spacing.minimumHitTarget)
@@ -108,6 +112,11 @@ struct WorkoutFinishView: View {
         .background(AppColor.background.ignoresSafeArea())
         .foregroundStyle(AppColor.textPrimary).tint(AppColor.accentPrimary)
         .navigationTitle("Summary").navigationBarTitleDisplayMode(.inline)
+        // Cards scrolling up stop at a hard edge instead of reading
+        // through the title as a blurred ghost.
+        .solidTopScrollEdge()
+        .toolbarBackground(AppColor.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Edit") { editing = true }.frame(minHeight: Spacing.minimumHitTarget)
@@ -144,8 +153,9 @@ struct WorkoutFinishView: View {
         .refreshWorkoutRecap(store)
         .overlay {
             if showsConfetti {
-                ConfettiView(colors: [AppColor.achievement, AppColor.positive, AppColor.accentPrimary])
+                ConfettiView(colors: [AppColor.accentPrimary, AppColor.accentLight, AppColor.achievement])
                     .ignoresSafeArea()
+                    .allowsHitTesting(false)
             }
         }
     }
@@ -164,8 +174,19 @@ struct WorkoutFinishView: View {
         return OnDeviceSummaryEngine.workout(summary, newPRCount: detectedPRs.count, weekCount: weekCount, unit: unit)
     }
 
-    /// A fresh save celebrates; reopening an old session from history
-    /// leads with when it happened instead of "Workout saved".
+    /// A fresh save leads with the XP it earned and the level ring;
+    /// reopening an old session from history leads with when it happened.
+    @ViewBuilder
+    private func hero(_ summary: WorkoutRecapEngine.Summary) -> some View {
+        if celebratesSave, let gain = store.levelGain, gain.earnedXP > 0 {
+            RecapLevelHero(gain: gain, name: summary.name, date: summary.session.finishedAt) {
+                Task { await burst() }
+            }
+        } else {
+            header(summary)
+        }
+    }
+
     private func header(_ summary: WorkoutRecapEngine.Summary) -> some View {
         VStack(spacing: Spacing.sm) {
             if celebratesSave {
@@ -195,7 +216,14 @@ struct WorkoutFinishView: View {
 
     /// One burst for a fresh save that set a PR. Reduce Motion skips it.
     private func celebratePRs() async {
-        guard celebratesSave, !detectedPRs.isEmpty, !reduceMotion else { return }
+        guard celebratesSave, !detectedPRs.isEmpty else { return }
+        await burst()
+    }
+
+    /// Confetti for a level-up or a PR; a second trigger while one is
+    /// falling doesn't restart it.
+    private func burst() async {
+        guard !reduceMotion, !showsConfetti else { return }
         showsConfetti = true
         try? await Task.sleep(for: .seconds(2.5))
         showsConfetti = false

@@ -128,9 +128,11 @@ struct RecapMetrics: View {
     var body: some View {
         GlassCard {
             ViewThatFits(in: .horizontal) {
+                // Equal columns, so the three values sit on one grid
+                // instead of hugging their own widths.
                 if !typeSize.isAccessibilitySize {
-                    HStack(spacing: Spacing.md) { metrics(horizontal: true) }
-                        .fixedSize(horizontal: true, vertical: true)
+                    HStack(alignment: .top, spacing: Spacing.md) { metrics(horizontal: true) }
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 VStack(alignment: .leading, spacing: Spacing.lg) { metrics(horizontal: false) }
             }
