@@ -242,8 +242,11 @@ private struct RecapNavigationRow<Title: View>: View {
     var body: some View {
         GlassCard {
             HStack(spacing: Spacing.md) {
+                // Capped so the glyph doesn't take the title's width at
+                // accessibility sizes.
                 Image(systemName: icon)
                     .foregroundStyle(AppColor.success)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .accessibilityHidden(true)
                 title.font(AppFont.subheadline)
                 Spacer(minLength: Spacing.sm)
