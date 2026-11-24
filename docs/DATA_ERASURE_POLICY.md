@@ -27,8 +27,8 @@ future storage surface must be added to.
 
 Every device-local row above (everything but the SwiftData store, the
 keychain, reminders and consent) is erased through
-`DeviceLocalData.eraseAll()`, which also runs when the user removes the
-previous iCloud account's data after a sign-out or account switch — so a
+`DeviceLocalData.eraseAll()`, which also runs when the user answers
+Remove to the iCloud account-change prompt (never unprompted) — so a
 new store goes on that list once and both paths cover it.
 
 ## Retained deliberately

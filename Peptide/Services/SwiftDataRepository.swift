@@ -322,7 +322,7 @@ final class SwiftDataRepository {
         guard isAwaitingAccountDecision else { return true }
         if removingLocalData {
             guard Self.destroySharedStore() else { return false }
-            forgetDeviceLocalRecords()
+            removeDeviceLocalData()
         }
         isAwaitingAccountDecision = false
         UserDefaults.standard.removeObject(forKey: AccountChangeKey.holdPending)
@@ -565,11 +565,27 @@ final class SwiftDataRepository {
     }
 
     /// Weekly recaps, Apple Health weigh-ins (with their dismissed sample
-    /// ids) and everything `DeviceLocalData` lists are device-local and
-    /// never synced, so they belong to whoever was signed in.
+    /// ids), scan corrections — sent to the proxy with every scan — barcode
+    /// history and the "Recently scanned" product cache are device-local
+    /// and never synced, so they belong to whoever was signed in. Runs
+    /// unprompted on a sign-out or switch over an empty store, so it
+    /// stays to these derived records; the user's own files wait for
+    /// `removeDeviceLocalData()`.
     func forgetDeviceLocalRecords() {
         summaryStore.deleteAll()
         healthWeightStore.deleteAll()
+        ScanCorrectionMemory.shared.eraseAll()
+        Task {
+            await BarcodeScanHistory.shared.removeAll()
+            await BarcodeProductCache.shared.clear()
+        }
+    }
+
+    /// The user's Remove answer to the account-change prompt: everything
+    /// `DeviceLocalData` lists goes with the previous account's store.
+    /// Only that explicit choice reaches this.
+    func removeDeviceLocalData() {
+        forgetDeviceLocalRecords()
         DeviceLocalData.eraseAll()
     }
 
