@@ -217,20 +217,26 @@ enum AppColor {
     /// tube's lit side, the shade on its far side, the bright crest along
     /// its centre, and the groove shadow inside the track it sits in.
     static let ringSheen = Color.adaptive(
-        light: Color.white.opacity(0.3),
-        dark: Color.white.opacity(0.22)
+        light: Color.white.opacity(0.2),
+        dark: Color.white.opacity(0.14)
     )
     static let ringShade = Color.adaptive(
-        light: Color.black.opacity(0.1),
-        dark: Color.black.opacity(0.28)
+        light: Color.black.opacity(0.08),
+        dark: Color.black.opacity(0.18)
     )
     static let ringCrest = Color.adaptive(
-        light: Color.white.opacity(0.34),
-        dark: Color.white.opacity(0.22)
+        light: Color.white.opacity(0.2),
+        dark: Color.white.opacity(0.13)
     )
     static let ringGroove = Color.adaptive(
         light: Color.black.opacity(0.12),
         dark: Color.black.opacity(0.55)
+    )
+    /// The groove's lower lip catching the light, so the track reads as
+    /// cut into the card rather than painted on it.
+    static let ringGrooveLip = Color.adaptive(
+        light: Color.white.opacity(0.7),
+        dark: Color.white.opacity(0.06)
     )
 
     // MARK: - Directional feedback
