@@ -1708,6 +1708,16 @@ final class DataStore {
     /// Activities to them.
     func applyTravelShift(toTimezone identifier: String, minutesDelta: Int) {
         TravelModeLogic.shiftProtocolTimes(in: &protocols, byMinutes: minutesDelta)
+        acknowledgeTimezone(identifier)
+    }
+
+    /// User declined the schedule shift but acknowledged the
+    /// detection. Records the new identifier so we don't keep
+    /// re-prompting at every launch, and rebuilds today's entries at
+    /// the same wall-clock times the reminders fire at in this zone
+    /// (entries made in the old zone sit at its absolute times), then
+    /// re-plans reminders and Live Activities to match.
+    func acknowledgeTimezone(_ identifier: String) {
         TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
         for proto in activeProtocols {
             regenerateTodayEntriesPreservingLogs(for: proto)
@@ -1715,14 +1725,6 @@ final class DataStore {
         save()
         rescheduleNotificationsIfEnabled()
         reconcileDoseLiveActivities()
-    }
-
-    /// User declined the schedule shift but acknowledged the
-    /// detection. Records the new identifier so we don't keep
-    /// re-prompting at every launch.
-    func acknowledgeTimezone(_ identifier: String) {
-        TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
-        save()
     }
 
     // MARK: - Streak freeze
@@ -2869,6 +2871,11 @@ final class DataStore {
         async let recentRHR = kit.averageRestingHeartRate(days: 3)
         async let baseRHR = kit.averageRestingHeartRate(days: 30)
         async let segments = kit.recentSleepSegments()
+        // The Watch labels these "Resting" / "HRV" like the iPhone, so it
+        // shows the same latest daily reading; the 3-day means above feed
+        // Recovery only.
+        async let latestRHR = kit.latestRestingHeartRate()
+        async let latestHRV = kit.latestHRV()
 
         let hrv = await recentHRV
         let hrvBaseline = await baseHRV
@@ -2901,9 +2908,9 @@ final class DataStore {
         }
         let snapshot = WatchVitalsSnapshot(
             recoveryScore: recovery?.value,
-            restingHeartRate: rhr.map { Int($0.rounded()) },
+            restingHeartRate: await latestRHR.map { Int($0.rounded()) },
             restingHeartRateBaseline: rhrBaseline.map { Int($0.rounded()) },
-            hrv: hrv.map { Int($0.rounded()) },
+            hrv: await latestHRV.map { Int($0.rounded()) },
             hrvBaseline: hrvBaseline.map { Int($0.rounded()) },
             sleep: sleep,
             measuredAt: Date()
