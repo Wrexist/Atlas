@@ -716,6 +716,18 @@ final class HealthKitService {
         )
     }
 
+    /// Newest daily resting heart rate (bpm) from the last week: the
+    /// value every "Resting HR" label shows, from the same daily buckets
+    /// the Today grid and Biology tile read. Recovery keeps its 3-day mean.
+    func latestRestingHeartRate() async -> Double? {
+        await dailyRestingHeartRate(days: 7).max { $0.date < $1.date }?.value
+    }
+
+    /// Newest daily HRV (ms) from the last week; see `latestRestingHeartRate`.
+    func latestHRV() async -> Double? {
+        await dailyHRV(days: 7).max { $0.date < $1.date }?.value
+    }
+
     /// Hours asleep per wake-up day over the last `days` days: one night
     /// per day as `SleepScoreEngine.nights` picks it (a single source's
     /// longest session, naps left out). The single definition behind the

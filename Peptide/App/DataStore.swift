@@ -2855,6 +2855,11 @@ final class DataStore {
         async let recentRHR = kit.averageRestingHeartRate(days: 3)
         async let baseRHR = kit.averageRestingHeartRate(days: 30)
         async let segments = kit.recentSleepSegments()
+        // The Watch labels these "Resting" / "HRV" like the iPhone, so it
+        // shows the same latest daily reading; the 3-day means above feed
+        // Recovery only.
+        async let latestRHR = kit.latestRestingHeartRate()
+        async let latestHRV = kit.latestHRV()
 
         let hrv = await recentHRV
         let hrvBaseline = await baseHRV
@@ -2887,9 +2892,9 @@ final class DataStore {
         }
         let snapshot = WatchVitalsSnapshot(
             recoveryScore: recovery?.value,
-            restingHeartRate: rhr.map { Int($0.rounded()) },
+            restingHeartRate: await latestRHR.map { Int($0.rounded()) },
             restingHeartRateBaseline: rhrBaseline.map { Int($0.rounded()) },
-            hrv: hrv.map { Int($0.rounded()) },
+            hrv: await latestHRV.map { Int($0.rounded()) },
             hrvBaseline: hrvBaseline.map { Int($0.rounded()) },
             sleep: sleep,
             measuredAt: Date()
