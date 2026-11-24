@@ -64,7 +64,7 @@ final class TrainOverviewSuggestionTests: XCTestCase {
             finished(wednesday.addingTimeInterval(-86_400)),
         ]
 
-        let days = TrainOverviewView.trainedDaysThisWeek(sessions, now: wednesday, calendar: calendar)
+        let days = TrainingWeekEngine.trainedDaysThisWeek(sessions, now: wednesday, calendar: calendar)
 
         XCTAssertEqual(days, 2)
     }
@@ -73,7 +73,7 @@ final class TrainOverviewSuggestionTests: XCTestCase {
         let lastSunday = wednesday.addingTimeInterval(-86_400 * 3)
         let inProgress = WorkoutSession(startedAt: wednesday)
 
-        let days = TrainOverviewView.trainedDaysThisWeek([finished(lastSunday), inProgress], now: wednesday, calendar: calendar)
+        let days = TrainingWeekEngine.trainedDaysThisWeek([finished(lastSunday), inProgress], now: wednesday, calendar: calendar)
 
         XCTAssertEqual(days, 0)
     }

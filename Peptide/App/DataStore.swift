@@ -2034,10 +2034,6 @@ final class DataStore {
             .map { Set($0.exercises.map(\.exerciseID)) } ?? []
         repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
-        // Not gated on the sync toggle: a workout mirrored while sync was
-        // on must still leave Health. It matches only Atlas's own sample
-        // and fails quietly without permission.
-        Task { await HealthKitService.shared.deleteWorkout(id: id) }
         PRDetectionService.shared.recompute(exerciseIDs: affectedExercises)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
@@ -2048,6 +2044,12 @@ final class DataStore {
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
+            // Only once the row is really gone, or Health would lose a
+            // workout Atlas still shows, with no path to write it back.
+            // Not gated on the sync toggle: a workout mirrored while sync
+            // was on must still leave Health. It matches only Atlas's own
+            // sample and fails quietly without permission.
+            Task { await HealthKitService.shared.deleteWorkout(id: id) }
             refreshTrainingGlanceables()
         }
     }
@@ -2139,13 +2141,16 @@ final class DataStore {
         refreshTrainingGlanceables()
     }
 
-    /// Start dates of workout sessions from the last `days` days. The
-    /// weekly recap counts training days as activity.
+    /// Start dates of finished workout sessions from the last `days`
+    /// days. The weekly recap counts training days as activity; a session
+    /// still in progress isn't logged yet, same as `workoutSummary`.
     func recentWorkoutDates(days: Int = 7) -> [Date] {
         let now = Date()
         let cal = Calendar.current
         guard let start = cal.date(byAdding: .day, value: -days, to: cal.startOfDay(for: now)) else { return [] }
-        return repo.loadWorkoutSessions(startedBetween: start..<now).map(\.dayAnchor)
+        return repo.loadWorkoutSessions(startedBetween: start..<now)
+            .filter { !$0.isActive }
+            .map(\.dayAnchor)
     }
 
     /// (count, totalMinutes) for finished workout sessions on `date`'s
@@ -3181,8 +3186,11 @@ final class DataStore {
     /// returns nil for that resource. Replaces unsaved in-memory edits;
     /// user-triggered refreshes go through `refreshFromStore`.
     func reloadFromDisk() {
-        // A pull can bring workouts finished, edited or deleted elsewhere.
+        // A pull can bring workouts finished, edited or deleted elsewhere,
+        // which also moves each lift's last set: the memo seeds the Watch
+        // catalog below and new sets in a running workout.
         workoutHistoryDidChange()
+        WorkoutSessionService.shared.invalidatePreviousSetCache()
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
         // full-table decode would jank the refresh gesture), the tail

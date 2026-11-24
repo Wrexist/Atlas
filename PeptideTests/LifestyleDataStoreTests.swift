@@ -225,4 +225,16 @@ final class LifestyleDataStoreTests: XCTestCase {
         XCTAssertEqual(summary.count, 0)
         XCTAssertEqual(summary.minutes, 0)
     }
+
+    /// The weekly check-in reads these dates, so a started-but-unfinished
+    /// workout must not count as a training day until it's finished.
+    func test_recentWorkoutDates_activeSession_isNotCounted() {
+        let store = makeStore()
+        let startedAt = Date().addingTimeInterval(-60)
+        SwiftDataRepository.shared.upsertWorkoutSession(WorkoutSession(name: "Push", startedAt: startedAt))
+        XCTAssertTrue(store.recentWorkoutDates().isEmpty)
+
+        store.logWorkout(WorkoutEntry(date: startedAt, name: "Pull", sets: 4, reps: 8, durationMinutes: 30))
+        XCTAssertEqual(store.recentWorkoutDates().count, 1)
+    }
 }
