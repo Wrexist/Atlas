@@ -225,8 +225,8 @@ enum AppColor {
         dark: Color.black.opacity(0.28)
     )
     static let ringCrest = Color.adaptive(
-        light: Color.white.opacity(0.5),
-        dark: Color.white.opacity(0.32)
+        light: Color.white.opacity(0.34),
+        dark: Color.white.opacity(0.22)
     )
     static let ringGroove = Color.adaptive(
         light: Color.black.opacity(0.12),
