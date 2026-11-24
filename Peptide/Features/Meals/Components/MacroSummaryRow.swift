@@ -210,7 +210,7 @@ struct MacroSummaryRow: View {
             // Sunk as a groove the arc stands out of, like Today's rings.
             Circle()
                 .strokeBorder(
-                    colors[1].opacity(0.16).shadow(.inner(color: AppColor.ringGroove, radius: Self.ringLineWidth * 0.18, y: Self.ringLineWidth * 0.12)),
+                    RaisedRingFinish.groove(colors[1].opacity(0.1), strokeWidth: Self.ringLineWidth),
                     lineWidth: Self.ringLineWidth
                 )
             ringFill(progress: min(1, progress), colors: colors, index: index, diameter: diameter)
