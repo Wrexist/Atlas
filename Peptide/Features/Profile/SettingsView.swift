@@ -2,9 +2,9 @@ import SwiftUI
 
 /// Settings pushed from Profile, so Profile itself stays about the user —
 /// identity, progress, goals, body and health — and the switches live here.
-/// Five titled sections — Training, Reminders, Appearance, Data, About —
-/// and last, on its own, the two irreversible deletes, so they never sit
-/// beside an everyday control.
+/// Five titled sections, everyday first — Training, Reminders, Appearance,
+/// Data, About — and last, on its own, the two irreversible deletes, so they
+/// never sit beside an everyday control.
 struct SettingsView: View {
     @Environment(DataStore.self) private var dataStore
     @State private var showRestoreBackup = false

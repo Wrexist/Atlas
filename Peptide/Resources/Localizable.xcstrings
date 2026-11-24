@@ -1790,16 +1790,6 @@
         }
       }
     },
-    "%@ — a recap of your training, nutrition and recovery.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ – en sammanfattning av din träning, kost och återhämtning."
-          }
-        }
-      }
-    },
     "%@ — cancel any time.": {
       "localizations": {
         "sv": {
@@ -1836,6 +1826,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ – tryck för hela sammanfattningen."
+          }
+        }
+      }
+    },
+    "%@ — your week in one recap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — din vecka i en sammanfattning"
           }
         }
       }
@@ -12441,16 +12441,6 @@
         }
       }
     },
-    "By section": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Per sektion"
-          }
-        }
-      }
-    },
     "C%lld · W%lld": {
       "localizations": {
         "sv": {
@@ -15513,6 +15503,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Krea"
+          }
+        }
+      }
+    },
+    "Crash details only — never health data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bara kraschdetaljer – aldrig hälsodata"
           }
         }
       }
@@ -18729,6 +18729,16 @@
         }
       }
     },
+    "Empty weight of each bar": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varje stångs vikt utan skivor"
+          }
+        }
+      }
+    },
     "Empty workout": {
       "localizations": {
         "sv": {
@@ -19279,12 +19289,12 @@
         }
       }
     },
-    "Every day — pick training days in your plan": {
+    "Every day — set days in your plan": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Varje dag – välj träningsdagar i din plan"
+            "value": "Varje dag – välj dagar i din plan"
           }
         }
       }
@@ -19715,6 +19725,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Exportera som CSV till din läkare"
+          }
+        }
+      }
+    },
+    "Export one section": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportera en del"
           }
         }
       }
@@ -21872,6 +21892,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Guide"
+          }
+        }
+      }
+    },
+    "Gym equipment": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gymutrustning"
           }
         }
       }
@@ -25908,6 +25938,16 @@
         }
       }
     },
+    "Log your weight from the notification": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga din vikt direkt från aviseringen"
+          }
+        }
+      }
+    },
     "Logged": {
       "localizations": {
         "sv": {
@@ -29778,16 +29818,6 @@
         }
       }
     },
-    "No reports captured yet — appears after first crash or hang.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inga rapporter än – visas efter första kraschen eller hänget."
-          }
-        }
-      }
-    },
     "No reports yet": {
       "localizations": {
         "sv": {
@@ -33547,6 +33577,16 @@
         }
       }
     },
+    "Plates and bar weights": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viktskivor och stångvikter"
+          }
+        }
+      }
+    },
     "Plates in play. Tilt your phone to move them.": {
       "localizations": {
         "sv": {
@@ -35064,16 +35104,6 @@
         }
       }
     },
-    "Re-import an exported backup. Your current data is copied first.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importera en exporterad säkerhetskopia. Dina nuvarande data kopieras först."
-          }
-        }
-      }
-    },
     "Re-log %@": {
       "localizations": {
         "sv": {
@@ -36514,16 +36544,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spela igen"
-          }
-        }
-      }
-    },
-    "Reply with your weight right from the notification": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Svara med din vikt direkt från aviseringen"
           }
         }
       }
@@ -39613,16 +39633,6 @@
         }
       }
     },
-    "Short workout and coaching recaps written by Apple Intelligence on this device. Nothing is sent anywhere.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Korta tränings- och coachningssammanfattningar skrivna av Apple Intelligence på den här enheten. Inget skickas någonstans."
-          }
-        }
-      }
-    },
     "Short-acting — adds acute pulses to your long-acting protocol": {
       "localizations": {
         "sv": {
@@ -40960,16 +40970,6 @@
         }
       }
     },
-    "Start each exercise at the weight and reps to beat": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Börja varje övning på vikten och reps att slå"
-          }
-        }
-      }
-    },
     "Start fast": {
       "localizations": {
         "sv": {
@@ -41928,6 +41928,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Föreslå nya"
+          }
+        }
+      }
+    },
+    "Suggest the weight and reps to beat": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föreslå vikten och repsen att slå"
           }
         }
       }
@@ -43492,12 +43502,12 @@
         }
       }
     },
-    "The plate calculator and barbell jumps use these": {
+    "The plate calculator loads only these": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Viktskivekalkylatorn och skivstångsstegen använder dessa"
+            "value": "Viktskivekalkylatorn använder bara dessa"
           }
         }
       }
@@ -48079,16 +48089,6 @@
         }
       }
     },
-    "What each empty bar weighs at your gym": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vad varje tom stång väger på ditt gym"
-          }
-        }
-      }
-    },
     "What gear do you have?": {
       "localizations": {
         "sv": {
@@ -48285,16 +48285,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "När"
-          }
-        }
-      }
-    },
-    "When Atlas crashes or freezes, send the technical report so it can be fixed: app version, device model and where in the code it happened. No health data, nothing that identifies you.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "När Atlas kraschar eller fryser skickas den tekniska rapporten så att felet kan rättas: appversion, enhetsmodell och var i koden det hände. Inga hälsodata, inget som identifierar dig."
           }
         }
       }
@@ -48950,6 +48940,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Skriver"
+          }
+        }
+      }
+    },
+    "Written on this device — nothing is sent": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skrivs på enheten – inget skickas"
           }
         }
       }
@@ -49959,6 +49959,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Din kontinuitet lönar sig."
+          }
+        }
+      }
+    },
+    "Your current data is copied first": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina nuvarande data kopieras först"
           }
         }
       }

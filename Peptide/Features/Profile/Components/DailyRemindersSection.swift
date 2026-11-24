@@ -56,7 +56,7 @@ struct DailyRemindersSection: View {
     private func subtitle(for kind: DailyReminderKind) -> LocalizedStringKey {
         switch kind {
         case .weighIn:
-            "Reply with your weight right from the notification"
+            "Log your weight from the notification"
         case .breakfast, .lunch, .dinner:
             "Scan it, or repeat yesterday's in one tap"
         case .workout:
@@ -66,7 +66,7 @@ struct DailyRemindersSection: View {
 
     private var trainingDaysSubtitle: LocalizedStringKey {
         let days = dataStore.profile.trainingPreferences?.preferredDays ?? []
-        guard !days.isEmpty else { return "Every day — pick training days in your plan" }
+        guard !days.isEmpty else { return "Every day — set days in your plan" }
         let names = Weekday.allCases.filter(days.contains).map(\.shortName).joined(separator: " · ")
         return "\(names)"
     }
