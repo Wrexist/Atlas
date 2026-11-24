@@ -649,7 +649,7 @@ struct PeptideApp: App {
     }
 
     /// The strip shows only while it has something to act on: a workout in
-    /// progress, or doses to take. "No workout logged yet today" on every
+    /// progress. "No workout logged yet today" on every
     /// screen was a permanent bar of noise over the content, and on Train
     /// the tab draws its own resume banner.
     @available(iOS 26.0, *)
@@ -666,13 +666,11 @@ struct PeptideApp: App {
         }
     }
 
-    /// A workout in progress, or an overdue dose while the user is away
-    /// from Today. On Today the doses card already says it, and Train
-    /// draws its own resume banner.
+    /// A workout in progress while the user is away from Train, which
+    /// draws its own resume banner. Doses stay on Today: they're a
+    /// secondary feature and don't get chrome on every tab.
     private var showsTabAccessory: Bool {
-        appState.selectedTab != .train
-            && (workoutSession.activeSession != nil
-                || TabAccessoryView.remindsOfDose(on: appState.selectedTab, dataStore: dataStore))
+        appState.selectedTab != .train && workoutSession.activeSession != nil
     }
 
     private var mainContent: some View {
@@ -824,54 +822,22 @@ final class BackgroundTaskHandle {
     }
 }
 
-/// The strip above the tab bar. A workout in progress leads; otherwise,
-/// away from Today, it carries a dose that is overdue. A dose that is
-/// merely next stays on Today: floating it over Meals or Biology all
-/// day turned a reminder into wallpaper. Today itself
-/// never shows the dose: its doses card is the one place that state reads,
-/// and a second copy floating over it could only disagree. Train skips the
-/// dose too — a dose reminder under the muscle map answers a question
-/// nobody on that screen asked.
-///
-/// The strip is a button, like the system's own bottom accessories: it
-/// opens the tab that acts on what it reports, so "Workout in progress"
-/// or an overdue dose is one tap from being dealt with. Already on that
-/// tab, it drops its chevron and stops being a button.
+/// The strip above the tab bar: a workout in progress, shown away from
+/// Train. It is a button, like the system's own bottom accessories, and
+/// opens Train; on Train it drops its chevron and stops being a button.
 struct TabAccessoryView: View {
     let tab: AppTab
-    @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
-    @State private var sessionService = WorkoutSessionService.shared
-
-    /// A dose is past its time and not taken, and the user is on a tab
-    /// that doesn't show it.
-    static func remindsOfDose(on tab: AppTab, dataStore: DataStore) -> Bool {
-        tab != .today && tab != .train && overdueDose(in: dataStore) != nil
-    }
-
-    /// Read when the strip redraws (a tab switch or a data change), so a
-    /// dose falling due while the user stays on one tab shows on the next.
-    private static func overdueDose(in dataStore: DataStore) -> ProtocolEntry? {
-        let now = Date()
-        return dataStore.todayEntries.first { !$0.completed && $0.date < now }
-    }
 
     var body: some View {
-        let overdue = sessionService.activeSession == nil && Self.remindsOfDose(on: tab, dataStore: dataStore)
-            ? Self.overdueDose(in: dataStore)
-            : nil
-        let destination: AppTab = overdue == nil ? .train : .today
-        let acts = appState.selectedTab != destination
+        let acts = appState.selectedTab != .train
         Button {
-            open(destination)
+            Haptics.selection()
+            appState.selectedTab = .train
         } label: {
-            if let overdue {
-                OverdueDoseAccessoryView(dose: overdue, showsChevron: acts)
-            } else {
-                // Train draws its own resume banner for a workout in
-                // progress; repeating it here stacks two identical pills.
-                WorkoutAccessoryView(reportsActiveWorkout: tab != .train, showsChevron: acts)
-            }
+            // Train draws its own resume banner for a workout in
+            // progress; repeating it here stacks two identical pills.
+            WorkoutAccessoryView(reportsActiveWorkout: tab != .train, showsChevron: acts)
         }
         // The accessory's own glass already gives press feedback; a
         // scaling, tilting label inside it slid past the capsule's ends.
@@ -883,22 +849,13 @@ struct TabAccessoryView: View {
         .tint(AppColor.textPrimary)
         .allowsHitTesting(acts)
         .accessibilityRemoveTraits(acts ? [] : .isButton)
-        .accessibilityHint(acts ? hint(for: destination) : Text(verbatim: ""))
-    }
-
-    private func hint(for destination: AppTab) -> Text {
-        destination == .train ? Text("Opens Train") : Text("Opens Today")
-    }
-
-    private func open(_ destination: AppTab) {
-        Haptics.selection()
-        appState.selectedTab = destination
+        .accessibilityHint(acts ? Text("Opens Train") : Text(verbatim: ""))
     }
 }
 
-/// Train's counterpart to `OverdueDoseAccessoryView`. The session count is
-/// held in state rather than read in `body`: `workoutSummary` faults
-/// SwiftData, and the accessory re-renders on every tab change.
+/// The session count is held in state rather than read in `body`:
+/// `workoutSummary` faults SwiftData, and the accessory re-renders on
+/// every tab change.
 struct WorkoutAccessoryView: View {
     let reportsActiveWorkout: Bool
     var showsChevron = true
@@ -955,58 +912,13 @@ struct WorkoutAccessoryView: View {
 }
 
 /// The strip is a button; the chevron says so and balances the icon on
-/// the leading edge. Both accessories end in the same one.
+/// the leading edge.
 private struct AccessoryChevron: View {
     var body: some View {
         Image(systemName: "chevron.right")
             .font(AppFont.caption2.weight(.semibold))
             .foregroundStyle(AppColor.textTertiary)
             .accessibilityHidden(true)
-    }
-}
-
-struct OverdueDoseAccessoryView: View {
-    let dose: ProtocolEntry
-    var showsChevron = true
-
-    var body: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "exclamationmark.circle.fill")
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.warning)
-            Text(summary)
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            Spacer()
-            // The icon alone carries the overdue amber.
-            Text(dose.date.formatted(.dateTime.hour().minute()))
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
-                .fixedSize()
-            if showsChevron { AccessoryChevron() }
-        }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.xs)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(voiceOverLabel)
-    }
-
-    private var summary: LocalizedStringKey {
-        let name = dose.peptide.abbreviation
-        return dose.dose.isEmpty
-            ? "Overdue: \(name)"
-            : "Overdue: \(name) \u{2022} \(dose.dose)"
-    }
-
-    /// One VoiceOver stop with the full name, instead of the icon,
-    /// the abbreviated line with its bullet glyph, and the time.
-    private var voiceOverLabel: Text {
-        let time = dose.date.formatted(.dateTime.hour().minute())
-        return dose.dose.isEmpty
-            ? Text("Overdue dose: \(dose.peptide.name) at \(time)")
-            : Text("Overdue dose: \(dose.peptide.name), \(dose.dose) at \(time)")
     }
 }
 

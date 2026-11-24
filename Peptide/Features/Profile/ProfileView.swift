@@ -41,7 +41,6 @@ struct ProfileView: View {
                     ProfileHeader(
                         name: dataStore.profile.name,
                         memberSince: dataStore.profile.memberSince,
-                        protocolCount: dataStore.protocols.count,
                         daysLogged: dataStore.totalDaysLogged,
                         workoutCount: workoutCount,
                         avatarImageData: dataStore.profile.avatarImageData,
@@ -70,9 +69,6 @@ struct ProfileView: View {
                     // it sums up live.
                     AtlasScoreCard(onTap: { showProgress = true })
                         .sectionAppear(index: 2)
-
-                    CycleCardShareSection()
-                        .scrollReveal()
 
                     GoalsSectionCard(
                         goalCatalog: goalCatalog,
@@ -103,9 +99,11 @@ struct ProfileView: View {
                     )
                     .scrollReveal()
 
+                    // Protocol tools are secondary, so they close the page.
                     // The library and its calculator are one toolset, so they
                     // sit together rather than a full section gap apart.
                     VStack(spacing: Spacing.sm) {
+                        CycleCardShareSection()
                         PeptideLibraryEntryCard()
 
                         // The calculator only matters to someone running a protocol.
