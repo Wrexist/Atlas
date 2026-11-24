@@ -335,8 +335,21 @@ final class WorkoutSessionService {
         }
         DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
         DataStore.current?.refreshTrainingGlanceables()
+        replanRemindersInBackground()
         AppLog.training.info("Watch workout imported (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public))")
         return true
+    }
+
+    /// A Watch workout is usually filed while the app sleeps in the
+    /// background, where no scene change re-plans the daily reminders, so
+    /// today's "Time to train" would still fire after the workout.
+    private func replanRemindersInBackground() {
+        guard !ProcessInfo.processInfo.isRunningUnitTests, let dataStore = DataStore.current else { return }
+        let backgroundTask = BackgroundTaskHandle(name: "Reminder reconcile")
+        Task { @MainActor in
+            await DailyReminderScheduler.reconcile(dataStore: dataStore)
+            backgroundTask.end()
+        }
     }
 
     /// Re-reads the in-progress session after an iCloud account switch,
