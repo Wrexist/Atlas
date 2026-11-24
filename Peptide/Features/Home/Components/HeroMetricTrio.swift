@@ -419,6 +419,16 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         lastSleepHours: nil
     )
 
+    /// A good-but-not-perfect morning for the screenshot demo.
+    static let demo = HeroMetricSnapshot(
+        adherence: .unavailable,
+        recovery: .percent(0.78),
+        sleep: .percent(0.86),
+        healthConnected: true,
+        recoveryComponents: .init(hrv: 0.82, sleep: 0.86, rhr: 0.66),
+        lastSleepHours: 6.9
+    )
+
     /// A copy with only the adherence ring changed, so a dose toggle
     /// doesn't repeat the HealthKit reads behind Recovery and Sleep.
     func withAdherence(_ ratio: Double?) -> HeroMetricSnapshot {
