@@ -131,7 +131,7 @@ enum WidgetSnapshotBuilder {
                     (lhs.finishedAt ?? .distantPast) < (rhs.finishedAt ?? .distantPast)
                 }
                 .map { summary(of: $0) },
-            workoutsThisWeek: thisWeek.count,
+            workoutsThisWeek: TrainingWeekEngine.trainedDaysThisWeek(finished, now: now, calendar: calendar),
             weeklySetCount: thisWeek.reduce(0) { $0 + $1.completedSetCount },
             weeklyVolumeKg: thisWeek.reduce(0) { $0 + $1.totalVolumeKg },
             trainingDays: Set(thisWeek.map { midday(of: $0.dayAnchor, in: calendar) })
@@ -143,6 +143,8 @@ enum WidgetSnapshotBuilder {
     /// one assembly step rather than four.
     struct TrainingSnapshot: Equatable {
         var lastWorkout: WidgetWorkoutSummary?
+        /// Distinct trained days this week (`TrainingWeekEngine`), the
+        /// same count Today and Train compare to the days-per-week target.
         var workoutsThisWeek: Int
         var weeklySetCount: Int
         var weeklyVolumeKg: Double

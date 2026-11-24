@@ -188,7 +188,7 @@ struct WeeklyCheckInCard: View {
                 MetricRow(
                     symbol: "figure.strengthtraining.traditional",
                     tint: AppColor.metricActivity,
-                    title: String(localized: "Workouts"),
+                    title: String(localized: "Training days"),
                     value: trainingValue(training),
                     detail: String(localized: "Last week: \(training.previousDays)"),
                     progress: training.goal.map { min(Double(training.days) / Double(max($0, 1)), 1) },

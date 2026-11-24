@@ -201,7 +201,7 @@ struct WatchWorkoutEntryView: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(WatchPalette.training)
                 if entry.synced {
-                    Text("\(entry.training?.workoutsThisWeek ?? 0) this week")
+                    Text("\(entry.training?.workoutsThisWeek ?? 0) days this week")
                         .font(.headline)
                         .widgetAccentable()
                     Text(lastWorkoutLine)
@@ -225,7 +225,7 @@ struct WatchWorkoutEntryView: View {
         if let workout = entry.workout {
             Text("\(workout.completedSets)/\(workout.totalSets) sets · \(workout.name.isEmpty ? String(localized: "Workout") : workout.name)")
         } else if entry.synced {
-            Text("\(entry.training?.workoutsThisWeek ?? 0) workouts this week")
+            Text("\(entry.training?.workoutsThisWeek ?? 0) days trained this week")
         } else {
             Text("Open Atlas on iPhone")
         }
@@ -254,7 +254,7 @@ struct WatchWorkoutEntryView: View {
     private var spoken: String {
         guard let workout = entry.workout else {
             guard entry.synced else { return String(localized: "Open Atlas on iPhone") }
-            return String(localized: "\(entry.training?.workoutsThisWeek ?? 0) workouts this week")
+            return String(localized: "\(entry.training?.workoutsThisWeek ?? 0) days trained this week")
         }
         if workout.isPaused { return String(localized: "Workout paused") }
         if restInterval != nil { return String(localized: "Resting, \(workout.completedSets) of \(workout.totalSets) sets done") }
