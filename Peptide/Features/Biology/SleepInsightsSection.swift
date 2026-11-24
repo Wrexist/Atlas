@@ -193,7 +193,7 @@ struct SleepInsightsSection: View {
                     : Self.duration(insights.sleepDebt),
                 icon: "hourglass",
                 tint: AppColor.accentPrimary,
-                footnote: String(localized: "Short of your goal, last 7 nights")
+                footnote: String(localized: "Last 7 nights")
             )
             if let wristTemperature {
                 StatTile(

@@ -53779,16 +53779,6 @@
         }
       }
     },
-    "Short of your goal, last 7 nights": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Under ditt mål, senaste 7 nätterna"
-          }
-        }
-      }
-    },
     "Wrist temp": {
       "localizations": {
         "sv": {
@@ -53895,6 +53885,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Väntar på data"
+          }
+        }
+      }
+    },
+    "Last 7 nights": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste 7 nätterna"
           }
         }
       }
