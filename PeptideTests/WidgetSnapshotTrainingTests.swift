@@ -68,6 +68,18 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         XCTAssertEqual(result.weeklyVolumeKg, 1_000, accuracy: 0.001) // 500 + 500
     }
 
+    /// Same count as Today's ring and Train's goal card: the target is
+    /// days per week, so two sessions on one day count once.
+    func test_workoutsThisWeek_twoSessionsOneDay_countsTheDayOnce() {
+        let result = snapshot([
+            session(startedAt: now.addingTimeInterval(-3 * 3_600), finishedAt: now.addingTimeInterval(-2 * 3_600)),
+            session(startedAt: now.addingTimeInterval(-3_600), finishedAt: now),
+        ])
+
+        XCTAssertEqual(result.workoutsThisWeek, 1)
+        XCTAssertEqual(result.trainingDays.count, 1)
+    }
+
     func test_weeklyVolume_excludesWarmupAndUncheckedSets() {
         let result = snapshot([
             session(startedAt: now.addingTimeInterval(-3_600), finishedAt: now, sets: [
