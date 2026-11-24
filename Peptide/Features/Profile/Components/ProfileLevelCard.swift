@@ -23,7 +23,8 @@ struct ProfileLevelCard: View {
                 diameter: 64,
                 strokeWidth: 6,
                 gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
-                appearAnimated: true
+                appearAnimated: true,
+                raised: true
             ) {
                 VStack(spacing: 0) {
                     Text("LV")
