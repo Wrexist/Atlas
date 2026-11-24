@@ -1,0 +1,44 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "FBA20953-58D2-4AA1-AE97-44A39FD57BDD.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-layout-dark-scrolled_0_134982BC-C3E6-434E-AF4F-0FC3ACCDDA1E.png",
+        "timestamp" : 1795545912.064
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "4E703410-2157-4C96-A16E-91349AB345DE.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-layout-dark_0_75233805-C209-43CA-85DE-C65CC50F3306.png",
+        "timestamp" : 1795545892.216
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "F6569468-EEED-4801-B21B-4370AE904052.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-layout-light-scrolled_0_C46CA99D-15A4-4AC0-9085-FA5B1D169E94.png",
+        "timestamp" : 1795545857.048
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "B290E327-433A-4878-BC55-828A994DCA6C",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "DE9F1E94-765C-411B-9417-E11F52287867.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "completion-layout-light_0_0913F321-2EFF-4CC8-B70A-3519C1178F15.png",
+        "timestamp" : 1795545851.839
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureWorkoutCompletionLayouts()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureWorkoutCompletionLayouts"
+  }
+]
