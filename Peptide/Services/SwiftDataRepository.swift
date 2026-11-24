@@ -1665,35 +1665,31 @@ final class SwiftDataRepository {
         }
     }
 
-    /// Writes a whole reordered library in one commit, so a drag-reorder
-    /// is one save and one CloudKit export rather than one per routine.
-    func upsertRoutines(_ routines: [Routine]) {
+    /// Writes a reordered library's `sortIndex` in one commit, so a
+    /// drag-reorder is one save and one CloudKit export rather than one
+    /// per routine. Only the order of rows still stored is written: a list
+    /// read before another device's delete or edit synced in can't
+    /// re-insert the deleted routine or revert the edit.
+    func updateRoutineOrder(_ routines: [Routine]) {
         guard let context, !routines.isEmpty else { return }
-        var existing: [StoredRoutine] = []
+        let sortIndexByID = Dictionary(
+            routines.map { ($0.id, $0.sortIndex ?? 0) },
+            uniquingKeysWith: { first, _ in first }
+        )
         do {
-            for chunk in Self.predicateChunks(routines.map(\.id)) {
-                existing += try context.fetch(FetchDescriptor<StoredRoutine>(
+            for chunk in Self.predicateChunks(Array(sortIndexByID.keys)) {
+                let rows = try context.fetch(FetchDescriptor<StoredRoutine>(
                     predicate: #Predicate { chunk.contains($0.id) }
                 ))
+                for stored in rows {
+                    guard let sortIndex = sortIndexByID[stored.id] else { continue }
+                    assignIfChanged(stored, \.sortIndex, sortIndex)
+                }
             }
         } catch {
-            // Inserting blind would duplicate every routine that exists.
-            AppLog.swiftData.error("Fetch (upsert) routines failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.swiftData.error("Fetch (reorder) routines failed: \(error.localizedDescription, privacy: .public)")
             commitDidFail = true
             return
-        }
-        let existingByID = Dictionary(grouping: existing, by: \.id)
-        for routine in routines {
-            do {
-                if let rows = existingByID[routine.id] {
-                    for stored in rows { try stored.update(from: routine) }
-                } else {
-                    context.insert(try StoredRoutine.make(from: routine))
-                }
-            } catch {
-                AppLog.swiftData.error("upsert routine failed: \(error.localizedDescription, privacy: .public)")
-                commitDidFail = true
-            }
         }
         commit()
     }
