@@ -405,9 +405,10 @@ struct HomeView: View {
     /// Adherence leads for protocol users; everyone else sees this
     /// week's training against their days-per-week target, so Today
     /// doesn't open on a dose metric they never asked for.
+    /// Workouts lead the rings for everyone: protocols are an optional
+    /// extra, so dose adherence no longer takes the first ring.
     private var heroLeading: HeroLeadingMetric {
-        guard dataStore.activeProtocols.isEmpty else { return .adherence }
-        return .workouts(
+        .workouts(
             done: derived.workoutsThisWeek,
             target: max(1, dataStore.profile.trainingPreferences?.daysPerWeek ?? TrainingPreferences().daysPerWeek)
         )
@@ -1288,8 +1289,6 @@ struct HomeView: View {
             }
         case .mealStreak:
             appState.selectedTab = .meals
-        case .checkIn:
-            show(.wellness, proxy: proxy)
         }
     }
 

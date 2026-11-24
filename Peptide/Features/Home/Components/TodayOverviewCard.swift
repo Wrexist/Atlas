@@ -23,7 +23,7 @@ struct TodayOverviewCard: View {
     var isToday = true
 
     enum Tile {
-        case calories, mealStreak, checkIn
+        case calories, mealStreak
     }
 
     var body: some View {
@@ -56,7 +56,6 @@ struct TodayOverviewCard: View {
                 tileButton(.calories, hint: "Opens your calorie target or Meals") { caloriesTile }
             }
             tileButton(.mealStreak, hint: "Opens Meals") { mealStreakTile }
-            tileButton(.checkIn, hint: "Goes to today's check-in") { checkInTile }
         }
     }
 
@@ -114,19 +113,6 @@ struct TodayOverviewCard: View {
                 : (snapshot.mealStreak > 1
                     ? String(localized: "days in a row")
                     : (isToday ? String(localized: "Log to start") : String(localized: "No streak")))
-        )
-    }
-
-    private var checkInTile: some View {
-        StatTile(
-            label: "Check-in",
-            value: snapshot.checkInScore.map { $0.formatted(.number.precision(.fractionLength(1))) } ?? "—",
-            icon: "heart.text.square.fill",
-            tint: AppColor.accentPrimary,
-            footnote: snapshot.checkInScore != nil
-                ? String(localized: "of 5.0")
-                : (isToday ? String(localized: "30-sec check-in") : String(localized: "No check-in")),
-            progress: snapshot.checkInScore.map { $0 / 5.0 }
         )
     }
 
