@@ -42,12 +42,12 @@ struct HealthConnectionCard: View {
 
                     HStack(spacing: Spacing.xs) {
                         Circle()
-                            .fill(statusIsLive ? AppColor.accentPrimary : AppColor.textTertiary)
+                            .fill(statusDotColor)
                             .frame(width: 8, height: 8)
 
                         Text(statusLabel)
                             .font(AppFont.caption2)
-                            .foregroundStyle(statusIsLive ? AppColor.accentLight : AppColor.textTertiary)
+                            .foregroundStyle(statusTextColor)
                     }
                 }
 
@@ -133,6 +133,20 @@ struct HealthConnectionCard: View {
     }
 
     private var statusIsLive: Bool { isConnected && healthDataVisible }
+
+    /// Green marks two-way sync only; reading alone is the neutral
+    /// baseline, not a success state.
+    private var statusIsWriting: Bool { statusIsLive && (activitySyncEnabled || nutritionWriteEnabled) }
+
+    private var statusDotColor: Color {
+        if statusIsWriting { return AppColor.accentPrimary }
+        return statusIsLive ? AppColor.textSecondary : AppColor.textTertiary
+    }
+
+    private var statusTextColor: Color {
+        if statusIsWriting { return AppColor.accentLight }
+        return statusIsLive ? AppColor.textSecondary : AppColor.textTertiary
+    }
 
     private var noVisibleDataNotice: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
