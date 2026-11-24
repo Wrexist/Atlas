@@ -413,19 +413,7 @@ final class DataStore {
         // account has synced data this surfaces it immediately
         // instead of forcing the user through a relaunch to see
         // their own records.
-        reloadFromDisk(adoptingLocalPeptides: false)
-        adoptAccountCustomPeptides()
-    }
-
-    /// After an account change the library cache follows the new
-    /// account's synced compounds rather than pushing this device's file
-    /// into it: the previous account's own were synced to its profile at
-    /// launch. Left alone while the new account has no profile row yet.
-    private func adoptAccountCustomPeptides() {
-        guard persistedProfile != nil, !isEphemeral else { return }
-        customPeptides = profile.customPeptides
-        customPeptidesReadable = true
-        PersistenceService.shared.saveCustomPeptides(customPeptides)
+        reloadFromDisk()
     }
 
     /// True while the store is held closed after an iCloud sign-out or
@@ -3301,9 +3289,7 @@ final class DataStore {
     /// relaunch. Falls back to the existing in-memory state if the repo
     /// returns nil for that resource. Replaces unsaved in-memory edits;
     /// user-triggered refreshes go through `refreshFromStore`.
-    /// `adoptingLocalPeptides` false skips pushing compounds only this
-    /// device's cache holds into the loaded profile (an account change).
-    func reloadFromDisk(adoptingLocalPeptides: Bool = true) {
+    func reloadFromDisk() {
         // A pull can bring workouts finished, edited or deleted elsewhere,
         // which also moves each lift's last set: the memo seeds the Watch
         // catalog below and new sets in a running workout.
@@ -3332,7 +3318,7 @@ final class DataStore {
             // it — otherwise an unsaved in-memory profile edit would be
             // marked clean without ever reaching disk.
             profileNeedsSave = false
-            if adoptingLocalPeptides, syncCustomPeptides() { save() }
+            if syncCustomPeptides() { save() }
         }
         // Protocols and entries always came straight from disk, so the
         // assignments above must not leave them marked dirty — the next
