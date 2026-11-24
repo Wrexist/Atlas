@@ -360,9 +360,9 @@ struct RaisedRingFinish: View {
         return Circle()
             .inset(by: strokeWidth / 2)
             .trim(from: fade, to: max(fade, progress - fade))
-            .stroke(style: StrokeStyle(lineWidth: strokeWidth * 0.18, lineCap: .round))
+            .stroke(style: StrokeStyle(lineWidth: strokeWidth * 0.22, lineCap: .round))
             .rotationEffect(.degrees(-90))
-            .blur(radius: strokeWidth * 0.06)
+            .blur(radius: strokeWidth * 0.08)
     }
 
     /// A track sunk into the card: a shadow under its upper wall and a
