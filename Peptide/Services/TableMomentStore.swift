@@ -180,6 +180,27 @@ final class TableMomentStore {
         remove(dishID: id, from: moment.id)
     }
 
+    /// Deletes cut-outs no table points at any more, once they are older
+    /// than `cutoff`. A keep writes its stickers before the table that
+    /// lists them, so a newer file may still be on its way in.
+    @discardableResult
+    func deleteOrphanStickers(olderThan cutoff: Date) -> Task<Void, Never>? {
+        guard let directory else { return nil }
+        let referenced = Set(moments.flatMap { $0.dishes.compactMap(\.stickerFilename) })
+        return Task.detached(priority: .utility) {
+            guard let files = try? FileManager.default.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey]
+            ) else { return }
+            for file in files where file.lastPathComponent.hasPrefix("dish-")
+                && file.pathExtension == "png"
+                && !referenced.contains(file.lastPathComponent)
+                && FileAge.isOlder(file, than: cutoff) {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
+    }
+
     /// "Delete all data" — cut-outs are photos of the user's meals and
     /// must not survive an erase.
     func deleteAll() {
