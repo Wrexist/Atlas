@@ -61,6 +61,26 @@
         }
       }
     },
+    "%@ appear here once Apple Health is connected.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ visas här när Apple Hälsa är ansluten."
+          }
+        }
+      }
+    },
+    "%@ appear here once Apple Watch data arrives.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ visas här när data från Apple Watch kommer in."
+          }
+        }
+      }
+    },
     "%@ kcal": {
       "localizations": {
         "sv": {
@@ -6568,6 +6588,16 @@
         }
       }
     },
+    "Check Health access": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontrollera Hälsa-åtkomst"
+          }
+        }
+      }
+    },
     "CJC-1295 (GHRH analog) activates cAMP/PKA via the GHRH receptor while Ipamorelin (GHS-R agonist) activates phospholipase C via the ghrelin receptor. Different receptors produce synergistic GH release 2-3x greater than either alone.": {
       "localizations": {
         "sv": {
@@ -7700,6 +7730,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Öppnar Inställningar"
+          }
+        }
+      }
+    },
+    "Opens Settings, where Atlas's Apple Health access is set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Inställningar, där Atlas åtkomst till Apple Hälsa ställs in"
           }
         }
       }

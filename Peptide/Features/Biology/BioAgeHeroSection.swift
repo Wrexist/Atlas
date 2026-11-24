@@ -9,7 +9,8 @@ import SwiftUI
 ///     line asks for it instead of estimating against a made-up age.
 ///   • `.building(days:requiredDays:)` — Pro tier without enough data:
 ///     the one action is connecting Apple Health while it isn't; after
-///     that, the Watch guidance with the day count and a progress bar.
+///     that, the Watch guidance with the day count and a progress bar,
+///     and a way to check Atlas's Health access in Settings.
 ///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the arc sweeps
 ///     up to the estimate as the number rolls to it, then the delta against
 ///     chronological age and how sure the estimate is.
@@ -43,6 +44,7 @@ struct BioAgeHeroSection: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.openURL) private var openURL
     /// What the dial and the number show. Starts at the dial's younger
     /// bound and is animated to the estimate, so the arc sweeps in and the
     /// digits roll rather than the result just appearing.
@@ -217,7 +219,7 @@ struct BioAgeHeroSection: View {
 
     /// Smaller than the live dial: a placeholder shouldn't push the
     /// biomarkers further down than the reading it stands in for.
-    private static let ghostDialSize: CGFloat = 220
+    private static let ghostDialSize: CGFloat = 200
     private static let setupWidth: CGFloat = 320
 
     @ViewBuilder
@@ -273,8 +275,19 @@ struct BioAgeHeroSection: View {
                         setupText(String(localized: "A few more signals will unlock your estimate."))
                     }
                 }
+                // Connected but still no number: the one step left is
+                // making sure Atlas can read the data.
+                GlassButton(title: "Check Health access", icon: "heart.text.square", style: .secondary, action: openHealthSettings)
+                    .padding(.top, Spacing.xs)
+                    .accessibilityHint("Opens Settings, where Atlas's Apple Health access is set")
             }
         }
+    }
+
+    private func openHealthSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        Haptics.impact(.light)
+        openURL(url)
     }
 
     private func setupText(_ text: String) -> some View {
