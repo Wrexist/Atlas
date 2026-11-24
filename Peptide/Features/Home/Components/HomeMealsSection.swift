@@ -406,7 +406,7 @@ struct HomeMealsSection: View {
             Button { showTargetsEditor = true } label: {
                 Label("Edit targets", systemImage: "slider.horizontal.3")
                     .font(AppFont.footnote.weight(.semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentPrimary)
                     .minimumHitArea()
             }
             .buttonStyle(ScalePressStyle())

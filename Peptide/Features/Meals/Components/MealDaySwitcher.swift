@@ -40,7 +40,7 @@ struct MealDaySwitcher: View {
                     if !isToday {
                         Text("Tap for today")
                             .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.accentLight)
+                            .foregroundStyle(AppColor.accentPrimary)
                             .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
@@ -94,7 +94,7 @@ struct MealDaySwitcher: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(isDisabled ? AppColor.textTertiary : AppColor.accentLight)
+                .foregroundStyle(isDisabled ? AppColor.textTertiary : AppColor.accentPrimary)
                 .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.9))
