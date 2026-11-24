@@ -121,6 +121,9 @@ struct DailyCheckInCard: View {
                     Image(systemName: dim.icon)
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.accentPrimary)
+                        // Symbols differ in height (the smiley is shorter),
+                        // so a shared frame keeps every number on one line.
+                        .frame(height: 16)
                     Text("\(value)")
                         .font(AppFont.scaled(16, weight: .semibold))
                         .monospacedDigit()
