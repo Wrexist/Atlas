@@ -40,9 +40,10 @@ enum TrainingLevelEngine {
         return finishXP + xpPerSet * min(sets, maxCountedSets)
     }
 
-    /// XP needed to go from `level` to the next one.
+    /// XP needed to go from `level` to the next one. The first step is
+    /// short enough that a normal first workout already levels up.
     static func xpRequired(forLevel level: Int) -> Int {
-        100 + 40 * (max(level, 1) - 1)
+        80 + 40 * (max(level, 1) - 1)
     }
 
     static func progress(totalXP: Int) -> Progress {

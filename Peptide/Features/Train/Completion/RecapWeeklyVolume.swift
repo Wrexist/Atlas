@@ -10,6 +10,7 @@ struct RecapWeeklyVolume: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var rows: [Row] = []
     @State private var grown = false
+    @State private var loaded = false
 
     struct Row: Identifiable, Equatable {
         let target: SessionBuilderEngine.Target
@@ -25,7 +26,11 @@ struct RecapWeeklyVolume: View {
 
     var body: some View {
         Group {
-            if !rows.isEmpty {
+            // A zero-height stand-in until the first load: modifiers on an
+            // empty Group never run, so `.task` would never fill `rows`.
+            if !loaded {
+                Color.clear.frame(height: 0)
+            } else if !rows.isEmpty {
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -70,6 +75,7 @@ struct RecapWeeklyVolume: View {
         rows = SessionBuilderEngine.Target.allCases
             .filter(trained.contains)
             .map { Row(target: $0, before: before[$0] ?? 0, after: after[$0] ?? 0) }
+        loaded = true
         try? await Task.sleep(for: .milliseconds(700))
         AppAnimation.with(AppAnimation.springGentle) { grown = true }
     }

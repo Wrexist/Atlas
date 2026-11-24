@@ -32,24 +32,24 @@ final class TrainingLevelEngineTests: XCTestCase {
 
     func test_progress_levelsGetFurtherApart() {
         XCTAssertEqual(TrainingLevelEngine.progress(totalXP: 0).level, 1)
-        XCTAssertEqual(TrainingLevelEngine.progress(totalXP: 99).level, 1)
-        let two = TrainingLevelEngine.progress(totalXP: 100)
+        XCTAssertEqual(TrainingLevelEngine.progress(totalXP: 79).level, 1)
+        let two = TrainingLevelEngine.progress(totalXP: 80)
         XCTAssertEqual(two.level, 2)
         XCTAssertEqual(two.xpIntoLevel, 0)
-        XCTAssertEqual(two.xpForNextLevel, 140)
-        let three = TrainingLevelEngine.progress(totalXP: 250)
+        XCTAssertEqual(two.xpForNextLevel, 120)
+        let three = TrainingLevelEngine.progress(totalXP: 210)
         XCTAssertEqual(three.level, 3)
         XCTAssertEqual(three.xpIntoLevel, 10)
-        XCTAssertEqual(three.xpToNextLevel, 170)
+        XCTAssertEqual(three.xpToNextLevel, 150)
     }
 
     func test_gain_countsOnlyEarlierWorkoutsAsBefore() {
         let earlier = session(sets: 10, startOffset: -86_400)
         let later = session(sets: 10, startOffset: 86_400)
-        let current = session(sets: 4)
+        let current = session(sets: 2)
         let gain = TrainingLevelEngine.gain(for: current, history: [earlier, current, later])
         XCTAssertEqual(gain.before.totalXP, 70)
-        XCTAssertEqual(gain.earnedXP, 40)
+        XCTAssertEqual(gain.earnedXP, 30)
         XCTAssertEqual(gain.levelsGained, 1)
         XCTAssertEqual(gain.after.level, 2)
     }
@@ -59,5 +59,6 @@ final class TrainingLevelEngineTests: XCTestCase {
         XCTAssertEqual(gain.before, TrainingLevelEngine.progress(totalXP: 0))
         XCTAssertEqual(gain.earnedXP, 50)
         XCTAssertEqual(gain.levelsGained, 0)
+        XCTAssertEqual(gain.after.xpToNextLevel, 30)
     }
 }
