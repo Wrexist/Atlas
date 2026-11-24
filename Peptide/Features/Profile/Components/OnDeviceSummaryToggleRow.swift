@@ -20,7 +20,7 @@ struct OnDeviceSummaryToggleRow: View {
                             .font(AppFont.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("Short workout and coaching recaps written by Apple Intelligence on this device. Nothing is sent anywhere.")
+                        Text("Written on this device — nothing is sent")
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
