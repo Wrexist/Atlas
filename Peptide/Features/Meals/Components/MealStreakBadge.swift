@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Compact, low-key streak line under the Meals diary: an accent flame
-/// that pulses on crossing a milestone, on no fill of its own, so it
-/// never competes with the macro rings or Log food for attention.
+/// Compact, low-key streak chip under the Meals diary: an accent flame
+/// that pulses on crossing a milestone, held in a neutral paper capsule
+/// so it reads as one object rather than loose text, without competing
+/// with the macro rings or Log food for attention.
 ///
 /// Hidden entirely when both the active and best streak are zero —
 /// a fresh-install Lifestyle tab shouldn't be cluttered with "0 day
@@ -43,9 +44,12 @@ struct MealStreakBadge: View {
                 headlineRow
                 subtitleRow
             }
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, Spacing.sm)
+        .padding(.leading, Spacing.md)
+        .padding(.trailing, Spacing.lg)
+        .padding(.vertical, Spacing.sm)
+        .glassSurfaceCapsule()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(voiceOverLabel)
         .onChange(of: currentStreak) { oldValue, newValue in
@@ -58,7 +62,7 @@ struct MealStreakBadge: View {
         MilestoneArtwork(
             symbol: "flame.fill",
             tint: flameTint,
-            size: 22,
+            size: 18,
             style: .symbol,
             trigger: pulseTrigger,
             playsOnArrival: false
