@@ -94,7 +94,7 @@ struct WeeklySummaryToggleRow: View {
             return Text("Sunday-morning AI recap of your week — Pro feature.")
         }
         return dataStore.profile.weeklySummaryEnabled
-            ? Text("\(Self.deliveryTime, format: .dateTime.weekday(.wide).hour().minute()) — a recap of your training, nutrition and recovery.")
+            ? Text("\(Self.deliveryTime, format: .dateTime.weekday(.wide).hour().minute()) — your week in one recap")
             : Text("Off. Turning it on sends weekly totals and your HRV trend to Anthropic's Claude to write the recap.")
     }
 

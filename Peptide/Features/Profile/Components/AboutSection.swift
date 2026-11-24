@@ -58,10 +58,13 @@ struct AboutSection: View {
                     .buttonStyle(.plain)
                     Divider().overlay(AppColor.glassBorder)
                     AboutLinkRow(title: "Privacy Policy", destination: Self.privacyURL)
-                    // Developer surfaces stay out of customer builds.
+                    // Developer surfaces stay out of customer builds, and
+                    // out of debug ones until there's a report to open.
                     #if DEBUG
-                    Divider().overlay(AppColor.glassBorder)
-                    DiagnosticsRow()
+                    if !DiagnosticsService.shared.records.isEmpty {
+                        Divider().overlay(AppColor.glassBorder)
+                        DiagnosticsRow()
+                    }
                     #endif
                 }
 

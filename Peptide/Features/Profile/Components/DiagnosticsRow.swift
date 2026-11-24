@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Developer-facing diagnostics row in Settings' About card (debug
-/// builds only). Surfaces the MetricKit subscription's captured payload
+/// builds only, once a report exists). Surfaces the MetricKit subscription's captured payload
 /// count so the wiring is visible without leaving the device, and offers
 /// a tap-in sheet showing the latest 20 records (kind, timestamp, raw
 /// JSON preview).
@@ -36,21 +36,19 @@ struct DiagnosticsRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(diagnosticsService.records.isEmpty)
-        .opacity(diagnosticsService.records.isEmpty ? 0.5 : 1)
         .sheet(isPresented: $showDetail) {
             DiagnosticsDetailSheet(service: diagnosticsService)
         }
     }
 
     private var detailSummary: String {
-        let total = diagnosticsService.records.count
-        if total == 0 {
-            return String(localized: "No reports captured yet — appears after first crash or hang.")
-        }
-        let crashCount = diagnosticsService.records.filter { $0.kind == .diagnostic }.count
-        let metricCount = total - crashCount
-        let last = relativeTime(for: diagnosticsService.records[0].receivedAt)
+        let records = diagnosticsService.records
+        // Clearing from the sheet empties the list a frame before About
+        // drops this row.
+        guard let latest = records.first else { return "" }
+        let crashCount = records.filter { $0.kind == .diagnostic }.count
+        let metricCount = records.count - crashCount
+        let last = relativeTime(for: latest.receivedAt)
         return String(localized: "\(crashCount) diagnostic · \(metricCount) metric · last \(last)")
     }
 
