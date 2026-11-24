@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The Meals tab's recipe row: the user's hearted recipes, each one tap
 /// from the diary day being viewed. Until something is hearted it shows recipes for
-/// the meal of the hour, with a hint on how to keep one here.
+/// the meal of the hour, with a hint on how to save one.
 struct MealsRecipeShelf: View {
     /// The diary day being viewed; recipes log onto it.
     var logDay = Date()
@@ -35,7 +35,7 @@ struct MealsRecipeShelf: View {
                 }
             }
             if favorites.isEmpty {
-                Label("Tap the heart on a recipe to keep it here.", systemImage: "heart")
+                Label("Tap the heart to save a recipe to your favorites.", systemImage: "heart")
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.textSecondary)
             }

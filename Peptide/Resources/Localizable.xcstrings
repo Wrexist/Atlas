@@ -47470,22 +47470,22 @@
         }
       }
     },
-    "Tap the heart on a recipe to keep it here.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck på hjärtat på ett recept så hamnar det här."
-          }
-        }
-      }
-    },
     "Tap the heart on any recipe and it shows up here and on the Meals tab.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Tryck på hjärtat på ett recept så syns det här och under Måltider."
+          }
+        }
+      }
+    },
+    "Tap the heart to save a recipe to your favorites.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på hjärtat för att spara ett recept i dina favoriter."
           }
         }
       }
