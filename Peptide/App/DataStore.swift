@@ -395,6 +395,12 @@ final class DataStore {
         protocols = []
         entries = []
         profile = .fresh
+        // The library file is gone when the previous account's
+        // device-local records were removed with it.
+        if let stored = Self.readCustomPeptides() {
+            customPeptides = stored
+            customPeptidesReadable = true
+        }
         WorkoutSessionService.shared.reloadActiveSession()
         isAwaitingCloudAccountDecision = repo.isAwaitingAccountDecision
         // SwiftDataRepository's identity handler swaps the container

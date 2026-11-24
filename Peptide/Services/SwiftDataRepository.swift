@@ -565,17 +565,12 @@ final class SwiftDataRepository {
     }
 
     /// Weekly recaps, Apple Health weigh-ins (with their dismissed sample
-    /// ids), scan corrections — sent to the proxy with every scan — barcode
-    /// history and the "Recently scanned" product cache are device-local
-    /// and never synced, so they belong to whoever was signed in.
+    /// ids) and everything `DeviceLocalData` lists are device-local and
+    /// never synced, so they belong to whoever was signed in.
     func forgetDeviceLocalRecords() {
         summaryStore.deleteAll()
         healthWeightStore.deleteAll()
-        ScanCorrectionMemory.shared.eraseAll()
-        Task {
-            await BarcodeScanHistory.shared.removeAll()
-            await BarcodeProductCache.shared.clear()
-        }
+        DeviceLocalData.eraseAll()
     }
 
     // MARK: - Test Support
