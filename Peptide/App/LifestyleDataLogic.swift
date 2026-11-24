@@ -338,6 +338,25 @@ enum LifestyleDataLogic {
         creditWater(of: updated, sign: 1, into: &profile, calendar: calendar)
     }
 
+    /// The meals `previous` held that `current` no longer does, and the
+    /// ones it holds in another form, by id: what a diary reloaded from
+    /// iCloud deleted or edited without passing through this device.
+    static func mealChanges(
+        from previous: [MealEntry], to current: [MealEntry]
+    ) -> (removed: [UUID], edited: [MealEntry]) {
+        let currentByID = Dictionary(current.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var removed: [UUID] = []
+        var edited: [MealEntry] = []
+        for meal in previous {
+            if let now = currentByID[meal.id] {
+                if now != meal { edited.append(now) }
+            } else {
+                removed.append(meal.id)
+            }
+        }
+        return (removed, edited)
+    }
+
     /// Per-category macro totals for a single calendar day. Powers
     /// the breakdown card under the macro rings.
     ///

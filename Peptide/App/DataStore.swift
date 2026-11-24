@@ -1531,6 +1531,36 @@ final class DataStore {
         }
     }
 
+    /// A meal deleted or edited on another device, or by a restore,
+    /// reaches this one only as a replaced diary, so what this device
+    /// keeps beside it follows
+    /// here: the Apple Health samples it wrote (an edit is rewritten only
+    /// where samples were found, so nothing is mirrored that this device
+    /// didn't mirror before), and a prep box or table plate eaten as it.
+    private func reconcileMealsChangedElsewhere(from previous: [MealEntry], to current: [MealEntry]) {
+        let changes = LifestyleDataLogic.mealChanges(from: previous, to: current)
+        for id in changes.removed {
+            TableMomentStore.shared.removeDish(id: id)
+            WeeklyPrepStore.shared.returnBox(forMeal: id)
+        }
+        guard HealthSyncSettings.isNutritionEnabled,
+              !changes.removed.isEmpty || !changes.edited.isEmpty
+        else { return }
+        let removed = changes.removed
+        let edited = changes.edited
+        enqueueMealHealthWrite {
+            for id in removed {
+                await HealthKitService.shared.deleteSamples(forEntryID: id)
+            }
+            for entry in edited {
+                let deleted = await HealthKitService.shared.deleteSamples(forEntryID: entry.id)
+                if deleted > 0 {
+                    await HealthKitService.shared.writeMealEntry(entry)
+                }
+            }
+        }
+    }
+
     private func enqueueMealHealthWrite(_ work: @escaping @MainActor @Sendable () async -> Void) {
         let previous = mealHealthWriteTask
         mealHealthWriteTask = Task {
@@ -3231,7 +3261,9 @@ final class DataStore {
         let saved = repo.loadProfile()
         persistedProfile = saved
         if let saved {
+            let previousMeals = profile.mealHistory
             profile = saved
+            reconcileMealsChangedElsewhere(from: previousMeals, to: saved.mealHistory)
             adoptDeviceHealthConnection()
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
@@ -3315,6 +3347,7 @@ final class DataStore {
         // Replace in-memory state first so any observers (Train tab,
         // calendar, etc.) re-render against the new data while the
         // disk write is in flight.
+        let previousMeals = profile.mealHistory
         protocols = newProtocols
         entries = newEntries
         profile = newProfile
@@ -3405,6 +3438,7 @@ final class DataStore {
         profileNeedsSave = false
         persistedProfile = newProfile
 
+        reconcileMealsChangedElsewhere(from: previousMeals, to: newProfile.mealHistory)
         regenerateTodayEntries()
         refreshTrainingGlanceables()
         // A restore with reminders off must still clear the weekly dose

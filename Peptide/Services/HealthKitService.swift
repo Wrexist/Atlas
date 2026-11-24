@@ -291,17 +291,21 @@ final class HealthKitService {
     /// only touch samples we wrote, never other apps' data. Routine
     /// for the user to deny delete permission (Apple Health asks
     /// separately) — when that happens we log and drop the request.
-    func deleteSamples(forEntryID id: UUID) async {
-        guard isAvailable else { return }
+    /// Returns how many samples were deleted, so a caller can tell whether
+    /// Atlas had written any for the entry.
+    @discardableResult
+    func deleteSamples(forEntryID id: UUID) async -> Int {
+        guard isAvailable else { return 0 }
 
         let predicate = HKQuery.predicateForObjects(
             withMetadataKey: HKMetadataKeyExternalUUID,
             operatorType: .equalTo,
             value: id.uuidString
         )
+        var deleted = 0
         for type in nutritionWriteTypes {
             do {
-                try await store.deleteObjects(of: type, predicate: predicate)
+                deleted += try await store.deleteObjects(of: type, predicate: predicate)
             } catch let hkError as HKError where hkError.code == .errorAuthorizationDenied
                                               || hkError.code == .errorAuthorizationNotDetermined {
                 // Permission is per type, so the other types' samples
@@ -316,6 +320,7 @@ final class HealthKitService {
                 )
             }
         }
+        return deleted
     }
 
     private func makeSample(

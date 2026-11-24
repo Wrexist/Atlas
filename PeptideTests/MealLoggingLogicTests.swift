@@ -186,4 +186,30 @@ final class MealLoggingLogicTests: XCTestCase {
         XCTAssertNil(bucket.waterOzRemainder)
         XCTAssertEqual(bucket.waterFluidOunces, 34)
     }
+
+    // MARK: - Diary replaced by a sync
+
+    func test_mealChanges_deletedAndEditedElsewhere_reportsBothByID() {
+        let kept = entry(name: "Oats", at: date(2025, 3, 4, 8))
+        let deleted = entry(name: "Lunch", at: date(2025, 3, 4, 12))
+        let original = entry(name: "Dinner", at: date(2025, 3, 4, 19), calories: 800)
+        var edited = original
+        edited.calories = 500
+        let added = entry(name: "Snack", at: date(2025, 3, 4, 21))
+
+        let changes = LifestyleDataLogic.mealChanges(
+            from: [kept, deleted, original],
+            to: [kept, edited, added]
+        )
+
+        XCTAssertEqual(changes.removed, [deleted.id])
+        XCTAssertEqual(changes.edited, [edited])
+    }
+
+    func test_mealChanges_sameDiary_reportsNothing() {
+        let meals = [entry(name: "Oats", at: date(2025, 3, 4, 8)), entry(name: "Lunch", at: date(2025, 3, 4, 12))]
+        let changes = LifestyleDataLogic.mealChanges(from: meals, to: meals.reversed())
+        XCTAssertTrue(changes.removed.isEmpty)
+        XCTAssertTrue(changes.edited.isEmpty)
+    }
 }
