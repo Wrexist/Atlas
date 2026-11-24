@@ -1203,6 +1203,12 @@ final class SwiftDataRepository {
         healthWeightStore.isImported(id)
     }
 
+    /// The weigh-ins in `profile` that came from Apple Health, for a
+    /// backup to carry so its restore keeps them off iCloud.
+    func healthWeightImportIDs(in profile: UserProfile) -> [UUID] {
+        profile.weightHistory.map(\.id).filter { healthWeightStore.isImported($0) }
+    }
+
     /// Keeps a deleted imported weigh-in from coming back on the next
     /// import pass. A no-op for a weight logged in Atlas.
     func dismissHealthWeight(id: UUID) {
