@@ -308,8 +308,9 @@ extension MetricRing where Center == EmptyView {
 /// Light falling on a raised ring from the top left: a sheen over the
 /// tube's near side fading to shade on its far side, a bright crest along
 /// its centre, and the arc's leading end casting a shadow onto the track
-/// ahead, the cue that makes the arc read as lying on top of it.
-private struct RaisedRingFinish: View {
+/// ahead, the cue that makes the arc read as lying on top of it. Laid
+/// over any arc drawn on a circle of `diameter` from 12 o'clock.
+struct RaisedRingFinish: View {
     let progress: Double
     let diameter: CGFloat
     let strokeWidth: CGFloat
