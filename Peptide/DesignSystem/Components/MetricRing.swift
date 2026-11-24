@@ -322,30 +322,39 @@ struct RaisedRingFinish: View {
 
     var body: some View {
         ZStack {
-            if progress > Self.minTipProgress, progress < 1 {
-                tip
+            // An empty ring has no arc to light; a lit zero-length arc
+            // would show as a dot at 12 o'clock.
+            if progress > 0 {
+                light
             }
-            LinearGradient(
-                colors: [AppColor.ringSheen, .clear, AppColor.ringShade],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .mask { arc(width: strokeWidth) }
-            LinearGradient(
-                colors: [AppColor.ringCrest, .clear],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .mask { arc(width: strokeWidth * 0.26) }
         }
         .frame(width: diameter, height: diameter)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 
+    @ViewBuilder
+    private var light: some View {
+        if progress > Self.minTipProgress, progress < 1 {
+            tip
+        }
+        LinearGradient(
+            colors: [AppColor.ringSheen, .clear, AppColor.ringShade],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .mask { arc(width: strokeWidth) }
+        LinearGradient(
+            colors: [AppColor.ringCrest, .clear],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .mask { arc(width: strokeWidth * 0.26) }
+    }
+
     private func arc(width: CGFloat) -> some View {
         Circle()
-            .trim(from: 0, to: max(progress, 0.001))
+            .trim(from: 0, to: progress)
             .stroke(style: StrokeStyle(lineWidth: width, lineCap: .round))
             .rotationEffect(.degrees(-90))
     }
