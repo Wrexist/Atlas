@@ -184,26 +184,27 @@ struct DailyPlanCard: View {
                 _ = expandedSlots.insert(scheduled.slot)
             }
         } label: {
-            HStack(spacing: Spacing.sm) {
+            // Same type and icon column as the open windows' headers, so
+            // a finished window reads as a quieter header, not a heading.
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(AppFont.scaled(16, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.success)
                     .accessibilityHidden(true)
                 Text(scheduled.slot.title)
-                    .font(AppFont.subheadline)
+                    .font(AppFont.caption2)
                     .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.textPrimary)
+                    .foregroundStyle(AppColor.textSecondary)
                 Text("\(scheduled.doses.count) taken")
                     .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(AppColor.textTertiary)
                     .monospacedDigit()
                 Spacer(minLength: Spacing.sm)
                 Image(systemName: "chevron.down")
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .foregroundStyle(AppColor.textTertiary)
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textSecondary)
                     .accessibilityHidden(true)
             }
-            .padding(.vertical, Spacing.xs)
             .frame(minHeight: Spacing.minimumHitTarget)
             .contentShape(Rectangle())
         }
