@@ -4073,6 +4073,16 @@
         }
       }
     },
+    "%lld pts · %lld to level %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld p · %2$lld till nivå %3$lld"
+          }
+        }
+      }
+    },
     "%lld reminders couldn't be scheduled": {
       "localizations": {
         "sv": {
@@ -6588,6 +6598,16 @@
         }
       }
     },
+    "Calories and macros in Health's nutrition log.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalorier och makron i Hälsas näringslogg."
+          }
+        }
+      }
+    },
     "Check Health access": {
       "localizations": {
         "sv": {
@@ -6875,6 +6895,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Diastoliskt"
+          }
+        }
+      }
+    },
+    "Edit goals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera mål"
           }
         }
       }
@@ -7247,6 +7277,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Toppen"
+          }
+        }
+      }
+    },
+    "Grows with every day you log.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Växer för varje dag du loggar."
           }
         }
       }
@@ -7884,6 +7924,16 @@
         }
       }
     },
+    "Pick what you're working toward.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj vad du siktar mot."
+          }
+        }
+      }
+    },
     "Plates and bar weights": {
       "localizations": {
         "sv": {
@@ -7994,12 +8044,32 @@
         }
       }
     },
+    "Read & write": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läsning och skrivning"
+          }
+        }
+      }
+    },
     "Read full recap": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Läs hela sammanfattningen"
+          }
+        }
+      }
+    },
+    "Read only": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endast läsning"
           }
         }
       }
@@ -8411,6 +8481,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mycket kortverkande — använd kring träningen för akuta pulser"
+          }
+        }
+      }
+    },
+    "Workouts, weigh-ins and water, both ways.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pass, vägningar och vatten, åt båda hållen."
           }
         }
       }
@@ -15635,16 +15715,6 @@
         }
       }
     },
-    "Connected": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ansluten"
-          }
-        }
-      }
-    },
     "Connecting…": {
       "localizations": {
         "sv": {
@@ -19837,16 +19907,6 @@
         }
       }
     },
-    "Finished workouts, weigh-ins and water show up in the Health app, and weigh-ins from a smart scale come back to Atlas.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avslutade pass, vägningar och vatten visas i appen Hälsa, och vägningar från en smart våg kommer tillbaka till Atlas."
-          }
-        }
-      }
-    },
     "First Bite": {
       "localizations": {
         "sv": {
@@ -22995,16 +23055,6 @@
         }
       }
     },
-    "Level %lld · %lld pts": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nivå %lld · %lld p"
-          }
-        }
-      }
-    },
     "Levels come fast early and slow down later": {
       "localizations": {
         "sv": {
@@ -23883,16 +23933,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Loggad kl."
-          }
-        }
-      }
-    },
-    "Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Loggade kalorier, protein, kolhydrater och fett visas i kosttidslinjen i appen Hälsa."
           }
         }
       }
