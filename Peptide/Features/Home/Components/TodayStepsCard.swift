@@ -23,7 +23,9 @@ struct TodayStepsCard: View {
                         diameter: 64,
                         strokeWidth: 7,
                         gradient: [AppColor.accentDark, AppColor.accentPrimary],
-                        celebrateAtCompletion: !isPastDay
+                        appearAnimated: true,
+                        celebrateAtCompletion: !isPastDay,
+                        raised: true
                     ) {
                         Image(systemName: isMet ? "checkmark" : "figure.walk")
                             .font(AppFont.scaled(20, weight: .bold))

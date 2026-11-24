@@ -129,7 +129,8 @@ struct GoalCountdownCard: View {
                     diameter: 56,
                     strokeWidth: 6,
                     gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
-                    appearAnimated: true
+                    appearAnimated: true,
+                    raised: true
                 ) {
                     Text("\(Int((fraction * 100).rounded()))%")
                         .font(AppFont.scaled(16, weight: .semibold))

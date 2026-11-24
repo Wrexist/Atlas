@@ -150,7 +150,8 @@ struct TodayHabitsHero: View {
             strokeWidth: 7,
             gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
             appearAnimated: true,
-            celebrateAtCompletion: !isReadOnly
+            celebrateAtCompletion: !isReadOnly,
+            raised: true
         ) {
             if snapshot.dueCount > 0 {
                 VStack(spacing: 0) {

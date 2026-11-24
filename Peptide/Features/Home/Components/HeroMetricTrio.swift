@@ -115,16 +115,29 @@ struct HeroMetricTrio: View {
             if case .workouts(let done, let target) = leading {
                 workoutsTile(done: done, target: target)
             }
-            ForEach(shownRings, id: \.self) { kind in
-                ringTile(kind, value: snapshot.value(for: kind))
+            ForEach(Array(shownRings.enumerated()), id: \.element) { offset, kind in
+                ringTile(kind, value: snapshot.value(for: kind), order: offset + leadingRingCount)
             }
         }
     }
 
     // MARK: - Ring tile
 
+    /// The workouts ring fills first when it leads the row.
+    private var leadingRingCount: Int {
+        if case .workouts = leading { 1 } else { 0 }
+    }
+
+    /// Rings fill left to right, one beat apart.
+    private static func appearDelay(order: Int) -> Double {
+        Double(order) * AppAnimation.sectionDelay * 2
+    }
+
+    /// How far a ring drifts over the card as the phone tips.
+    private static let parallaxDepth: CGFloat = 3
+
     @ViewBuilder
-    private func ringTile(_ kind: HeroMetricKind, value: HeroMetricValue) -> some View {
+    private func ringTile(_ kind: HeroMetricKind, value: HeroMetricValue, order: Int) -> some View {
         Button {
             onTapRing?(kind)
         } label: {
@@ -139,10 +152,14 @@ struct HeroMetricTrio: View {
                     // doses. Recovery + Sleep crossing 100 would be
                     // a false positive (great recovery is the
                     // ceiling, not a finished task).
-                    celebrateAtCompletion: kind == .adherence
+                    appearAnimated: true,
+                    celebrateAtCompletion: kind == .adherence,
+                    raised: true,
+                    appearDelay: Self.appearDelay(order: order)
                 ) {
                     ringCenter(kind: kind, value: value)
                 }
+                .tiltParallax(depth: Self.parallaxDepth)
 
                 Text(kind.label)
                     .font(AppFont.scaled(13, weight: .semibold))
@@ -168,7 +185,9 @@ struct HeroMetricTrio: View {
                     diameter: ringDiameter,
                     strokeWidth: ringStrokeWidth,
                     gradient: [AppColor.accentLight, AppColor.accentPrimary],
-                    celebrateAtCompletion: true
+                    appearAnimated: true,
+                    celebrateAtCompletion: true,
+                    raised: true
                 ) {
                     Text("\(done)/\(target)")
                         .font(AppFont.scaled(20, weight: .medium))
@@ -178,6 +197,7 @@ struct HeroMetricTrio: View {
                         .minimumScaleFactor(0.5)
                         .contentTransition(.numericText())
                 }
+                .tiltParallax(depth: Self.parallaxDepth)
 
                 Text("Training days")
                     .font(AppFont.scaled(13, weight: .semibold))
@@ -397,6 +417,16 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         healthConnected: false,
         recoveryComponents: nil,
         lastSleepHours: nil
+    )
+
+    /// A good-but-not-perfect morning for the screenshot demo.
+    static let demo = HeroMetricSnapshot(
+        adherence: .unavailable,
+        recovery: .percent(0.78),
+        sleep: .percent(0.86),
+        healthConnected: true,
+        recoveryComponents: .init(hrv: 0.82, sleep: 0.86, rhr: 0.66),
+        lastSleepHours: 6.9
     )
 
     /// A copy with only the adherence ring changed, so a dose toggle

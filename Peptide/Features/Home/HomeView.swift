@@ -1494,10 +1494,15 @@ struct HomeView: View {
     /// to HealthKit. Cheap to call — the underlying queries are
     /// cached for short windows by HealthKit itself.
     private func refreshHeroSnapshot() async {
-        let snapshot = await HeroMetricSnapshot.build(
-            adherenceRatio: adherenceRatio,
-            healthConnected: dataStore.profile.healthConnected
-        )
+        // The screenshot simulator has no Apple Watch nights, so the
+        // capture shows believable Recovery and Sleep rings, as Biology's
+        // sleep card does.
+        let snapshot = ScreenshotMode.shared.isEnabled
+            ? HeroMetricSnapshot.demo
+            : await HeroMetricSnapshot.build(
+                adherenceRatio: adherenceRatio,
+                healthConnected: dataStore.profile.healthConnected
+            )
         AppAnimation.with(AppAnimation.springSmooth) {
             // A dose toggled while HealthKit answered already moved the
             // ring; the ratio captured before the await is stale.

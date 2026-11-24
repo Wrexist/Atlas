@@ -16,7 +16,7 @@ final class DeviceTilt {
     private(set) var roll: Double = 0
 
     /// Past ~14° the card would swing more than the eye follows.
-    private static let limit = 0.25
+    static let limit = 0.25
     /// Thirty reads a second is smooth through the spring that follows.
     private static let interval: TimeInterval = 1.0 / 30
 
@@ -53,5 +53,117 @@ final class DeviceTilt {
         attitude.multiply(byInverseOf: reference)
         pitch = min(max(attitude.pitch, -Self.limit), Self.limit)
         roll = min(max(attitude.roll, -Self.limit), Self.limit)
+    }
+}
+
+/// Lets a view float a few points over the surface under it: as the phone
+/// tips, the view drifts the opposite way, the way a near object slides
+/// across a far one. Runs only while the view is on screen, and never
+/// under Reduce Motion or in screenshot captures, which need still frames.
+private struct TiltParallax: ViewModifier {
+    /// Points of drift at the tilt limit.
+    let depth: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var tilt = DeviceTilt.shared
+    @State private var isOnScreen = true
+    @State private var isShown = false
+    @State private var leased = false
+
+    private var isLive: Bool {
+        isOnScreen && isShown && !reduceMotion && !ScreenshotMode.shared.isEnabled
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .offset(
+                x: isLive ? -tilt.roll / DeviceTilt.limit * depth : 0,
+                y: isLive ? -tilt.pitch / DeviceTilt.limit * depth : 0
+            )
+            .appAnimation(AppAnimation.springSnappy, value: tilt.roll)
+            .appAnimation(AppAnimation.springSnappy, value: tilt.pitch)
+            .onScrollVisibilityChange { isOnScreen = $0 }
+            .onAppear { isShown = true }
+            .onDisappear {
+                isShown = false
+                lease(false)
+            }
+            .onChange(of: isLive, initial: true) { _, live in lease(live) }
+    }
+
+    private func lease(_ live: Bool) {
+        guard live != leased else { return }
+        leased = live
+        live ? tilt.start() : tilt.stop()
+    }
+}
+
+extension View {
+    /// Floats the view `depth` points over its surface as the phone tips.
+    func tiltParallax(depth: CGFloat) -> some View {
+        modifier(TiltParallax(depth: depth))
+    }
+}
+
+/// A lit hero card's two sources of depth: the phone's own tilt nudges the card a few
+/// degrees toward the hand, and scrolling it under the bar tips it back
+/// like a lid closing.
+private struct HeroTilt: ViewModifier {
+    let isLive: Bool
+    /// Off where the scroll view starts below other chrome, so the card's
+    /// resting position would already count as under the bar.
+    let foldsOnScroll: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var tilt = DeviceTilt.shared
+    @State private var leased = false
+
+    /// Degrees of card swing per radian of phone tilt.
+    private static let gain = 22.0
+
+    func body(content: Content) -> some View {
+        content
+            .rotation3DEffect(
+                .degrees(isLive ? tilt.pitch * Self.gain : 0),
+                axis: (x: 1, y: 0, z: 0),
+                perspective: 0.6
+            )
+            .rotation3DEffect(
+                .degrees(isLive ? -tilt.roll * Self.gain : 0),
+                axis: (x: 0, y: 1, z: 0),
+                perspective: 0.6
+            )
+            .appAnimation(AppAnimation.springSnappy, value: tilt.pitch)
+            .appAnimation(AppAnimation.springSnappy, value: tilt.roll)
+            .visualEffect { [reduceMotion, foldsOnScroll] effect, proxy in
+                let lift = reduceMotion || !foldsOnScroll ? 0 : Self.scrollLift(minY: proxy.frame(in: .scrollView).minY)
+                return effect
+                    .rotation3DEffect(.degrees(lift * 18), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.5)
+                    .scaleEffect(1 - lift * 0.06, anchor: .bottom)
+                    .opacity(1 - lift * 0.5)
+            }
+            .onChange(of: isLive, initial: true) { _, live in lease(live) }
+            .onDisappear { lease(false) }
+    }
+
+    /// 0 while the card sits below the bar, rising to 1 over the next
+    /// 160pt as it scrolls up beneath it.
+    private nonisolated static func scrollLift(minY: CGFloat) -> Double {
+        min(max((96 - minY) / 160, 0), 1)
+    }
+
+    private func lease(_ live: Bool) {
+        guard live != leased else { return }
+        leased = live
+        live ? tilt.start() : tilt.stop()
+    }
+}
+
+extension View {
+    /// Tips a hero card with the phone and folds it back as it scrolls
+    /// under the bar. `isLive` gates the sensor: on screen, shown, and not
+    /// under Reduce Motion or a screenshot capture.
+    func heroTilt(isLive: Bool, foldsOnScroll: Bool = true) -> some View {
+        modifier(HeroTilt(isLive: isLive, foldsOnScroll: foldsOnScroll))
     }
 }

@@ -213,6 +213,32 @@ enum AppColor {
         highContrastDark: Color.white.opacity(0.2)
     )
 
+    /// Light on a raised ring (`MetricRing(raised:)`): the sheen on the
+    /// tube's lit side, the shade on its far side, the bright crest along
+    /// its centre, and the groove shadow inside the track it sits in.
+    static let ringSheen = Color.adaptive(
+        light: Color.white.opacity(0.2),
+        dark: Color.white.opacity(0.2)
+    )
+    static let ringShade = Color.adaptive(
+        light: Color.black.opacity(0.08),
+        dark: Color.black.opacity(0.26)
+    )
+    static let ringCrest = Color.adaptive(
+        light: Color.white.opacity(0.12),
+        dark: Color.white.opacity(0.24)
+    )
+    static let ringGroove = Color.adaptive(
+        light: Color.black.opacity(0.12),
+        dark: Color.black.opacity(0.55)
+    )
+    /// The groove's lower lip catching the light, so the track reads as
+    /// cut into the card rather than painted on it.
+    static let ringGrooveLip = Color.adaptive(
+        light: Color.white.opacity(0.7),
+        dark: Color.white.opacity(0.16)
+    )
+
     // MARK: - Directional feedback
     //
     // "This moved the right way" / "this moved the wrong way". Distinct from

@@ -70,11 +70,13 @@ struct RecapLevelHero: View {
 
     private var ring: some View {
         ZStack {
-            Circle().stroke(AppColor.track, lineWidth: Self.stroke)
+            Circle().stroke(RaisedRingFinish.groove(AppColor.track, strokeWidth: Self.stroke), lineWidth: Self.stroke)
             Circle()
                 .trim(from: 0, to: fill)
                 .stroke(AppColor.accentPrimary, style: StrokeStyle(lineWidth: Self.stroke, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                .appShadow(AppShadow.ringRaise)
+            RaisedRingFinish(progress: fill, diameter: Self.diameter, strokeWidth: Self.stroke, tipColor: AppColor.accentPrimary)
             VStack(spacing: 0) {
                 Text("Level")
                     .font(AppFont.eyebrow)

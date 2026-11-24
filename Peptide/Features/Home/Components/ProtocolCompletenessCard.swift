@@ -11,7 +11,8 @@ struct ProtocolCompletenessCard: View {
                     diameter: 64,
                     strokeWidth: 6,
                     gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
-                    appearAnimated: true
+                    appearAnimated: true,
+                    raised: true
                 ) {
                     Text(completeness.score.formatted(.percent.precision(.fractionLength(0))))
                         .font(AppFont.subheadline)

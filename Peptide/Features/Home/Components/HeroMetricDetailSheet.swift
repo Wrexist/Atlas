@@ -167,7 +167,8 @@ struct HeroMetricDetailSheet: View {
                 diameter: 168,
                 strokeWidth: 12,
                 gradient: kind.gradient(active: valueForRing.isAvailable),
-                appearAnimated: true
+                appearAnimated: true,
+                raised: true
             ) {
                 VStack(spacing: Spacing.xxs) {
                     Image(systemName: kind.icon)
