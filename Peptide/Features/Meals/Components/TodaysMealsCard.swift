@@ -96,7 +96,7 @@ struct TodaysMealsCard: View {
                 } label: {
                     Label(String(localized: "Copy all meals from \(previousDayName)"), systemImage: "doc.on.doc")
                         .font(AppFont.scaled(13, weight: .semibold))
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.accentPrimary)
                         .minimumHitArea()
                 }
                 .buttonStyle(.plain)
@@ -178,7 +178,7 @@ struct TodaysMealsCard: View {
             } label: {
                 Label(String(localized: "Copy from \(previousDayName)"), systemImage: "doc.on.doc")
                     .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentPrimary)
                     .multilineTextAlignment(.trailing)
                     .minimumHitArea()
             }
