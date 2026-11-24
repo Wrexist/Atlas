@@ -31,10 +31,16 @@ enum TodayChecklistEngine {
         /// unreachable.
         var steps: Double? = nil
         var stepGoal: Int = StepGoalEngine.defaultGoal
+        /// Rows another Today card already shows — the Training card, the
+        /// Steps card — so the checklist doesn't ask the same question
+        /// twice. Hiding that card in Edit Today brings its row back.
+        var coveredElsewhere: Set<Item> = []
 
         /// The rows this day has, in display order.
         var items: [Item] {
-            Item.allCases.filter { $0 != .steps || steps != nil }
+            Item.allCases.filter {
+                ($0 != .steps || steps != nil) && !coveredElsewhere.contains($0)
+            }
         }
 
         /// The first unlogged main meal from the current window on. Nil

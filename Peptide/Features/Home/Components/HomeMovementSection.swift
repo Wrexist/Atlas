@@ -17,6 +17,9 @@ struct HomeMovementSection: View {
     /// The shown day's session count and minutes, derived once per
     /// store revision by `HomeView` rather than fetched from `body`.
     let summary: (count: Int, minutes: Int)
+    /// From the checklist engine, so the card and the plan agree on
+    /// whether an empty day is a gap or a planned rest.
+    var isTrainingDay = true
     var isPastDay = false
 
     /// Nil on a past day, which leaves the card a plain record.
@@ -34,6 +37,7 @@ struct HomeMovementSection: View {
         WorkoutCard(
             sessionCountToday: summary.count,
             durationMinutesToday: summary.minutes,
+            isTrainingDay: isTrainingDay,
             onTap: openTrain,
             isPastDay: isPastDay
         )

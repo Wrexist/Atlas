@@ -958,7 +958,7 @@ struct HomeView: View {
     /// shortcuts.
     @ViewBuilder
     private func checklistSection(appearIndex: Int) -> some View {
-        if let checklist = derived.checklist {
+        if let checklist = shownChecklist {
             TodayChecklistCard(
                 state: checklist,
                 unit: dataStore.profile.bodyMetrics.unit,
@@ -970,6 +970,16 @@ struct HomeView: View {
             )
             .sectionAppear(index: appearIndex)
         }
+    }
+
+    /// Checklist rows whose own card is on screen: the Training card
+    /// answers "trained today?" and the Steps card owns the step count,
+    /// so the checklist keeps only what nothing else on Today asks.
+    private var shownChecklist: TodayChecklistEngine.State? {
+        guard var checklist = derived.checklist else { return nil }
+        if rendersAnchor(.movement) { checklist.coveredElsewhere.insert(.training) }
+        if rendersAnchor(.steps) { checklist.coveredElsewhere.insert(.steps) }
+        return checklist
     }
 
     /// The ONE place doses appear on Today — the overview card and the
@@ -1023,7 +1033,11 @@ struct HomeView: View {
     }
 
     private var movementSection: some View {
-        HomeMovementSection(summary: derived.workoutSummary, isPastDay: !isViewingToday)
+        HomeMovementSection(
+            summary: derived.workoutSummary,
+            isTrainingDay: derived.checklist?.isTrainingDay ?? true,
+            isPastDay: !isViewingToday
+        )
             .id(TodaySection.movement)
             .scrollReveal()
     }

@@ -149,6 +149,13 @@ final class TodayChecklistEngineTests: XCTestCase {
         XCTAssertEqual(s.items.count, TodayChecklistEngine.Item.allCases.count - 1)
     }
 
+    func test_coveredElsewhere_rowsDroppedAndNotCounted() {
+        var s = state(trainedToday: false, steps: 2_000)
+        s.coveredElsewhere = [.training, .steps]
+        XCTAssertEqual(s.items, [.meals, .water, .weight])
+        XCTAssertEqual(s.completedCount, 0, "An open training row on another card must not hold the checklist back")
+    }
+
     func test_steps_belowGoal_notDone() {
         let s = state(steps: 6_240)
         XCTAssertTrue(s.items.contains(.steps))
