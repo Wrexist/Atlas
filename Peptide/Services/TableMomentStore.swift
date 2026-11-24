@@ -180,6 +180,14 @@ final class TableMomentStore {
         remove(dishID: id, from: moment.id)
     }
 
+    /// A backup's tables, merged by `DeviceLocalBackup`. The backup carries
+    /// no cut-outs: a dish whose PNG isn't on this device draws as a plain
+    /// plate, as `sticker(for:)` already does for a missing file.
+    func restore(_ restored: [TableMoment]) {
+        moments = restored
+        persist()
+    }
+
     /// "Delete all data" — cut-outs are photos of the user's meals and
     /// must not survive an erase.
     func deleteAll() {

@@ -568,8 +568,9 @@ struct HomeView: View {
                     bodyMetrics: dataStore.currentBodyMetrics,
                     goalRaw: dataStore.profile.primaryGoal,
                     expenditure: dataStore.expenditureEstimate(),
-                    onSave: { targets in
-                        dataStore.updateNutritionTargets(targets)
+                    adaptiveEnabled: dataStore.adaptiveTargetsSetting.isEnabled,
+                    onSave: { targets, adaptive in
+                        dataStore.updateNutritionTargets(targets, adaptive: adaptive)
                         showTargetsEditor = false
                     },
                     onCancel: { showTargetsEditor = false }
@@ -712,6 +713,10 @@ struct HomeView: View {
                 NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)
                     .receive(on: DispatchQueue.main)
             ) { _ in
+                refreshForCurrentTime()
+            }
+            // Posted on the main actor once Health samples land.
+            .onReceive(NotificationCenter.default.publisher(for: .healthSamplesDidChange)) { _ in
                 refreshForCurrentTime()
             }
             // The coaching copy reads recovery + sleep off the hero snapshot,

@@ -16,7 +16,7 @@ future storage surface must be added to.
 | Progress photos | Documents/ProgressPhotos | `ProgressPhotoStorage.deleteAll()` |
 | Scanned lab reports | Documents/LabReports | `LabReportStorage.deleteAll()` |
 | Health journal | Documents/health-journal.json | `HealthJournalStore.shared.deleteAll()` |
-| Equipment profiles, Health-workout type overrides, accepted adaptive targets | UserDefaults | `EquipmentProfileStore.deleteAll()`, `WorkoutTypeOverrideStore.deleteAll()`, `AdaptiveTDEESettings.followedTargets = nil` |
+| Equipment profiles, Health-workout type overrides, accepted adaptive targets | UserDefaults | `EquipmentProfileStore.deleteAll()`, `WorkoutTypeOverrideStore.deleteLegacy()` (picks now sync in the profile), `AdaptiveTDEESettings.followedTargets = nil` |
 | Apple ID linkage (keychain email/name/identifier) | Keychain | `signOut()` |
 | Pending and delivered reminders | Notification Center | `NotificationService.cancelAll()` |
 | Recently scanned products | Caches | `BarcodeProductCache.clear()` |

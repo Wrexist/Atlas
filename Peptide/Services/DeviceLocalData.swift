@@ -18,7 +18,7 @@ enum DeviceLocalData {
         FridgeStore.shared.deleteAll()
         TableMomentStore.shared.deleteAll()
         EquipmentProfileStore.shared.deleteAll()
-        WorkoutTypeOverrideStore.shared.deleteAll()
+        WorkoutTypeOverrideStore.deleteLegacy()
         AdaptiveTDEESettings.followedTargets = nil
         BackupSnapshotService.deleteAll()
         ExportService.shared.clearExports()

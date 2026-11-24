@@ -64,7 +64,8 @@ enum BackupSnapshotService {
             personalRecords: dataStore.personalRecordsForBackup(),
             customPeptides: dataStore.customPeptides,
             fasts: SwiftDataRepository.shared.loadFasts(),
-            healthWeightIDs: SwiftDataRepository.shared.healthWeightImportIDs(in: dataStore.profile)
+            healthWeightIDs: SwiftDataRepository.shared.healthWeightImportIDs(in: dataStore.profile),
+            deviceLocal: DeviceLocalBackup.current()
         )
 
         do {

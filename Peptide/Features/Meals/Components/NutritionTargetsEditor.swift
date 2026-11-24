@@ -33,7 +33,10 @@ struct NutritionTargetsEditor: View {
     /// Expenditure estimate from `DataStore.expenditureEstimate()` —
     /// adaptive when enough intake + weigh-ins are logged, else formula.
     var expenditure: AdaptiveTDEEEngine.Estimate? = nil
-    let onSave: (NutritionTargets) -> Void
+    /// The saved adaptive switch, from `DataStore.adaptiveTargetsSetting`.
+    var adaptiveEnabled: Bool = true
+    /// The targets, and the adaptive switch with what it may follow.
+    let onSave: (NutritionTargets, AdaptiveTargetsSetting) -> Void
     let onCancel: () -> Void
 
     @State private var calories: String = ""
@@ -45,11 +48,10 @@ struct NutritionTargetsEditor: View {
     /// being discarded.
     @State private var openedFields: [String] = []
     @FocusState private var focusedField: Field?
-    @AppStorage(AdaptiveTDEESettings.enabledKey) private var useAdaptive = true
-    /// The adaptive switch as drafted in this sheet; written to
-    /// `useAdaptive` only on Save so Cancel really discards it. Seeded
-    /// from the stored switch so the first frame already matches it.
-    @State private var useAdaptiveDraft = AdaptiveTDEESettings.isEnabled
+    /// The adaptive switch as drafted in this sheet; handed to `onSave`
+    /// only on Save so Cancel really discards it. Seeded from
+    /// `adaptiveEnabled` on appear.
+    @State private var useAdaptiveDraft = true
 
     private enum Field: Hashable { case calories, protein, carbs, fat, fiber }
 
@@ -122,7 +124,7 @@ struct NutritionTargetsEditor: View {
         }
         .interactiveDismissDisabled(hasChanges)
         .onAppear {
-            useAdaptiveDraft = useAdaptive
+            useAdaptiveDraft = adaptiveEnabled
             hydrate()
             openedFields = fields
         }
@@ -583,7 +585,7 @@ struct NutritionTargetsEditor: View {
 
     private var fields: [String] { [calories, protein, carbs, fat, fiber] }
 
-    private var hasChanges: Bool { fields != openedFields || useAdaptiveDraft != useAdaptive }
+    private var hasChanges: Bool { fields != openedFields || useAdaptiveDraft != adaptiveEnabled }
 
     private var isValid: Bool {
         [Field.calories, .protein, .carbs, .fat, .fiber].allSatisfy { value(for: $0) != nil }
@@ -600,9 +602,10 @@ struct NutritionTargetsEditor: View {
         // Remember an accepted recommendation so `refreshAdaptiveTargets`
         // may move it later; custom numbers opt out of auto-updates.
         let targets = NutritionTargets(calories: kcal, proteinG: p, carbsG: c, fatG: f, fiberG: fib)
-        AdaptiveTDEESettings.followedTargets = matchesDraft(recommended) ? targets : nil
-        useAdaptive = useAdaptiveDraft
-        onSave(targets)
+        onSave(targets, AdaptiveTargetsSetting(
+            isEnabled: useAdaptiveDraft,
+            followedTargets: matchesDraft(recommended) ? targets : nil
+        ))
     }
 }
 

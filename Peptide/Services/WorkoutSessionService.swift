@@ -68,9 +68,12 @@ final class WorkoutSessionService {
     static let duplicateStartWindow: TimeInterval = 2
 
     private init() {
-        // Re-hydrate any session that was active when the process was
-        // suspended so the user picks up where they left off.
-        activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
+        // Re-hydrate the session this device was running when the process
+        // was suspended so the user picks up where they left off. An
+        // unfinished row synced in from another device stays that device's.
+        activeSession = WorkoutSessionClaim.load().adoptable(
+            from: SwiftDataRepository.shared.loadUnfinishedWorkoutSessions()
+        )
         // The restored workout's sets already carry this adjustment, so it is
         // set directly rather than through a reseed.
         readiness = ReadinessEngine.retained(fresh: .unknown, last: lastReadiness, now: Date(), calendar: .current)
@@ -163,6 +166,7 @@ final class WorkoutSessionService {
             )
         )
         activeSession = session
+        WorkoutSessionClaim.save(.session(session.id))
         seedRoutine = routine.map { SeedRoutine(sessionID: session.id, routine: $0) }
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         WorkoutLiveActivityService.shared.start(session)
@@ -214,6 +218,7 @@ final class WorkoutSessionService {
         NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         let detections = PRDetectionService.shared.ingest(session: session)
         activeSession = nil
+        WorkoutSessionClaim.save(.idle)
         lastCompletion = nil
         seedRoutine = nil
         invalidatePreviousSetCache()
@@ -242,6 +247,7 @@ final class WorkoutSessionService {
         NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         SwiftDataRepository.shared.deleteWorkoutSession(id: session.id)
         activeSession = nil
+        WorkoutSessionClaim.save(.idle)
         lastCompletion = nil
         seedRoutine = nil
         invalidatePreviousSetCache()
@@ -256,6 +262,9 @@ final class WorkoutSessionService {
     /// the app returns to the foreground.
     @discardableResult
     func closeIfStale(now: Date = Date()) -> StaleClosure? {
+        // Finishing a copy that another device already finished would
+        // overwrite that finish.
+        reconcileWithStore()
         guard let session = activeSession else { return nil }
         let closure: StaleClosure
         switch WorkoutStalenessEngine.verdict(for: session, now: now) {
@@ -357,7 +366,9 @@ final class WorkoutSessionService {
     /// The memoised history and this week's deload belonged to the previous
     /// account too, so both are re-read from the new one.
     func reloadActiveSession() {
-        activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
+        activeSession = WorkoutSessionClaim.load().adoptable(
+            from: SwiftDataRepository.shared.loadUnfinishedWorkoutSessions()
+        )
         invalidatePreviousSetCache()
         deload = activeSession.flatMap { session in
             DeloadEngine.reason(
@@ -365,6 +376,28 @@ final class WorkoutSessionService {
             )
         }
         WorkoutLiveActivityService.shared.reconcile(active: activeSession)
+    }
+
+    /// Lets go of the active workout, without writing it, once a sync has
+    /// brought its row back finished — by another device on this iCloud
+    /// account. Saving the in-memory copy (any set tap, a Watch tap, a stale
+    /// close) would otherwise reopen it or overwrite that device's sets, RPE,
+    /// note and finish time, and file it in Health a second time.
+    func reconcileWithStore() {
+        guard let session = activeSession,
+              SwiftDataRepository.shared.loadWorkoutSession(id: session.id)?.finishedAt != nil
+        else { return }
+        cancelFinishAttempt()
+        NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
+        activeSession = nil
+        WorkoutSessionClaim.save(.idle)
+        lastCompletion = nil
+        seedRoutine = nil
+        invalidatePreviousSetCache()
+        WorkoutLiveActivityService.shared.endAll()
+        DataStore.current?.pushWorkoutToWatch()
+        DataStore.current?.refreshTrainingGlanceables()
+        AppLog.training.info("Workout finished on another device (id: \(session.id, privacy: .public))")
     }
 
     func acknowledgeStaleClosure() {
@@ -930,6 +963,7 @@ final class WorkoutSessionService {
     /// own controls use. A request for a workout that has since finished
     /// or been replaced is dropped.
     func apply(_ request: WatchWorkoutRequest, now: Date = Date()) {
+        reconcileWithStore()
         guard let session = activeSession, session.id == request.sessionId else { return }
         // A tap queued while the phone was away still starts its rest from
         // the tap; a watch clock running ahead can't start one in the future.
@@ -1116,6 +1150,44 @@ enum RestTimeOptions {
         if seconds % 60 == 0 { return String(localized: "\(seconds / 60) min") }
         let minutesSeconds = Duration.seconds(seconds).formatted(.time(pattern: .minuteSecond))
         return String(localized: "\(minutesSeconds) min")
+    }
+}
+
+/// Which in-progress workout this device started, so a relaunch or an
+/// account reload resumes only its own. Device-local like `SeedRoutine`:
+/// the same rows reach every device on the iCloud account, and adopting
+/// another device's live workout lets this one later overwrite its finish.
+enum WorkoutSessionClaim: Equatable {
+    /// Nothing recorded — a build from before claims were kept. The newest
+    /// unfinished row is adopted, as those builds did.
+    case unknown
+    /// This device has no workout in progress.
+    case idle
+    case session(UUID)
+
+    static let defaultsKey = "workout.activeSessionID.v1"
+
+    static func load(from defaults: UserDefaults = .standard) -> WorkoutSessionClaim {
+        guard let raw = defaults.string(forKey: defaultsKey) else { return .unknown }
+        guard let id = UUID(uuidString: raw) else { return .idle }
+        return .session(id)
+    }
+
+    static func save(_ claim: WorkoutSessionClaim, to defaults: UserDefaults = .standard) {
+        switch claim {
+        case .unknown: defaults.removeObject(forKey: defaultsKey)
+        case .idle: defaults.set("", forKey: defaultsKey)
+        case .session(let id): defaults.set(id.uuidString, forKey: defaultsKey)
+        }
+    }
+
+    /// The unfinished row (newest first) this device should resume.
+    func adoptable(from unfinished: [WorkoutSession]) -> WorkoutSession? {
+        switch self {
+        case .unknown: return unfinished.first
+        case .idle: return nil
+        case .session(let id): return unfinished.first { $0.id == id }
+        }
     }
 }
 
