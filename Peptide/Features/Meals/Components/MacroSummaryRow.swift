@@ -195,6 +195,7 @@ struct MacroSummaryRow: View {
             ring(diameter: 96, progress: proteinProgress, colors: [AppColor.macroProteinLight, AppColor.macroProtein], index: 1)
             ring(diameter: 60, progress: waterProgress, colors: [AppColor.macroWaterLight, AppColor.macroWater], index: 2)
         }
+        .tiltParallax(depth: 3)
         .accessibilityElement()
         .accessibilityLabel(accessibilitySummary)
     }
@@ -206,9 +207,22 @@ struct MacroSummaryRow: View {
     /// up with the card's content edge instead of bleeding past it.
     private func ring(diameter: CGFloat, progress: Double, colors: [Color], index: Int) -> some View {
         ZStack {
+            // Sunk as a groove the arc stands out of, like Today's rings.
             Circle()
-                .strokeBorder(colors[1].opacity(0.16), lineWidth: Self.ringLineWidth)
+                .strokeBorder(
+                    RaisedRingFinish.groove(colors[1].opacity(0.1), strokeWidth: Self.ringLineWidth),
+                    lineWidth: Self.ringLineWidth
+                )
             ringFill(progress: min(1, progress), colors: colors, index: index, diameter: diameter)
+                .appShadow(AppShadow.ringRaise)
+            RaisedRingFinish(
+                progress: isRevealed ? min(1, progress) : 0,
+                diameter: diameter - Self.ringLineWidth,
+                strokeWidth: Self.ringLineWidth,
+                tipColor: colors[1]
+            )
+            .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: progress)
+            .animation(revealAnimation(index: index), value: isRevealed)
             // Past the goal the ring keeps going, Activity style: a second
             // lap in a deeper shade of the same colour, with a soft shadow
             // under its leading cap so the overlap reads as "one more lap".
