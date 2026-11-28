@@ -252,6 +252,62 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertEqual(service.activeSession?.completedSetCount, 2)
     }
 
+    /// Rest after an exercise's last set counts down to the next exercise.
+    /// Running out while the app is away (the usual case) must reopen the
+    /// exercise the user left on, also after a relaunch rehydrates the
+    /// workout from the store.
+    func test_restExpiredWhileAway_reopensTheExerciseTheUserLeftOn() throws {
+        let routine = Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: "Incline_Dumbbell_Press", index: 0, targetSets: 1, targetReps: 10),
+            RoutineExercise(exerciseID: "Standing_Military_Press", index: 1, targetSets: 3, targetReps: 8),
+        ])
+        let session = service.startWorkout(routine: routine)
+        let press = session.exercises[0], military = session.exercises[1]
+        let completedAt = Date(timeIntervalSince1970: 1_764_331_200)
+        var set = press.sets[0]
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: press.id, now: completedAt)
+        let rest = try XCTUnwrap(service.activeSession?.focus?.rest)
+        XCTAssertEqual(rest.targetEntryID, military.id)
+        XCTAssertEqual(service.activeSession?.selectedExercise?.id, press.id)
+
+        service.reloadActiveSession()
+        service.reconcileRest(now: try XCTUnwrap(rest.endsAt).addingTimeInterval(1))
+
+        XCTAssertNil(service.activeSession?.focus?.rest)
+        XCTAssertEqual(service.activeSession?.selectedExercise?.id, press.id)
+        XCTAssertEqual(try XCTUnwrap(repo.loadActiveWorkoutSession()).selectedExercise?.id, press.id)
+    }
+
+    func test_skipRest_stillMovesOnToTheExerciseTheRestCountedDownTo() throws {
+        let routine = Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: "Incline_Dumbbell_Press", index: 0, targetSets: 1, targetReps: 10),
+            RoutineExercise(exerciseID: "Standing_Military_Press", index: 1, targetSets: 3, targetReps: 8),
+        ])
+        let session = service.startWorkout(routine: routine)
+        var set = session.exercises[0].sets[0]
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: session.exercises[0].id)
+
+        service.skipRest()
+
+        XCTAssertEqual(service.activeSession?.selectedExercise?.id, session.exercises[1].id)
+        XCTAssertEqual(try XCTUnwrap(repo.loadActiveWorkoutSession()).selectedExercise?.id, session.exercises[1].id)
+    }
+
+    func test_selectedExerciseSurvivesRelaunch() throws {
+        let routine = Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: "Incline_Dumbbell_Press", index: 0, targetSets: 3, targetReps: 10),
+            RoutineExercise(exerciseID: "Standing_Military_Press", index: 1, targetSets: 3, targetReps: 8),
+        ])
+        let session = service.startWorkout(routine: routine)
+        service.selectExercise(session.exercises[1].id)
+
+        service.reloadActiveSession()
+
+        XCTAssertEqual(service.activeSession?.selectedExercise?.id, session.exercises[1].id)
+    }
+
     func test_pausedRestSurvivesStorageRoundTrip() throws {
         let entry = start()
         var set = entry.sets[0]

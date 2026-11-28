@@ -251,7 +251,16 @@ final class NutritionLabelOCRTests: XCTestCase {
         XCTAssertEqual(parsed.nutriments.proteinG, 8)
         XCTAssertEqual(parsed.nutriments.sugarsG, 9)
         XCTAssertEqual(parsed.nutriments.fiberG, 3)
+        XCTAssertEqual(parsed.nutriments.micros?.saturatedFatG, 5)
         XCTAssertTrue(parsed.hasEveryMacro)
+    }
+
+    func test_swedishPanel_polyunsaturatedRowFirst_isNotReadAsSaturated() {
+        let lines = ["Energi 250 kcal", "Fett 12 g", "varav fleromättat fett 4 g", "varav mättat fett 2 g",
+                     "Kolesterol 35 mg", "Kolhydrater 30 g", "Protein 8 g"]
+        let micros = NutritionLabelParser.parse(lines: lines)?.nutriments.micros
+        XCTAssertEqual(micros?.saturatedFatG, 2)
+        XCTAssertEqual(micros?.cholesterolMg, 35)
     }
 
     func test_swedishPanel_fattyAcidRowFirst_isNotReadAsFat() {

@@ -109,6 +109,31 @@ final class ScreenshotTests: XCTestCase {
     /// The whole-table scan end to end on drawn plates: the Latest table
     /// card, lifting, the review grid, the table at rest and in play, and
     /// one dish opened.
+    /// A scanned Greek yoghurt: the nutrition facts card under the totals,
+    /// with fibre and sugar under carbs, the fat split, then cholesterol,
+    /// sodium, potassium and the known vitamins and minerals.
+    func test_captureNutritionFacts() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance, extraArguments: ["--barcode-food-fixture"])
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+            app.dismissOverlaysIfNeeded()
+            let mealsTab = app.tabBars.buttons["Meals"]
+            XCTAssertTrue(mealsTab.waitForExistence(timeout: 10))
+            mealsTab.tap()
+            let logFood = app.buttons["Log food"].firstMatch
+            XCTAssertTrue(logFood.waitForExistence(timeout: 10))
+            logFood.tap()
+            let scanBarcode = app.buttons["Scan barcode"].firstMatch
+            XCTAssertTrue(scanBarcode.waitForExistence(timeout: 5))
+            scanBarcode.tap()
+            XCTAssertTrue(app.staticTexts["Grekisk yoghurt 10 %"].waitForExistence(timeout: 10))
+            capture(named: "facts-\(appearance)-01-review")
+            let calcium = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Calcium")).firstMatch
+            XCTAssertTrue(findByScrolling(calcium))
+            capture(named: "facts-\(appearance)-02-card")
+        }
+    }
+
     private func captureTableScan(appearance: String) {
         launch(appearance: appearance, extraArguments: ["--table-scan-fixture"])
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
