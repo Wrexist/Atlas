@@ -29,9 +29,10 @@ struct NumberWheel<Value: Hashable>: View {
 
     var body: some View {
         ScrollView(.vertical) {
+            let centreIndex = values.firstIndex(of: centred ?? selection) ?? 0
             LazyVStack(spacing: 0) {
-                ForEach(values, id: \.self) { value in
-                    row(value)
+                ForEach(Array(values.enumerated()), id: \.element) { index, value in
+                    row(value, stepsFromCentre: abs(index - centreIndex))
                 }
             }
             .scrollTargetLayout()
@@ -73,23 +74,22 @@ struct NumberWheel<Value: Hashable>: View {
         }
     }
 
-    private func row(_ value: Value) -> some View {
-        // Typed as Text so `font` resolves to Text's overload, not View's.
-        let text: Text = Text(verbatim: label(value)).font(AppFont.title2)
+    private func row(_ value: Value, stepsFromCentre: Int) -> some View {
+        let text: Text = Text(verbatim: label(value))
+        let fade: Double = NumberWheelMetrics.opacity(stepsFromCentre: stepsFromCentre)
+        let scale: CGFloat = NumberWheelMetrics.scale(stepsFromCentre: stepsFromCentre)
         return text
-            .monospacedDigit()
+            .font(AppFont.title2)
             .foregroundStyle(AppColor.textPrimary)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
+            .monospacedDigit()
+            .opacity(fade)
+            .scaleEffect(scale)
             .frame(maxWidth: .infinity)
             .frame(height: rowHeight)
             .contentShape(Rectangle())
             .onTapGesture { selection = value }
-            .visualEffect { content, proxy in
-                content
-                    .opacity(1 - NumberWheelMetrics.offCentre(proxy) * 0.75)
-                    .scaleEffect(1 - NumberWheelMetrics.offCentre(proxy) * 0.22)
-            }
     }
 }
 
@@ -117,10 +117,12 @@ enum NumberWheelMetrics {
     /// Rows shown at once; odd, so one sits in the middle.
     static let visibleRows = 5
 
-    /// How far a row sits from the wheel's middle: 0 centred, 1 at the edge.
-    static func offCentre(_ row: GeometryProxy) -> CGFloat {
-        let frame = row.frame(in: .scrollView(axis: .vertical))
-        let half = max(row.size.height, 1) * CGFloat(visibleRows) / 2
-        return min(abs(frame.midY - half) / half, 1)
+    /// Rows fade and shrink with each step away from the middle row.
+    static func opacity(stepsFromCentre steps: Int) -> Double {
+        [1, 0.5, 0.25][min(steps, 2)]
+    }
+
+    static func scale(stepsFromCentre steps: Int) -> CGFloat {
+        [1, 0.88, 0.78][min(steps, 2)]
     }
 }
