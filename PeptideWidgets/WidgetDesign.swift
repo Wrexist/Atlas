@@ -236,13 +236,20 @@ struct WidgetHeader: View {
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(tint)
                 .widgetAccentable()
-            Text(title)
-                .font(.caption2.weight(.semibold))
-                .textCase(.uppercase)
-                .tracking(0.5)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            // Whole or not at all: at the largest text sizes the glyph
+            // alone names the widget rather than "NUTR…".
+            ViewThatFits(in: .horizontal) {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Color.clear.frame(width: 0, height: 0)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(title))
             Spacer(minLength: 4)
             if let trailing = trailingText ?? trailing.map({ Text($0) }) {
                 trailing
