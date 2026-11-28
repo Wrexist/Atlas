@@ -53978,6 +53978,136 @@
           }
         }
       }
+    },
+    "Use wheels": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd hjulen"
+          }
+        }
+      }
+    },
+    "Type a number": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skriv in ett tal"
+          }
+        }
+      }
+    },
+    "Weight, whole %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikt, hela %@"
+          }
+        }
+      }
+    },
+    "Weight, fraction": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikt, decimaler"
+          }
+        }
+      }
+    },
+    "Warm-up set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppvärmningsset"
+          }
+        }
+      }
+    },
+    "Weight (%@)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikt (%@)"
+          }
+        }
+      }
+    },
+    "Add %@ %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg på %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "Remove %@ %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta av %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "One more rep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En rep till"
+          }
+        }
+      }
+    },
+    "One rep fewer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En rep färre"
+          }
+        }
+      }
+    },
+    "Same as last time: %@ × %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samma som förra gången: %1$@ × %2$lld"
+          }
+        }
+      }
+    },
+    "Same as last time: %lld reps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samma som förra gången: %lld reps"
+          }
+        }
+      }
+    },
+    "Opens wheels to drag the weight and reps up or down": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar hjul där du drar vikt och reps upp eller ned"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

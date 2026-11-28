@@ -13,6 +13,8 @@ struct WorkoutExerciseCard: View {
     let previousSetsLookup: () -> [SetEntry]
     /// Today's target from `ProgressionEngine`; nil without history.
     let progression: ProgressionEngine.Suggestion?
+    /// The smallest load jump for this exercise, for the set picker.
+    let stepKg: Double?
     /// The user's training-preferences rest, used when the entry has no
     /// override of its own.
     let defaultRestSeconds: Int
@@ -184,7 +186,9 @@ struct WorkoutExerciseCard: View {
                     displayNumber: entry.workingNumber(of: setSnapshot),
                     unit: unit,
                     onDelete: { onRemoveSet(setSnapshot.id) },
-                    isPaused: isPaused
+                    isPaused: isPaused,
+                    stepKg: stepKg,
+                    bar: exercise?.equipmentKind.bar
                 )
                 .transition(.move(edge: .top).combined(with: .opacity))
                 if setSnapshot.id != entry.sets.last?.id {

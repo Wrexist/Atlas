@@ -457,6 +457,16 @@ final class ScreenshotTests: XCTestCase {
             scrollToTop()
             capture(named: "incline-\(appearance)-01-logging")
 
+            let thirdWeight = app.buttons["workout-weight-3"]
+            reveal(thirdWeight)
+            thirdWeight.tap()
+            let pickerDone = app.buttons["set-picker-done"]
+            XCTAssertTrue(pickerDone.waitForExistence(timeout: 5))
+            app.buttons["set-picker-reps-up"].tap()
+            capture(named: "incline-\(appearance)-01b-picker")
+            pickerDone.tap()
+            XCTAssertEqual(app.buttons["workout-reps-3"].value as? String, "9 reps")
+
             let second = app.buttons["workout-complete-2"]
             reveal(second)
             second.tap()
@@ -466,6 +476,55 @@ final class ScreenshotTests: XCTestCase {
 
             app.buttons["Pause workout"].tap()
             capture(named: "incline-\(appearance)-03-paused")
+            discardActiveWorkout()
+            app.terminate()
+        }
+    }
+
+    /// The set picker on a plate-loaded bar: wheels, a plate step up from
+    /// 60 kg, and the keyboard fallback.
+    func test_captureSetPicker() {
+        for appearance in ["dark", "light"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+            app.dismissOverlaysIfNeeded()
+            let train = app.tabBars.buttons["Train"]
+            XCTAssertTrue(train.waitForExistence(timeout: 10))
+            train.tap()
+            app.dismissOverlaysIfNeeded()
+            discardLeftoverWorkout()
+            let start = app.buttons["Empty workout"]
+            reveal(start)
+            start.tap()
+            let add = app.buttons["Add exercise"].firstMatch
+            XCTAssertTrue(add.waitForExistence(timeout: 10))
+            add.tap()
+            let search = app.searchFields.firstMatch
+            XCTAssertTrue(search.waitForExistence(timeout: 10))
+            search.tap()
+            search.typeText("Barbell Bench Press - Medium Grip")
+            let exercise = app.staticTexts["Barbell Bench Press - Medium Grip"].firstMatch
+            XCTAssertTrue(exercise.waitForExistence(timeout: 10))
+            exercise.tap()
+            let commit = app.buttons["Add (1)"]
+            XCTAssertTrue(commit.waitForExistence(timeout: 5))
+            commit.tap()
+            replaceField("workout-weight-1", with: "60")
+            replaceField("workout-reps-1", with: "8")
+
+            let weight = app.buttons["workout-weight-1"]
+            reveal(weight)
+            weight.tap()
+            let done = app.buttons["set-picker-done"]
+            XCTAssertTrue(done.waitForExistence(timeout: 5))
+            capture(named: "picker-\(appearance)-01-wheels")
+            app.buttons["set-picker-weight-up"].tap()
+            capture(named: "picker-\(appearance)-02-plate-step")
+            app.buttons["set-picker-type"].tap()
+            XCTAssertTrue(app.textFields["set-picker-weight-field"].waitForExistence(timeout: 5))
+            capture(named: "picker-\(appearance)-03-keyboard")
+            done.tap()
+            XCTAssertTrue((weight.value as? String ?? "").hasPrefix("62.5 "))
             discardActiveWorkout()
             app.terminate()
         }
@@ -1052,18 +1111,29 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// Sets a set row's weight or reps through the picker sheet's keyboard
+    /// fallback, so the typed value is exact; the row button then reads it
+    /// back as its accessibility value ("22.5 kilograms", "10 reps").
     private func replaceField(_ identifier: String, with value: String) {
-        let field = app.textFields[identifier]
+        let row = app.buttons[identifier]
+        let fieldID = identifier.hasPrefix("workout-weight") ? "set-picker-weight-field" : "set-picker-reps-field"
         var stored = ""
         // The simulator occasionally drops keystrokes from a fast typeText
         // ("22.5" lands as "22"); one retry separates that from a real
         // formatting bug, which fails both attempts.
         for _ in 0..<2 {
-            reveal(field)
+            reveal(row)
+            row.tap()
+            let type = app.buttons["set-picker-type"]
+            XCTAssertTrue(type.waitForExistence(timeout: 5))
+            type.tap()
+            let field = app.textFields[fieldID]
+            XCTAssertTrue(field.waitForExistence(timeout: 5))
             selectAll(in: field)
             field.typeText(value)
-            app.buttons["Done"].firstMatch.tap()
-            stored = (field.value as? String ?? "").replacingOccurrences(of: " reps", with: "")
+            app.buttons["set-picker-done"].tap()
+            XCTAssertTrue(row.waitForExistence(timeout: 5))
+            stored = (row.value as? String ?? "").replacingOccurrences(of: " reps", with: "")
             if stored == value || stored.hasPrefix(value + " ") { return }
         }
         XCTFail("Expected \(value), found \(stored)")
