@@ -17,8 +17,8 @@ struct WorkoutFocusView: View {
     /// Next-best lifts for the current exercise, best first; worked out
     /// when the exercise changes, not on every render.
     @State private var swaps: [SessionBuilderEngine.Alternative] = []
-    /// Set by a swap, cleared a few seconds later: while set, the swap pill
-    /// offers to take it back and a caption names the lift it replaced.
+    /// Set by a swap: until the new lift's first set is logged (or the user
+    /// moves on), the swap pill offers to take it back.
     @State private var undoOffer: UndoOffer?
     /// The screen's height without the keyboard, so raising the decimal
     /// pad never resizes the artwork under the user's finger.
@@ -63,11 +63,6 @@ struct WorkoutFocusView: View {
         .background(AppColor.background.ignoresSafeArea())
         .task { await library.load() }
         .task(id: SwapKey(exerciseID: entry?.exerciseID, isLoaded: !library.bundled.isEmpty)) { refreshSwaps() }
-        .task(id: undoOffer?.id) {
-            // A newer swap restarts the wait; a cancelled one mustn't clear it.
-            guard undoOffer != nil, (try? await Task.sleep(for: .seconds(6))) != nil else { return }
-            AppAnimation.with(AppAnimation.quick) { undoOffer = nil }
-        }
         .sheet(item: $detailExercise) { exercise in
                 NavigationStack {
                     ExerciseDetailView(exerciseID: exercise.id)
@@ -206,7 +201,7 @@ struct WorkoutFocusView: View {
     }
 
     private struct UndoOffer {
-        let id = UUID()
+        let entryID: UUID
         let replacedName: String
         let at = Date()
     }
@@ -218,49 +213,55 @@ struct WorkoutFocusView: View {
         }
     }
 
-    @ViewBuilder
-    private var swapCaption: some View {
-        if let undoOffer, service.canUndoSwap {
-            Label("Swapped from \(undoOffer.replacedName)", systemImage: "arrow.triangle.2.circlepath")
-                .font(AppFont.caption2.weight(.semibold))
-                .foregroundStyle(AppColor.textSecondary)
-                .transition(.opacity)
-        }
-    }
-
     /// Tap swaps to the next-best lift for the same muscle; touch and hold
-    /// lists the others. Right after a swap it offers to undo instead.
-    /// Hidden once every working set is done: nothing is left to move.
+    /// lists the others. Right after a swap, tap takes it back instead,
+    /// until a set of the new lift is logged. Hidden once every working
+    /// set is done: nothing is left to move. It stays in its slot either
+    /// way, so nothing below it moves.
     @ViewBuilder
     private func swapControl(_ entry: WorkoutExerciseEntry) -> some View {
-        if let undoOffer, service.canUndoSwap {
-            Button {
-                // Absorbs the second tap of a quick double tap on Swap.
-                guard Date().timeIntervalSince(undoOffer.at) > 0.5 else { return }
-                Haptics.impact(.light)
-                service.undoSwap()
-                self.undoOffer = nil
-            } label: {
-                pill("Undo", systemImage: "arrow.uturn.backward")
-            }
-            .buttonStyle(ScalePressStyle())
-            .transition(.opacity)
-        } else if let best = swaps.first, entry.sets.contains(where: { !$0.completed && !$0.isWarmup }) {
+        let undo = undoOffer.flatMap { $0.entryID == entry.id && service.canUndoSwap ? $0 : nil }
+        if undo != nil || (!swaps.isEmpty && entry.sets.contains(where: { !$0.completed && !$0.isWarmup })) {
             Menu {
+                if let undo {
+                    Section("Swapped from \(undo.replacedName)") {
+                        Button("Undo", systemImage: "arrow.uturn.backward") { takeBack(undo) }
+                    }
+                }
                 Section("Swap for") {
                     ForEach(swaps, id: \.id) { alternative in
                         Button(library.displayName(for: alternative.id)) { swap(entry, to: alternative.id) }
                     }
                 }
             } label: {
-                pill("Swap", systemImage: "arrow.triangle.2.circlepath")
+                if undo != nil {
+                    pill("Undo", systemImage: "arrow.uturn.backward")
+                } else {
+                    pill("Swap", systemImage: "arrow.triangle.2.circlepath")
+                }
             } primaryAction: {
-                swap(entry, to: best.id)
+                if let undo { takeBack(undo) } else if let best = swaps.first { swap(entry, to: best.id) }
             }
             .menuStyle(.button)
             .buttonStyle(ScalePressStyle())
-            .accessibilityHint(Text("Swaps to \(library.displayName(for: best.id)). Touch and hold for other exercises."))
-            .transition(.opacity)
+            .accessibilityHint(hint(undo: undo))
+            .contentTransition(.opacity)
+        }
+    }
+
+    private func hint(undo: UndoOffer?) -> Text {
+        if let undo { return Text("Swaps back to \(undo.replacedName). Touch and hold for other exercises.") }
+        let best = swaps.first.map { library.displayName(for: $0.id) } ?? ""
+        return Text("Swaps to \(best). Touch and hold for other exercises.")
+    }
+
+    private func takeBack(_ undo: UndoOffer) {
+        // Absorbs the second tap of a quick double tap on Swap.
+        guard Date().timeIntervalSince(undo.at) > 0.5 else { return }
+        Haptics.impact(.light)
+        AppAnimation.with(AppAnimation.springSnappy) {
+            service.undoSwap()
+            undoOffer = nil
         }
     }
 
@@ -278,9 +279,12 @@ struct WorkoutFocusView: View {
     private func swap(_ entry: WorkoutExerciseEntry, to exerciseID: String) {
         guard let exercise = library.lookup(id: exerciseID) else { return }
         Haptics.impact(.medium)
+        let replacedName = library.displayName(for: entry.exerciseID)
         AppAnimation.with(AppAnimation.springSnappy) {
             service.swapExercise(entryID: entry.id, to: exercise)
-            undoOffer = UndoOffer(replacedName: library.displayName(for: entry.exerciseID))
+            undoOffer = service.activeSession?.selectedExercise.map {
+                UndoOffer(entryID: $0.id, replacedName: replacedName)
+            }
         }
     }
 
@@ -314,7 +318,6 @@ struct WorkoutFocusView: View {
                     exerciseActions(entry)
                 }
             }
-            swapCaption
             if let letter = session.supersetLetter(for: entry.id) {
                 Label(supersetCaption(letter: letter, entryID: entry.id), systemImage: "link")
                     .font(AppFont.caption2.weight(.semibold))

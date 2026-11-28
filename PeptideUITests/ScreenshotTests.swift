@@ -767,8 +767,13 @@ final class ScreenshotTests: XCTestCase {
             Thread.sleep(forTimeInterval: 1)
             capture(named: "swap-\(appearance)-03-workout")
             swap.tap()
-            XCTAssertTrue(app.buttons["Undo"].firstMatch.waitForExistence(timeout: 5))
+            let undo = app.buttons["Undo"].firstMatch
+            XCTAssertTrue(undo.waitForExistence(timeout: 5))
             capture(named: "swap-\(appearance)-04-workout-swapped")
+            undo.press(forDuration: 1.0)
+            Thread.sleep(forTimeInterval: 0.6)
+            capture(named: "swap-\(appearance)-05-workout-menu")
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)).tap()
             discardLeftoverWorkout()
             app.terminate()
         }

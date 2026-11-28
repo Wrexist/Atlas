@@ -54128,6 +54128,16 @@
           }
         }
       }
+    },
+    "Swaps back to %@. Touch and hold for other exercises.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byter tillbaka till %@. Håll in för andra övningar."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
