@@ -202,6 +202,7 @@ struct WorkoutFocusView: View {
 
     private struct UndoOffer {
         let entryID: UUID
+        let replacedID: String
         let replacedName: String
         let at = Date()
     }
@@ -225,17 +226,30 @@ struct WorkoutFocusView: View {
             Menu {
                 if let undo {
                     Section("Swapped from \(undo.replacedName)") {
-                        Button("Undo", systemImage: "arrow.uturn.backward") { takeBack(undo) }
+                        Button("Undo swap", systemImage: "arrow.uturn.backward") { takeBack(undo) }
                     }
                 }
-                Section("Swap for") {
-                    ForEach(swaps, id: \.id) { alternative in
-                        Button(library.displayName(for: alternative.id)) { swap(entry, to: alternative.id) }
+                // Undo is the one way back, so the replaced lift isn't listed twice.
+                let others = swaps.filter { $0.id != undo?.replacedID }
+                if let best = others.first {
+                    Section("Best match") {
+                        Button(library.displayName(for: best.id)) { swap(entry, to: best.id) }
+                    }
+                }
+                ForEach(SessionBuilderEngine.Alternative.Match.allCases.reversed(), id: \.self) { match in
+                    let group = others.dropFirst().filter { $0.match == match }
+                    if !group.isEmpty {
+                        Section(match.title) {
+                            ForEach(group, id: \.id) { alternative in
+                                Button(library.displayName(for: alternative.id)) { swap(entry, to: alternative.id) }
+                            }
+                        }
                     }
                 }
             } label: {
                 if undo != nil {
-                    pill("Undo", systemImage: "arrow.uturn.backward")
+                    // Accent while the swap can still be taken back.
+                    pill("Undo swap", systemImage: "arrow.uturn.backward", tint: AppColor.accentPrimary)
                 } else {
                     pill("Swap", systemImage: "arrow.triangle.2.circlepath")
                 }
@@ -265,10 +279,10 @@ struct WorkoutFocusView: View {
         }
     }
 
-    private func pill(_ title: LocalizedStringKey, systemImage: String) -> some View {
+    private func pill(_ title: LocalizedStringKey, systemImage: String, tint: Color = AppColor.textPrimary) -> some View {
         Label(title, systemImage: systemImage)
             .font(AppFont.chipText)
-            .foregroundStyle(AppColor.textPrimary)
+            .foregroundStyle(tint)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
             .glassControl(.capsule, interactive: false)
@@ -283,7 +297,7 @@ struct WorkoutFocusView: View {
         AppAnimation.with(AppAnimation.springSnappy) {
             service.swapExercise(entryID: entry.id, to: exercise)
             undoOffer = service.activeSession?.selectedExercise.map {
-                UndoOffer(entryID: $0.id, replacedName: replacedName)
+                UndoOffer(entryID: $0.id, replacedID: entry.exerciseID, replacedName: replacedName)
             }
         }
     }

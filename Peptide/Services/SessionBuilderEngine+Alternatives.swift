@@ -8,7 +8,7 @@ import Foundation
 extension SessionBuilderEngine {
 
     struct Alternative: Equatable, Sendable {
-        enum Match: Int, Comparable, Sendable {
+        enum Match: Int, CaseIterable, Comparable, Sendable {
             /// Another muscle, or the same muscle by another movement.
             case sameMuscle
             /// The same movement pattern on another muscle.

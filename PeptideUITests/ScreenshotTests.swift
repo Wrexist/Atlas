@@ -767,7 +767,7 @@ final class ScreenshotTests: XCTestCase {
             Thread.sleep(forTimeInterval: 1)
             capture(named: "swap-\(appearance)-03-workout")
             swap.tap()
-            let undo = app.buttons["Undo"].firstMatch
+            let undo = app.buttons["Undo swap"].firstMatch
             XCTAssertTrue(undo.waitForExistence(timeout: 5))
             capture(named: "swap-\(appearance)-04-workout-swapped")
             undo.press(forDuration: 1.0)

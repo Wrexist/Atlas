@@ -54138,6 +54138,16 @@
           }
         }
       }
+    },
+    "Undo swap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ångra byte"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

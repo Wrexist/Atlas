@@ -88,12 +88,7 @@ struct ExerciseSwapSheet: View {
         if index == 0 { return "Best match" }
         let match = rows[index].alternative.match
         guard index == 1 || rows[index - 1].alternative.match != match else { return nil }
-        switch match {
-        case .sameMovement: return "Same movement"
-        case .otherAngle: return "Other angle"
-        case .similarMovement: return "Similar movement"
-        case .sameMuscle: return "Same muscle"
-        }
+        return match.title
     }
 
     private func groupHeader(_ title: LocalizedStringKey, isBest: Bool) -> some View {
@@ -106,5 +101,17 @@ struct ExerciseSwapSheet: View {
             .padding(.top, isBest ? 0 : Spacing.lg)
             .padding(.bottom, Spacing.xs)
             .accessibilityAddTraits(.isHeader)
+    }
+}
+
+extension SessionBuilderEngine.Alternative.Match {
+    /// The group label shared by the swap sheet and the workout's swap menu.
+    var title: LocalizedStringKey {
+        switch self {
+        case .sameMovement: return "Same movement"
+        case .otherAngle: return "Other angle"
+        case .similarMovement: return "Similar movement"
+        case .sameMuscle: return "Same muscle"
+        }
     }
 }
