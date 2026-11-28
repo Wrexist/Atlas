@@ -6128,6 +6128,16 @@
         }
       }
     },
+    "A dash means the label or scan doesn't state it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ett streck betyder att etiketten eller skanningen inte anger värdet."
+          }
+        }
+      }
+    },
     "AI & privacy": {
       "localizations": {
         "sv": {
@@ -6614,6 +6624,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kontrollera Hälsa-åtkomst"
+          }
+        }
+      }
+    },
+    "Cholesterol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kolesterol"
           }
         }
       }
@@ -7764,12 +7784,32 @@
         }
       }
     },
+    "Not stated": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anges inte"
+          }
+        }
+      }
+    },
     "Nothing logged that day.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Inget loggat den dagen."
+          }
+        }
+      }
+    },
+    "Nutrition facts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näringsvärden"
           }
         }
       }
@@ -7920,6 +7960,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "PEGylerad för förlängd halveringstid. Efter träning på dagar utan IGF"
+          }
+        }
+      }
+    },
+    "Per %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per %@"
           }
         }
       }
@@ -8164,6 +8214,16 @@
         }
       }
     },
+    "Saturated fat": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mättat fett"
+          }
+        }
+      }
+    },
     "Section": {
       "comment": "Accessibility label for the Train tab's section menu at large text sizes",
       "localizations": {
@@ -8395,6 +8455,16 @@
         }
       }
     },
+    "Unsaturated fat": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omättat fett"
+          }
+        }
+      }
+    },
     "Use Hexarelin short-term if maximum GH pulse is needed, or Ipamorelin for cleaner long-term use.": {
       "localizations": {
         "sv": {
@@ -8501,6 +8571,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mycket kortverkande — använd kring träningen för akuta pulser"
+          }
+        }
+      }
+    },
+    "Vitamins & minerals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vitaminer och mineraler"
           }
         }
       }
