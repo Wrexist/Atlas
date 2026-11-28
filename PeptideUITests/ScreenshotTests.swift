@@ -524,7 +524,8 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(app.textFields["set-picker-weight-field"].waitForExistence(timeout: 5))
             capture(named: "picker-\(appearance)-03-keyboard")
             done.tap()
-            XCTAssertTrue((weight.value as? String ?? "").hasPrefix("62.5 "))
+            let stepped = weight.value as? String ?? ""
+            XCTAssertTrue(stepped.hasPrefix("62.5 "), "weight after plate step: \(stepped)")
             discardActiveWorkout()
             app.terminate()
         }

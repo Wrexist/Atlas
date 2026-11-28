@@ -16,6 +16,7 @@ struct NumberWheel<Value: Hashable>: View {
 
     @ScaledMetric(relativeTo: .title2) private var rowHeight: CGFloat = NumberWheelMetrics.rowHeight
     @State private var centred: Value?
+    @State private var phase: ScrollPhase = .idle
 
     init(values: [Value], selection: Binding<Value>, accessibilityLabel: Text, label: @escaping (Value) -> String) {
         self.values = values
@@ -52,8 +53,17 @@ struct NumberWheel<Value: Hashable>: View {
                 .init(color: .clear, location: 1),
             ], startPoint: .top, endPoint: .bottom)
         }
+        .onScrollPhaseChange { old, new in
+            phase = new
+            // A programmatic turn can come to rest a row short; the
+            // selection it was turning to wins.
+            if old == .animating, new == .idle, centred != selection { centred = selection }
+        }
         .onChange(of: centred) { _, value in
-            guard let value, value != selection else { return }
+            // Only a finger moves the selection. While a programmatic turn
+            // animates, the position passes every row in between, and
+            // writing those back would stop a 60 → 62.5 step at 61.
+            guard phase != .animating, let value, value != selection else { return }
             selection = value
         }
         .onChange(of: selection) { _, value in
