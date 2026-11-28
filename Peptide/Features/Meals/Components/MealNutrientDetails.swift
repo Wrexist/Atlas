@@ -17,22 +17,6 @@ struct MealNutrientCoverage {
     }
 }
 
-struct MealNutrientDetails: View {
-    let components: [MealFoodComponent]
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            row("Fiber", value: MealFoodComponent.completeTotal(components.map(\.fiberG)))
-            row("Total sugars", value: MealFoodComponent.completeTotal(components.map(\.sugarsG)))
-            Text("Not available for every food.")
-                .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
-        }
-    }
-    private func row(_ title: LocalizedStringKey, value: Double?) -> some View {
-        LabeledContent(title, value: value.map { "\($0.formatted(.number.precision(.fractionLength(0...1)))) g" } ?? String(localized: "Unavailable"))
-            .font(AppFont.callout)
-    }
-}
-
 struct DailyMealNutrientsCard: View {
     let entries: [MealEntry]
     /// The user's daily fiber goal in grams; nil or zero shows no target.

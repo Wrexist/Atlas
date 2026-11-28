@@ -170,7 +170,10 @@ enum NutritionLabelParser {
                         ironMg:       micros.ironMg.map { $0 * factor },
                         calciumMg:    micros.calciumMg.map { $0 * factor },
                         vitaminDUg:   micros.vitaminDUg.map { $0 * factor },
-                        vitaminB12Ug: micros.vitaminB12Ug.map { $0 * factor }
+                        vitaminB12Ug: micros.vitaminB12Ug.map { $0 * factor },
+                        saturatedFatG: micros.saturatedFatG.map { $0 * factor },
+                        unsaturatedFatG: micros.unsaturatedFatG.map { $0 * factor },
+                        cholesterolMg: micros.cholesterolMg.map { $0 * factor }
                     )
                 }
             )
@@ -280,9 +283,10 @@ enum NutritionLabelParser {
 
     // MARK: - Micronutrient extractors
 
-    /// Sodium, potassium, iron, calcium, vitamin D and B12, in English
-    /// and Swedish. EU panels print salt in grams instead of sodium
-    /// (salt = sodium × 2.5).
+    /// Sodium, potassium, iron, calcium, vitamin D and B12, saturated fat
+    /// and cholesterol, in English and Swedish. EU panels print salt in
+    /// grams instead of sodium (salt = sodium × 2.5). The keyword match is
+    /// whole-word, so "mättat" never matches "fleromättat".
     private static func parseMicros(in lines: [String]) -> Micronutrients? {
         let salt = parseAmount(keywords: ["salt"], in: lines).map { $0.inMilligrams(defaultUnit: "g") * 0.4 }
         return Micronutrients(
@@ -291,7 +295,10 @@ enum NutritionLabelParser {
             ironMg:       parseAmount(keywords: ["iron", "järn"], in: lines)?.inMilligrams(defaultUnit: "mg"),
             calciumMg:    parseAmount(keywords: ["calcium", "kalcium"], in: lines)?.inMilligrams(defaultUnit: "mg"),
             vitaminDUg:   parseAmount(keywords: ["vitamin d", "d-vitamin"], in: lines)?.inMicrograms(defaultUnit: "µg"),
-            vitaminB12Ug: parseAmount(keywords: ["vitamin b12", "b12-vitamin", "b12"], in: lines)?.inMicrograms(defaultUnit: "µg")
+            vitaminB12Ug: parseAmount(keywords: ["vitamin b12", "b12-vitamin", "b12"], in: lines)?.inMicrograms(defaultUnit: "µg"),
+            saturatedFatG: parseAmount(keywords: ["saturated", "mättat", "mättade"], in: lines)
+                .map { $0.inMilligrams(defaultUnit: "g") / 1000 },
+            cholesterolMg: parseAmount(keywords: ["cholesterol", "kolesterol"], in: lines)?.inMilligrams(defaultUnit: "mg")
         ).nonEmpty
     }
 

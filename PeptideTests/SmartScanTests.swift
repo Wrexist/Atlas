@@ -191,6 +191,9 @@ final class SmartScanTests: XCTestCase {
         let micros = try XCTUnwrap(scan.items.first?.per100g?.micros)
         XCTAssertEqual(micros.potassiumMg, 363)
         XCTAssertEqual(micros.vitaminB12Ug, 3.2)
+        XCTAssertEqual(micros.saturatedFatG, 3.1)
+        XCTAssertEqual(micros.unsaturatedFatG, 9.4)
+        XCTAssertEqual(micros.cholesterolMg, 55)
         XCTAssertNil(micros.vitaminDUg, "a negative amount is unknown, not zero")
         XCTAssertNil(scan.items.last?.per100g?.micros, "null from the model stores nothing")
     }
@@ -551,7 +554,7 @@ private enum SmartFixtures {
       "items":[
         {"name":"Salmon","brand":null,"portion_label":"1 fillet","grams":150,"portion_options":[],
          "per_100g":{"calories":208,"protein_g":20,"carbs_g":0,"fat_g":13,"fiber_g":0,"sugars_g":0},
-         "micros_per_100g":{"sodium_mg":59,"potassium_mg":363,"iron_mg":0.3,"calcium_mg":9,"vitamin_d_ug":-1,"vitamin_b12_ug":3.2},
+         "micros_per_100g":{"sodium_mg":59,"potassium_mg":363,"iron_mg":0.3,"calcium_mg":9,"vitamin_d_ug":-1,"vitamin_b12_ug":3.2,"saturated_fat_g":3.1,"unsaturated_fat_g":9.4,"cholesterol_mg":55},
          "confidence":0.9,"price":null},
         {"name":"Lemon","brand":null,"portion_label":"1 wedge","grams":10,"portion_options":[],
          "per_100g":{"calories":29,"protein_g":1.1,"carbs_g":9,"fat_g":0.3,"fiber_g":2.8,"sugars_g":2.5},

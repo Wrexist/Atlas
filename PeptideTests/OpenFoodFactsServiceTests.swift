@@ -210,6 +210,26 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertNil(micros.vitaminDUg)
     }
 
+    func test_fetch_fatBreakdown_readsSaturatedUnsaturatedAndCholesterol() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.fatBreakdown.utf8))
+        }
+        let product = try await service.fetch(barcode: "7310500000001")
+        let micros = try XCTUnwrap(product.per100g.micros)
+        XCTAssertEqual(try XCTUnwrap(micros.saturatedFatG), 2.5, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.unsaturatedFatG), 11, accuracy: 0.001, "8 g mono + 3 g poly")
+        XCTAssertEqual(try XCTUnwrap(micros.cholesterolMg), 60, accuracy: 0.001, "0.06 g is 60 mg")
+    }
+
+    func test_fetch_onlyMonounsaturated_leavesUnsaturatedUnknown() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.monounsaturatedOnly.utf8))
+        }
+        let product = try await service.fetch(barcode: "7310500000002")
+        XCTAssertNil(product.per100g.micros?.unsaturatedFatG, "one part alone would understate it")
+        XCTAssertEqual(product.per100g.micros?.saturatedFatG, 1)
+    }
+
     func test_fetch_noMicronutrients_storesNone() async throws {
         MockURLProtocol.handler = { request in
             (Self.ok(for: request), Data(Fixtures.cocaCola.utf8))
@@ -1094,6 +1114,40 @@ private enum Fixtures {
           "iron_100g": "0.00003",
           "vitamin-d_100g": 0.000001,
           "vitamin-b12_100g": 4.5e-7
+        }
+      }
+    }
+    """
+
+    /// Olive-oil spread: the fat split into saturated, mono and poly, plus cholesterol.
+    static let fatBreakdown = """
+    {
+      "status": 1,
+      "product": {
+        "product_name": "Bregott",
+        "nutriments": {
+          "energy-kcal_100g": 540,
+          "fat_100g": 60,
+          "saturated-fat_100g": 2.5,
+          "monounsaturated-fat_100g": 8,
+          "polyunsaturated-fat_100g": "3",
+          "cholesterol_100g": 0.06
+        }
+      }
+    }
+    """
+
+    /// Monounsaturated fat without the polyunsaturated part.
+    static let monounsaturatedOnly = """
+    {
+      "status": 1,
+      "product": {
+        "product_name": "Nötter",
+        "nutriments": {
+          "energy-kcal_100g": 600,
+          "fat_100g": 50,
+          "saturated-fat_100g": 1,
+          "monounsaturated-fat_100g": 30
         }
       }
     }

@@ -135,9 +135,9 @@ struct MealEntryEditorSheet: View {
                                     }
                                     .buttonStyle(.plain)
                                 }
-                                MealNutrientDetails(components: components)
                             }
                         }
+                        NutritionFactsCard(components: components)
                     }
                     deleteButton
                 }
