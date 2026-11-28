@@ -74,8 +74,9 @@ struct NumberWheel<Value: Hashable>: View {
     }
 
     private func row(_ value: Value) -> some View {
-        Text(label(value))
-            .font(AppFont.title2)
+        // Typed as Text so `font` resolves to Text's overload, not View's.
+        let text: Text = Text(verbatim: label(value)).font(AppFont.title2)
+        return text
             .monospacedDigit()
             .foregroundStyle(AppColor.textPrimary)
             .lineLimit(1)
