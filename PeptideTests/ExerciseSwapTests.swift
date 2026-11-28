@@ -130,6 +130,17 @@ final class ExerciseSwapTests: XCTestCase {
         XCTAssertEqual(session.selectedExercise?.id, entry.id)
     }
 
+    func test_swappedSets_keepTheSlotsRepTargetAndIDs() throws {
+        startWorkout(sets: 3, reps: 12)
+        let entry = try XCTUnwrap(service.activeSession?.exercises.first)
+
+        service.swapExercise(entryID: entry.id, to: try exercise("Dumbbell_Bench_Press"))
+
+        let swapped = try XCTUnwrap(service.activeSession?.exercises.first)
+        XCTAssertEqual(swapped.sets.map(\.reps), [12, 12, 12])
+        XCTAssertEqual(swapped.sets.map(\.id), entry.sets.map(\.id), "a running rest points at these ids")
+    }
+
     func test_halfDoneExercise_keepsLoggedSetsAndMovesTheRestToTheNewLift() throws {
         startWorkout(sets: 3)
         let entry = try XCTUnwrap(service.activeSession?.exercises.first)
@@ -204,9 +215,9 @@ final class ExerciseSwapTests: XCTestCase {
         try XCTUnwrap(byID[id], "\(id) missing from exercises.json")
     }
 
-    private func startWorkout(sets: Int) {
+    private func startWorkout(sets: Int, reps: Int = 8) {
         service.startWorkout(routine: Routine(name: "Push", exercises: [
-            RoutineExercise(exerciseID: Self.bench, index: 0, targetSets: sets, targetReps: 8),
+            RoutineExercise(exerciseID: Self.bench, index: 0, targetSets: sets, targetReps: reps),
             RoutineExercise(exerciseID: "Standing_Military_Press", index: 1, targetSets: 3, targetReps: 8),
         ]))
     }
