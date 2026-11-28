@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "21F8175E-843B-4D07-ABB1-994D32E6B55F.mp4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Screen Recording 2026-11-28 at 03.13.53 PM.mp4",
+        "timestamp" : 1795878833.64
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureWorkoutMuscleProgress()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureWorkoutMuscleProgress"
+  }
+]
