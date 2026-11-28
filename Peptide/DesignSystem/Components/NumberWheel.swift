@@ -11,6 +11,7 @@ import SwiftUI
 struct NumberWheel<Value: Hashable>: View {
     let values: [Value]
     @Binding var selection: Value
+    let alignment: HorizontalAlignment
     let accessibilityLabel: Text
     let label: (Value) -> String
 
@@ -18,9 +19,13 @@ struct NumberWheel<Value: Hashable>: View {
     @State private var centred: Value?
     @State private var phase: ScrollPhase = .idle
 
-    init(values: [Value], selection: Binding<Value>, accessibilityLabel: Text, label: @escaping (Value) -> String) {
+    /// `alignment` lets two wheels read as one number: whole units
+    /// trailing, the fraction leading, meeting in the middle.
+    init(values: [Value], selection: Binding<Value>, alignment: HorizontalAlignment = .center,
+         accessibilityLabel: Text, label: @escaping (Value) -> String) {
         self.values = values
         self._selection = selection
+        self.alignment = alignment
         self.accessibilityLabel = accessibilityLabel
         self.label = label
         _centred = State(initialValue: selection.wrappedValue)
@@ -89,6 +94,12 @@ struct NumberWheel<Value: Hashable>: View {
         }
     }
 
+    private var anchorX: CGFloat {
+        if alignment == .leading { return 0 }
+        if alignment == .trailing { return 1 }
+        return 0.5
+    }
+
     private func row(_ value: Value, stepsFromCentre: Int) -> some View {
         let text: Text = Text(verbatim: label(value))
         let fade: Double = NumberWheelMetrics.opacity(stepsFromCentre: stepsFromCentre)
@@ -100,8 +111,8 @@ struct NumberWheel<Value: Hashable>: View {
             .minimumScaleFactor(0.6)
             .monospacedDigit()
             .opacity(fade)
-            .scaleEffect(scale)
-            .frame(maxWidth: .infinity)
+            .scaleEffect(scale, anchor: UnitPoint(x: anchorX, y: 0.5))
+            .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
             .frame(height: rowHeight)
             .contentShape(Rectangle())
             .onTapGesture { selection = value }
@@ -134,7 +145,7 @@ enum NumberWheelMetrics {
 
     /// Rows fade and shrink with each step away from the middle row.
     static func opacity(stepsFromCentre steps: Int) -> Double {
-        [1, 0.5, 0.25][min(steps, 2)]
+        [1, 0.55, 0.3][min(steps, 2)]
     }
 
     static func scale(stepsFromCentre steps: Int) -> CGFloat {

@@ -26,8 +26,9 @@ struct SetValuePickerSheet: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .title2) private var fieldHeight: CGFloat = NumberWheelMetrics.rowHeight
     @ScaledMetric(relativeTo: .title2) private var wholeWidth: CGFloat = 80
-    @ScaledMetric(relativeTo: .title2) private var fractionWidth: CGFloat = 56
+    @ScaledMetric(relativeTo: .title2) private var fractionWidth: CGFloat = 48
     @ScaledMetric(relativeTo: .title2) private var repsWidth: CGFloat = 64
+    @ScaledMetric(relativeTo: .title3) private var timesWidth: CGFloat = 24
     @State private var weight: SetValueWheelEngine.Weight
     @State private var reps: Int
     @State private var typing: Bool
@@ -115,39 +116,47 @@ struct SetValuePickerSheet: View {
 
     // MARK: - Wheels
 
+    /// Weight and reps each own half the width, so each pair of step
+    /// buttons sits straight under the wheel it moves.
     private var wheels: some View {
-        HStack(alignment: .center, spacing: Spacing.sm) {
-            NumberWheel(values: wholeValues, selection: $weight.whole,
-                        accessibilityLabel: Text("Weight, whole \(unit.weightSpokenUnit)")) { "\($0)" }
-                .frame(width: wholeWidth)
-                .accessibilityIdentifier("set-picker-weight-wheel")
-            NumberWheel(values: SetValueWheelEngine.fractions(for: unit), selection: $weight.fraction,
-                        accessibilityLabel: Text("Weight, fraction")) { fractionLabel($0) }
-                .frame(width: fractionWidth)
-            Text(unit.weightSuffix)
-                .font(AppFont.subheadline.weight(.semibold))
-                .foregroundStyle(AppColor.textSecondary)
-                .accessibilityHidden(true)
+        HStack(spacing: 0) {
+            HStack(spacing: Spacing.xxs) {
+                NumberWheel(values: wholeValues, selection: $weight.whole, alignment: .trailing,
+                            accessibilityLabel: Text("Weight, whole \(unit.weightSpokenUnit)")) { "\($0)" }
+                    .frame(width: wholeWidth)
+                    .accessibilityIdentifier("set-picker-weight-wheel")
+                NumberWheel(values: SetValueWheelEngine.fractions(for: unit), selection: $weight.fraction,
+                            alignment: .leading,
+                            accessibilityLabel: Text("Weight, fraction")) { fractionLabel($0) }
+                    .frame(width: fractionWidth)
+                unitLabel(Text(unit.weightSuffix))
+            }
+            .frame(maxWidth: .infinity)
             Text(verbatim: "×")
                 .font(AppFont.title3)
                 .foregroundStyle(AppColor.textTertiary)
-                .padding(.horizontal, Spacing.xs)
+                .frame(width: timesWidth)
                 .accessibilityHidden(true)
-            NumberWheel(values: repsValues, selection: $reps,
-                        accessibilityLabel: Text("Reps")) { "\($0)" }
-                .frame(width: repsWidth)
-                .accessibilityIdentifier("set-picker-reps-wheel")
-            Text("reps")
-                .font(AppFont.subheadline.weight(.semibold))
-                .foregroundStyle(AppColor.textSecondary)
-                .accessibilityHidden(true)
+            HStack(spacing: Spacing.xs) {
+                NumberWheel(values: repsValues, selection: $reps,
+                            accessibilityLabel: Text("Reps")) { "\($0)" }
+                    .frame(width: repsWidth)
+                    .accessibilityIdentifier("set-picker-reps-wheel")
+                unitLabel(Text("reps"))
+            }
+            .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal, Spacing.sm)
         .background { NumberWheelBand() }
-        .frame(maxWidth: .infinity)
         // Three wheels side by side only fit up to this size; larger
         // sizes open on the keyboard instead (see `body`).
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
+    }
+
+    private func unitLabel(_ text: Text) -> some View {
+        text
+            .font(AppFont.subheadline.weight(.semibold))
+            .foregroundStyle(AppColor.textSecondary)
+            .accessibilityHidden(true)
     }
 
     private func fractionLabel(_ fraction: Double) -> String {
@@ -159,13 +168,20 @@ struct SetValuePickerSheet: View {
     // MARK: - Step buttons
 
     private var stepButtons: some View {
-        HStack(spacing: Spacing.sm) {
-            stepButton(up: false)
-            stepButton(up: true)
-            Spacer(minLength: Spacing.lg)
-            repsButton(by: -1)
-            repsButton(by: 1)
+        HStack(spacing: 0) {
+            HStack(spacing: Spacing.sm) {
+                stepButton(up: false)
+                stepButton(up: true)
+            }
+            .frame(maxWidth: .infinity)
+            Color.clear.frame(width: timesWidth, height: 1)
+            HStack(spacing: Spacing.sm) {
+                repsButton(by: -1)
+                repsButton(by: 1)
+            }
+            .frame(maxWidth: .infinity)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 
     private var stepLabel: String {
@@ -207,7 +223,7 @@ struct SetValuePickerSheet: View {
                     .monospacedDigit()
             }
             .foregroundStyle(AppColor.textPrimary)
-            .padding(.horizontal, Spacing.md)
+            .padding(.horizontal, Spacing.sm)
             .frame(minWidth: Spacing.minimumHitTarget, minHeight: Spacing.minimumHitTarget)
             .background(AppColor.surfaceSecondary, in: Capsule())
             .overlay(Capsule().stroke(AppColor.glassBorder, lineWidth: 0.5))
