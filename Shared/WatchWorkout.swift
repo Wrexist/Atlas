@@ -110,7 +110,8 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
         var next = self
         // `reconcileRest` on the phone: a rest that has run out is over,
         // so a pick made after it takes effect and +30s can't revive it.
-        if let rest = next.rest, !next.isPaused, rest.endsAt <= now { next.skipRest() }
+        // It stays on the exercise in view, as the phone does.
+        if let rest = next.rest, !next.isPaused, rest.endsAt <= now { next.rest = nil }
         switch command {
         case let .completeSet(exerciseID, setID, weightKg, reps):
             next.complete(setID: setID, in: exerciseID, weightKg: weightKg, reps: reps, at: now)
