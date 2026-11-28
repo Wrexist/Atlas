@@ -36,7 +36,7 @@ final class ExerciseSwapTests: XCTestCase {
     func test_benchAlternatives_leadWithAnotherHorizontalPressOnTheChest() throws {
         let swaps = alternatives(for: Self.bench)
         let best = try XCTUnwrap(swaps.first)
-        XCTAssertTrue(best.isSameMovement)
+        XCTAssertEqual(best.match, .sameMovement)
         XCTAssertTrue(ProgramGeneratorEngine.candidates(for: .horizontalPush).contains(best.id), best.id)
         let lift = try exercise(best.id)
         XCTAssertTrue(Engine.targets(of: lift).contains(.chest), best.id)
@@ -50,12 +50,20 @@ final class ExerciseSwapTests: XCTestCase {
         XCTAssertEqual(ids.count, Set(ids).count, "an alternative is listed twice")
     }
 
-    func test_alternatives_areCappedAndSameMovementComesFirst() {
+    func test_alternatives_areCappedAndOrderedByHowCloseTheyAre() {
         let swaps = alternatives(for: "Barbell_Squat")
         XCTAssertFalse(swaps.isEmpty)
         XCTAssertLessThanOrEqual(swaps.count, Engine.alternativeLimit)
-        let firstOther = swaps.firstIndex { !$0.isSameMovement } ?? swaps.endIndex
-        XCTAssertTrue(swaps[firstOther...].allSatisfy { !$0.isSameMovement }, "a same-movement lift ranked under a muscle-only one")
+        XCTAssertEqual(swaps.map(\.match), swaps.map(\.match).sorted(by: >), "a closer match ranked under a looser one")
+    }
+
+    func test_flatPress_offersFlatPressesBeforeIncline() throws {
+        let swaps = alternatives(for: "Dumbbell_Bench_Press", limit: 12)
+        let best = try XCTUnwrap(swaps.first)
+        XCTAssertFalse(best.id.contains("Incline"), best.id)
+        for swap in swaps where swap.id.contains("Incline") {
+            XCTAssertEqual(swap.match, .otherAngle, swap.id)
+        }
     }
 
     func test_homeKit_onlyOffersWhatTheKitAllows() {
@@ -70,14 +78,14 @@ final class ExerciseSwapTests: XCTestCase {
     func test_everyAlternative_sharesTheMovementOrTheMainMuscle() throws {
         let curl = "Dumbbell_Bicep_Curl"
         let muscles = Engine.targets(of: try exercise(curl))
-        for swap in alternatives(for: curl) where !swap.isSameMovement {
+        for swap in alternatives(for: curl) where swap.match == .sameMuscle {
             let lift = try exercise(swap.id)
             XCTAssertFalse(Engine.targets(of: lift).isDisjoint(with: muscles), swap.id)
         }
     }
 
     func test_familiarLift_winsItsTier() throws {
-        let unfamiliar = alternatives(for: Self.bench).filter(\.isSameMovement)
+        let unfamiliar = alternatives(for: Self.bench).filter { $0.match == .sameMovement }
         let last = try XCTUnwrap(unfamiliar.last?.id)
         XCTAssertEqual(alternatives(for: Self.bench, familiar: [last]).first?.id, last)
     }
@@ -205,10 +213,11 @@ final class ExerciseSwapTests: XCTestCase {
         for id: String,
         taken: Set<String> = [],
         equipment: EquipmentProfile = EquipmentProfile(access: ExerciseSwapTests.fullGym),
-        familiar: Set<String> = []
+        familiar: Set<String> = [],
+        limit: Int = Engine.alternativeLimit
     ) -> [Engine.Alternative] {
         Engine.alternatives(for: id, taken: taken, equipment: equipment, experience: .intermediate,
-                            familiar: familiar, catalog: catalog)
+                            familiar: familiar, catalog: catalog, limit: limit)
     }
 
     private func exercise(_ id: String) throws -> Exercise {

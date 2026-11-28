@@ -38,10 +38,13 @@ struct ExerciseSwapSheet: View {
                         GlassCard(padding: Spacing.md) {
                             VStack(spacing: 0) {
                                 ForEach(Array(rows.enumerated()), id: \.element.exercise.id) { index, row in
-                                    if index > 0 {
+                                    if let title = header(at: index) {
+                                        groupHeader(title, isBest: index == 0)
+                                    } else {
                                         Divider().padding(.leading, ExerciseRow.tileSize + Spacing.md)
                                     }
-                                    option(row.exercise, alternative: row.alternative, isBest: index == 0)
+                                    option(row.exercise)
+                                        .accessibilityIdentifier("swap-option-\(index)")
                                 }
                             }
                         }
@@ -65,34 +68,43 @@ struct ExerciseSwapSheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    private func option(_ exercise: Exercise, alternative: SessionBuilderEngine.Alternative, isBest: Bool) -> some View {
+    private func option(_ exercise: Exercise) -> some View {
         Button {
             Haptics.selection()
             onPick(exercise)
             dismiss()
         } label: {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(reason(alternative, isBest: isBest))
-                    .font(AppFont.eyebrow)
-                    .textCase(.uppercase)
-                    .tracking(1.2)
-                    .foregroundStyle(isBest ? AppColor.accentPrimary : AppColor.textTertiary)
-                    .padding(.leading, ExerciseRow.tileSize + Spacing.md)
-                ExerciseRow(exercise: exercise, showsChevron: false)
-            }
-            .padding(.vertical, Spacing.xs)
-            .contentShape(Rectangle())
+            ExerciseRow(exercise: exercise, showsChevron: false)
+                .padding(.vertical, Spacing.xxs)
+                .contentShape(Rectangle())
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-        .accessibilityElement(children: .combine)
         .accessibilityHint(Text("Swaps it in"))
     }
 
-    private func reason(_ alternative: SessionBuilderEngine.Alternative, isBest: Bool) -> LocalizedStringKey {
-        switch (isBest, alternative.isSameMovement) {
-        case (true, _): return "Best match"
-        case (false, true): return "Same movement"
-        case (false, false): return "Same muscle"
+    /// The best match stands alone; the rest are grouped by how close they
+    /// are, one label per group.
+    private func header(at index: Int) -> LocalizedStringKey? {
+        if index == 0 { return "Best match" }
+        let match = rows[index].alternative.match
+        guard index == 1 || rows[index - 1].alternative.match != match else { return nil }
+        switch match {
+        case .sameMovement: return "Same movement"
+        case .otherAngle: return "Other angle"
+        case .similarMovement: return "Similar movement"
+        case .sameMuscle: return "Same muscle"
         }
+    }
+
+    private func groupHeader(_ title: LocalizedStringKey, isBest: Bool) -> some View {
+        Text(title)
+            .font(AppFont.eyebrow)
+            .textCase(.uppercase)
+            .tracking(1.2)
+            .foregroundStyle(isBest ? AppColor.accentPrimary : AppColor.textTertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, isBest ? 0 : Spacing.lg)
+            .padding(.bottom, Spacing.xs)
+            .accessibilityAddTraits(.isHeader)
     }
 }

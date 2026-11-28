@@ -40,6 +40,8 @@ struct SessionBuilderSheet: View {
     /// When a card last moved under a swipe: the card's own tap fires on
     /// the same lift of the finger, and mustn't open its page as well.
     @State private var lastSwipeAt = Date.distantPast
+    /// The swipe tip shows until the first swap, then the user knows it.
+    @AppStorage("sessionBuilder.swapTipSeen") private var swapTipSeen = false
     /// Bumped by each pick from the muscle list, to scroll its next step in.
     @State private var listPicks = 0
 
@@ -472,7 +474,9 @@ struct SessionBuilderSheet: View {
     private func notes(_ built: Built) -> some View {
         let added = built.plan.added.map(\.displayName).formatted(.list(type: .and))
         return VStack(alignment: .leading, spacing: Spacing.xs) {
-            note("arrow.triangle.2.circlepath", Text("Swipe an exercise left to swap it for the next best."))
+            if !swapTipSeen {
+                note("arrow.triangle.2.circlepath", Text("Swipe an exercise left to swap it for the next best."))
+            }
             if !built.plan.added.isEmpty {
                 note("plus.circle", Text("Added \(added) to fill your \(minutes) minutes."))
             }
@@ -563,7 +567,10 @@ struct SessionBuilderSheet: View {
         updated.steps[exercise.id] = ExerciseStepArt.assetNames(for: exercise.id)
         Haptics.impact(.light)
         isSaved = false
-        AppAnimation.with(AppAnimation.springSnappy) { built = updated }
+        AppAnimation.with(AppAnimation.springSnappy) {
+            built = updated
+            swapTipSeen = true
+        }
     }
 
     private func note(_ icon: String, _ text: Text) -> some View {

@@ -54098,6 +54098,36 @@
           }
         }
       }
+    },
+    "Other angle": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annan vinkel"
+          }
+        }
+      }
+    },
+    "Similar movement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liknande rörelse"
+          }
+        }
+      }
+    },
+    "Swapped from %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bytte från %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

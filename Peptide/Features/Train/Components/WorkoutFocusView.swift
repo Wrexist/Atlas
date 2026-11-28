@@ -18,8 +18,8 @@ struct WorkoutFocusView: View {
     /// when the exercise changes, not on every render.
     @State private var swaps: [SessionBuilderEngine.Alternative] = []
     /// Set by a swap, cleared a few seconds later: while set, the swap pill
-    /// offers to take it back.
-    @State private var undoOffer: UUID?
+    /// offers to take it back and a caption names the lift it replaced.
+    @State private var undoOffer: UndoOffer?
     /// The screen's height without the keyboard, so raising the decimal
     /// pad never resizes the artwork under the user's finger.
     @State private var availableHeight: CGFloat = 0
@@ -63,7 +63,7 @@ struct WorkoutFocusView: View {
         .background(AppColor.background.ignoresSafeArea())
         .task { await library.load() }
         .task(id: SwapKey(exerciseID: entry?.exerciseID, isLoaded: !library.bundled.isEmpty)) { refreshSwaps() }
-        .task(id: undoOffer) {
+        .task(id: undoOffer?.id) {
             // A newer swap restarts the wait; a cancelled one mustn't clear it.
             guard undoOffer != nil, (try? await Task.sleep(for: .seconds(6))) != nil else { return }
             AppAnimation.with(AppAnimation.quick) { undoOffer = nil }
@@ -205,10 +205,26 @@ struct WorkoutFocusView: View {
         let isLoaded: Bool
     }
 
+    private struct UndoOffer {
+        let id = UUID()
+        let replacedName: String
+        let at = Date()
+    }
+
     private func exerciseActions(_ entry: WorkoutExerciseEntry) -> some View {
         HStack(spacing: Spacing.sm) {
             swapControl(entry)
             howToButton
+        }
+    }
+
+    @ViewBuilder
+    private var swapCaption: some View {
+        if let undoOffer, service.canUndoSwap {
+            Label("Swapped from \(undoOffer.replacedName)", systemImage: "arrow.triangle.2.circlepath")
+                .font(AppFont.caption2.weight(.semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .transition(.opacity)
         }
     }
 
@@ -217,11 +233,13 @@ struct WorkoutFocusView: View {
     /// Hidden once every working set is done: nothing is left to move.
     @ViewBuilder
     private func swapControl(_ entry: WorkoutExerciseEntry) -> some View {
-        if undoOffer != nil, service.canUndoSwap {
+        if let undoOffer, service.canUndoSwap {
             Button {
+                // Absorbs the second tap of a quick double tap on Swap.
+                guard Date().timeIntervalSince(undoOffer.at) > 0.5 else { return }
                 Haptics.impact(.light)
                 service.undoSwap()
-                undoOffer = nil
+                self.undoOffer = nil
             } label: {
                 pill("Undo", systemImage: "arrow.uturn.backward")
             }
@@ -262,7 +280,7 @@ struct WorkoutFocusView: View {
         Haptics.impact(.medium)
         AppAnimation.with(AppAnimation.springSnappy) {
             service.swapExercise(entryID: entry.id, to: exercise)
-            undoOffer = UUID()
+            undoOffer = UndoOffer(replacedName: library.displayName(for: entry.exerciseID))
         }
     }
 
@@ -296,6 +314,7 @@ struct WorkoutFocusView: View {
                     exerciseActions(entry)
                 }
             }
+            swapCaption
             if let letter = session.supersetLetter(for: entry.id) {
                 Label(supersetCaption(letter: letter, entryID: entry.id), systemImage: "link")
                     .font(AppFont.caption2.weight(.semibold))

@@ -753,7 +753,7 @@ final class ScreenshotTests: XCTestCase {
             first.swipeLeft()
             XCTAssertTrue(app.navigationBars["Swap exercise"].waitForExistence(timeout: 5))
             capture(named: "swap-\(appearance)-01-builder-sheet")
-            let best = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Best match'")).firstMatch
+            let best = app.buttons["swap-option-0"].firstMatch
             XCTAssertTrue(best.waitForExistence(timeout: 5))
             best.tap()
             Thread.sleep(forTimeInterval: 0.8)

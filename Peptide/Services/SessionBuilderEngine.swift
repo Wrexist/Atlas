@@ -504,7 +504,7 @@ enum SessionBuilderEngine {
 
     /// The muscle's own preferred lifts first, then logged-before, then
     /// lengthened favourites, then shortlist order.
-    static func ranked(_ ids: [String], familiar: Set<String>, preferred: Set<String> = []) -> [String] {
+    fileprivate static func ranked(_ ids: [String], familiar: Set<String>, preferred: Set<String> = []) -> [String] {
         func weight(_ id: String) -> Int {
             (preferred.contains(id) ? 4 : 0) + (familiar.contains(id) ? 2 : 0) + (lengthenedFavourites.contains(id) ? 1 : 0)
         }

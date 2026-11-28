@@ -464,6 +464,10 @@ final class WorkoutSessionService {
         let hasLogged = old.sets.contains(where: \.completed)
         let target = targetReps(for: old, in: activeRoutine)
         let seed = lastCompletedSet(forExerciseID: exercise.id)
+        // Without history, a lift on the same kit starts from the load the
+        // old one was set to, rather than an empty bar.
+        let sameKit = ExerciseLibrary.shared.lookup(id: old.exerciseID)?.equipmentKind == exercise.equipmentKind
+        let fallbackKg = sameKit ? pending[0].weightKg : 0
         var entry = WorkoutExerciseEntry(
             id: hasLogged ? UUID() : old.id,
             exerciseID: exercise.id,
@@ -471,7 +475,7 @@ final class WorkoutSessionService {
             // The pending sets keep their ids, so a running rest still
             // points at the set it counts down to.
             sets: pending.indices.map { offset in
-                SetEntry(id: pending[offset].id, index: offset + 1, weightKg: seed?.weightKg ?? 0,
+                SetEntry(id: pending[offset].id, index: offset + 1, weightKg: seed?.weightKg ?? fallbackKg,
                          reps: target ?? seed?.reps ?? pending[offset].reps, measurement: seed?.measurement)
             },
             restSeconds: old.restSeconds,
