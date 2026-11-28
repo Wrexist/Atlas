@@ -806,6 +806,14 @@ private extension OpenFoodFactsService {
         let vitaminDServing: FlexibleDouble?
         let vitaminB12100g: FlexibleDouble?
         let vitaminB12Serving: FlexibleDouble?
+        let saturatedFat100g: FlexibleDouble?
+        let saturatedFatServing: FlexibleDouble?
+        let monounsaturatedFat100g: FlexibleDouble?
+        let monounsaturatedFatServing: FlexibleDouble?
+        let polyunsaturatedFat100g: FlexibleDouble?
+        let polyunsaturatedFatServing: FlexibleDouble?
+        let cholesterol100g: FlexibleDouble?
+        let cholesterolServing: FlexibleDouble?
 
         enum CodingKeys: String, CodingKey {
             case energyKcal100g     = "energy-kcal_100g"
@@ -829,13 +837,22 @@ private extension OpenFoodFactsService {
             case vitaminDServing    = "vitamin-d_serving"
             case vitaminB12100g     = "vitamin-b12_100g"
             case vitaminB12Serving  = "vitamin-b12_serving"
+            case saturatedFat100g   = "saturated-fat_100g"
+            case saturatedFatServing = "saturated-fat_serving"
+            case monounsaturatedFat100g = "monounsaturated-fat_100g"
+            case monounsaturatedFatServing = "monounsaturated-fat_serving"
+            case polyunsaturatedFat100g = "polyunsaturated-fat_100g"
+            case polyunsaturatedFatServing = "polyunsaturated-fat_serving"
+            case cholesterol100g    = "cholesterol_100g"
+            case cholesterolServing = "cholesterol_serving"
         }
 
         /// OFF normalises every mineral and vitamin to grams, per 100 g
         /// and per serving. The per-100 g value wins; a per-serving one
         /// is rescaled when the serving weight is known. Sodium falls
         /// back to salt, which labels state far more often (salt = 2.5 ×
-        /// sodium).
+        /// sodium). Unsaturated fat is only known when both the mono- and
+        /// polyunsaturated parts are; one alone would understate it.
         func micronutrients(servingGrams: Double?) -> Micronutrients? {
             func grams(_ per100g: FlexibleDouble?, _ perServing: FlexibleDouble?) -> Double? {
                 if let value = per100g?.value.flatMap(Self.plausibleGrams) { return value }
@@ -844,13 +861,18 @@ private extension OpenFoodFactsService {
             }
             let sodium = grams(sodium100g, sodiumServing)
                 ?? grams(salt100g, saltServing).map { $0 / 2.5 }
+            let unsaturated = grams(monounsaturatedFat100g, monounsaturatedFatServing)
+                .flatMap { mono in grams(polyunsaturatedFat100g, polyunsaturatedFatServing).map { mono + $0 } }
             return Micronutrients(
                 sodiumMg: sodium.map { $0 * 1_000 },
                 potassiumMg: grams(potassium100g, potassiumServing).map { $0 * 1_000 },
                 ironMg: grams(iron100g, ironServing).map { $0 * 1_000 },
                 calciumMg: grams(calcium100g, calciumServing).map { $0 * 1_000 },
                 vitaminDUg: grams(vitaminD100g, vitaminDServing).map { $0 * 1_000_000 },
-                vitaminB12Ug: grams(vitaminB12100g, vitaminB12Serving).map { $0 * 1_000_000 }
+                vitaminB12Ug: grams(vitaminB12100g, vitaminB12Serving).map { $0 * 1_000_000 },
+                saturatedFatG: grams(saturatedFat100g, saturatedFatServing),
+                unsaturatedFatG: unsaturated.flatMap(Self.plausibleGrams),
+                cholesterolMg: grams(cholesterol100g, cholesterolServing).map { $0 * 1_000 }
             ).nonEmpty
         }
 
