@@ -3,6 +3,18 @@ import SwiftUI
 import UIKit
 import OSLog
 
+/// Deep-link targets for widget taps, routed by the app's
+/// `DeepLinkRouter`. Before these, every home-screen widget tap just
+/// foregrounded the app on whatever tab was last open — a nutrition
+/// widget tap could land on Biology. `widgetURL` needs no
+/// CFBundleURLTypes registration for same-app links, but the scheme
+/// is registered anyway so notification and Shortcuts links resolve.
+enum WidgetDeepLink {
+    static let today = URL(string: "peptidex://today")
+    static let meals = URL(string: "peptidex://meals")
+    static let train = URL(string: "peptidex://train")
+}
+
 // MARK: - Palette
 
 /// Colour tokens for the widget extension. The extension can't import the
@@ -46,9 +58,26 @@ enum WidgetPalette {
     /// Track behind a ring or bar fill.
     static let track = Color.primary.opacity(0.10)
 
+    /// The raised finish the app's rings carry (`AppColor.ringSheen`,
+    /// `.ringShade`, `.ringCrest`, `.ringGroove`, `.ringGrooveLip`, and
+    /// `AppShadow.ringRaise`'s ink). On a near-black card a shadow barely
+    /// shows, so dark-mode depth comes mostly from the light.
+    static let sheen = Color.white.opacity(0.2)
+    static let shade = adaptive(light: .black.opacity(0.08), dark: .black.opacity(0.26))
+    static let crest = adaptive(light: .white.opacity(0.12), dark: .white.opacity(0.24))
+    static let groove = adaptive(light: .black.opacity(0.12), dark: .black.opacity(0.55))
+    static let grooveLip = adaptive(light: .white.opacity(0.7), dark: .white.opacity(0.16))
+    static let raise = adaptive(light: .black.opacity(0.14), dark: .black.opacity(0.6))
+
     private static func dynamic(light: UInt32, dark: UInt32) -> Color {
         Color(uiColor: UIColor { traits in
             UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light)
+        })
+    }
+
+    private static func adaptive(light: Color, dark: Color) -> Color {
+        Color(uiColor: UIColor { traits in
+            UIColor(traits.userInterfaceStyle == .dark ? dark : light)
         })
     }
 
@@ -197,6 +226,9 @@ struct WidgetHeader: View {
     /// The trailing figure as it should be spoken: "2/4" reads as "two
     /// slash four".
     var trailingAccessibilityLabel: Text?
+    /// A styled trailing figure, used instead of `trailing` when part of
+    /// it needs to stand out.
+    var trailingText: Text?
 
     var body: some View {
         HStack(spacing: 4) {
@@ -212,13 +244,13 @@ struct WidgetHeader: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Spacer(minLength: 4)
-            if let trailing {
-                Text(trailing)
+            if let trailing = trailingText ?? trailing.map({ Text($0) }) {
+                trailing
                     .font(.caption2.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                    .accessibilityLabel(trailingAccessibilityLabel ?? Text(trailing))
+                    .accessibilityLabel(trailingAccessibilityLabel ?? trailing)
             }
         }
     }
@@ -260,43 +292,219 @@ extension View {
 
 /// A progress ring. The arc is accentable and the track isn't, so in a
 /// tinted home screen the two still read as filled and empty instead of
-/// flattening to one tone.
+/// flattening to one tone. In full colour it carries the app's raised
+/// finish: a groove for the track and a lit arc standing out of it.
 struct WidgetRing: View {
     let progress: Double
     let tint: Color
     var lineWidth: CGFloat = 7
 
     var body: some View {
+        let fill = min(max(progress, 0), 1)
         ZStack {
-            Circle().stroke(WidgetPalette.track, lineWidth: lineWidth)
-            Circle()
-                .trim(from: 0, to: min(max(progress, 0), 1))
-                .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .widgetAccentable()
+            RingGroove(lineWidth: lineWidth)
+            RaisedArc(progress: fill, lineWidth: lineWidth) {
+                Circle()
+                    .inset(by: lineWidth / 2)
+                    .trim(from: 0, to: fill)
+                    .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
         }
-        // Strokes straddle the path; keep the whole ring inside the frame.
-        .padding(lineWidth / 2)
     }
 }
 
-/// Thin horizontal bar; the macro rows and the dose pips use it.
+/// A ring's track, sunk into the card: a shadow under its upper wall and
+/// a faint lit lower lip (`RaisedRingFinish.groove`). Strokes inside the
+/// frame, so the ring's outer edge is the frame's edge.
+struct RingGroove: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    let lineWidth: CGFloat
+
+    var body: some View {
+        let track = Circle().inset(by: lineWidth / 2)
+        if renderingMode == .fullColor {
+            track.stroke(
+                WidgetPalette.track
+                    .shadow(.inner(color: WidgetPalette.groove, radius: lineWidth * 0.12, y: lineWidth * 0.14))
+                    .shadow(.inner(color: WidgetPalette.grooveLip, radius: lineWidth * 0.06, y: -lineWidth * 0.06)),
+                lineWidth: lineWidth
+            )
+        } else {
+            track.stroke(WidgetPalette.track, lineWidth: lineWidth)
+        }
+    }
+}
+
+/// An arc from 12 o'clock to `progress`, lifted off its groove the way
+/// the app's `RaisedRingFinish` lifts a ring: a drop shadow, a sheen that
+/// is lit top-left and shaded bottom-right, and a soft crest along the
+/// tube. `arc` draws the colour; the finish is laid over the whole arc so
+/// meal segments get one continuous light. Tinted and clear home screens
+/// flatten colour anyway, so there the arc is drawn plain.
+struct RaisedArc<Arc: View>: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    let progress: Double
+    let lineWidth: CGFloat
+    @ViewBuilder let arc: Arc
+
+    /// Keeps the crest off the caps, so it reads as light on a rounded
+    /// tube rather than a painted stripe.
+    private static let crestInset = 0.03
+
+    var body: some View {
+        if renderingMode == .fullColor, progress > 0 {
+            ZStack {
+                arc.shadow(color: WidgetPalette.raise, radius: lineWidth * 0.35, y: lineWidth * 0.18)
+                LinearGradient(
+                    colors: [WidgetPalette.sheen, .clear, WidgetPalette.shade],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .mask { arc }
+                LinearGradient(
+                    colors: [WidgetPalette.crest, .clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .mask { crest }
+            }
+            .widgetAccentable()
+        } else {
+            arc.widgetAccentable()
+        }
+    }
+
+    private var crest: some View {
+        Circle()
+            .inset(by: lineWidth / 2)
+            .trim(from: Self.crestInset, to: max(Self.crestInset, progress - Self.crestInset))
+            .stroke(style: StrokeStyle(lineWidth: lineWidth * 0.22, lineCap: .round))
+            .rotationEffect(.degrees(-90))
+            .blur(radius: lineWidth * 0.08)
+    }
+}
+
+extension View {
+    /// Centres `label` over a ring in the largest 4:3 box that fits its
+    /// hole: the box's corners touch the ring's inner edge, so a figure
+    /// scaled to fit the box can't reach the stroke. Padding the label by
+    /// a fixed amount instead left the full ring width minus a few points,
+    /// wider than the hole, and "1 279" ran over the ring. The ring's
+    /// frame must be its outer edge. Dynamic Type is capped because the
+    /// ring itself doesn't grow: past it the label only shrinks back.
+    func ringLabel<Center: View>(lineWidth: CGFloat, @ViewBuilder _ label: () -> Center) -> some View {
+        let content = label()
+        return overlay {
+            GeometryReader { proxy in
+                let hole = max(0, min(proxy.size.width, proxy.size.height) - 2 * lineWidth)
+                content
+                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                    .frame(width: hole * 0.8, height: hole * 0.6)
+                    .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            }
+        }
+    }
+
+    /// A small round chip raised off the card: lit from above, shaded
+    /// below, with a bright upper rim and a soft shadow. Plain in tinted
+    /// and clear modes, where the system recolours it anyway.
+    func raisedDisc(_ fill: Color) -> some View {
+        modifier(RaisedDisc(fill: fill))
+    }
+}
+
+private struct RaisedDisc: ViewModifier {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    let fill: Color
+
+    func body(content: Content) -> some View {
+        content.background {
+            if renderingMode == .fullColor {
+                Circle()
+                    .fill(fill)
+                    .overlay {
+                        Circle().fill(LinearGradient(
+                            colors: [WidgetPalette.sheen.opacity(0.6), .clear, WidgetPalette.shade],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ))
+                    }
+                    .overlay {
+                        Circle().strokeBorder(
+                            LinearGradient(colors: [WidgetPalette.crest, .clear], startPoint: .top, endPoint: .center),
+                            lineWidth: 0.75
+                        )
+                    }
+                    .shadow(color: WidgetPalette.raise.opacity(0.5), radius: 2, y: 1)
+            } else {
+                Circle().fill(fill)
+            }
+        }
+    }
+}
+
+/// Thin horizontal bar; the macro rows and the dose pips use it. With
+/// `showsOverflow`, a fill past the target keeps the bar full and draws
+/// the part beyond the target in a deeper shade of the same colour, the
+/// way the app's rings run a second lap instead of borrowing another
+/// metric's colour.
 struct WidgetBar: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let progress: Double
     let tint: Color
     var height: CGFloat = 4
+    var showsOverflow = false
 
     var body: some View {
         GeometryReader { proxy in
+            let width = proxy.size.width
             ZStack(alignment: .leading) {
-                Capsule().fill(WidgetPalette.track)
-                Capsule()
-                    .fill(tint)
-                    .frame(width: proxy.size.width * min(max(progress, 0), 1))
-                    .widgetAccentable()
+                track
+                if progress > 0 {
+                    fill(width: width * min(progress, 1))
+                }
+                if showsOverflow, progress > 1 {
+                    // The target sits where 1 / progress of the bar is.
+                    let excess = width * (1 - 1 / progress)
+                    Capsule()
+                        .fill(tint.mix(with: .black, by: 0.35))
+                        .frame(width: max(excess, height))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .widgetAccentable()
+                }
             }
         }
         .frame(height: height)
+    }
+
+    @ViewBuilder
+    private var track: some View {
+        if renderingMode == .fullColor {
+            Capsule().fill(
+                WidgetPalette.track
+                    .shadow(.inner(color: WidgetPalette.groove, radius: height * 0.2, y: height * 0.2))
+            )
+        } else {
+            Capsule().fill(WidgetPalette.track)
+        }
+    }
+
+    private func fill(width: CGFloat) -> some View {
+        Capsule()
+            .fill(tint)
+            .overlay {
+                if renderingMode == .fullColor {
+                    Capsule().fill(LinearGradient(
+                        colors: [WidgetPalette.sheen, .clear, WidgetPalette.shade],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ))
+                }
+            }
+            .frame(width: max(width, height))
+            .shadow(color: renderingMode == .fullColor ? WidgetPalette.raise.opacity(0.5) : .clear, radius: 1, y: 0.5)
+            .widgetAccentable()
     }
 }
 

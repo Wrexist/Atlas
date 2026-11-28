@@ -299,12 +299,12 @@ private struct MediumProtocolView: View {
     private var dial: some View {
         if entry.hasProtocol {
             WidgetRing(progress: entry.compliance, tint: protocolTint, lineWidth: 8)
-                .overlay {
+                .ringLabel(lineWidth: 8) {
                     Text(entry.compliance.formatted(.percent.precision(.fractionLength(0))))
                         .font(.system(.headline, design: .rounded, weight: .bold))
                         .monospacedDigit()
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .minimumScaleFactor(0.5)
                         .contentTransition(.numericText(value: entry.compliance))
                         .widgetAccentable()
                 }
@@ -373,7 +373,7 @@ private struct AdherenceMediumView: View {
     var body: some View {
         HStack(spacing: 16) {
             WidgetRing(progress: entry.compliance, tint: protocolTint, lineWidth: 10)
-                .overlay { ringCenter }
+                .ringLabel(lineWidth: 10) { ringCenter }
                 .frame(width: 96, height: 96)
                 // The count beside it says the same thing in words.
                 .accessibilityHidden(true)
@@ -403,7 +403,7 @@ private struct AdherenceMediumView: View {
                 .font(.system(.title3, design: .rounded, weight: .bold))
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.5)
                 .contentTransition(.numericText(value: entry.compliance))
                 .widgetAccentable()
         } else {
