@@ -61,12 +61,14 @@ enum WorkoutProgressEngine {
 
     static func status(for progress: Progress) -> Status {
         guard progress.total > 0, progress.done > 0 else { return .start }
-        switch progress.remaining {
-        case 0: return .allDone
-        case 1: return .lastSet
-        case 2...3: return .almostThere(progress.remaining)
-        default:
-            return progress.percent >= 50 ? .pastHalfway(progress.remaining) : .setsToGo(progress.remaining)
+        // Measured by share done, not sets left: three sets left of four
+        // is a start, not "almost there".
+        switch (progress.remaining, progress.percent) {
+        case (0, _): return .allDone
+        case (1, _): return .lastSet
+        case (let left, 75...): return .almostThere(left)
+        case (let left, 51...): return .pastHalfway(left)
+        case (let left, _): return .setsToGo(left)
         }
     }
 

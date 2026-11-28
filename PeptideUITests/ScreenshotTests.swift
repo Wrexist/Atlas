@@ -486,6 +486,8 @@ final class ScreenshotTests: XCTestCase {
             let second = app.buttons["workout-complete-2"]
             reveal(second)
             second.tap()
+            // The progress line answers the set for a few seconds only.
+            capture(named: "incline-\(appearance)-02a-reward")
             XCTAssertTrue(skip.waitForExistence(timeout: 5))
             scrollToTop()
             capture(named: "incline-\(appearance)-02-rest")

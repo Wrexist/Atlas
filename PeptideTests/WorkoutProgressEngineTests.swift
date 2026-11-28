@@ -53,9 +53,12 @@ final class WorkoutProgressEngineTests: XCTestCase {
         }
         XCTAssertEqual(status(done: 0, of: 10), .start)
         XCTAssertEqual(status(done: 2, of: 10), .setsToGo(8))
-        XCTAssertEqual(status(done: 5, of: 10), .pastHalfway(5))
-        XCTAssertEqual(status(done: 7, of: 10), .almostThere(3))
+        XCTAssertEqual(status(done: 5, of: 10), .setsToGo(5))
+        XCTAssertEqual(status(done: 6, of: 10), .pastHalfway(4))
+        XCTAssertEqual(status(done: 8, of: 10), .almostThere(2))
+        XCTAssertEqual(status(done: 15, of: 20), .almostThere(5))
         XCTAssertEqual(status(done: 9, of: 10), .lastSet)
+        XCTAssertEqual(status(done: 1, of: 4), .setsToGo(3))
         XCTAssertEqual(status(done: 10, of: 10), .allDone)
     }
 
