@@ -26,6 +26,10 @@ struct WorkoutFocusView: View {
             VStack(spacing: Spacing.md) {
                 adjustmentBanner
                 if let entry {
+                    WorkoutProgressHeader(session: session, unit: unit) { exerciseID in
+                        service.previousSessionSets(forExerciseID: exerciseID)
+                    }
+                    .padding(.top, Spacing.sm)
                     WorkoutExerciseHero(exercise: exercise)
                         .id(exercise?.id)
                         .transition(.opacity)
