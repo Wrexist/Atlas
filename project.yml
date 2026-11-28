@@ -322,6 +322,27 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.trainingtests
         GENERATE_INFOPLIST_FILE: YES
+  # Renders the home-screen widgets to images for review. Compiles the
+  # widget sources itself (a test can't be hosted by an app extension),
+  # minus the bundle's `@main`. Run by screenshots.yml only.
+  PeptideWidgetRenderTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: PeptideWidgetTests
+      - path: PeptideWidgets
+        excludes:
+          - "**/.DS_Store"
+          - Info.plist
+          - PeptideWidgets.swift
+          - PeptideWidgets.entitlements
+          - PrivacyInfo.xcprivacy
+          - Localizable.xcstrings
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peptidesai.app.widgetrendertests
+        GENERATE_INFOPLIST_FILE: YES
   PeptideUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -385,6 +406,19 @@ schemes:
       storeKitConfiguration: Peptide/Resources/Products.storekit
       targets:
         - PeptideUITests
+
+  PeptideWidgetRender:
+    build:
+      targets:
+        PeptideWidgetRenderTests: [test]
+    test:
+      config: Debug
+      # Swedish region: "1 279" with its group space is the widest figure
+      # the ring has to hold.
+      language: en
+      region: SE
+      targets:
+        - PeptideWidgetRenderTests
 
   PeptideTrainingValidation:
     build:

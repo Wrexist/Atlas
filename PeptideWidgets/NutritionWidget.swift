@@ -140,18 +140,23 @@ private struct CalorieRing: View {
     }
 
     var body: some View {
+        let parts = segments
         ZStack {
-            Circle().stroke(WidgetPalette.track, lineWidth: lineWidth)
-            ForEach(segments) { segment in
-                Circle()
-                    .trim(from: segment.start, to: segment.end)
-                    .stroke(segment.tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
-                    .rotationEffect(.degrees(-90))
-                    .widgetAccentable()
+            RingGroove(lineWidth: lineWidth)
+            // One raised finish over all the meal segments, so the ring
+            // reads as a single lit tube split by colour.
+            RaisedArc(progress: parts.last?.end ?? 0, lineWidth: lineWidth) {
+                ZStack {
+                    ForEach(parts) { segment in
+                        Circle()
+                            .inset(by: lineWidth / 2)
+                            .trim(from: segment.start, to: segment.end)
+                            .stroke(segment.tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+                            .rotationEffect(.degrees(-90))
+                    }
+                }
             }
         }
-        // Strokes straddle the path; keep the whole ring inside the frame.
-        .padding(lineWidth / 2)
     }
 
     private var segments: [Segment] {
@@ -194,15 +199,14 @@ private struct CalorieCenter: View {
                 .monospacedDigit()
                 .contentTransition(.numericText(value: Double(entry.headline)))
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.4)
                 .widgetAccentable()
             Text(entry.headlineCaption)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(entry.isOver ? WidgetPalette.over : .secondary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.6)
         }
-        .padding(.horizontal, 8)
     }
 }
 
@@ -218,7 +222,14 @@ private struct Macro: Identifiable {
 
     var progress: Double { target > 0 ? Double(grams) / Double(target) : 0 }
 
-    var amount: String { target > 0 ? "\(grams) / \(target) g" : "\(grams) g" }
+    var isOver: Bool { target > 0 && grams > target }
+
+    var amount: String {
+        target > 0 ? "\(grams.formatted()) / \(target.formatted()) g" : "\(grams.formatted()) g"
+    }
+
+    /// "68", or "1.9K" once a figure stops fitting a third of a small widget.
+    var compactGrams: String { grams.formatted(.number.notation(.compactName)) }
 
     /// "Protein 95 of 150 grams" — `amount` reads as "95 slash 150 g".
     var spokenAmount: Text {
@@ -246,16 +257,16 @@ private struct CompactMacro: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            WidgetBar(progress: macro.progress, tint: macro.tint, height: 3)
+            WidgetBar(progress: macro.progress, tint: macro.tint, height: 3, showsOverflow: true)
             HStack(spacing: 2) {
-                Text("\(macro.grams)")
+                Text(macro.compactGrams)
                     .font(.caption2.weight(.bold).monospacedDigit())
                     .contentTransition(.numericText(value: Double(macro.grams)))
                 MacroIcon(macro.kind, size: 10, relativeTo: .caption2)
                     .foregroundStyle(macro.tint)
             }
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
+            .minimumScaleFactor(0.6)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(Text(macro.name)) \(macro.grams) grams"))
@@ -274,20 +285,25 @@ private struct MacroRow: View {
                 Spacer(minLength: 4)
                 Text(macro.amount)
                     .font(.caption2.weight(.semibold).monospacedDigit())
+                    // Past the target the figure takes the macro's colour,
+                    // matching the deeper overflow on the bar below. Not the
+                    // warning colour: more protein than planned isn't a fault.
+                    .foregroundStyle(macro.isOver ? macro.tint : .primary)
                     .contentTransition(.numericText(value: Double(macro.grams)))
             }
             .lineLimit(1)
             // "Kolhydrater" next to "180 / 250 g" outgrows the column.
             .minimumScaleFactor(0.7)
-            WidgetBar(progress: macro.progress, tint: macro.tint)
+            WidgetBar(progress: macro.progress, tint: macro.tint, showsOverflow: true)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(macro.spokenAmount)
     }
 }
 
-/// Four meal glyphs, lit once that meal has something logged — the day's
-/// shape in one row.
+/// Four meal glyphs, lit in their ring colour once that meal has
+/// something logged: the key to the ring's segments, and the day's shape
+/// in one row.
 private struct MealStrip: View {
     let meals: [WidgetMealSlot]
 
@@ -298,9 +314,9 @@ private struct MealStrip: View {
                     && meals[meal.rawValue].entryCount > 0
                 Image(systemName: meal.glyph)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(logged ? meal.tint : Color.secondary.opacity(0.5))
+                    .foregroundStyle(logged ? meal.tint : Color.secondary)
                     .frame(width: 22, height: 22)
-                    .background(Circle().fill(logged ? meal.tint.opacity(0.18) : WidgetPalette.track))
+                    .raisedDisc(logged ? meal.tint.opacity(0.18) : WidgetPalette.track)
                     .widgetAccentable(logged)
             }
         }
@@ -318,7 +334,7 @@ private struct MealStrip: View {
 
 // MARK: - Home screen
 
-private struct SmallNutritionView: View {
+struct SmallNutritionView: View {
     let entry: NutritionEntry
 
     var body: some View {
@@ -326,7 +342,7 @@ private struct SmallNutritionView: View {
             WidgetHeader(glyph: "fork.knife", title: "Nutrition", tint: WidgetPalette.accent)
             Spacer(minLength: 6)
             CalorieRing(entry: entry)
-                .overlay { CalorieCenter(entry: entry, large: false) }
+                .ringLabel(lineWidth: 8) { CalorieCenter(entry: entry, large: false) }
                 .calorieAccessibility(entry)
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: 80, maxHeight: 80)
@@ -340,7 +356,7 @@ private struct SmallNutritionView: View {
     }
 }
 
-private struct MediumNutritionView: View {
+struct MediumNutritionView: View {
     let entry: NutritionEntry
 
     var body: some View {
@@ -351,7 +367,7 @@ private struct MediumNutritionView: View {
             // 78pt ring plus the targets.
             VStack(spacing: 0) {
                 CalorieRing(entry: entry, lineWidth: 9)
-                    .overlay { CalorieCenter(entry: entry, large: true) }
+                    .ringLabel(lineWidth: 9) { CalorieCenter(entry: entry, large: true) }
                     .calorieAccessibility(entry)
                     .aspectRatio(1, contentMode: .fit)
                     .frame(maxWidth: 78, maxHeight: 78)
@@ -378,10 +394,10 @@ private struct MediumNutritionView: View {
                     glyph: "fork.knife",
                     title: "Nutrition",
                     tint: WidgetPalette.accent,
-                    trailing: totalLabel,
                     trailingAccessibilityLabel: entry.target > 0
                         ? Text("\(entry.calories) of \(entry.target) calories")
-                        : nil
+                        : nil,
+                    trailingText: totalLabel
                 )
                 VStack(spacing: 4) {
                     ForEach(Macro.all(entry)) { MacroRow(macro: $0) }
@@ -393,10 +409,15 @@ private struct MediumNutritionView: View {
         .widgetBackdrop(WidgetPalette.accent)
     }
 
-    private var totalLabel: String {
-        entry.target > 0
-            ? "\(entry.calories.formatted()) / \(entry.target.formatted())"
-            : "\(entry.calories.formatted()) kcal"
+    /// "1 296 / 2 575 kcal": what was eaten leads in the primary colour,
+    /// the budget follows in secondary, so the figure reads at a glance
+    /// without competing with the ring.
+    private var totalLabel: Text {
+        var eaten = AttributedString(entry.calories.formatted())
+        eaten.foregroundColor = Color.primary
+        var rest = AttributedString(entry.target > 0 ? " / \(entry.target.formatted()) kcal" : " kcal")
+        rest.foregroundColor = Color.secondary
+        return Text(eaten + rest)
     }
 }
 
@@ -415,7 +436,7 @@ private struct QuickActionGlyph: View {
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(WidgetPalette.accent)
             .frame(width: 32, height: 32)
-            .background(Circle().fill(WidgetPalette.accent.opacity(0.16)))
+            .raisedDisc(WidgetPalette.accent.opacity(0.16))
             .frame(width: Self.hitTarget, height: Self.hitTarget)
             .contentShape(Rectangle())
     }

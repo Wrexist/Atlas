@@ -182,8 +182,8 @@ private struct WeekStrip: View {
         HStack(spacing: 0) {
             ForEach(days, id: \.date) { day in
                 VStack(spacing: 3) {
-                    Circle()
-                        .fill(day.trained ? trainingTint : WidgetPalette.track)
+                    Color.clear
+                        .raisedDisc(day.trained ? trainingTint : WidgetPalette.track)
                         .overlay {
                             if day.isToday && !day.trained {
                                 Circle().strokeBorder(trainingTint, lineWidth: 1.5)
