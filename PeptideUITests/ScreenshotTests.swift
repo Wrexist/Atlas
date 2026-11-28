@@ -499,7 +499,7 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(addSet.waitForExistence(timeout: 10))
             for _ in 0..<2 { reveal(addSet); addSet.tap() }
             for index in 1...3 {
-                replaceField("workout-weight-\(index)", with: "22.5")
+                replaceField("workout-weight-\(index)", with: "25")
                 replaceField("workout-reps-\(index)", with: "10")
             }
             let skip = app.buttons["Skip"]
