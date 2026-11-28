@@ -471,6 +471,69 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// The live muscle progress card under the set panel: two lifts, the
+    /// first one two sets in, so the map, percentage and bars all show.
+    func test_captureWorkoutMuscleProgress() {
+        for appearance in ["light", "dark"] {
+            launch(appearance: appearance)
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+            app.dismissOverlaysIfNeeded()
+            let train = app.tabBars.buttons["Train"]
+            XCTAssertTrue(train.waitForExistence(timeout: 10))
+            train.tap()
+            app.dismissOverlaysIfNeeded()
+            discardLeftoverWorkout()
+            let start = app.buttons["Empty workout"]
+            reveal(start)
+            start.tap()
+            let add = app.buttons["Add exercise"].firstMatch
+            XCTAssertTrue(add.waitForExistence(timeout: 10))
+            add.tap()
+            addExercise("Dumbbell Bicep Curl")
+            app.buttons["workout-options"].tap()
+            let addMore = app.buttons["Add exercise"].firstMatch
+            XCTAssertTrue(addMore.waitForExistence(timeout: 5))
+            addMore.tap()
+            addExercise("Incline Dumbbell Press")
+            let addSet = app.buttons["Add set"]
+            XCTAssertTrue(addSet.waitForExistence(timeout: 10))
+            for _ in 0..<2 { reveal(addSet); addSet.tap() }
+            for index in 1...3 {
+                replaceField("workout-weight-\(index)", with: "22.5")
+                replaceField("workout-reps-\(index)", with: "10")
+            }
+            let skip = app.buttons["Skip"]
+            for index in 1...2 {
+                let complete = app.buttons["workout-complete-\(index)"]
+                reveal(complete)
+                complete.tap()
+                XCTAssertTrue(skip.waitForExistence(timeout: 5))
+                reveal(skip)
+                skip.tap()
+            }
+            let header = app.staticTexts["Muscles this workout"]
+            reveal(header)
+            capture(named: "muscle-progress-\(appearance)-01-map")
+            app.swipeUp()
+            capture(named: "muscle-progress-\(appearance)-02-bars")
+            discardActiveWorkout()
+            app.terminate()
+        }
+    }
+
+    private func addExercise(_ name: String) {
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        search.typeText(name)
+        let exercise = app.staticTexts[name].firstMatch
+        XCTAssertTrue(exercise.waitForExistence(timeout: 10))
+        exercise.tap()
+        let commit = app.buttons["Add (1)"]
+        XCTAssertTrue(commit.waitForExistence(timeout: 5))
+        commit.tap()
+    }
+
     func test_capturePremiumTrainingContinuity() {
         launch(appearance: "dark")
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
