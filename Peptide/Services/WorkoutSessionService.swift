@@ -953,10 +953,15 @@ final class WorkoutSessionService {
         persist(session)
     }
 
+    /// Ends a rest that has run out without moving to the exercise it was
+    /// counting down to. It runs out most often while the app is in the
+    /// background, and coming back must reopen the exercise the user left
+    /// on; only an explicit skip or "Next exercise" moves on.
     func reconcileRest(now: Date = Date()) {
-        guard let session = activeSession, !session.isPaused,
+        guard var session = activeSession, !session.isPaused,
               let rest = session.focus?.rest, rest.remaining(at: now) <= 0 else { return }
-        skipRest()
+        session.focus?.rest = nil
+        persist(session)
     }
 
     // MARK: - Watch
