@@ -255,7 +255,7 @@ struct ActiveWorkoutView: View {
                         Button("Done") { commitWorkoutName(); showOverview = false }
                             .accessibilityIdentifier("workout-overview-done")
                     }
-                    // The set rows' decimal and number pads have no return key.
+                    // The workout name and notes fields close their keyboard here.
                     ToolbarItemGroup(placement: .keyboard) {
                         Spacer()
                         Button("Done") {
@@ -356,6 +356,7 @@ struct ActiveWorkoutView: View {
                             sessionService.previousSessionSets(forExerciseID: entry.exerciseID)
                         },
                         progression: sessionService.progression(for: entry),
+                        stepKg: sessionService.incrementKg(forExerciseID: entry.exerciseID),
                         defaultRestSeconds: defaultRestSeconds,
                         supersetLetter: session.supersetLetter(for: entry.id),
                         canSupersetWithNext: session.entryBelow(entry.id).map {

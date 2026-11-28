@@ -812,7 +812,9 @@ final class WorkoutSessionService {
         return ProgressionEngine.adjusted(suggestion, for: adjustment, incrementKg: increment)
     }
 
-    private func incrementKg(forExerciseID id: String) -> Double? {
+    /// The exercise's smallest load jump in kilograms, from its equipment
+    /// and the user's lightest plates; nil where load isn't comparable.
+    func incrementKg(forExerciseID id: String) -> Double? {
         let profile = DataStore.current?.profile
         let unit = profile?.bodyMetrics.unit ?? .metric
         let plates = (profile?.trainingPreferences ?? TrainingPreferences()).plates(for: unit)

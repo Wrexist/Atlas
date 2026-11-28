@@ -366,7 +366,9 @@ struct WorkoutFocusView: View {
                         previousSet: hints[set.id], displayNumber: entry.workingNumber(of: set), unit: unit,
                         onDelete: { service.removeSet(setID: set.id, fromExerciseEntryID: entry.id) },
                         focusStyle: true, isCurrent: entry.nextSetToDo?.id == set.id,
-                        isPaused: session.isPaused
+                        isPaused: session.isPaused,
+                        stepKg: service.incrementKg(forExerciseID: entry.exerciseID),
+                        bar: exercise?.equipmentKind.bar
                     )
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }

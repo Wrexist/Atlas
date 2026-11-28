@@ -1,10 +1,9 @@
 import SwiftUI
 
 /// Single-set row inside the active-workout exercise card. Renders
-/// the set index, an editable weight in the user's unit, an editable
-/// reps count,
-/// optional RPE, the "previous session" hint when available, and a
-/// completion checkbox.
+/// the set index, the weight in the user's unit and the reps — a tap on
+/// either opens `SetValuePickerSheet`'s wheels — the "previous session"
+/// hint when available, and a completion checkbox.
 ///
 /// Set logging optimises for taps-to-completion: prev values are
 /// pre-filled by `WorkoutSessionService.addSet`, so the user often
@@ -23,6 +22,11 @@ struct SetEditorRow: View {
     var focusStyle = false
     var isCurrent = false
     var isPaused = false
+    /// The equipment's smallest jump in kilograms, for the picker's
+    /// minus and plus buttons; nil where none applies.
+    var stepKg: Double?
+    /// The exercise's bar, so the picker shows the plates as weight turns.
+    var bar: BarKind?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -30,8 +34,7 @@ struct SetEditorRow: View {
     @ScaledMetric(relativeTo: .callout) private var compactWeightWidth: CGFloat = 60
     @ScaledMetric(relativeTo: .callout) private var compactRepsWidth: CGFloat = 48
     @ScaledMetric(relativeTo: .callout) private var compactInputHeight: CGFloat = Spacing.minimumHitTarget
-    @FocusState private var weightFocused: Bool
-    @FocusState private var repsFocused: Bool
+    @State private var pickerField: SetValuePickerSheet.Field?
     @State private var completionTrigger = 0
 
     var body: some View {
@@ -72,8 +75,12 @@ struct SetEditorRow: View {
         .onChange(of: set.completed) { _, completed in
             if completed { completionTrigger &+= 1 }
         }
-        // Focus mode has an explicit index menu. A second menu on the whole
-        // row competes with the TextField's long-press selection gesture.
+        .sheet(item: $pickerField) { field in
+            SetValuePickerSheet(set: $set, title: pickerTitle, unit: unit, stepKg: stepKg,
+                                bar: bar, previousSet: previousSet, initialField: field)
+        }
+        // Focus mode has an explicit index menu; the compact row keeps
+        // its options on a long press.
         .contextMenu {
             if !focusStyle {
                 Button(action: toggleWarmup) {
@@ -168,74 +175,76 @@ struct SetEditorRow: View {
     }
 
     private var weightField: some View {
-        HStack(spacing: Spacing.xs) {
-            TextField(unit.weightSuffix,
-                      value: Binding(
-                        get: { unit.weightForDisplay(set.weightKg) },
-                        set: { set.weightKg = SetEntryLimits.clampWeightKg(unit.kilograms(fromDisplayed: $0)) }
-                      ),
-                      format: .number.precision(.fractionLength(0...2)))
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.center)
-                .font(AppFont.callout.weight(.semibold))
-                .foregroundStyle(fieldInk)
-                .monospacedDigit()
-                .focused($weightFocused)
-                .accessibilityIdentifier("workout-weight-\(set.index)")
-                .accessibilityLabel(displayNumber.map { Text("Weight for set \($0)") } ?? Text("Weight for warm-up set"))
-                .accessibilityValue(Text("\(unit.weightValue(set.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit)"))
-            if focusStyle {
-                Text(unit.weightSuffix).font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
-                    .accessibilityHidden(true)
+        Button { openPicker(.weight) } label: {
+            HStack(spacing: Spacing.xs) {
+                Text(verbatim: unit.weightValue(set.weightKg, fractionDigits: 0...2))
+                    .font(AppFont.callout.weight(.semibold))
+                    .foregroundStyle(fieldInk)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if focusStyle {
+                    Text(unit.weightSuffix).font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
+                }
             }
-        }
             .frame(width: focusStyle ? nil : compactWeightWidth, height: focusStyle ? inputHeight : compactInputHeight)
             .frame(maxWidth: focusStyle ? .infinity : nil)
             .padding(.horizontal, focusStyle ? Spacing.sm : 0)
-            .background(
-                RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
-                    .fill(focusStyle ? AppColor.surfaceSecondary : AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
-                    .stroke(weightFocused ? AppColor.accentPrimary : AppColor.glassBorder,
-                            lineWidth: weightFocused ? 1 : 0.5)
-            )
+            .background(fieldShape.fill(fieldFill))
+            .overlay(fieldOutline(isEditing: pickerField == .weight))
+            .contentShape(fieldShape)
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityIdentifier("workout-weight-\(set.index)")
+        .accessibilityLabel(displayNumber.map { Text("Weight for set \($0)") } ?? Text("Weight for warm-up set"))
+        .accessibilityValue(Text("\(unit.weightValue(set.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit)"))
+        .accessibilityHint(Text("Opens wheels to drag the weight and reps up or down"))
     }
 
     private var repsField: some View {
-        TextField("reps",
-                  value: Binding(
-                    get: { set.reps },
-                    set: { set.reps = SetEntryLimits.clampReps($0) }
-                  ),
-                  format: .number)
-            .keyboardType(.numberPad)
-            .multilineTextAlignment(.center)
-            .font(AppFont.callout.weight(.semibold))
-            .foregroundStyle(fieldInk)
-            .monospacedDigit()
-            .focused($repsFocused)
-            .accessibilityIdentifier("workout-reps-\(set.index)")
-            .frame(width: focusStyle ? nil : compactRepsWidth, height: focusStyle ? inputHeight : compactInputHeight)
-            .frame(maxWidth: focusStyle ? .infinity : nil)
-            .background(
-                RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
-                    .fill(focusStyle ? AppColor.surfaceSecondary : AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
-                    .stroke(repsFocused ? AppColor.accentPrimary : AppColor.glassBorder,
-                            lineWidth: repsFocused ? 1 : 0.5)
-            )
-            .accessibilityLabel(displayNumber.map { Text("Reps for set \($0)") } ?? Text("Reps for warm-up set"))
-            .accessibilityValue(Text("^[\(set.reps) rep](inflect: true)"))
+        Button { openPicker(.reps) } label: {
+            Text(verbatim: "\(set.reps)")
+                .font(AppFont.callout.weight(.semibold))
+                .foregroundStyle(fieldInk)
+                .monospacedDigit()
+                .lineLimit(1)
+                .frame(width: focusStyle ? nil : compactRepsWidth, height: focusStyle ? inputHeight : compactInputHeight)
+                .frame(maxWidth: focusStyle ? .infinity : nil)
+                .background(fieldShape.fill(fieldFill))
+                .overlay(fieldOutline(isEditing: pickerField == .reps))
+                .contentShape(fieldShape)
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityIdentifier("workout-reps-\(set.index)")
+        .accessibilityLabel(displayNumber.map { Text("Reps for set \($0)") } ?? Text("Reps for warm-up set"))
+        .accessibilityValue(Text("^[\(set.reps) rep](inflect: true)"))
+        .accessibilityHint(Text("Opens wheels to drag the weight and reps up or down"))
+    }
+
+    private var fieldShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
+    }
+
+    private var fieldFill: Color {
+        focusStyle ? AppColor.surfaceSecondary : AppColor.surfaceSecondary.opacity(0.6)
+    }
+
+    /// The accent ring marks which value the open picker was opened from.
+    private func fieldOutline(isEditing: Bool) -> some View {
+        fieldShape.stroke(isEditing ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: isEditing ? 1 : 0.5)
+    }
+
+    private func openPicker(_ field: SetValuePickerSheet.Field) {
+        Haptics.selection()
+        pickerField = field
+    }
+
+    private var pickerTitle: Text {
+        displayNumber.map { Text("Set \($0)") } ?? Text("Warm-up set")
     }
 
     private var completionToggle: some View {
         Button {
-            weightFocused = false
-            repsFocused = false
             if !set.completed { Haptics.impact(.medium) }
             else { Haptics.selection() }
             set.completed.toggle()
