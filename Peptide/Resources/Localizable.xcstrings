@@ -131,6 +131,16 @@
         }
       }
     },
+    "%@, %lld of %lld sets": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld av %3$lld set"
+          }
+        }
+      }
+    },
     "%@, %lld of %lld sets this week": {
       "localizations": {
         "sv": {
@@ -4043,6 +4053,16 @@
         }
       }
     },
+    "%lld percent of the workout done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld procent av passet klart"
+          }
+        }
+      }
+    },
     "%lld percent, %@ to %@": {
       "localizations": {
         "sv": {
@@ -4375,6 +4395,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%lld sets to go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld set kvar"
           }
         }
       }
@@ -5508,6 +5538,16 @@
         }
       }
     },
+    "1 set to go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 set kvar"
+          }
+        }
+      }
+    },
     "1 week apart": {
       "localizations": {
         "sv": {
@@ -6198,6 +6238,16 @@
         }
       }
     },
+    "Add sets to see your muscles fill in.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till set för att se musklerna fyllas på."
+          }
+        }
+      }
+    },
     "Add supplements": {
       "localizations": {
         "sv": {
@@ -6234,6 +6284,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Alla måltider"
+          }
+        }
+      }
+    },
+    "All sets done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla set klara"
           }
         }
       }
@@ -7650,6 +7710,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "På morgonen för att aktivera immunförsvaret"
+          }
+        }
+      }
+    },
+    "Muscles this workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muskler i passet"
           }
         }
       }

@@ -34,6 +34,7 @@ struct WorkoutFocusView: View {
                         .padding(.top, Spacing.sm)
                     exerciseStrip
                     setPanel(entry)
+                    WorkoutMuscleProgressCard(session: session)
                 } else {
                     EmptyStateView(
                         icon: "dumbbell", title: "Your workout starts here",
