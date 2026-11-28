@@ -471,7 +471,7 @@ struct SessionBuilderSheet: View {
     /// deload note.
     private func notes(_ built: Built) -> some View {
         let added = built.plan.added.map(\.displayName).formatted(.list(type: .and))
-        VStack(alignment: .leading, spacing: Spacing.xs) {
+        return VStack(alignment: .leading, spacing: Spacing.xs) {
             note("arrow.triangle.2.circlepath", Text("Swipe an exercise left to swap it for the next best."))
             if !built.plan.added.isEmpty {
                 note("plus.circle", Text("Added \(added) to fill your \(minutes) minutes."))
