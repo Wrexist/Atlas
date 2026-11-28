@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Today's lifestyle overview: meal streak and check-in tiles, plus a
+/// Today's lifestyle overview: the minimum-day week tile, plus a
 /// calorie tile only while no target is set (with one, calories and
 /// water live in the hero card's bars), and the rotating daily insight. Doses
 /// are deliberately absent — they have one home on Today, the
@@ -23,7 +23,7 @@ struct TodayOverviewCard: View {
     var isToday = true
 
     enum Tile {
-        case calories, mealStreak
+        case calories, minimumDay
     }
 
     var body: some View {
@@ -45,13 +45,13 @@ struct TodayOverviewCard: View {
     // MARK: - Stats grid
 
     /// One row that splits its width between the tiles shown, so a lone
-    /// meal-streak tile spans the card instead of leaving half of it empty.
+    /// minimum-day tile spans the card instead of leaving half of it empty.
     private var statsGrid: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             if snapshot.calorieTarget == nil {
                 tileButton(.calories, hint: "Opens your calorie target or Meals") { caloriesTile }
             }
-            tileButton(.mealStreak, hint: "Opens Meals") { mealStreakTile }
+            tileButton(.minimumDay, hint: "Opens your minimum day") { minimumDayTile }
         }
     }
 
@@ -98,18 +98,37 @@ struct TodayOverviewCard: View {
         return isToday ? String(localized: "Set a target") : String(localized: "No calories logged")
     }
 
-    private var mealStreakTile: some View {
-        StatTile(
-            label: "Meal streak",
-            value: snapshot.mealStreak > 0 ? "\(snapshot.mealStreak)" : "—",
-            icon: "flame.fill",
+    /// Days met this week out of five. Never a zero: an empty week reads
+    /// as a fresh start, and the footnote names the next step.
+    private var minimumDayTile: some View {
+        let minimum = snapshot.minimum
+        return StatTile(
+            label: "Minimum day",
+            // Capped at the goal: a kept week is a kept week, not "7/5".
+            value: minimum.metThisWeek > 0 ? "\(min(minimum.metThisWeek, MinimumDay.weeklyGoal))/\(MinimumDay.weeklyGoal)" : "—",
+            icon: "checkmark.circle",
             tint: AppColor.accentPrimary,
-            footnote: snapshot.mealStreak == 1
-                ? String(localized: "day")
-                : (snapshot.mealStreak > 1
-                    ? String(localized: "days in a row")
-                    : (isToday ? String(localized: "Log to start") : String(localized: "No streak")))
+            footnote: minimumFootnote,
+            progress: minimum.weekProgress,
+            accessibilityLabel: minimum.metThisWeek > 0
+                ? String(localized: "Minimum day, \(minimum.metThisWeek) of \(MinimumDay.weeklyGoal) days this week. \(minimumFootnote)")
+                : String(localized: "Minimum day. \(minimumFootnote)")
         )
+    }
+
+    private var minimumFootnote: String {
+        guard isToday else {
+            return snapshot.minimum.status == .doneToday
+                ? String(localized: "Minimum met")
+                : String(localized: "Minimum not met")
+        }
+        return switch snapshot.minimum.status {
+        case .doneToday: String(localized: "Done today")
+        case .start: String(localized: "Do the minimum to count today")
+        case .newWeek: String(localized: "New week. Start with the minimum")
+        case .newDay: String(localized: "New day. Do the minimum")
+        case .keepGoing: String(localized: "this week")
+        }
     }
 
     // MARK: - Bottom insight
@@ -170,6 +189,7 @@ struct TodayOverviewCard: View {
                 calorieTarget: 2400,
                 waterToday: 48,
                 mealStreak: 7,
+                minimum: .init(metThisWeek: 3, total: 21, status: .keepGoing),
                 checkInScore: 4.2,
                 latestLab: nil,
                 bottomInsight: .nudge(
@@ -195,6 +215,7 @@ struct TodayOverviewCard: View {
                 calorieTarget: nil,
                 waterToday: 0,
                 mealStreak: 0,
+                minimum: .init(metThisWeek: 0, total: 0, status: .start),
                 checkInScore: nil,
                 latestLab: nil,
                 bottomInsight: nil

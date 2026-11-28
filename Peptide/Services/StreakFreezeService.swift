@@ -2,9 +2,9 @@ import Foundation
 
 /// Streak freeze accounting. One free freeze per calendar month
 /// (rolling reset on the 1st), redeemable as a shield against a
-/// single missed day. The freeze is consumed when the user
-/// explicitly taps "Use freeze" on the at-risk prompt — never
-/// automatically — so it can't be silently spent.
+/// single missed day. `DataStore.forgiveMissedDayIfNeeded` spends it
+/// by itself on the day a meal or habit streak would otherwise lose:
+/// remembering to tap a button is the hard part with ADHD.
 ///
 /// Pure-function over the profile's `streakFreezeDays` set, which
 /// stores the local calendar dates (`yyyyMMdd`) the streak engine
@@ -17,8 +17,7 @@ enum StreakFreezeService {
     static let freezesPerMonth: Int = 1
 
     /// True when the user has at least one unused freeze this
-    /// month. Drives whether the at-risk prompt shows the
-    /// freeze button.
+    /// month.
     static func hasFreezeAvailable(
         in profile: UserProfile,
         now: Date = Date(),

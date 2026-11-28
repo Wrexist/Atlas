@@ -1835,42 +1835,84 @@ final class DataStore {
 
     // MARK: - Streak freeze
 
-    /// True when the user has a freeze available this calendar
-    /// month. Drives the at-risk prompt's "Use freeze" button.
-    var streakFreezeAvailable: Bool {
-        StreakFreezeService.hasFreezeAvailable(in: profile)
-    }
-
-    /// Spends one freeze on the given calendar day (defaults to
-    /// yesterday — the day the user is trying to shield). Returns
-    /// true on success; false when no freeze is available or the
-    /// day is already covered.
-    @discardableResult
-    func applyStreakFreeze(for date: Date = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()) -> Bool {
-        let applied = StreakFreezeService.applyFreeze(in: &profile, for: date)
-        if applied {
-            // currentStreak / bestStreak now consult the freeze set —
-            // bump the cache version so they recompute (profile
-            // mutations don't auto-bump it the way protocols/entries do).
-            cacheVersion &+= 1
-            save()
-        }
-        return applied
-    }
-
-    /// True when a freeze is available AND a meaningful habit streak would be
-    /// lost because yesterday (a due day) was missed and isn't already
-    /// frozen — so spending a freeze on yesterday would save it. Drives the
-    /// Habits tab's "Streak at risk" prompt. The per-habit walk runs only
-    /// when a freeze is actually available (at most once a month), so it
-    /// stays off the common render path.
-    var habitStreakAtRisk: Bool {
-        guard streakFreezeAvailable else { return false }
-        return HabitsService.streakAtRisk(
+    /// Spends the month's freeze on yesterday by itself when that keeps a
+    /// meal or habit streak of two or more alive. Forgiveness shouldn't
+    /// need remembering: a missed day is covered without a prompt, at
+    /// most once a calendar month.
+    func forgiveMissedDayIfNeeded(now: Date = Date()) {
+        let calendar = Calendar.current
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: now) else { return }
+        var forgiven = profile
+        guard StreakFreezeService.applyFreeze(in: &forgiven, for: yesterday, calendar: calendar) else { return }
+        let mealsNow = LifestyleDataLogic.mealLoggingStreak(in: profile, asOf: now)
+        let mealsForgiven = LifestyleDataLogic.mealLoggingStreak(in: forgiven, asOf: now)
+        let savesMeals = mealsForgiven >= 2 && mealsForgiven > mealsNow
+        let savesHabits = HabitsService.streakAtRisk(
             habits: activeHabits,
             entries: profile.habitEntries,
-            frozenDayKeys: profile.streakFreezeDays
+            frozenDayKeys: profile.streakFreezeDays,
+            on: now,
+            calendar: calendar
         )
+        guard savesMeals || savesHabits else { return }
+        profile.streakFreezeDays = forgiven.streakFreezeDays
+        // The streaks read the freeze set; profile edits don't bump the
+        // cache version on their own.
+        cacheVersion &+= 1
+        save()
+    }
+
+    // MARK: - Minimum day
+
+    var minimumDay: MinimumDay { profile.minimumDay ?? .default }
+
+    func setMinimumDayParts(_ parts: Set<MinimumDay.Part>) {
+        var updated = minimumDay
+        updated.parts = parts
+        profile.minimumDay = updated
+        save()
+    }
+
+    /// The day's facts for the minimum. `steps` is nil without Health.
+    func minimumDayInput(for day: Date, steps: Double?) -> MinimumDayEngine.DayInput {
+        MinimumDayEngine.DayInput(
+            mealsLogged: LifestyleDataLogic.mealEntries(in: profile, for: day).count,
+            proteinG: consumption(for: day).proteinG,
+            proteinTargetG: profile.nutritionTargets?.proteinG,
+            steps: steps,
+            checkedIn: outcome(for: day) != nil
+        )
+    }
+
+    func minimumDaySummary(todaySteps: Double?, now: Date = Date()) -> MinimumDayEngine.Summary {
+        MinimumDayEngine.summary(
+            metDayKeys: minimumDay.metDayKeys,
+            metToday: MinimumDayEngine.isMet(minimumDayInput(for: now, steps: todaySteps), parts: minimumDay.parts),
+            now: now,
+            calendar: .current
+        )
+    }
+
+    /// Records each of the last seven days that met the minimum, so a
+    /// protein target reached late last night still counts. Only adds:
+    /// a recorded day stays in the total. `stepsOn` returns nil without
+    /// Health. True when a day was added.
+    @discardableResult
+    func recordMinimumDays(now: Date = Date(), stepsOn: (Date) -> Double?) -> Bool {
+        let calendar = Calendar.current
+        var keys = minimumDay.metDayKeys
+        for offset in 0..<7 {
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: now),
+                  MinimumDayEngine.isMet(minimumDayInput(for: day, steps: stepsOn(day)), parts: minimumDay.parts)
+            else { continue }
+            keys.insert(DayKey.compact(day, calendar: calendar))
+        }
+        guard keys != minimumDay.metDayKeys else { return false }
+        var updated = minimumDay
+        updated.metDayKeys = keys
+        profile.minimumDay = updated
+        save()
+        return true
     }
 
     // MARK: - Recipes
@@ -3290,6 +3332,7 @@ final class DataStore {
         // scheduled entries before the status change lands.
         performCycleAutoCompletion()
         regenerateTodayEntries()
+        forgiveMissedDayIfNeeded(now: now)
         // Today, the widget and the Watch read the saved targets, so they
         // follow the estimate without waiting for the Meals view to appear.
         refreshAdaptiveTargets(asOf: now)

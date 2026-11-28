@@ -24,6 +24,7 @@ enum ProfileMergeEngine {
         merged.avatarImageData = merged.avatarImageData ?? other.avatarImageData
         merged.nutritionTargets = merged.nutritionTargets ?? other.nutritionTargets
         merged.adaptiveTargets = merged.adaptiveTargets ?? other.adaptiveTargets
+        merged.minimumDay = mergeMinimumDay(primary.minimumDay, other.minimumDay)
         merged.trainingPreferences = merged.trainingPreferences ?? other.trainingPreferences
         merged.goalDate = merged.goalDate ?? other.goalDate
 
@@ -57,6 +58,14 @@ enum ProfileMergeEngine {
         merged.momentumHistory = union(primary.momentumHistory, other.momentumHistory).sorted { $0.date < $1.date }
 
         mergeMeals(from: other, into: &merged, primary: primary)
+        return merged
+    }
+
+    /// The newer row's chosen parts, with the met days of both: a day
+    /// met on either copy stays in the total.
+    private static func mergeMinimumDay(_ primary: MinimumDay?, _ other: MinimumDay?) -> MinimumDay? {
+        guard var merged = primary ?? other else { return nil }
+        merged.metDayKeys = (primary?.metDayKeys ?? []).union(other?.metDayKeys ?? [])
         return merged
     }
 
@@ -200,6 +209,26 @@ enum ProfileMergeEngine {
             )
         }
 
+        /// The minimum day: met days from both copies (a met day is never
+        /// lost), the chosen parts taken from `remote` unless this device
+        /// changed them. Recording a day alone doesn't count as choosing
+        /// parts, so it can't overwrite a choice made elsewhere.
+        static var minimumDay: BlobField {
+            BlobField(
+                changed: { $0.minimumDay != $1.minimumDay },
+                rebase: { merged, baseline, remote in
+                    let local = merged.minimumDay
+                    guard local != nil || remote.minimumDay != nil else { return }
+                    let localParts = (local ?? .default).parts
+                    let choseHere = localParts != (baseline.minimumDay ?? .default).parts
+                    merged.minimumDay = MinimumDay(
+                        parts: choseHere ? localParts : (remote.minimumDay ?? .default).parts,
+                        metDayKeys: (local?.metDayKeys ?? []).union(remote.minimumDay?.metDayKeys ?? [])
+                    )
+                }
+            )
+        }
+
         /// A set of ids (favourites): this device's adds and removals since
         /// `baseline` replayed onto `remote`, so two devices hearting
         /// different things both keep theirs.
@@ -271,6 +300,7 @@ enum ProfileMergeEngine {
             .of(\.lastKnownTimezoneIdentifier), .idSet(\.streakFreezeDays), .of(\.biologyConfig),
             .of(\.todayLayout), .of(\.trainingPreferences), .of(\.weeklySummaryEnabled),
             .of(\.weeklySummaryOptInConfirmed), .of(\.goalDate), .keyed(\.workoutTypeOverrides),
+            .minimumDay,
         ]
     }
 
