@@ -436,10 +436,11 @@ final class ScreenshotTests: XCTestCase {
             let addSet = app.buttons["Add set"]
             XCTAssertTrue(addSet.waitForExistence(timeout: 10))
             for _ in 0..<3 { reveal(addSet); addSet.tap() }
-            for index in 1...4 {
-                replaceField("workout-weight-\(index)", with: index <= 2 ? "22.5" : "25")
-                replaceField("workout-reps-\(index)", with: index <= 2 ? "10" : "8")
-            }
+            // Only the first set is typed: the rest take its load by
+            // carry-forward, and replacing a carried value is where the
+            // simulator's text selection kept failing.
+            replaceField("workout-weight-1", with: "22.5")
+            replaceField("workout-reps-1", with: "10")
             let first = app.buttons["workout-complete-1"]
             reveal(first)
             first.tap()
@@ -1069,7 +1070,9 @@ final class ScreenshotTests: XCTestCase {
         XCTFail("Expected \(value), found \(stored)")
     }
 
-    /// Selects a field's whole value so typing replaces it.
+    /// Selects a field's whole value so typing replaces it. A trailing-edge
+    /// tap can land between the digits of right-aligned numeric text, which
+    /// leaves part of the old value behind after a run of deletes.
     private func selectAll(in field: XCUIElement) {
         field.tap()
         field.press(forDuration: 1.2)
@@ -1077,11 +1080,8 @@ final class ScreenshotTests: XCTestCase {
         if selectAll.waitForExistence(timeout: 2) {
             selectAll.tap()
         } else {
-            // A double tap selects one token of "22.52" only, and the caret
-            // a single tap leaves can sit before the digits. A triple tap
-            // selects the whole line; the deletes clear it either way.
-            field.tap(withNumberOfTaps: 3, numberOfTouches: 1)
-            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 10))
+            // Numeric fields can select their entire single token on double tap.
+            field.doubleTap()
         }
     }
 
