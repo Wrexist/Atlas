@@ -33,6 +33,15 @@ struct SessionBuilderSheet: View {
     @State private var isSaved = false
     @State private var showsEquipment = false
     @State private var detailExercise: Exercise?
+    /// The slot whose swap list is open.
+    @State private var swapSlot: RoutineExercise?
+    /// The card being swiped and how far, so only that one moves.
+    @State private var swipe: (id: UUID, dx: CGFloat)?
+    /// When a card last moved under a swipe: the card's own tap fires on
+    /// the same lift of the finger, and mustn't open its page as well.
+    @State private var lastSwipeAt = Date.distantPast
+    /// The swipe tip shows until the first swap, then the user knows it.
+    @AppStorage("sessionBuilder.swapTipSeen") private var swapTipSeen = false
     /// Bumped by each pick from the muscle list, to scroll its next step in.
     @State private var listPicks = 0
 
@@ -49,6 +58,10 @@ struct SessionBuilderSheet: View {
     private static let focusChipColor = AppColor.trainingPrimaryMuscle
     private static let companionChipColor = AppColor.trainingSecondaryMuscle
     private static let pictureHeight: CGFloat = 132
+    /// How far a card must be swiped left to open its swap list.
+    private static let swipeThreshold: CGFloat = 72
+    /// How far the card follows the finger: past the threshold it resists.
+    private static let swipeLimit: CGFloat = 112
     /// The exercise number's circle grows with the number's text size.
     @ScaledMetric(relativeTo: .footnote) private var badgeSize: CGFloat = 30
 
@@ -113,6 +126,12 @@ struct SessionBuilderSheet: View {
             .onChange(of: states) { if let focus { suggestCompanions(for: focus) } }
             .sheet(isPresented: $showsEquipment) {
                 EquipmentProfileSheet(location: equipmentStore.location)
+            }
+            .sheet(item: $swapSlot) { slot in
+                ExerciseSwapSheet(
+                    currentName: library.displayName(for: slot.exerciseID),
+                    alternatives: alternatives(for: slot)
+                ) { exercise in swap(slot, to: exercise) }
             }
             .sheet(item: $detailExercise) { exercise in
                 NavigationStack {
@@ -379,7 +398,7 @@ struct SessionBuilderSheet: View {
                 summaryCard(built)
                 notes(built)
                 ForEach(Array(built.routine.exercises.enumerated()), id: \.element.id) { index, slot in
-                    exerciseCard(slot, number: index + 1, in: built)
+                    swipeable(exerciseCard(slot, number: index + 1, in: built), slot: slot)
                         .scrollReveal()
                 }
             }
@@ -450,19 +469,107 @@ struct SessionBuilderSheet: View {
             .accessibilityHidden(true)
     }
 
-    /// Why the session holds more than was picked, and the deload note.
-    @ViewBuilder
+    /// How to swap, why the session holds more than was picked, and the
+    /// deload note.
     private func notes(_ built: Built) -> some View {
         let added = built.plan.added.map(\.displayName).formatted(.list(type: .and))
-        if !built.plan.added.isEmpty || isDeload {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                if !built.plan.added.isEmpty {
-                    note("plus.circle", Text("Added \(added) to fill your \(minutes) minutes."))
-                }
-                if isDeload {
-                    note("leaf", Text("Deload week: lighter on purpose so you come back stronger."))
-                }
+        return VStack(alignment: .leading, spacing: Spacing.xs) {
+            if !swapTipSeen {
+                note("arrow.triangle.2.circlepath", Text("Swipe an exercise left to swap it for the next best."))
             }
+            if !built.plan.added.isEmpty {
+                note("plus.circle", Text("Added \(added) to fill your \(minutes) minutes."))
+            }
+            if isDeload {
+                note("leaf", Text("Deload week: lighter on purpose so you come back stronger."))
+            }
+        }
+    }
+
+    // MARK: - Swapping
+
+    /// A left swipe slides the card over a swap badge and, past the
+    /// threshold, opens the swap list. Long-press and VoiceOver get the
+    /// same action, since a swipe can't be discovered by either.
+    private func swipeable(_ card: some View, slot: RoutineExercise) -> some View {
+        let dx = swipe?.id == slot.id ? swipe?.dx ?? 0 : 0
+        let progress = min(1, -dx / Self.swipeThreshold)
+        return ZStack(alignment: .trailing) {
+            swapBadge(armed: progress >= 1)
+                .opacity(progress)
+                .scaleEffect(0.7 + 0.3 * progress)
+                .padding(.trailing, Spacing.lg)
+                .accessibilityHidden(true)
+            card
+                .offset(x: dx)
+                .accessibilityAction(named: Text("Swap exercise")) { swapSlot = slot }
+        }
+        .simultaneousGesture(swapSwipe(slot))
+        .contextMenu {
+            Button { swapSlot = slot } label: {
+                Label("Swap exercise", systemImage: "arrow.triangle.2.circlepath")
+            }
+        }
+    }
+
+    private func swapBadge(armed: Bool) -> some View {
+        VStack(spacing: Spacing.xs) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(armed ? AppColor.background : AppColor.accentPrimary)
+                .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+                .background(Circle().fill(armed ? AppColor.accentPrimary : AppColor.accentPrimary.opacity(0.15)))
+            Text("Swap")
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+        }
+        .appAnimation(AppAnimation.quick, value: armed)
+    }
+
+    /// Mostly-horizontal left drags only; vertical ones stay the scroll's.
+    private func swapSwipe(_ slot: RoutineExercise) -> some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onChanged { value in
+                let dx = value.translation.width
+                guard dx < 0, abs(dx) > abs(value.translation.height) * 1.5 else { return }
+                let resisted = dx < -Self.swipeLimit ? -Self.swipeLimit + (dx + Self.swipeLimit) * 0.2 : dx
+                if (swipe?.dx ?? 0) > -Self.swipeThreshold, resisted <= -Self.swipeThreshold { Haptics.selection() }
+                swipe = (slot.id, resisted)
+                lastSwipeAt = Date()
+            }
+            .onEnded { _ in
+                guard swipe?.id == slot.id else { return }
+                lastSwipeAt = Date()
+                let opens = (swipe?.dx ?? 0) <= -Self.swipeThreshold
+                AppAnimation.with(AppAnimation.springSnappy) { swipe = nil }
+                if opens { swapSlot = slot }
+            }
+    }
+
+    private func alternatives(for slot: RoutineExercise) -> [SessionBuilderEngine.Alternative] {
+        SessionBuilderEngine.alternatives(
+            for: slot.exerciseID,
+            taken: Set(built?.routine.exercises.map(\.exerciseID) ?? []),
+            equipment: equipmentStore.current,
+            experience: profileRequest.experience,
+            familiar: Set(history.flatMap { $0.exercises.map(\.exerciseID) }),
+            catalog: library.bundled
+        )
+    }
+
+    /// Puts the pick in the slot and refreshes what its card draws. A
+    /// saved routine no longer matches, so it can be saved again.
+    private func swap(_ slot: RoutineExercise, to exercise: Exercise) {
+        guard var updated = built else { return }
+        updated.plan.routine = SessionBuilderEngine.swapping(slotID: slot.id, to: exercise.id,
+                                                             in: updated.routine, catalog: library.bundled)
+        updated.exercises[exercise.id] = exercise
+        updated.steps[exercise.id] = ExerciseStepArt.assetNames(for: exercise.id)
+        Haptics.impact(.light)
+        isSaved = false
+        AppAnimation.with(AppAnimation.springSnappy) {
+            built = updated
+            swapTipSeen = true
         }
     }
 
@@ -482,7 +589,10 @@ struct SessionBuilderSheet: View {
     private func exerciseCard(_ slot: RoutineExercise, number: Int, in built: Built) -> some View {
         let exercise = built.exercises[slot.exerciseID]
         let steps = built.steps[slot.exerciseID] ?? []
-        return Button { detailExercise = exercise } label: {
+        return Button {
+            guard Date().timeIntervalSince(lastSwipeAt) > 0.4 else { return }
+            detailExercise = exercise
+        } label: {
             GlassCard {
                 VStack(spacing: Spacing.lg) {
                     Group {
