@@ -514,6 +514,7 @@ final class ScreenshotTests: XCTestCase {
 
             let weight = app.buttons["workout-weight-1"]
             reveal(weight)
+            let before = weight.value as? String ?? ""
             weight.tap()
             let done = app.buttons["set-picker-done"]
             XCTAssertTrue(done.waitForExistence(timeout: 5))
@@ -525,7 +526,8 @@ final class ScreenshotTests: XCTestCase {
             capture(named: "picker-\(appearance)-03-keyboard")
             done.tap()
             let stepped = weight.value as? String ?? ""
-            XCTAssertTrue(stepped.hasPrefix("62.5 "), "weight after plate step: \(stepped)")
+            // One plate step up: 62.5 kg, or 65 lb when the simulator's region uses pounds.
+            XCTAssertTrue(stepped.hasPrefix("62.5 ") || stepped.hasPrefix("65 "), "before \(before), after \(stepped)")
             discardActiveWorkout()
             app.terminate()
         }

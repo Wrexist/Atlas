@@ -29,14 +29,19 @@ struct NumberWheel<Value: Hashable>: View {
     private var height: CGFloat { rowHeight * CGFloat(NumberWheelMetrics.visibleRows) }
 
     var body: some View {
-        ScrollView(.vertical) {
-            let centreIndex = values.firstIndex(of: centred ?? selection) ?? 0
-            LazyVStack(spacing: 0) {
-                ForEach(Array(values.enumerated()), id: \.element) { index, value in
-                    row(value, stepsFromCentre: abs(index - centreIndex))
+        ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                let centreIndex = values.firstIndex(of: centred ?? selection) ?? 0
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(values.enumerated()), id: \.element) { index, value in
+                        row(value, stepsFromCentre: abs(index - centreIndex))
+                    }
                 }
+                .scrollTargetLayout()
             }
-            .scrollTargetLayout()
+            // The initial scroll position lands the value at the bottom
+            // edge, not the middle; scroll it to the band explicitly.
+            .onAppear { proxy.scrollTo(selection, anchor: .center) }
         }
         .scrollIndicators(.hidden)
         .scrollTargetBehavior(.viewAligned)
