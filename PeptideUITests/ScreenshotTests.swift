@@ -798,7 +798,10 @@ final class ScreenshotTests: XCTestCase {
             undo.press(forDuration: 1.0)
             Thread.sleep(forTimeInterval: 0.6)
             capture(named: "swap-\(appearance)-05-workout-menu")
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)).tap()
+            // Tap the set hint under the menu: the menu covers the top
+            // third, and a tap on it picks an item instead of closing it.
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.66)).tap()
+            Thread.sleep(forTimeInterval: 0.8)
             discardLeftoverWorkout()
             app.terminate()
         }
