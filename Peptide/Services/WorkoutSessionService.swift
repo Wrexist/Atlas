@@ -23,6 +23,9 @@ final class WorkoutSessionService {
     /// Set when `closeIfStale` closed a forgotten workout, so the Train
     /// tab can say so once. Cleared by `acknowledgeStaleClosure`.
     private(set) var staleClosure: StaleClosure?
+    /// The exercise list before the last swap, while nothing else has
+    /// changed since, so a mistaken tap can be taken back exactly.
+    @ObservationIgnored private var swapUndo: (entryID: UUID, before: [WorkoutExerciseEntry], after: [WorkoutExerciseEntry])?
 
     enum StaleClosure: Equatable {
         case discarded, finished
@@ -441,6 +444,63 @@ final class WorkoutSessionService {
             session.exercises[i].index = i
         }
         session.dissolveLoneSupersets()
+        persist(session)
+    }
+
+    /// Swaps an exercise for another that does the same job. Logged sets
+    /// stay with the lift they were done on, so history stays true; the
+    /// working sets still to do move to the new lift, seeded from its own
+    /// history at the slot's target reps. Untouched, it swaps in place.
+    func swapExercise(entryID: UUID, to exercise: Exercise) {
+        guard var session = activeSession,
+              let idx = session.exercises.firstIndex(where: { $0.id == entryID }) else { return }
+        let before = session.exercises
+        let old = before[idx]
+        let pending = old.sets.filter { !$0.completed && !$0.isWarmup }
+        guard !pending.isEmpty, old.exerciseID != exercise.id else { return }
+        let hasLogged = old.sets.contains(where: \.completed)
+        let target = targetReps(for: old, in: activeRoutine)
+        let seed = lastCompletedSet(forExerciseID: exercise.id)
+        var entry = WorkoutExerciseEntry(
+            id: hasLogged ? UUID() : old.id,
+            exerciseID: exercise.id,
+            index: idx,
+            sets: pending.indices.map { offset in
+                SetEntry(index: offset + 1, weightKg: seed?.weightKg ?? 0,
+                         reps: seed?.reps ?? target ?? pending[offset].reps, measurement: seed?.measurement)
+            },
+            restSeconds: old.restSeconds,
+            supersetGroup: hasLogged ? nil : old.supersetGroup
+        )
+        if autoProgression, let suggestion = progression(for: exercise.id, targetReps: target, adjustment: activeAdjustment) {
+            entry.sets = ProgressionEngine.apply(suggestion, to: entry.sets)
+        }
+        if hasLogged {
+            session.exercises[idx].sets = old.sets.filter(\.completed)
+            session.exercises.insert(entry, at: idx + 1)
+            for i in session.exercises.indices { session.exercises[i].index = i }
+        } else {
+            session.exercises[idx] = entry
+        }
+        if lastCompletion?.entryID == entryID { lastCompletion = nil }
+        if session.focus == nil { session.focus = WorkoutFocusState() }
+        session.focus?.selectedEntryID = entry.id
+        swapUndo = (entryID, before, session.exercises)
+        persist(session)
+    }
+
+    /// Whether the last swap can still be taken back: nothing in the
+    /// workout has changed since.
+    var canUndoSwap: Bool {
+        guard let swapUndo, let session = activeSession else { return false }
+        return session.exercises == swapUndo.after
+    }
+
+    func undoSwap() {
+        guard canUndoSwap, var session = activeSession, let swapUndo else { return }
+        session.exercises = swapUndo.before
+        session.focus?.selectedEntryID = swapUndo.entryID
+        self.swapUndo = nil
         persist(session)
     }
 

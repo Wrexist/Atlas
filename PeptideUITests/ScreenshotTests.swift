@@ -739,6 +739,41 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// Swiping a planned exercise opens its next-best list; in the
+    /// workout, the Swap pill trades the current lift and offers Undo.
+    func test_captureExerciseSwap() {
+        for appearance in ["dark", "light"] {
+            openSessionBuilder(appearance: appearance, location: "gym")
+            let chest = app.buttons["Chest"].firstMatch
+            XCTAssertTrue(findByScrolling(chest))
+            chest.tap()
+            createWorkout()
+            let first = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Exercise 1,'")).firstMatch
+            XCTAssertTrue(first.waitForExistence(timeout: 5))
+            first.swipeLeft()
+            XCTAssertTrue(app.navigationBars["Swap exercise"].waitForExistence(timeout: 5))
+            capture(named: "swap-\(appearance)-01-builder-sheet")
+            let best = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Best match'")).firstMatch
+            XCTAssertTrue(best.waitForExistence(timeout: 5))
+            best.tap()
+            Thread.sleep(forTimeInterval: 0.8)
+            capture(named: "swap-\(appearance)-02-builder-swapped")
+
+            let start = app.buttons["Start workout"].firstMatch
+            XCTAssertTrue(start.waitForExistence(timeout: 5))
+            start.tap()
+            let swap = app.buttons["Swap"].firstMatch
+            XCTAssertTrue(swap.waitForExistence(timeout: 10))
+            Thread.sleep(forTimeInterval: 1)
+            capture(named: "swap-\(appearance)-03-workout")
+            swap.tap()
+            XCTAssertTrue(app.buttons["Undo"].firstMatch.waitForExistence(timeout: 5))
+            capture(named: "swap-\(appearance)-04-workout-swapped")
+            discardLeftoverWorkout()
+            app.terminate()
+        }
+    }
+
     private func openSessionBuilder(appearance: String, location: String) {
         launch(appearance: appearance, extraArguments: ["-equipmentProfile.location.v1", location])
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))

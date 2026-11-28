@@ -13,6 +13,13 @@ struct WorkoutFocusView: View {
     @State private var service = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var detailExercise: Exercise?
+    @AppStorage("experienceLevel") private var storedExperience = "beginner"
+    /// Next-best lifts for the current exercise, best first; worked out
+    /// when the exercise changes, not on every render.
+    @State private var swaps: [SessionBuilderEngine.Alternative] = []
+    /// Set by a swap, cleared a few seconds later: while set, the swap pill
+    /// offers to take it back.
+    @State private var undoOffer: UUID?
     /// The screen's height without the keyboard, so raising the decimal
     /// pad never resizes the artwork under the user's finger.
     @State private var availableHeight: CGFloat = 0
@@ -55,6 +62,12 @@ struct WorkoutFocusView: View {
         .scrollDismissesKeyboard(.interactively)
         .background(AppColor.background.ignoresSafeArea())
         .task { await library.load() }
+        .task(id: SwapKey(exerciseID: entry?.exerciseID, isLoaded: !library.bundled.isEmpty)) { refreshSwaps() }
+        .task(id: undoOffer) {
+            // A newer swap restarts the wait; a cancelled one mustn't clear it.
+            guard undoOffer != nil, (try? await Task.sleep(for: .seconds(6))) != nil else { return }
+            AppAnimation.with(AppAnimation.quick) { undoOffer = nil }
+        }
         .sheet(item: $detailExercise) { exercise in
                 NavigationStack {
                     ExerciseDetailView(exerciseID: exercise.id)
@@ -179,17 +192,90 @@ struct WorkoutFocusView: View {
 
     private var howToButton: some View {
         Button { detailExercise = exercise } label: {
-            Label("How to do it", systemImage: "info.circle")
-                .font(AppFont.chipText)
-                .foregroundStyle(AppColor.textPrimary)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                .glassControl(.capsule, interactive: false)
-                .fixedSize()
-                .minimumHitArea()
+            pill("How to do it", systemImage: "info.circle")
         }
         .buttonStyle(ScalePressStyle())
         .disabled(exercise == nil)
+    }
+
+    // MARK: - Swapping
+
+    private struct SwapKey: Equatable {
+        let exerciseID: String?
+        let isLoaded: Bool
+    }
+
+    private func exerciseActions(_ entry: WorkoutExerciseEntry) -> some View {
+        HStack(spacing: Spacing.sm) {
+            swapControl(entry)
+            howToButton
+        }
+    }
+
+    /// Tap swaps to the next-best lift for the same muscle; touch and hold
+    /// lists the others. Right after a swap it offers to undo instead.
+    /// Hidden once every working set is done: nothing is left to move.
+    @ViewBuilder
+    private func swapControl(_ entry: WorkoutExerciseEntry) -> some View {
+        if undoOffer != nil, service.canUndoSwap {
+            Button {
+                Haptics.impact(.light)
+                service.undoSwap()
+                undoOffer = nil
+            } label: {
+                pill("Undo", systemImage: "arrow.uturn.backward")
+            }
+            .buttonStyle(ScalePressStyle())
+            .transition(.opacity)
+        } else if let best = swaps.first, entry.sets.contains(where: { !$0.completed && !$0.isWarmup }) {
+            Menu {
+                Section("Swap for") {
+                    ForEach(swaps, id: \.id) { alternative in
+                        Button(library.displayName(for: alternative.id)) { swap(entry, to: alternative.id) }
+                    }
+                }
+            } label: {
+                pill("Swap", systemImage: "arrow.triangle.2.circlepath")
+            } primaryAction: {
+                swap(entry, to: best.id)
+            }
+            .menuStyle(.button)
+            .buttonStyle(ScalePressStyle())
+            .accessibilityHint(Text("Swaps to \(library.displayName(for: best.id)). Touch and hold for other exercises."))
+            .transition(.opacity)
+        }
+    }
+
+    private func pill(_ title: LocalizedStringKey, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(AppFont.chipText)
+            .foregroundStyle(AppColor.textPrimary)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .glassControl(.capsule, interactive: false)
+            .fixedSize()
+            .minimumHitArea()
+    }
+
+    private func swap(_ entry: WorkoutExerciseEntry, to exerciseID: String) {
+        guard let exercise = library.lookup(id: exerciseID) else { return }
+        Haptics.impact(.medium)
+        AppAnimation.with(AppAnimation.springSnappy) {
+            service.swapExercise(entryID: entry.id, to: exercise)
+            undoOffer = UUID()
+        }
+    }
+
+    private func refreshSwaps() {
+        guard let entry else { swaps = []; return }
+        swaps = SessionBuilderEngine.alternatives(
+            for: entry.exerciseID,
+            taken: Set(session.exercises.map(\.exerciseID)),
+            equipment: EquipmentProfileStore.shared.current,
+            experience: ProgramRequest(profile: dataStore.profile, experienceRaw: storedExperience).experience,
+            familiar: Set(dataStore.finishedWorkoutHistory().flatMap { $0.exercises.map(\.exerciseID) }),
+            catalog: library.bundled
+        )
     }
 
     private func setPanel(_ entry: WorkoutExerciseEntry) -> some View {
@@ -203,11 +289,11 @@ struct WorkoutFocusView: View {
                 HStack(alignment: .firstTextBaseline) {
                     exerciseTitle
                     Spacer(minLength: Spacing.xs)
-                    howToButton
+                    exerciseActions(entry)
                 }
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     exerciseTitle
-                    howToButton
+                    exerciseActions(entry)
                 }
             }
             if let letter = session.supersetLetter(for: entry.id) {

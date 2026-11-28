@@ -53978,6 +53978,126 @@
           }
         }
       }
+    },
+    "Swipe an exercise left to swap it for the next best.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Svep en övning åt vänster för att byta till näst bästa."
+          }
+        }
+      }
+    },
+    "Swap exercise": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byt övning"
+          }
+        }
+      }
+    },
+    "Swap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byt"
+          }
+        }
+      }
+    },
+    "Instead of %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I stället för %@"
+          }
+        }
+      }
+    },
+    "No swap with your equipment": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget byte med din utrustning"
+          }
+        }
+      }
+    },
+    "Tick more equipment to see other exercises for this muscle.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bocka i mer utrustning för att se andra övningar för den här muskeln."
+          }
+        }
+      }
+    },
+    "Best match": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bäst match"
+          }
+        }
+      }
+    },
+    "Same movement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samma rörelse"
+          }
+        }
+      }
+    },
+    "Same muscle": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samma muskel"
+          }
+        }
+      }
+    },
+    "Swaps it in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byter in den"
+          }
+        }
+      }
+    },
+    "Swap for": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byt till"
+          }
+        }
+      }
+    },
+    "Swaps to %@. Touch and hold for other exercises.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byter till %@. Håll in för andra övningar."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
