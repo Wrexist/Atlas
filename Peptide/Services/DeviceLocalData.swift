@@ -22,6 +22,7 @@ enum DeviceLocalData {
         AdaptiveTDEESettings.followedTargets = nil
         BackupSnapshotService.deleteAll()
         RestorePointService.deleteAll()
+        FieldNoteStore.shared.deleteAll()
         ExportService.shared.clearExports()
         AchievementService.shared.eraseAll()
         ScanCorrectionMemory.shared.eraseAll()

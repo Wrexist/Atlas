@@ -6138,6 +6138,16 @@
         }
       }
     },
+    "A screenshot is saved with the note.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En skärmdump sparas med anteckningen."
+          }
+        }
+      }
+    },
     "About %@, estimated": {
       "localizations": {
         "sv": {
@@ -6895,6 +6905,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Djupsömn"
+          }
+        }
+      }
+    },
+    "Delete all": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radera alla"
+          }
+        }
+      }
+    },
+    "Delete all notes?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radera alla anteckningar?"
           }
         }
       }
@@ -8264,6 +8294,16 @@
         }
       }
     },
+    "Saved notes: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparade anteckningar: %lld"
+          }
+        }
+      }
+    },
     "Section": {
       "comment": "Accessibility label for the Train tab's section menu at large text sizes",
       "localizations": {
@@ -8311,6 +8351,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Semax uppreglerar BDNF för neuroplasticitet. Selank modulerar GABA för stresstålighet. TA1 överbryggar neuro-immun samverkan genom att förstärka T-cellsfunktion som stöder immunövervakningen i CNS. Täcker hjärna–immunaxeln."
+          }
+        }
+      }
+    },
+    "Share all": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dela alla"
           }
         }
       }
@@ -8611,6 +8661,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mycket kortverkande — använd kring träningen för akuta pulser"
+          }
+        }
+      }
+    },
+    "What felt off, or what's missing?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vad kändes fel, eller vad saknas?"
           }
         }
       }
