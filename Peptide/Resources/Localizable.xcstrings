@@ -6138,6 +6138,16 @@
         }
       }
     },
+    "About %@, estimated": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cirka %@, uppskattat"
+          }
+        }
+      }
+    },
     "AI & privacy": {
       "localizations": {
         "sv": {
@@ -54049,12 +54059,12 @@
         }
       }
     },
-    "≈ worked out from total fat, not printed on the label.": {
+    "≈ Estimated: total fat minus saturated fat. Not on the label.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "≈ räknat från totalt fett, står inte på etiketten."
+            "value": "≈ Uppskattat: totalt fett minus mättat fett. Står inte på etiketten."
           }
         }
       }

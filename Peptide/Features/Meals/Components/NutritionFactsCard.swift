@@ -60,18 +60,21 @@ struct NutritionFactsCard: View {
             header
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(visibleGroups.enumerated()), id: \.offset) { index, group in
-                    if index > 0 {
+                    // The known vitamins and minerals continue the mineral rows
+                    // above instead of opening a group of their own.
+                    if index > 0 && !group.hidesUnknown {
                         Divider()
                             .overlay(AppColor.glassBorder)
                             .padding(.vertical, Spacing.sm)
                     }
                     groupView(group)
+                        .padding(.top, index > 0 && group.hidesUnknown ? Spacing.sm : 0)
                 }
             }
             if hasUnknown || !estimates.isEmpty {
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     if !estimates.isEmpty {
-                        Text("≈ worked out from total fat, not printed on the label.")
+                        Text("≈ Estimated: total fat minus saturated fat. Not on the label.")
                     }
                     if hasUnknown {
                         Text("A dash means the label or scan doesn't state it.")
@@ -79,6 +82,8 @@ struct NutritionFactsCard: View {
                 }
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
+                .padding(.leading, iconColumn + Spacing.sm)
+                .padding(.top, Spacing.xxs)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -139,7 +144,13 @@ struct NutritionFactsCard: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(Self.title(nutrient)))
-        .accessibilityValue(amount.map { Engine.formatted($0, unit: nutrient.unit) } ?? String(localized: "Not stated"))
+        .accessibilityValue(accessibilityValue(nutrient, amount: amount))
+    }
+
+    private func accessibilityValue(_ nutrient: Engine.Nutrient, amount: Double?) -> String {
+        guard let amount else { return String(localized: "Not stated") }
+        let value = Engine.formatted(amount, unit: nutrient.unit)
+        return estimates.contains(nutrient) ? String(localized: "About \(value), estimated") : value
     }
 
     @ViewBuilder
