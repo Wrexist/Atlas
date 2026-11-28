@@ -224,7 +224,12 @@ private struct Macro: Identifiable {
 
     var isOver: Bool { target > 0 && grams > target }
 
-    var amount: String { target > 0 ? "\(grams) / \(target) g" : "\(grams) g" }
+    var amount: String {
+        target > 0 ? "\(grams.formatted()) / \(target.formatted()) g" : "\(grams.formatted()) g"
+    }
+
+    /// "68", or "1.9K" once a figure stops fitting a third of a small widget.
+    var compactGrams: String { grams.formatted(.number.notation(.compactName)) }
 
     /// "Protein 95 of 150 grams" — `amount` reads as "95 slash 150 g".
     var spokenAmount: Text {
@@ -254,14 +259,14 @@ private struct CompactMacro: View {
         VStack(alignment: .leading, spacing: 3) {
             WidgetBar(progress: macro.progress, tint: macro.tint, height: 3, showsOverflow: true)
             HStack(spacing: 2) {
-                Text("\(macro.grams)")
+                Text(macro.compactGrams)
                     .font(.caption2.weight(.bold).monospacedDigit())
                     .contentTransition(.numericText(value: Double(macro.grams)))
                 MacroIcon(macro.kind, size: 10, relativeTo: .caption2)
                     .foregroundStyle(macro.tint)
             }
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
+            .minimumScaleFactor(0.6)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(Text(macro.name)) \(macro.grams) grams"))
@@ -309,7 +314,7 @@ private struct MealStrip: View {
                     && meals[meal.rawValue].entryCount > 0
                 Image(systemName: meal.glyph)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(logged ? meal.tint : Color.secondary.opacity(0.5))
+                    .foregroundStyle(logged ? meal.tint : Color.secondary)
                     .frame(width: 22, height: 22)
                     .raisedDisc(logged ? meal.tint.opacity(0.18) : WidgetPalette.track)
                     .widgetAccentable(logged)

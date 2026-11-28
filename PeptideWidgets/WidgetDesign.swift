@@ -250,6 +250,8 @@ struct WidgetHeader: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    // The figure is the information; the title gives way first.
+                    .layoutPriority(1)
                     .accessibilityLabel(trailingAccessibilityLabel ?? trailing)
             }
         }
