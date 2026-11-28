@@ -2819,10 +2819,16 @@ final class DataStore {
         }
     }
 
+    /// Waits until entries older than the launch window have loaded, so
+    /// a full copy of the data (a restore point) holds the whole history.
+    func awaitEntryBackfill() async {
+        await entryBackfillTask?.value
+    }
+
     /// Test-only synchronous wait for the backfill (async by design in
     /// production).
     func awaitEntryBackfillForTesting() async {
-        await entryBackfillTask?.value
+        await awaitEntryBackfill()
     }
 
     private func performSaveNow() {

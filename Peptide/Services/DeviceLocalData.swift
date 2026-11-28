@@ -21,6 +21,7 @@ enum DeviceLocalData {
         WorkoutTypeOverrideStore.deleteLegacy()
         AdaptiveTDEESettings.followedTargets = nil
         BackupSnapshotService.deleteAll()
+        RestorePointService.deleteAll()
         ExportService.shared.clearExports()
         AchievementService.shared.eraseAll()
         ScanCorrectionMemory.shared.eraseAll()

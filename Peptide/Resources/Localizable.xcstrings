@@ -8094,6 +8094,26 @@
         }
       }
     },
+    "Restore point saved %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återställningspunkt sparad %@"
+          }
+        }
+      }
+    },
+    "Restore points": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återställningspunkter"
+          }
+        }
+      }
+    },
     "Retatrutide as monotherapy produces up to 24% body weight reduction — adding semaglutide is unlikely to improve this.": {
       "localizations": {
         "sv": {
@@ -8160,6 +8180,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Samma GHS-R1a-receptorväg. Båda höjer kortisol och prolaktin vid effektiva GH-frisättande doser."
+          }
+        }
+      }
+    },
+    "Saved automatically once a day and kept for two months. Touch and hold one to share it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skapas automatiskt en gång om dagen och sparas i två månader. Håll in en för att dela den."
           }
         }
       }
