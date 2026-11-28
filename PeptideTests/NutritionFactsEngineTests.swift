@@ -84,6 +84,21 @@ final class NutritionFactsEngineTests: XCTestCase {
         XCTAssertEqual(Engine.formatted(3, unit: .micrograms), "3 µg")
     }
 
+    func test_halfwayScaledValue_roundsUp() {
+        let comma = Locale.current.decimalSeparator ?? "."
+        let protein = Engine.amount(.protein, per100g: yoghurt, grams: 150) ?? 0
+        XCTAssertEqual(Engine.formatted(protein, unit: .grams), "6\(comma)5 g", "4.3 × 1.5 is 6.45")
+        XCTAssertEqual(Engine.formatted(183.4, unit: .kilocalories), "183 kcal")
+    }
+
+    func test_isEstimate_onlyForDerivedUnsaturatedFat() {
+        XCTAssertTrue(Engine.isEstimate(.unsaturatedFat, in: yoghurt))
+        XCTAssertFalse(Engine.isEstimate(.saturatedFat, in: yoghurt))
+        var stated = yoghurt
+        stated.micros?.unsaturatedFatG = 3
+        XCTAssertFalse(Engine.isEstimate(.unsaturatedFat, in: stated))
+    }
+
     func test_groups_coverEveryNutrientOnce() {
         let listed = Engine.groups.flatMap { [$0.total].compactMap { $0 } + $0.parts }
         XCTAssertEqual(listed.count, Set(listed).count)

@@ -1,21 +1,24 @@
 import SwiftUI
 
-/// The full nutrition label for one portion or one logged meal: each
-/// macro with what it is made of indented under it, then cholesterol,
-/// sodium and potassium, then whichever vitamins and minerals are known.
-/// Sits under the totals card, which already carries the energy.
+/// The full nutrition label for one portion or one logged meal: energy,
+/// each macro with what it is made of indented under it, then
+/// cholesterol, sodium and potassium, then whichever vitamins and
+/// minerals are known.
 struct NutritionFactsCard: View {
     private typealias Engine = NutritionFactsEngine
 
     /// What the amounts describe, e.g. "150 g".
     let portionLabel: String?
     private let amounts: [Engine.Nutrient: Double]
+    /// Values worked out rather than stated, shown with "≈".
+    private let estimates: Set<Engine.Nutrient>
 
     @ScaledMetric(relativeTo: .subheadline) private var iconColumn: CGFloat = 20
 
     init(per100g: ScannedProduct.Nutriments, grams: Double, portionLabel: String?) {
         self.portionLabel = portionLabel
         amounts = Self.collect { Engine.amount($0, per100g: per100g, grams: grams) }
+        estimates = Set(Engine.Nutrient.allCases.filter { Engine.isEstimate($0, in: per100g) })
     }
 
     /// A product's label for the portion being logged; a drink's portion
@@ -31,6 +34,9 @@ struct NutritionFactsCard: View {
         let grams = components.map(\.grams).reduce(0, +)
         portionLabel = grams.isFinite && grams > 0 ? Engine.formatted(grams, unit: .grams) : nil
         amounts = Self.collect { Engine.amount($0, in: components) }
+        estimates = Set(Engine.Nutrient.allCases.filter { nutrient in
+            components.contains { Engine.isEstimate(nutrient, in: $0.per100g) }
+        })
     }
 
     private static func collect(_ amount: (Engine.Nutrient) -> Double?) -> [Engine.Nutrient: Double] {
@@ -50,7 +56,7 @@ struct NutritionFactsCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
+        VStack(alignment: .leading, spacing: Spacing.lg) {
             header
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(visibleGroups.enumerated()), id: \.offset) { index, group in
@@ -62,10 +68,17 @@ struct NutritionFactsCard: View {
                     groupView(group)
                 }
             }
-            if hasUnknown {
-                Text("A dash means the label or scan doesn't state it.")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
+            if hasUnknown || !estimates.isEmpty {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    if !estimates.isEmpty {
+                        Text("≈ worked out from total fat, not printed on the label.")
+                    }
+                    if hasUnknown {
+                        Text("A dash means the label or scan doesn't state it.")
+                    }
+                }
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -76,7 +89,7 @@ struct NutritionFactsCard: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             Text("Nutrition facts")
-                .font(AppFont.headline)
+                .font(AppFont.scaled(20, weight: .bold, relativeTo: .title3))
                 .foregroundStyle(AppColor.textPrimary)
             Spacer(minLength: 0)
             if let portionLabel {
@@ -93,14 +106,6 @@ struct NutritionFactsCard: View {
     @ViewBuilder
     private func groupView(_ group: Engine.Group) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            if group.hidesUnknown {
-                Text("Vitamins & minerals")
-                    .font(AppFont.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .padding(.leading, iconColumn + Spacing.sm)
-                    .accessibilityAddTraits(.isHeader)
-            }
             if let total = group.total {
                 row(total, style: .total)
             }
@@ -125,7 +130,7 @@ struct NutritionFactsCard: View {
                 .padding(.leading, style == .part ? Spacing.md : 0)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: Spacing.md)
-            Text(verbatim: amount.map { Engine.formatted($0, unit: nutrient.unit) } ?? "–")
+            Text(verbatim: amount.map { (estimates.contains(nutrient) ? "≈ " : "") + Engine.formatted($0, unit: nutrient.unit) } ?? "–")
                 .font(emphasis)
                 .foregroundStyle(amount == nil ? AppColor.textTertiary : ink)
                 .monospacedDigit()
@@ -140,6 +145,11 @@ struct NutritionFactsCard: View {
     @ViewBuilder
     private func icon(for nutrient: Engine.Nutrient) -> some View {
         switch nutrient {
+        case .energy:
+            Image(systemName: "flame.fill")
+                .font(AppFont.scaled(13, weight: .semibold, relativeTo: .subheadline))
+                .foregroundStyle(AppColor.macroCalories)
+                .accessibilityHidden(true)
         case .carbs: MacroIcon(.carbs, size: 15, relativeTo: .subheadline).foregroundStyle(AppColor.macroCarbs)
         case .protein: MacroIcon(.protein, size: 15, relativeTo: .subheadline).foregroundStyle(AppColor.macroProtein)
         case .fat: MacroIcon(.fat, size: 15, relativeTo: .subheadline).foregroundStyle(AppColor.macroFat)
@@ -149,6 +159,7 @@ struct NutritionFactsCard: View {
 
     private static func title(_ nutrient: Engine.Nutrient) -> LocalizedStringKey {
         switch nutrient {
+        case .energy: "Energy"
         case .carbs: "Carbs"
         case .fiber: "Fiber"
         case .sugars: "Sugars"

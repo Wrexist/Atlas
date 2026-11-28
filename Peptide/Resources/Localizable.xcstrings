@@ -8575,16 +8575,6 @@
         }
       }
     },
-    "Vitamins & minerals": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vitaminer och mineraler"
-          }
-        }
-      }
-    },
     "Workouts, weigh-ins and water, both ways.": {
       "localizations": {
         "sv": {
@@ -54055,6 +54045,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@, %2$lld av %3$lld set denna vecka, %4$lld från det här passet"
+          }
+        }
+      }
+    },
+    "≈ worked out from total fat, not printed on the label.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "≈ räknat från totalt fett, står inte på etiketten."
           }
         }
       }

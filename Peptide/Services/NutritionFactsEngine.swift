@@ -7,8 +7,9 @@ import Foundation
 enum NutritionFactsEngine {
 
     enum Nutrient: String, CaseIterable, Identifiable, Sendable {
-        case carbs, fiber, sugars
+        case energy
         case protein
+        case carbs, fiber, sugars
         case fat, saturatedFat, unsaturatedFat
         case cholesterol, sodium, potassium
         case calcium, iron, vitaminD, vitaminB12
@@ -17,6 +18,7 @@ enum NutritionFactsEngine {
 
         var unit: Unit {
             switch self {
+            case .energy: .kilocalories
             case .carbs, .fiber, .sugars, .protein, .fat, .saturatedFat, .unsaturatedFat: .grams
             case .cholesterol, .sodium, .potassium, .calcium, .iron: .milligrams
             case .vitaminD, .vitaminB12: .micrograms
@@ -25,6 +27,7 @@ enum NutritionFactsEngine {
     }
 
     enum Unit: String, Sendable {
+        case kilocalories = "kcal"
         case grams = "g"
         case milligrams = "mg"
         case micrograms = "µg"
@@ -40,9 +43,12 @@ enum NutritionFactsEngine {
         let hidesUnknown: Bool
     }
 
+    /// Macros in the totals card's order (protein, carbs, fat), so the
+    /// two cards on one screen read the same way.
     static let groups: [Group] = [
-        Group(total: .carbs, parts: [.fiber, .sugars], hidesUnknown: false),
+        Group(total: .energy, parts: [], hidesUnknown: false),
         Group(total: .protein, parts: [], hidesUnknown: false),
+        Group(total: .carbs, parts: [.fiber, .sugars], hidesUnknown: false),
         Group(total: .fat, parts: [.saturatedFat, .unsaturatedFat], hidesUnknown: false),
         Group(total: nil, parts: [.cholesterol, .sodium, .potassium], hidesUnknown: false),
         Group(total: nil, parts: [.calcium, .iron, .vitaminD, .vitaminB12], hidesUnknown: true),
@@ -54,6 +60,7 @@ enum NutritionFactsEngine {
     /// of trans fat.
     static func per100g(_ nutrient: Nutrient, in n: ScannedProduct.Nutriments) -> Double? {
         let value: Double? = switch nutrient {
+        case .energy: n.calories
         case .carbs: n.carbsG
         case .fiber: n.fiberG
         case .sugars: n.sugarsG
@@ -79,6 +86,14 @@ enum NutritionFactsEngine {
         return value * grams / 100
     }
 
+    /// True when the value is worked out rather than stated: unsaturated
+    /// fat taken as fat minus saturated also holds the trans fat, so the
+    /// card marks it as approximate.
+    static func isEstimate(_ nutrient: Nutrient, in n: ScannedProduct.Nutriments) -> Bool {
+        guard nutrient == .unsaturatedFat, per100g(nutrient, in: n) != nil else { return false }
+        return statedUnsaturatedFat(in: n) == nil
+    }
+
     /// The amount in a logged meal: known only when every food in it
     /// states it, since a missing food would make the total read low.
     static func amount(_ nutrient: Nutrient, in components: [MealFoodComponent]) -> Double? {
@@ -88,17 +103,24 @@ enum NutritionFactsEngine {
     /// Label rounding: whole numbers from 10 up, one decimal below, so
     /// 0.4 g of saturated fat doesn't read as 0 and 412 mg of sodium
     /// doesn't read as 412.0.
+    /// The value is first settled to two decimals so 4.3 × 1.5 (6.4499…
+    /// in binary) reads 6.5 the way a person rounds it.
     static func formatted(_ value: Double, unit: Unit) -> String {
-        let digits = value >= 10 ? 0...0 : 0...1
-        return "\(value.formatted(.number.precision(.fractionLength(digits)))) \(unit.rawValue)"
+        let settled = (value * 100).rounded() / 100
+        let digits = settled >= 10 || unit == .kilocalories ? 0...0 : 0...1
+        let number = settled.formatted(.number.precision(.fractionLength(digits)).rounded(rule: .toNearestOrAwayFromZero))
+        return "\(number) \(unit.rawValue)"
     }
 
     /// A stated value wins unless it and the saturated part together
     /// overrun the fat, which happens when they come from two sources.
     private static func unsaturatedFat(in n: ScannedProduct.Nutriments) -> Double? {
-        let saturated = saturatedFat(in: n)
-        if let stated = n.micros?.unsaturatedFatG, stated + (saturated ?? 0) <= n.fatG + 0.05 { return stated }
-        return saturated.map { n.fatG - $0 }
+        statedUnsaturatedFat(in: n) ?? saturatedFat(in: n).map { n.fatG - $0 }
+    }
+
+    private static func statedUnsaturatedFat(in n: ScannedProduct.Nutriments) -> Double? {
+        guard let stated = n.micros?.unsaturatedFatG, stated + (saturatedFat(in: n) ?? 0) <= n.fatG + 0.05 else { return nil }
+        return stated
     }
 
     /// A saturated share above the fat it belongs to is a data-entry
