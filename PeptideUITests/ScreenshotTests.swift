@@ -1077,11 +1077,10 @@ final class ScreenshotTests: XCTestCase {
         if selectAll.waitForExistence(timeout: 2) {
             selectAll.tap()
         } else {
-            // A double tap selects one token only: "22.52" kept "22." and
-            // took the typed value after it. The set fields centre their
-            // text, so a tap near the trailing edge puts the caret past the
-            // last digit and deletes clear the whole value.
-            field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+            // A double tap selects one token of "22.52" only, and the caret
+            // a single tap leaves can sit before the digits. A triple tap
+            // selects the whole line; the deletes clear it either way.
+            field.tap(withNumberOfTaps: 3, numberOfTouches: 1)
             field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 10))
         }
     }
