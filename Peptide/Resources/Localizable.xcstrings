@@ -54149,36 +54149,6 @@
         }
       }
     },
-    "+%@ on last time": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "+%@ mot förra passet"
-          }
-        }
-      }
-    },
-    "+1 rep on last time": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "+1 rep mot förra passet"
-          }
-        }
-      }
-    },
-    "+%lld reps on last time": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "+%lld reps mot förra passet"
-          }
-        }
-      }
-    },
     "Matched last time": {
       "localizations": {
         "sv": {
@@ -54255,6 +54225,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@, %2$lld av %3$lld set. %4$@"
+          }
+        }
+      }
+    },
+    "+%@ vs last time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%@ mot förra passet"
+          }
+        }
+      }
+    },
+    "+1 rep vs last time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+1 rep mot förra passet"
+          }
+        }
+      }
+    },
+    "+%lld reps vs last time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%lld reps mot förra passet"
           }
         }
       }

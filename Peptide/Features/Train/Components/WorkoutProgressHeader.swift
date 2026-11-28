@@ -8,7 +8,7 @@ import SwiftUI
 struct WorkoutProgressHeader: View {
     let session: WorkoutSession
     let unit: MeasurementUnit
-    /// Last session's sets for an exercise id, for the "on last time" line.
+    /// Last session's sets for an exercise id, for the "vs last time" line.
     let previousSets: (String) -> [SetEntry]
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -31,17 +31,13 @@ struct WorkoutProgressHeader: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             let layout = dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
-                : AnyLayout(HStackLayout(alignment: .center, spacing: Spacing.md))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: Spacing.md))
             layout {
                 percentLabel(progress)
+                // No "N of M sets" here: beside the card's "Set 2 of 4" it
+                // read as a different count. VoiceOver still hears it.
                 message(progress)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Text("\(progress.done) of \(progress.total) sets")
-                    .font(AppFont.caption2.weight(.semibold))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .fixedSize()
             }
             SessionProgressBar(segments: progress.segments, currentID: session.selectedExercise?.id)
         }
@@ -118,6 +114,8 @@ struct WorkoutProgressHeader: View {
         }
         let reward = WorkoutProgressEngine.reward(entry: done.entry, gain: gain, before: old, after: new)
         AppAnimation.with(AppAnimation.toast) { shown = reward.map { ShownReward(reward: $0) } }
+        // The line fades after a few seconds; VoiceOver hears it once.
+        if let reward { AccessibilityNotification.Announcement(rewardText(reward)).post() }
     }
 
     // MARK: - Copy
@@ -138,9 +136,9 @@ struct WorkoutProgressHeader: View {
         case .exerciseDone: return String(localized: "Exercise complete. On to the next.")
         case .gain(.weight(let kg)):
             let amount = "\(unit.weightValue(kg, fractionDigits: 0...1)) \(unit.weightSuffix)"
-            return String(localized: "+\(amount) on last time")
+            return String(localized: "+\(amount) vs last time")
         case .gain(.reps(let count)):
-            return count == 1 ? String(localized: "+1 rep on last time") : String(localized: "+\(count) reps on last time")
+            return count == 1 ? String(localized: "+1 rep vs last time") : String(localized: "+\(count) reps vs last time")
         case .gain(.matched): return String(localized: "Matched last time")
         case .milestone(25): return String(localized: "A quarter done")
         case .milestone(50): return String(localized: "Halfway there")
