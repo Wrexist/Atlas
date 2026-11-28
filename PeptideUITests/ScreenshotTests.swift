@@ -1069,9 +1069,7 @@ final class ScreenshotTests: XCTestCase {
         XCTFail("Expected \(value), found \(stored)")
     }
 
-    /// Selects a field's whole value so typing replaces it. A trailing-edge
-    /// tap can land between the digits of right-aligned numeric text, which
-    /// leaves part of the old value behind after a run of deletes.
+    /// Selects a field's whole value so typing replaces it.
     private func selectAll(in field: XCUIElement) {
         field.tap()
         field.press(forDuration: 1.2)
@@ -1079,8 +1077,12 @@ final class ScreenshotTests: XCTestCase {
         if selectAll.waitForExistence(timeout: 2) {
             selectAll.tap()
         } else {
-            // Numeric fields can select their entire single token on double tap.
-            field.doubleTap()
+            // A double tap selects one token only: "22.52" kept "22." and
+            // took the typed value after it. The set fields centre their
+            // text, so a tap near the trailing edge puts the caret past the
+            // last digit and deletes clear the whole value.
+            field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 10))
         }
     }
 
