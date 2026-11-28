@@ -8,24 +8,30 @@ import Foundation
 /// overwrites, an iCloud account switch. The iPhone's own backup can't
 /// undo those, because it holds the same broken data.
 ///
-/// Files live in Application Support, which the system never purges
-/// and which the iPhone's iCloud backup includes, so the points leave
-/// the phone with it. They are not in Documents: exposing Documents in
-/// the Files app would also expose the live data files there (journal,
-/// fridge, photos) to accidental deletion. A point can be shared from
-/// the restore sheet instead.
+/// Files live in Application Support, which the system never purges.
+/// Like the other stores holding Health-imported data, they are kept
+/// out of iCloud Backup (Guideline 5.1.3(ii)); sharing a point from the
+/// restore sheet is the way to keep a copy off the phone. They are not
+/// in Documents: exposing Documents in the Files app would also expose
+/// the live data files there (journal, fridge, photos) to deletion.
 @MainActor
 enum RestorePointService {
     private static let folderName = "RestorePoints"
     nonisolated private static let fileNamePrefix = "atlas-restore-point-"
     nonisolated private static let fileExtension = "json"
+    private static var isWriting = false
 
     /// Writes a restore point if the newest one is at least a day old.
     /// Waits for the launch backfill first, so a point taken right after
     /// a cold launch still holds the full dose history.
     static func writeIfDue(dataStore: DataStore, now: Date = Date()) async {
-        guard !dataStore.isEphemeral, let directory = directory() else { return }
-        guard RestorePointEngine.isDue(latest: restorePoints().first?.createdAt, now: now) else { return }
+        guard !dataStore.isEphemeral, !isWriting, let directory = directory(creating: true) else { return }
+        // A point dated after `now` (the clock was moved back) must not
+        // stand in for the newest one, or every background would write.
+        let latest = restorePoints().first { $0.createdAt <= now }?.createdAt
+        guard RestorePointEngine.isDue(latest: latest, now: now) else { return }
+        isWriting = true
+        defer { isWriting = false }
 
         await dataStore.awaitEntryBackfill()
         let service = ExportService.shared
@@ -60,12 +66,12 @@ enum RestorePointService {
             ) else { return false }
             return write(data, to: url)
         }.value
-        if written { prune() }
+        if written { prune(now: now) }
     }
 
     /// Restore points, newest first.
     static func restorePoints() -> [BackupSnapshotService.Info] {
-        guard let directory = directory() else { return [] }
+        guard let directory = directory(creating: false) else { return [] }
         let contents = (try? FileManager.default.contentsOfDirectory(
             at: directory,
             includingPropertiesForKeys: [.fileSizeKey],
@@ -88,7 +94,7 @@ enum RestorePointService {
     /// "Delete all data" path: a restore point is a full copy of the
     /// user's data and must not outlive an erase.
     static func deleteAll() {
-        guard let directory = directory() else { return }
+        guard let directory = directory(creating: false) else { return }
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -109,6 +115,7 @@ enum RestorePointService {
     nonisolated private static func write(_ data: Data, to url: URL) -> Bool {
         do {
             try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            PersistenceService.excludeFromBackup(url)
             return true
         } catch {
             AppLog.persistence.error("Restore point write failed: \(error.localizedDescription, privacy: .public)")
@@ -116,9 +123,12 @@ enum RestorePointService {
         }
     }
 
-    private static func prune() {
+    /// Points dated after `now` are dropped too: they come from a clock
+    /// that was wrong and would otherwise hold retention slots.
+    private static func prune(now: Date) {
         let points = restorePoints()
-        let keep = RestorePointEngine.datesToKeep(points.map(\.createdAt), calendar: .current)
+        let past = points.filter { $0.createdAt <= now }
+        let keep = RestorePointEngine.datesToKeep(past.map(\.createdAt), calendar: .current)
         for point in points where !keep.contains(point.createdAt) {
             try? FileManager.default.removeItem(at: point.url)
         }
@@ -127,7 +137,9 @@ enum RestorePointService {
     /// Tests point this at a temporary folder.
     static var directoryOverrideForTesting: URL?
 
-    private static func directory() -> URL? {
+    /// Only the write path creates the folder; reading and deleting
+    /// never need it to exist.
+    private static func directory(creating: Bool) -> URL? {
         let fm = FileManager.default
         let directory: URL
         if let directoryOverrideForTesting {
@@ -138,7 +150,7 @@ enum RestorePointService {
             }
             directory = base.appendingPathComponent(folderName, isDirectory: true)
         }
-        if !fm.fileExists(atPath: directory.path) {
+        if creating, !fm.fileExists(atPath: directory.path) {
             try? fm.createDirectory(at: directory, withIntermediateDirectories: true)
         }
         return directory

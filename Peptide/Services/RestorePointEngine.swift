@@ -14,12 +14,10 @@ enum RestorePointEngine {
     static let weeklyPointsKept = 8
 
     /// A new point is due when none exists or the newest is a day old.
-    /// A newest point dated in the future (clock moved back) counts as
-    /// due too, so a wrong clock can't stop restore points for good.
+    /// Callers pass the newest point not dated after `now`.
     static func isDue(latest: Date?, now: Date) -> Bool {
         guard let latest else { return true }
-        let age = now.timeIntervalSince(latest)
-        return age >= minimumInterval || age < 0
+        return now.timeIntervalSince(latest) >= minimumInterval
     }
 
     /// The dates to keep out of `dates`; every other point is deleted.

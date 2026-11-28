@@ -61,6 +61,28 @@ final class RestorePointServiceTests: XCTestCase {
         XCTAssertEqual(points.first?.createdAt.timeIntervalSince1970.rounded(.down), start.timeIntervalSince1970.rounded(.down))
     }
 
+    func test_writeIfDue_pointDatedInTheFuture_isIgnoredAndPruned() async {
+        let store = DataStore(seedSampleData: false)
+        let now = Date()
+        await RestorePointService.writeIfDue(dataStore: store, now: now.addingTimeInterval(3 * 86_400))
+
+        await RestorePointService.writeIfDue(dataStore: store, now: now)
+
+        let points = RestorePointService.restorePoints()
+        XCTAssertEqual(points.count, 1)
+        XCTAssertLessThanOrEqual(points.first?.createdAt ?? .distantFuture, now)
+    }
+
+    func test_writeIfDue_excludesThePointFromICloudBackup() async throws {
+        let store = DataStore(seedSampleData: false)
+
+        await RestorePointService.writeIfDue(dataStore: store)
+
+        let point = try XCTUnwrap(RestorePointService.restorePoints().first)
+        let values = try point.url.resourceValues(forKeys: [.isExcludedFromBackupKey])
+        XCTAssertEqual(values.isExcludedFromBackup, true)
+    }
+
     func test_createdAt_readsTheTimeFromTheFileName() {
         XCTAssertEqual(
             RestorePointService.createdAt(fromFileName: "atlas-restore-point-1796126400.json"),

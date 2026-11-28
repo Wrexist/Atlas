@@ -23,6 +23,6 @@ struct RestoreBackupEntryRow: View {
     /// visible at a glance that the daily copy is running.
     private var subtitle: Text {
         guard let latestRestorePoint else { return Text("Your current data is copied first") }
-        return Text("Restore point saved \(latestRestorePoint.formatted(.relative(presentation: .named)))")
+        return Text("Restore point saved \(latestRestorePoint.formatted(.relative(presentation: .named))). Your current data is copied first.")
     }
 }

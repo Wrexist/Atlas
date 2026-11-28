@@ -26,10 +26,6 @@ final class RestorePointEngineTests: XCTestCase {
         XCTAssertTrue(RestorePointEngine.isDue(latest: base.addingTimeInterval(-days(1)), now: base))
     }
 
-    func test_isDue_pointInTheFuture_isDueSoAWrongClockCannotStopPoints() {
-        XCTAssertTrue(RestorePointEngine.isDue(latest: base.addingTimeInterval(days(3)), now: base))
-    }
-
     func test_datesToKeep_fewPoints_keepsAll() {
         let dates = (0..<4).map { base.addingTimeInterval(-days(Double($0))) }
         XCTAssertEqual(RestorePointEngine.datesToKeep(dates, calendar: calendar), Set(dates))

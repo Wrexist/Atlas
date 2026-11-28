@@ -8094,12 +8094,12 @@
         }
       }
     },
-    "Restore point saved %@": {
+    "Restore point saved %@. Your current data is copied first.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Återställningspunkt sparad %@"
+            "value": "Återställningspunkt sparad %@. Dina nuvarande data kopieras först."
           }
         }
       }
