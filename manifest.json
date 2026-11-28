@@ -1,0 +1,62 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "DEE8B79B-F866-4D2F-AE24-0977241CD229.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "picker-light-03-keyboard_0_46841024-8680-430C-8157-0FB6AA754516.png",
+        "timestamp" : 1795886781.209
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "631A6148-5F3B-4958-99DD-1B7AEE60C869.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "picker-light-02-plate-step_0_B4F07DEC-AABD-43AD-9FCF-D7F4836CAB5C.png",
+        "timestamp" : 1795886776.887
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "E3A9261E-9B3E-45CF-B431-9C30D89569BC.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "picker-light-01-wheels_0_0584D375-9A88-4AC3-BC83-B3A6F136511F.png",
+        "timestamp" : 1795886773.236
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "DB9316E0-4EDA-465E-A7A6-C45C8882789A.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "picker-dark-03-keyboard_0_169A0137-7A88-40E1-A5ED-FC510ABAF26A.png",
+        "timestamp" : 1795886671.913
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "993A1FB1-2F6D-487D-98EF-A473113DA977.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "picker-dark-02-plate-step_0_2E327D36-C116-426F-A8CB-052CE990B48F.png",
+        "timestamp" : 1795886667.449
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "6AF29666-AFF9-4063-A8F0-D6971759722B.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "picker-dark-01-wheels_0_08DC8691-08D2-4D10-8E82-EE5951CE93FD.png",
+        "timestamp" : 1795886664.267
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureSetPicker()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureSetPicker"
+  }
+]
