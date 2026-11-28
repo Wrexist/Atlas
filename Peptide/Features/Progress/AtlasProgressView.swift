@@ -169,7 +169,8 @@ struct AtlasProgressView: View {
             Image(systemName: "flame.fill")
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(current > 0 ? tint : AppColor.textTertiary)
-            Text("\(current)")
+            // A broken run reads as a fresh start, never a zero.
+            Text(current > 0 ? "\(current)" : "—")
                 .font(AppFont.scaled(20, weight: .medium))
                 .monospacedDigit()
                 .contentTransition(.numericText())
@@ -183,8 +184,12 @@ struct AtlasProgressView: View {
                 Text("Personal best")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
-            } else {
+            } else if best > 0 {
                 Text("Best \(best)")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            } else {
+                Text("New start")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
             }
@@ -196,7 +201,10 @@ struct AtlasProgressView: View {
                 .fill(AppColor.surfaceElevated.opacity(0.5))
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(label) + Text(verbatim: ": ") + Text("^[\(current) day](inflect: true) streak, best \(best)"))
+        .accessibilityLabel(
+            Text(label) + Text(verbatim: ": ")
+                + (current > 0 ? Text("^[\(current) day](inflect: true) streak, best \(best)") : Text("New start"))
+        )
     }
 
     // MARK: - Consistency

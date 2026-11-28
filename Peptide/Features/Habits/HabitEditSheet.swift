@@ -124,7 +124,7 @@ struct HabitEditSheet: View {
 
     private func stat(value: Int, label: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text("\(value)")
+            Text(value > 0 ? "\(value)" : "—")
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()

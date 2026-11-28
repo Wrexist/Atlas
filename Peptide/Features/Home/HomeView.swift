@@ -15,6 +15,7 @@ struct HomeView: View {
     /// Today overview card's "Set a calorie target" nudge — previously
     /// the nudge was tappable but wired to nothing.
     @State private var showTargetsEditor = false
+    @State private var showMinimumDay = false
     @State private var showResearchAssistant = false
     @State private var showEditToday = false
     /// 0…1 fade progress for the inline navigation title. Driven
@@ -263,6 +264,7 @@ struct HomeView: View {
             overview: TodayOverviewSnapshot.build(
                 from: dataStore,
                 now: reference,
+                steps: steps(on: day),
                 includesInsight: isViewingToday
             ),
             plan: plan,
@@ -333,9 +335,14 @@ struct HomeView: View {
         } else {
             stepBuckets = await HealthKitService.shared.dailySteps(days: StepGoalEngine.fetchDays)
         }
+        // Last night's steps can finish a day's minimum after the fact. A
+        // recorded day changes the profile, which rebuilds Today by itself.
+        dataStore.recordMinimumDays { steps(on: $0) }
         let count = steps(on: selectedDay)
         guard derived.checklist?.steps != count else { return }
-        AppAnimation.with(AppAnimation.springSmooth) { derived.checklist?.steps = count }
+        // The Minimum day tile reads steps as well as the checklist, so a
+        // new count rebuilds the overview rather than patching one row.
+        refreshDerived()
     }
 
     /// The week's finished sessions — one fetch that also covers today, so
@@ -553,6 +560,9 @@ struct HomeView: View {
             .sheet(isPresented: $showEditToday, onDismiss: { dataStore.persistProfile() }) {
                 EditTodaySheet(layout: todayLayoutBinding, note: editTodayNote)
                     .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showMinimumDay) {
+                MinimumDaySheet(todaySteps: steps(on: Date()))
             }
             // Stack-warning / stack-adjustment / paywall sheets
             // moved to ProtocolsStackHealthSection in Phase 34 —
@@ -1305,8 +1315,8 @@ struct HomeView: View {
             } else {
                 appState.selectedTab = .meals
             }
-        case .mealStreak:
-            appState.selectedTab = .meals
+        case .minimumDay:
+            showMinimumDay = true
         }
     }
 

@@ -483,14 +483,10 @@ struct UserProfile: Codable, Sendable {
     /// Stored as `String` (the IANA identifier) for stable diffs;
     /// `nil` only on a fresh install before the first launch.
     var lastKnownTimezoneIdentifier: String?
-    /// Calendar days the user has "frozen" their streak against —
-    /// either deliberately (tapped Use freeze before a missed
-    /// day) or earned from a milestone reward. Keyed by start-of-
-    /// day so the streak engine can treat them as
-    /// counted-as-completed. Stored as ISO yyyy-MM-dd strings
-    /// because Set<Date> would need a hashing strategy that
-    /// matched the engine's day key; strings are unambiguous and
-    /// human-readable in the JSON dump.
+    /// Calendar days the streaks treat as kept: a missed day covered
+    /// by the monthly freeze, which is spent automatically. Stored as
+    /// local `DayKey.compact` strings ("yyyyMMdd") so they match the
+    /// engines' day keys in any time zone.
     var streakFreezeDays: Set<String>
     /// Saved recipes — named combinations of one or more foods.
     /// Lets the user one-tap-log a composite meal ("breakfast
@@ -589,6 +585,10 @@ struct UserProfile: Codable, Sendable {
     /// it; `DataStore.adaptiveTargetsSetting` then reads the device's
     /// older UserDefaults value.
     var adaptiveTargets: AdaptiveTargetsSetting?
+    /// The chosen minimum day and the days it was met. Nil until the
+    /// user first changes it or meets it; readers fall back to
+    /// `MinimumDay.default`.
+    var minimumDay: MinimumDay?
 
     init(
         name: String,
@@ -637,7 +637,8 @@ struct UserProfile: Codable, Sendable {
         supplements: [Supplement] = [],
         workoutTypeOverrides: [String: String] = [:],
         customPeptides: [Peptide] = [],
-        adaptiveTargets: AdaptiveTargetsSetting? = nil
+        adaptiveTargets: AdaptiveTargetsSetting? = nil,
+        minimumDay: MinimumDay? = nil
     ) {
         self.name = name
         self.goals = goals
@@ -686,6 +687,7 @@ struct UserProfile: Codable, Sendable {
         self.workoutTypeOverrides = workoutTypeOverrides
         self.customPeptides = customPeptides
         self.adaptiveTargets = adaptiveTargets
+        self.minimumDay = minimumDay
     }
 
     init(from decoder: Decoder) throws {
@@ -744,6 +746,7 @@ struct UserProfile: Codable, Sendable {
         workoutTypeOverrides = try container.decodeIfPresent([String: String].self, forKey: .workoutTypeOverrides) ?? [:]
         customPeptides = try container.decodeIfPresent([Peptide].self, forKey: .customPeptides) ?? []
         adaptiveTargets = try container.decodeIfPresent(AdaptiveTargetsSetting.self, forKey: .adaptiveTargets)
+        minimumDay = try container.decodeIfPresent(MinimumDay.self, forKey: .minimumDay)
     }
 
     static var fresh: UserProfile {

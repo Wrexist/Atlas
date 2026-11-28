@@ -30,6 +30,8 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
     /// Active meal-logging streak in calendar days. Drives the
     /// flame tile.
     let mealStreak: Int
+    /// The minimum-day week for the shown day. Drives the Minimum day tile.
+    let minimum: MinimumDayEngine.Summary
 
     // MARK: - Daily check-in
 
@@ -107,7 +109,7 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
     /// brand-new install — a sea of empty tiles helps nobody).
     /// Doses don't count: they live in the Today's doses section.
     var hasAnySignal: Bool {
-        if mealStreak > 0 || caloriesToday > 0 || waterToday > 0 { return true }
+        if mealStreak > 0 || caloriesToday > 0 || waterToday > 0 || minimum.total > 0 { return true }
         if calorieTarget != nil { return true }
         if checkInScore != nil { return true }
         if latestLab != nil { return true }
@@ -124,11 +126,13 @@ extension TodayOverviewSnapshot {
     ///
     /// `now` picks the day the calorie, water, check-in and meal-streak
     /// tiles read, so a browsed past day shows its own totals. The insight
-    /// is about the present, so `includesInsight: false` drops it.
+    /// is about the present, so `includesInsight: false` drops it. `steps`
+    /// is that day's step count, nil without Health.
     @MainActor
     static func build(
         from dataStore: DataStore,
         now: Date = Date(),
+        steps: Double? = nil,
         includesInsight: Bool = true
     ) -> TodayOverviewSnapshot {
         let consumption = dataStore.consumption(for: now)
@@ -151,6 +155,7 @@ extension TodayOverviewSnapshot {
             calorieTarget: targets?.calories,
             waterToday: consumption.waterFluidOunces,
             mealStreak: mealStreak,
+            minimum: dataStore.minimumDaySummary(todaySteps: steps, now: now),
             checkInScore: dataStore.outcome(for: now)?.composite,
             latestLab: lab,
             bottomInsight: bottom

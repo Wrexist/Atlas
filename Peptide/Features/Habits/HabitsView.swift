@@ -73,10 +73,6 @@ struct HabitsView: View {
                         emptyState
                             .padding(.top, Spacing.lg)
                     } else {
-                        if dataStore.habitStreakAtRisk {
-                            streakFreezeBanner
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                        }
                         habitsSummaryHeader(rows: visibleRows)
                         ForEach(Array(visibleRows.enumerated()), id: \.element.id) { index, row in
                             HabitRowCard(
@@ -121,9 +117,8 @@ struct HabitsView: View {
                     }
                 }
                 .appAnimation(AppAnimation.springSnappy, value: visibleRows.map(\.id))
-                // The freeze banner and the first-habit swap from the
-                // empty state slide in rather than popping.
-                .appAnimation(AppAnimation.toast, value: dataStore.habitStreakAtRisk)
+                // The first-habit swap from the empty state slides in
+                // rather than popping.
                 .appAnimation(AppAnimation.springSmooth, value: habits.isEmpty)
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxl)
@@ -309,47 +304,6 @@ struct HabitsView: View {
             : Text("No habits due today")
         let streak = best > 0 ? Text(", ^[\(best) day](inflect: true) streak") : Text(verbatim: "")
         return today + streak
-    }
-
-    /// Shown when a streak is at risk and a monthly freeze is available —
-    /// one tap shields yesterday so the streak survives. Reuses the existing
-    /// `DataStore.applyStreakFreeze` (defaults to yesterday).
-    private var streakFreezeBanner: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: "snowflake")
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.accentPrimary)
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Streak at risk")
-                    .font(AppFont.subheadline.weight(.semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-                Text("You missed yesterday — use your monthly freeze to keep your streak alive.")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-            Button {
-                Haptics.success()
-                AppAnimation.with(AppAnimation.springSmooth) {
-                    dataStore.applyStreakFreeze()
-                }
-            } label: {
-                Text("Freeze")
-                    .font(AppFont.subheadline.weight(.bold))
-                    .foregroundStyle(AppColor.onAccent)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.sm)
-                    .background(Capsule().fill(AppColor.accentFill))
-                    .minimumHitArea()
-            }
-            .buttonStyle(ScalePressStyle(pressedScale: 0.95))
-            .fixedSize()
-        }
-        .padding(Spacing.cardPadding)
-        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Streak at risk. You missed yesterday. Use your monthly freeze to keep your streak.")
     }
 
     private var progressLink: some View {

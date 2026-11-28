@@ -759,7 +759,8 @@ final class StoredProfile {
             supplements: ext.supplements,
             workoutTypeOverrides: ext.workoutTypeOverrides,
             customPeptides: ext.customPeptides,
-            adaptiveTargets: ext.adaptiveTargets
+            adaptiveTargets: ext.adaptiveTargets,
+            minimumDay: ext.minimumDay
         )
     }
 }
@@ -1021,6 +1022,9 @@ private struct ProfileExtension: Codable {
     var customPeptides: [Peptide] = []
     /// The adaptive-targets switch, beside the `nutritionTargets` it moves.
     var adaptiveTargets: AdaptiveTargetsSetting? = nil
+    /// The minimum day: small and edited on one phone, so it rides this
+    /// blob rather than a new column.
+    var minimumDay: MinimumDay? = nil
 
     static let empty = ProfileExtension()
 
@@ -1070,6 +1074,7 @@ private struct ProfileExtension: Codable {
         workoutTypeOverrides = try c.decodeIfPresent([String: String].self, forKey: .workoutTypeOverrides) ?? [:]
         customPeptides = try c.decodeIfPresent([Peptide].self, forKey: .customPeptides) ?? []
         adaptiveTargets = try c.decodeIfPresent(AdaptiveTargetsSetting.self, forKey: .adaptiveTargets)
+        minimumDay = try c.decodeIfPresent(MinimumDay.self, forKey: .minimumDay)
     }
 
     /// Snapshot of everything that still lives in the blob. The split
@@ -1101,6 +1106,7 @@ private struct ProfileExtension: Codable {
         ext.workoutTypeOverrides = profile.workoutTypeOverrides
         ext.customPeptides = profile.customPeptides
         ext.adaptiveTargets = profile.adaptiveTargets
+        ext.minimumDay = profile.minimumDay
         return ext
     }
 }

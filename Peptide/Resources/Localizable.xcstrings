@@ -3601,6 +3601,16 @@
         }
       }
     },
+    "%lld of %lld days this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld av %2$lld dagar den här veckan"
+          }
+        }
+      }
+    },
     "%lld of %lld done": {
       "localizations": {
         "sv": {
@@ -6128,12 +6138,44 @@
         }
       }
     },
+    "^[%lld day](inflect: true) at the minimum in total": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dag med minimum totalt"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dagar med minimum totalt"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "A dash means the label or scan doesn't state it.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Ett streck betyder att etiketten eller skanningen inte anger värdet."
+          }
+        }
+      }
+    },
+    "A missed day never resets anything. When a streak would break, your monthly freeze covers the day by itself.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En missad dag nollställer aldrig något. Om en svit skulle brytas täcker månadens frysning dagen av sig själv."
           }
         }
       }
@@ -6959,6 +7001,26 @@
         }
       }
     },
+    "Do the daily check-in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gör dagens incheckning"
+          }
+        }
+      }
+    },
+    "Do the minimum to count today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gör minimum så räknas dagen"
+          }
+        }
+      }
+    },
     "Edit goals": {
       "localizations": {
         "sv": {
@@ -7523,6 +7585,16 @@
         }
       }
     },
+    "Log something you ate": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga något du har ätit"
+          }
+        }
+      }
+    },
     "Log Weight": {
       "localizations": {
         "sv": {
@@ -7580,6 +7652,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Måltider för dagens mål"
+          }
+        }
+      }
+    },
+    "Minimum day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minimidag"
+          }
+        }
+      }
+    },
+    "Minimum day, %lld of %lld days this week. %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minimidag, %1$lld av %2$lld dagar den här veckan. %3$@"
+          }
+        }
+      }
+    },
+    "Minimum day. %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minimidag. %@"
+          }
+        }
+      }
+    },
+    "Minimum met": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minimum klart"
+          }
+        }
+      }
+    },
+    "Minimum not met": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minimum inte klart"
           }
         }
       }
@@ -7724,6 +7846,26 @@
         }
       }
     },
+    "Needs a protein target, skipped until then": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver ett proteinmål, hoppas över tills dess"
+          }
+        }
+      }
+    },
+    "Needs Apple Health, skipped until then": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kräver Apple Hälsa, hoppas över tills dess"
+          }
+        }
+      }
+    },
     "Needs Watch": {
       "localizations": {
         "sv": {
@@ -7770,6 +7912,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Neutral vid %lld mg/dL"
+          }
+        }
+      }
+    },
+    "New day. Do the minimum": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ny dag. Gör minimum"
+          }
+        }
+      }
+    },
+    "New start": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ny start"
+          }
+        }
+      }
+    },
+    "New week. Start with the minimum": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ny vecka. Börja med minimum"
           }
         }
       }
@@ -7830,6 +8002,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Anges inte"
+          }
+        }
+      }
+    },
+    "Not yet today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte än i dag"
           }
         }
       }
@@ -7944,6 +8126,16 @@
         }
       }
     },
+    "Opens your minimum day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar din minimidag"
+          }
+        }
+      }
+    },
     "Oral or intranasal. Morning for cognitive enhancement throughout the day": {
       "localizations": {
         "sv": {
@@ -8010,6 +8202,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Per %@"
+          }
+        }
+      }
+    },
+    "Pick at least one part that Atlas can check, or no day counts.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj minst en del som Atlas kan kontrollera, annars räknas ingen dag."
           }
         }
       }
@@ -8140,6 +8342,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pulsatil dosering föredras. Morgon eller före sänggåendet för hormonaxeln"
+          }
+        }
+      }
+    },
+    "Reach your protein target": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nå ditt proteinmål"
           }
         }
       }
@@ -8495,6 +8707,16 @@
         }
       }
     },
+    "The small floor for a bad day. A day at the minimum is a whole day, and five a week keeps the week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Golvet för en dålig dag. En dag med minimum räknas som en hel dag, och fem i veckan håller veckan."
+          }
+        }
+      }
+    },
     "The Wolverine combination (BPC-157 + TB-500) for tissue repair, GHK-Cu for collagen remodeling, Ipamorelin for GH-mediated protein synthesis. Covers inflammation, cell migration, extracellular matrix rebuilding, and systemic recovery.": {
       "localizations": {
         "sv": {
@@ -8661,6 +8883,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mycket kortverkande — använd kring träningen för akuta pulser"
+          }
+        }
+      }
+    },
+    "Walk 10 minutes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gå i 10 minuter"
+          }
+        }
+      }
+    },
+    "What counts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det här räknas"
           }
         }
       }
