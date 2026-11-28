@@ -350,7 +350,7 @@ struct RaisedArc<Arc: View>: View {
 
     /// Keeps the crest off the caps, so it reads as light on a rounded
     /// tube rather than a painted stripe.
-    private static let crestInset = 0.03
+    private let crestInset = 0.03
 
     var body: some View {
         if renderingMode == .fullColor, progress > 0 {
@@ -378,7 +378,7 @@ struct RaisedArc<Arc: View>: View {
     private var crest: some View {
         Circle()
             .inset(by: lineWidth / 2)
-            .trim(from: Self.crestInset, to: max(Self.crestInset, progress - Self.crestInset))
+            .trim(from: crestInset, to: max(crestInset, progress - crestInset))
             .stroke(style: StrokeStyle(lineWidth: lineWidth * 0.22, lineCap: .round))
             .rotationEffect(.degrees(-90))
             .blur(radius: lineWidth * 0.08)
