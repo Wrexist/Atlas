@@ -95,6 +95,33 @@ final class MinimumDayStoreTests: XCTestCase {
         XCTAssertEqual(LifestyleDataLogic.mealLoggingStreak(in: store.profile, asOf: now), 3)
     }
 
+    func test_forgive_yesterdaysMealsArriveLater_handsTheFreezeBack() {
+        let store = DataStore(seedSampleData: false)
+        let now = Date()
+        logLunch(store, daysAgo: 2, now: now)
+        logLunch(store, daysAgo: 3, now: now)
+        store.forgiveMissedDayIfNeeded(now: now)
+        XCTAssertEqual(store.profile.streakFreezeDays.count, 1)
+
+        logLunch(store, daysAgo: 1, now: now)
+        store.forgiveMissedDayIfNeeded(now: now)
+
+        XCTAssertTrue(store.profile.streakFreezeDays.isEmpty)
+        XCTAssertEqual(LifestyleDataLogic.mealLoggingStreak(in: store.profile, asOf: now), 3)
+    }
+
+    func test_forgive_runTwice_spendsOnce() {
+        let store = DataStore(seedSampleData: false)
+        let now = Date()
+        logLunch(store, daysAgo: 2, now: now)
+        logLunch(store, daysAgo: 3, now: now)
+
+        store.forgiveMissedDayIfNeeded(now: now)
+        store.forgiveMissedDayIfNeeded(now: now)
+
+        XCTAssertEqual(store.profile.streakFreezeDays.count, 1)
+    }
+
     func test_forgive_twoMissedDays_spendsNothing() {
         let store = DataStore(seedSampleData: false)
         let now = Date()

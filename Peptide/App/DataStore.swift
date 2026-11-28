@@ -379,6 +379,9 @@ final class DataStore {
             else { return }
             AppLog.persistence.log("CloudKit import finished; refreshing in-memory state")
             self.reloadFromDisk()
+            // Yesterday's meals may have just arrived: hand back a freeze
+            // spent before they did.
+            self.forgiveMissedDayIfNeeded()
         }
     }
 
@@ -1836,30 +1839,50 @@ final class DataStore {
     // MARK: - Streak freeze
 
     /// Spends the month's freeze on yesterday by itself when that keeps a
-    /// meal or habit streak of two or more alive. Forgiveness shouldn't
-    /// need remembering: a missed day is covered without a prompt, at
-    /// most once a calendar month.
+    /// meal or habit streak of two or more alive, and hands it back once
+    /// yesterday turns out not to need it (its meals arrived from iCloud
+    /// after the spend). Forgiveness shouldn't need remembering: a missed
+    /// day is covered without a prompt, at most once a calendar month.
+    /// Runs on activation and after each iCloud import.
     func forgiveMissedDayIfNeeded(now: Date = Date()) {
         let calendar = Calendar.current
         guard let yesterday = calendar.date(byAdding: .day, value: -1, to: now) else { return }
-        var forgiven = profile
-        guard StreakFreezeService.applyFreeze(in: &forgiven, for: yesterday, calendar: calendar) else { return }
-        let mealsNow = LifestyleDataLogic.mealLoggingStreak(in: profile, asOf: now)
-        let mealsForgiven = LifestyleDataLogic.mealLoggingStreak(in: forgiven, asOf: now)
-        let savesMeals = mealsForgiven >= 2 && mealsForgiven > mealsNow
-        let savesHabits = HabitsService.streakAtRisk(
-            habits: activeHabits,
-            entries: profile.habitEntries,
-            frozenDayKeys: profile.streakFreezeDays,
-            on: now,
-            calendar: calendar
-        )
-        guard savesMeals || savesHabits else { return }
-        profile.streakFreezeDays = forgiven.streakFreezeDays
+        let key = StreakFreezeService.dayKey(for: yesterday, calendar: calendar)
+        if profile.streakFreezeDays.contains(key) {
+            var without = profile
+            without.streakFreezeDays.remove(key)
+            guard !yesterdayFreezeSavesAStreak(in: without, now: now, calendar: calendar) else { return }
+            profile.streakFreezeDays = without.streakFreezeDays
+        } else {
+            var forgiven = profile
+            guard StreakFreezeService.applyFreeze(in: &forgiven, for: yesterday, calendar: calendar),
+                  yesterdayFreezeSavesAStreak(in: profile, now: now, calendar: calendar)
+            else { return }
+            profile.streakFreezeDays = forgiven.streakFreezeDays
+        }
         // The streaks read the freeze set; profile edits don't bump the
         // cache version on their own.
         cacheVersion &+= 1
         save()
+    }
+
+    /// True when `base` has a meal or habit streak of two or more that
+    /// only survives if yesterday is frozen.
+    private func yesterdayFreezeSavesAStreak(in base: UserProfile, now: Date, calendar: Calendar) -> Bool {
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: now) else { return false }
+        var forgiven = base
+        forgiven.streakFreezeDays.insert(StreakFreezeService.dayKey(for: yesterday, calendar: calendar))
+        let mealsForgiven = LifestyleDataLogic.mealLoggingStreak(in: forgiven, asOf: now)
+        if mealsForgiven >= 2, mealsForgiven > LifestyleDataLogic.mealLoggingStreak(in: base, asOf: now) {
+            return true
+        }
+        return HabitsService.streakAtRisk(
+            habits: base.habits.filter { !$0.archived },
+            entries: base.habitEntries,
+            frozenDayKeys: base.streakFreezeDays,
+            on: now,
+            calendar: calendar
+        )
     }
 
     // MARK: - Minimum day
