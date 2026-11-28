@@ -126,7 +126,7 @@ struct SetValuePickerSheet: View {
                     .frame(width: wholeWidth)
                     .accessibilityIdentifier("set-picker-weight-wheel")
                 NumberWheel(values: SetValueWheelEngine.fractions(for: unit), selection: $weight.fraction,
-                            alignment: .leading,
+                            alignment: .leading, quietNeighbours: true,
                             accessibilityLabel: Text("Weight, fraction")) { fractionLabel($0) }
                     .frame(width: fractionWidth)
                 unitLabel(Text(unit.weightSuffix))

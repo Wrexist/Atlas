@@ -12,6 +12,7 @@ struct NumberWheel<Value: Hashable>: View {
     let values: [Value]
     @Binding var selection: Value
     let alignment: HorizontalAlignment
+    let quietNeighbours: Bool
     let accessibilityLabel: Text
     let label: (Value) -> String
 
@@ -21,8 +22,12 @@ struct NumberWheel<Value: Hashable>: View {
 
     /// `alignment` lets two wheels read as one number: whole units
     /// trailing, the fraction leading, meeting in the middle.
+    /// `quietNeighbours` all but hides the rows off the band, for a
+    /// wheel whose neighbours would pair with the wrong row beside it.
     init(values: [Value], selection: Binding<Value>, alignment: HorizontalAlignment = .center,
+         quietNeighbours: Bool = false,
          accessibilityLabel: Text, label: @escaping (Value) -> String) {
+        self.quietNeighbours = quietNeighbours
         self.values = values
         self._selection = selection
         self.alignment = alignment
@@ -102,7 +107,7 @@ struct NumberWheel<Value: Hashable>: View {
 
     private func row(_ value: Value, stepsFromCentre: Int) -> some View {
         let text: Text = Text(verbatim: label(value))
-        let fade: Double = NumberWheelMetrics.opacity(stepsFromCentre: stepsFromCentre)
+        let fade: Double = NumberWheelMetrics.opacity(stepsFromCentre: stepsFromCentre, quiet: quietNeighbours)
         let scale: CGFloat = NumberWheelMetrics.scale(stepsFromCentre: stepsFromCentre)
         return text
             .font(AppFont.title2)
@@ -144,8 +149,8 @@ enum NumberWheelMetrics {
     static let visibleRows = 5
 
     /// Rows fade and shrink with each step away from the middle row.
-    static func opacity(stepsFromCentre steps: Int) -> Double {
-        [1, 0.55, 0.3][min(steps, 2)]
+    static func opacity(stepsFromCentre steps: Int, quiet: Bool = false) -> Double {
+        (quiet ? [1, 0.12, 0.06] : [1, 0.55, 0.3])[min(steps, 2)]
     }
 
     static func scale(stepsFromCentre steps: Int) -> CGFloat {
