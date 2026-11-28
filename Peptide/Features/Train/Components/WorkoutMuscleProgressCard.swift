@@ -74,9 +74,6 @@ struct WorkoutMuscleProgressCard: View {
                     .contentTransition(.numericText(value: progress.fraction))
                     .accessibilityLabel(Text("\(Int((progress.fraction * 100).rounded())) percent of the workout done"))
             }
-            if !highlights.isEmpty {
-                BodyFacingButton(facing: $facing)
-            }
         }
         .appAnimation(AppAnimation.springSnappy, value: progress.doneSets)
     }
@@ -84,7 +81,9 @@ struct WorkoutMuscleProgressCard: View {
     private func caption(_ progress: WorkoutMuscleProgressEngine.Progress) -> LocalizedStringKey {
         guard progress.plannedSets > 0 else { return "Add sets to see your muscles fill in." }
         if progress.doneSets == 0 { return "Complete a working set to light up your muscles." }
-        return "\(progress.doneSets) of \(progress.plannedSets) sets"
+        let remaining = progress.plannedSets - progress.doneSets
+        if remaining <= 0 { return "All sets done" }
+        return remaining == 1 ? "1 set to go" : "\(remaining) sets to go"
     }
 }
 
@@ -105,7 +104,7 @@ private struct WorkoutMuscleProgressRow: View {
                     .foregroundStyle(AppColor.textPrimary)
                 Spacer(minLength: Spacing.sm)
                 HStack(spacing: Spacing.xxs) {
-                    Text("\(row.done) of \(row.planned) sets")
+                    Text("\(row.done) of \(row.planned)")
                         .monospacedDigit()
                         .contentTransition(.numericText(value: Double(row.done)))
                     if row.isComplete {

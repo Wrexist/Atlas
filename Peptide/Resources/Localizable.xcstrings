@@ -4399,6 +4399,16 @@
         }
       }
     },
+    "%lld sets to go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld set kvar"
+          }
+        }
+      }
+    },
     "%lld stars": {
       "localizations": {
         "sv": {
@@ -5528,6 +5538,16 @@
         }
       }
     },
+    "1 set to go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 set kvar"
+          }
+        }
+      }
+    },
     "1 week apart": {
       "localizations": {
         "sv": {
@@ -6264,6 +6284,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Alla måltider"
+          }
+        }
+      }
+    },
+    "All sets done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla set klara"
           }
         }
       }
