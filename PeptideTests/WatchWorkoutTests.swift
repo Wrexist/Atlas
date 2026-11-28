@@ -91,6 +91,17 @@ final class WatchWorkoutSnapshotTests: XCTestCase {
         XCTAssertEqual(picked.upNext?.exercise.id, curl.id)
     }
 
+    func test_restExpired_staysOnTheExerciseInView() {
+        let press = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Press", restSeconds: 60, sets: [row(1)])
+        let row2 = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Row", restSeconds: 60, sets: [row(1)])
+        let resting = snapshot([press, row2]).applying(
+            .completeSet(exerciseID: press.id, setID: press.sets[0].id, weightKg: 60, reps: 8), at: now
+        )
+        let expired = resting.applying(.extendRest(seconds: 30), at: now.addingTimeInterval(90))
+        XCTAssertNil(expired.rest)
+        XCTAssertEqual(expired.selectedExercise?.id, press.id)
+    }
+
     func test_extendRest_afterRestExpired_doesNotReviveIt() {
         let press = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Press", restSeconds: 60, sets: [row(1), row(2)])
         let resting = snapshot([press]).applying(

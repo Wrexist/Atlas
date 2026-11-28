@@ -1148,6 +1148,9 @@ struct FoodLibraryFlow: View {
                     reviewPortionPicker(product)
                     MealCategoryPicker(selection: $category)
                     reviewMacros(product)
+                    if FoodLibraryLogic.hasUsableNutrition(product), let grams = product.grams(for: portion) {
+                        NutritionFactsCard(product: product, grams: grams)
+                    }
                     reviewActions(product)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
