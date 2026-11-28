@@ -316,7 +316,8 @@ struct SetValuePickerSheet: View {
             updated.weightKg = SetEntryLimits.clampWeightKg(unit.kilograms(fromDisplayed: typed))
         }
         if let typed = WorkoutEditValidation.number(repsText), typed >= 0 {
-            updated.reps = SetEntryLimits.clampReps(Int(typed.rounded()))
+            // Clamped as a Double first: Int() traps past Int.max.
+            updated.reps = Int(min(typed, Double(SetEntryLimits.reps.upperBound)).rounded())
         }
         if updated != set { set = updated }
     }

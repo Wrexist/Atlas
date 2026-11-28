@@ -74,8 +74,7 @@ struct NumberWheel<Value: Hashable>: View {
     }
 
     private func row(_ value: Value) -> some View {
-        let rows = CGFloat(NumberWheelMetrics.visibleRows)
-        return Text(label(value))
+        Text(label(value))
             .font(AppFont.title2)
             .monospacedDigit()
             .foregroundStyle(AppColor.textPrimary)
@@ -86,12 +85,9 @@ struct NumberWheel<Value: Hashable>: View {
             .contentShape(Rectangle())
             .onTapGesture { selection = value }
             .visualEffect { content, proxy in
-                let frame = proxy.frame(in: .scrollView(axis: .vertical))
-                let half = max(proxy.size.height, 1) * rows / 2
-                let distance = min(abs(frame.midY - half) / half, 1)
-                return content
-                    .opacity(1 - distance * 0.75)
-                    .scaleEffect(1 - distance * 0.22)
+                content
+                    .opacity(1 - NumberWheelMetrics.offCentre(proxy) * 0.75)
+                    .scaleEffect(1 - NumberWheelMetrics.offCentre(proxy) * 0.22)
             }
     }
 }
@@ -119,4 +115,11 @@ enum NumberWheelMetrics {
     static let rowHeight: CGFloat = 44
     /// Rows shown at once; odd, so one sits in the middle.
     static let visibleRows = 5
+
+    /// How far a row sits from the wheel's middle: 0 centred, 1 at the edge.
+    static func offCentre(_ row: GeometryProxy) -> CGFloat {
+        let frame = row.frame(in: .scrollView(axis: .vertical))
+        let half = max(row.size.height, 1) * CGFloat(visibleRows) / 2
+        return min(abs(frame.midY - half) / half, 1)
+    }
 }
