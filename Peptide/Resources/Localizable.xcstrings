@@ -54068,6 +54068,196 @@
           }
         }
       }
+    },
+    "Workout progress": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passets framsteg"
+          }
+        }
+      }
+    },
+    "Every set moves this bar.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varje set fyller stapeln."
+          }
+        }
+      }
+    },
+    "%lld sets to go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld set kvar"
+          }
+        }
+      }
+    },
+    "Past halfway · %lld sets to go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Över halvvägs · %lld set kvar"
+          }
+        }
+      }
+    },
+    "Almost there · %lld sets left": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästan klart · %lld set kvar"
+          }
+        }
+      }
+    },
+    "Last set. Finish strong.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sista setet. Avsluta starkt."
+          }
+        }
+      }
+    },
+    "Every set done. Strong work.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla set klara. Starkt jobbat."
+          }
+        }
+      }
+    },
+    "Exercise complete. On to the next.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Övningen klar. Vidare till nästa."
+          }
+        }
+      }
+    },
+    "Matched last time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samma som förra passet"
+          }
+        }
+      }
+    },
+    "A quarter done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En fjärdedel klar"
+          }
+        }
+      }
+    },
+    "Halfway there": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halvvägs"
+          }
+        }
+      }
+    },
+    "Three quarters done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tre fjärdedelar klart"
+          }
+        }
+      }
+    },
+    "Nice set.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snyggt set."
+          }
+        }
+      }
+    },
+    "Strong set.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starkt set."
+          }
+        }
+      }
+    },
+    "One more in the bank.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ett till på kontot."
+          }
+        }
+      }
+    },
+    "%@, %lld of %lld sets. %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld av %3$lld set. %4$@"
+          }
+        }
+      }
+    },
+    "+%@ vs last time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%@ mot förra passet"
+          }
+        }
+      }
+    },
+    "+1 rep vs last time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+1 rep mot förra passet"
+          }
+        }
+      }
+    },
+    "+%lld reps vs last time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%lld reps mot förra passet"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

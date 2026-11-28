@@ -461,10 +461,11 @@ final class ScreenshotTests: XCTestCase {
             let addSet = app.buttons["Add set"]
             XCTAssertTrue(addSet.waitForExistence(timeout: 10))
             for _ in 0..<3 { reveal(addSet); addSet.tap() }
-            for index in 1...4 {
-                replaceField("workout-weight-\(index)", with: index <= 2 ? "22.5" : "25")
-                replaceField("workout-reps-\(index)", with: index <= 2 ? "10" : "8")
-            }
+            // Only the first set is typed: the rest take its load by
+            // carry-forward, and replacing a carried value is where the
+            // simulator's text selection kept failing.
+            replaceField("workout-weight-1", with: "22.5")
+            replaceField("workout-reps-1", with: "10")
             let first = app.buttons["workout-complete-1"]
             reveal(first)
             first.tap()
@@ -485,6 +486,8 @@ final class ScreenshotTests: XCTestCase {
             let second = app.buttons["workout-complete-2"]
             reveal(second)
             second.tap()
+            // The progress line answers the set for a few seconds only.
+            capture(named: "incline-\(appearance)-02a-reward")
             XCTAssertTrue(skip.waitForExistence(timeout: 5))
             scrollToTop()
             capture(named: "incline-\(appearance)-02-rest")
