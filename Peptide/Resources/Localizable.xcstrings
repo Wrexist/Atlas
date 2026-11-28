@@ -8154,6 +8154,26 @@
         }
       }
     },
+    "Restore point saved %@. Your current data is copied first.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återställningspunkt sparad %@. Dina nuvarande data kopieras först."
+          }
+        }
+      }
+    },
+    "Restore points": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återställningspunkter"
+          }
+        }
+      }
+    },
     "Retatrutide as monotherapy produces up to 24% body weight reduction — adding semaglutide is unlikely to improve this.": {
       "localizations": {
         "sv": {
@@ -8230,6 +8250,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mättat fett"
+          }
+        }
+      }
+    },
+    "Saved automatically once a day and kept for two months. Touch and hold one to share it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skapas automatiskt en gång om dagen och sparas i två månader. Håll in en för att dela den."
           }
         }
       }

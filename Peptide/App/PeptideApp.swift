@@ -136,6 +136,14 @@ struct PeptideApp: App {
                     await WeeklyPrepStore.shared.reconcileReminders()
                     backgroundTask.end()
                 }
+                // About once a day, a full copy to roll back to if a bug
+                // damages the data. Its own task: encoding years of
+                // history must not hold up the reminder work above.
+                let restorePointTask = BackgroundTaskHandle(name: "Restore point")
+                Task { @MainActor in
+                    await RestorePointService.writeIfDue(dataStore: dataStore)
+                    restorePointTask.end()
+                }
             }
             if phase == .active {
                 UpsellScheduler.recordActiveDay()

@@ -29,6 +29,7 @@ struct RestoreBackupSheet: View {
     @State private var errorMessage: String?
     @State private var resultPreview: BackupImportService.Preview?
     @State private var snapshots: [BackupSnapshotService.Info] = []
+    @State private var restorePoints: [BackupSnapshotService.Info] = []
     @State private var validationTask: Task<Void, Never>?
 
     private enum Phase: Equatable {
@@ -97,11 +98,40 @@ struct RestoreBackupSheet: View {
             PrimaryCTAButton(title: "Pick a backup file", icon: "folder", shape: .rounded) {
                 showingFileImporter = true
             }
+            if !restorePoints.isEmpty {
+                restorePointList
+            }
             if !snapshots.isEmpty {
                 safetyCopyList
             }
         }
-        .onAppear { snapshots = BackupSnapshotService.availableSnapshots() }
+        .onAppear {
+            restorePoints = RestorePointService.restorePoints()
+            snapshots = BackupSnapshotService.availableSnapshots()
+        }
+    }
+
+    /// The automatic daily and weekly copies. Long-press shares one, so
+    /// a copy can be kept off the phone too.
+    private var restorePointList: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Restore points")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+            Text("Saved automatically once a day and kept for two months. Touch and hold one to share it.")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+            ForEach(restorePoints) { info in
+                SafetyCopyRow(info: info) { validateSnapshot(info) }
+                    .contextMenu {
+                        ShareLink(item: info.url) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                    }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, Spacing.md)
     }
 
     /// The pre-restore snapshots `apply` writes, offered back so a
