@@ -54,7 +54,8 @@ enum SmartFoodLogic {
     static func product(_ product: ScannedProduct, fillingFrom scan: MealScannerService.SmartScan) -> ScannedProduct {
         let package = scan.package
         var nutriments = product.hasNutrition ? product.per100g : scan.items.first.map(Self.per100g(of:)) ?? product.per100g
-        if nutriments.micros == nil { nutriments.micros = scan.items.first?.per100g?.micros }
+        nutriments.micros = (nutriments.micros ?? Micronutrients())
+            .filling(from: scan.items.first?.per100g?.micros).nonEmpty
         // A database record with no product name is titled with its brand
         // or "Unknown product"; Atlas AI's identification reads better.
         let identified = product.nameMissing == true ? scan.items.first : nil

@@ -56,13 +56,17 @@ const NUTRIENTS = {
   },
 };
 
-// Vitamins and minerals per 100 g. One nullable object rather than six
-// nullable numbers keeps the schema's union count low; the app treats
+// Vitamins, minerals and the fat breakdown per 100 g. One nullable object
+// rather than nine nullable numbers keeps the schema's union count low;
+// the app treats
 // the whole object as optional, so older proxies and apps still agree.
 const MICRONUTRIENTS = {
   type: 'object',
   additionalProperties: false,
-  required: ['sodium_mg', 'potassium_mg', 'iron_mg', 'calcium_mg', 'vitamin_d_ug', 'vitamin_b12_ug'],
+  required: [
+    'sodium_mg', 'potassium_mg', 'iron_mg', 'calcium_mg', 'vitamin_d_ug', 'vitamin_b12_ug',
+    'saturated_fat_g', 'unsaturated_fat_g', 'cholesterol_mg',
+  ],
   properties: {
     sodium_mg: { type: 'number' },
     potassium_mg: { type: 'number' },
@@ -70,6 +74,9 @@ const MICRONUTRIENTS = {
     calcium_mg: { type: 'number' },
     vitamin_d_ug: { type: 'number' },
     vitamin_b12_ug: { type: 'number' },
+    saturated_fat_g: { type: 'number' },
+    unsaturated_fat_g: { type: 'number' },
+    cholesterol_mg: { type: 'number' },
   },
 };
 
@@ -159,7 +166,7 @@ Identify before you estimate. Many foods look alike — watermelon and tomato, c
 
 Nutrition is per 100 g of the food as eaten (cooked weight for cooked food, including absorbed oil and sauce). Use typical database values for that food; never invent precision you don't have.
 
-micros_per_100g gives sodium, potassium, iron and calcium in mg and vitamin D and B12 in µg, per 100 g like the macros. Read them off a nutrition panel when printed (sodium is salt ÷ 2.5); otherwise use typical database values for that food. Null only when you cannot reasonably estimate them.
+micros_per_100g gives sodium, potassium, iron and calcium in mg and vitamin D and B12 in µg, per 100 g like the macros. It also splits fat_g: saturated_fat_g and unsaturated_fat_g (mono- plus polyunsaturated) in g, which together never exceed fat_g, and cholesterol_mg in mg. Read them off a nutrition panel when printed (sodium is salt ÷ 2.5); otherwise use typical database values for that food. Null only when you cannot reasonably estimate them.
 
 grams is the amount shown or described. Estimate it from visual references: plate diameter (~26 cm dinner plate), cutlery, hands, packaging, can and bottle sizes. portion_label names that amount the way a person would ("1 bowl", "2 slices", "1 can (330 ml)").
 

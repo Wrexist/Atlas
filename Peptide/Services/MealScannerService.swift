@@ -888,6 +888,8 @@ final class MealScannerService: Sendable {
 
         struct Micros: Decodable {
             let sodiumMg, potassiumMg, ironMg, calciumMg, vitaminDUg, vitaminB12Ug: Double?
+            /// Absent from proxies that predate the fat breakdown.
+            let saturatedFatG, unsaturatedFatG, cholesterolMg: Double?
 
             enum CodingKeys: String, CodingKey {
                 case sodiumMg = "sodium_mg"
@@ -896,6 +898,9 @@ final class MealScannerService: Sendable {
                 case calciumMg = "calcium_mg"
                 case vitaminDUg = "vitamin_d_ug"
                 case vitaminB12Ug = "vitamin_b12_ug"
+                case saturatedFatG = "saturated_fat_g"
+                case unsaturatedFatG = "unsaturated_fat_g"
+                case cholesterolMg = "cholesterol_mg"
             }
         }
 
@@ -1062,7 +1067,9 @@ final class MealScannerService: Sendable {
         let mg = 100_000.0, ug = 100_000_000.0
         return Micronutrients(sodiumMg: upTo(mg, m.sodiumMg), potassiumMg: upTo(mg, m.potassiumMg),
                               ironMg: upTo(mg, m.ironMg), calciumMg: upTo(mg, m.calciumMg),
-                              vitaminDUg: upTo(ug, m.vitaminDUg), vitaminB12Ug: upTo(ug, m.vitaminB12Ug)).nonEmpty
+                              vitaminDUg: upTo(ug, m.vitaminDUg), vitaminB12Ug: upTo(ug, m.vitaminB12Ug),
+                              saturatedFatG: upTo(100, m.saturatedFatG), unsaturatedFatG: upTo(100, m.unsaturatedFatG),
+                              cholesterolMg: upTo(mg, m.cholesterolMg)).nonEmpty
     }
 
     private func parseEstimate(from data: Data) throws -> MealEstimate {

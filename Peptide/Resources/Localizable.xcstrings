@@ -6128,6 +6128,26 @@
         }
       }
     },
+    "A dash means the label or scan doesn't state it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ett streck betyder att etiketten eller skanningen inte anger värdet."
+          }
+        }
+      }
+    },
+    "About %@, estimated": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cirka %@, uppskattat"
+          }
+        }
+      }
+    },
     "AI & privacy": {
       "localizations": {
         "sv": {
@@ -6614,6 +6634,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kontrollera Hälsa-åtkomst"
+          }
+        }
+      }
+    },
+    "Cholesterol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kolesterol"
           }
         }
       }
@@ -7764,12 +7794,32 @@
         }
       }
     },
+    "Not stated": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anges inte"
+          }
+        }
+      }
+    },
     "Nothing logged that day.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Inget loggat den dagen."
+          }
+        }
+      }
+    },
+    "Nutrition facts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näringsvärden"
           }
         }
       }
@@ -7920,6 +7970,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "PEGylerad för förlängd halveringstid. Efter träning på dagar utan IGF"
+          }
+        }
+      }
+    },
+    "Per %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per %@"
           }
         }
       }
@@ -8184,6 +8244,16 @@
         }
       }
     },
+    "Saturated fat": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mättat fett"
+          }
+        }
+      }
+    },
     "Saved automatically once a day and kept for two months. Touch and hold one to share it.": {
       "localizations": {
         "sv": {
@@ -8421,6 +8491,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Träningsdagar den här veckan, %lld av %lld"
+          }
+        }
+      }
+    },
+    "Unsaturated fat": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omättat fett"
           }
         }
       }
@@ -54005,6 +54085,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@, %2$lld av %3$lld set denna vecka, %4$lld från det här passet"
+          }
+        }
+      }
+    },
+    "≈ Estimated: total fat minus saturated fat. Not on the label.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "≈ Uppskattat: totalt fett minus mättat fett. Står inte på etiketten."
           }
         }
       }

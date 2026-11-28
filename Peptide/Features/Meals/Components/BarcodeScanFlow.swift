@@ -413,6 +413,9 @@ struct BarcodeScanFlow: View {
                     }
                     MealCategoryPicker(selection: $category)
                     macroPanel(for: product)
+                    if manualOverride == nil, product.hasNutrition, let grams = product.grams(for: portion) {
+                        NutritionFactsCard(product: product, grams: grams)
+                    }
                     saveToMyFoodsButton(product)
                 }
             }
@@ -1078,6 +1081,12 @@ struct BarcodeScanFlow: View {
             let fixture = BarcodeDrinkFixture.product()
             product = fixture
             portion = .grams(330)
+            phase = .review
+            return
+        }
+        if BarcodeFoodFixture.isRequested {
+            product = BarcodeFoodFixture.product()
+            portion = .grams(150)
             phase = .review
             return
         }
