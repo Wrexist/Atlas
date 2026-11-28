@@ -296,50 +296,34 @@ private struct MacroRow: View {
     }
 }
 
-/// Four meal glyphs, lit once that meal has something logged, each with
-/// its calories: the key to the ring's colours, and the day's shape in
-/// one row. When the figures don't fit beside the glyphs, the glyphs
-/// carry on alone.
+/// Four meal glyphs, lit in their ring colour once that meal has
+/// something logged: the key to the ring's segments, and the day's shape
+/// in one row.
 private struct MealStrip: View {
     let meals: [WidgetMealSlot]
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            row(showsCalories: true)
-            row(showsCalories: false)
+        HStack(spacing: 6) {
+            ForEach(WidgetMeal.allCases, id: \.self) { meal in
+                let logged = meals.indices.contains(meal.rawValue)
+                    && meals[meal.rawValue].entryCount > 0
+                Image(systemName: meal.glyph)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(logged ? meal.tint : Color.secondary.opacity(0.5))
+                    .frame(width: 22, height: 22)
+                    .raisedDisc(logged ? meal.tint.opacity(0.18) : WidgetPalette.track)
+                    .widgetAccentable(logged)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
     }
 
-    private func row(showsCalories: Bool) -> some View {
-        HStack(spacing: showsCalories ? 8 : 6) {
-            ForEach(WidgetMeal.allCases, id: \.self) { meal in
-                let slot = meals.indices.contains(meal.rawValue) ? meals[meal.rawValue] : nil
-                let logged = (slot?.entryCount ?? 0) > 0
-                HStack(spacing: 3) {
-                    Image(systemName: meal.glyph)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(logged ? meal.tint : Color.secondary.opacity(0.5))
-                        .frame(width: 22, height: 22)
-                        .raisedDisc(logged ? meal.tint.opacity(0.18) : WidgetPalette.track)
-                        .widgetAccentable(logged)
-                    if showsCalories, logged, let slot {
-                        Text(slot.calories.formatted())
-                            .font(.caption2.weight(.semibold).monospacedDigit())
-                            .foregroundStyle(.secondary)
-                            .fixedSize()
-                    }
-                }
-            }
-        }
-    }
-
     private var accessibilityText: Text {
-        let logged = meals.filter { $0.entryCount > 0 }
-        guard !logged.isEmpty else { return Text("No meals logged yet") }
-        let parts = logged.map { "\($0.category) \($0.calories) kcal" }
-        return Text("Logged: \(parts.formatted(.list(type: .and)))")
+        let logged = meals.filter { $0.entryCount > 0 }.map(\.category)
+        return logged.isEmpty
+            ? Text("No meals logged yet")
+            : Text("Logged: \(logged.formatted(.list(type: .and)))")
     }
 }
 

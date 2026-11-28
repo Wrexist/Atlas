@@ -278,7 +278,10 @@ struct WidgetBackdrop: View {
 
 extension View {
     func widgetBackdrop(_ tint: Color) -> some View {
-        frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // A home-screen widget never grows, so text past this size only
+        // truncates: "Protein 68 / 1…" at the accessibility sizes.
+        dynamicTypeSize(...DynamicTypeSize.xxLarge)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .containerBackground(for: .widget) { WidgetBackdrop(tint: tint) }
     }
 
@@ -461,21 +464,35 @@ struct WidgetBar: View {
             let width = proxy.size.width
             ZStack(alignment: .leading) {
                 track
-                if progress > 0 {
-                    fill(width: width * min(progress, 1))
+                ZStack(alignment: .leading) {
+                    if progress > 0 {
+                        fill(width: width * min(progress, 1))
+                    }
+                    if showsOverflow, progress > 1 {
+                        overflow(width: width)
+                    }
                 }
-                if showsOverflow, progress > 1 {
-                    // The target sits where 1 / progress of the bar is.
-                    let excess = width * (1 - 1 / progress)
-                    Capsule()
-                        .fill(tint.mix(with: .black, by: 0.35))
-                        .frame(width: max(excess, height))
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .widgetAccentable()
-                }
+                .compositingGroup()
             }
         }
         .frame(height: height)
+    }
+
+    /// The part past the target, from where 1 / progress of the bar is to
+    /// its end, split from the rest by a notch cut through to the card so
+    /// the target reads as a point on the bar.
+    @ViewBuilder
+    private func overflow(width: CGFloat) -> some View {
+        let target = width / progress
+        Capsule()
+            .fill(tint.mix(with: .black, by: 0.35))
+            .frame(width: max(width - target, height))
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .widgetAccentable()
+        Rectangle()
+            .frame(width: 1.5)
+            .offset(x: target - 0.75)
+            .blendMode(.destinationOut)
     }
 
     @ViewBuilder
