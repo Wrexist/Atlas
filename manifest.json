@@ -1,0 +1,457 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "8290F8A9-D3B1-47EC-B475-CA72C931E407",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.24.08 PM",
+        "timestamp" : 1795883048.475
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "B5E4E814-4028-44E5-A2C6-0AECA029BA52",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.24.09 PM",
+        "timestamp" : 1795883049.001
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "A3A9A699-368A-499D-A649-89668A904527",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.24.05 PM",
+        "timestamp" : 1795883045.155
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "72B116C9-5D88-4B7C-8077-2C17F60B7979",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.24.05 PM",
+        "timestamp" : 1795883045.815
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "4F068D9F-D32E-4005-B7EC-C1E42F0FACF9.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "swap-dark-05-workout-menu_0_6959EDCA-D781-4B23-943E-C22274EDF337.png",
+        "timestamp" : 1795883044.872
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "D7B2D777-29E1-4E97-AF55-7078FA0BDAC5",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.59 PM",
+        "timestamp" : 1795883039.657
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "66DAEA43-EC84-4705-8695-961372961917",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.24.00 PM",
+        "timestamp" : 1795883040.908
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "8CE3A127-6F20-4616-8140-8080540ED3EE.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "swap-dark-04-workout-swapped_0_620B62A8-1A49-4E8A-AC29-1946E72FC42A.png",
+        "timestamp" : 1795883039.25
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "1C72605F-24F5-4F98-ABF6-AF14F8EC5499",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.55 PM",
+        "timestamp" : 1795883035.638
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "123AAD3B-2F07-4203-A649-AADC0064621D",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.23.56 PM",
+        "timestamp" : 1795883036.048
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "2F2419C3-1767-4609-902F-572680B5B50A.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "swap-dark-03-workout_0_0EA06302-295E-4D82-B56B-4E076992BC6D.png",
+        "timestamp" : 1795883034.823
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "AB872AA4-CA47-4E3F-8706-E23219A735F6.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Debug description for `\"Swap\" Button`_0_FACFBB53-70DE-4E94-BFEA-C22A697C1755.txt",
+        "timestamp" : 1795883030.822
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "5EBFD036-612B-43C8-B419-07539C42BD03.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Debug description for `\"Swap\" Button`_0_2153AEAA-1021-4BC9-A80E-190C184152CB.txt",
+        "timestamp" : 1795883027.475
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "6AD35478-BEDA-4529-9221-6D0CB6CC66BD",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.44 PM",
+        "timestamp" : 1795883024.602
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "02608012-6549-4067-BC10-9A41814FD0C0",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.23.44 PM",
+        "timestamp" : 1795883024.902
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "AA667599-8C96-440B-AA3C-11DAC3BD53EB.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "swap-dark-02-builder-swapped_0_D9D09307-555F-42E7-AE8F-CE3E79837D2A.png",
+        "timestamp" : 1795883023.025
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "92476CED-10B1-4F5E-B9D8-570F5311D803",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.39 PM",
+        "timestamp" : 1795883019.37
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "CAC1133D-F949-4323-A614-9700361233DF",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.23.39 PM",
+        "timestamp" : 1795883019.765
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "F00C228C-C097-4AF6-ACF6-3E2DD90D5428.png",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "swap-dark-01-builder-sheet_0_1A980D44-0504-45A3-A31C-8A24FC8CE495.png",
+        "timestamp" : 1795883014.52
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "861DA989-CC7C-4270-AE72-8A8E6AA950B4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.29 PM",
+        "timestamp" : 1795883009.598
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "31DFBD07-308F-430E-B14C-22223016EA61",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.23.30 PM",
+        "timestamp" : 1795883010.633
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "B6AB537B-6155-416A-9AC3-70263CF3558F",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.24 PM",
+        "timestamp" : 1795883004.577
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "A1FE21F4-88C5-43B7-927E-956047FE77C8",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.23.24 PM",
+        "timestamp" : 1795883004.923
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "73C6562B-99CC-489F-9445-7F553DD3608F",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.21 PM",
+        "timestamp" : 1795883001.866
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "15AC8E09-93A5-4484-AD03-E40049B127C1",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.23.22 PM",
+        "timestamp" : 1795883002.181
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "1E128597-759A-47FF-8C9B-AA13563F9C08",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.17 PM",
+        "timestamp" : 1795882997.402
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "0931A641-0427-491D-A937-94EC88260808",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.23.17 PM",
+        "timestamp" : 1795882997.722
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "13D60412-13EA-49D8-BBA0-78697C504219.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "App UI hierarchy for com.peptidesai_0_7829C436-EDF3-4B37-B5DB-92C7132D1233.app",
+        "timestamp" : 1795882996.331
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "D080A356-3A4B-425B-A72D-8FCE54A6EFCF",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.16 PM",
+        "timestamp" : 1795882996.331
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "826A0DBF-D7BD-4427-8B3E-273517496CAB.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Debug description for `\"workout-options\" Button`_0_15815726-F2C8-4F64-8598-0C3691828209.txt",
+        "timestamp" : 1795882996.131
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "BE3E4301-4998-4DD9-A7E5-CC07CE82854E.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Debug description for `\"workout-options\" Button`_0_00B0D03D-E23D-4822-926F-8DEAA241FA4A.txt",
+        "timestamp" : 1795882995.285
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "A18BCD48-1394-43FD-9E46-AA298DB6C88C.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Debug description for `\"workout-options\" Button`_0_E339F19E-0950-4B24-9F76-5F6B9F213F05.txt",
+        "timestamp" : 1795882994.13
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "917693CB-F0A4-4103-B76B-F86C9A62EB83.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "App UI hierarchy for com.peptidesai_0_945C516C-EDB3-4CB5-991F-9A59797AEA5E.app",
+        "timestamp" : 1795882993.003
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "FCBC4807-F951-44F3-B20D-461E1481285C",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.13 PM",
+        "timestamp" : 1795882993.003
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "71097543-E718-45C1-93B2-CE42C0184545.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "App UI hierarchy for com.peptidesai_0_C7160C35-115A-49DB-AC01-A5D37DBB0A44.app",
+        "timestamp" : 1795882992.199
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "0ED9AFF4-5CF2-47A6-B665-C8AC270BE20D",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.12 PM",
+        "timestamp" : 1795882992.199
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "8757F320-399C-4B9E-AF7E-08A94AE8023D.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "App UI hierarchy for com.apple_0_52F00136-DA9D-48B1-9B72-24BD818F1D00.springboard",
+        "timestamp" : 1795882991.405
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "F578A793-F3D3-4728-AD22-EE8A8D19F356",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.11 PM",
+        "timestamp" : 1795882991.405
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "A0E963C6-4E78-483C-A72F-8B49CD182BBA",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.07 PM",
+        "timestamp" : 1795882987.578
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "99473078-87B6-44CE-834E-E7A96CA18645",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.23.07 PM",
+        "timestamp" : 1795882987.951
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "4E39695A-795B-407A-8832-AB2469710724",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.04 PM",
+        "timestamp" : 1795882984.086
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "DDAA78A9-6825-4D09-B228-60DA747635B7",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Synthesized Event 2026-11-28 at 04.23.04 PM",
+        "timestamp" : 1795882984.58
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "619EEFE4-B211-4C63-8F07-69408E50F3E5.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "App UI hierarchy for com.peptidesai_0_9B36D87F-B0A4-4BCA-BF61-8B20695B5C8E.app",
+        "timestamp" : 1795882982.944
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "3FFC8EC7-FF3B-4A4F-865C-4CDC92FD7B6C",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.02 PM",
+        "timestamp" : 1795882982.944
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "98E16118-813E-4DC6-BF92-43C58FE9D24D.txt",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "App UI hierarchy for com.apple_0_CE70B387-7860-4826-B59A-628E60333078.springboard",
+        "timestamp" : 1795882980.292
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "DA9FF72E-7F77-4227-B8B3-6365E0AB75E1",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.23.00 PM",
+        "timestamp" : 1795882980.293
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "EB1742D3-86C8-4C4A-9036-C133F7FDFF6E.mp4",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "Screen Recording 2026-11-28 at 04.22.14 PM.mp4",
+        "timestamp" : 1795882934.598
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "A9E4C08C-CEC0-45B3-AEF3-37194D518050.txt",
+        "isAssociatedWithFailure" : true,
+        "suggestedHumanReadableName" : "Complete Issue Description.txt"
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "A5E14110-8E7C-4DEE-8D3D-F5CF66FE99A6.txt",
+        "isAssociatedWithFailure" : true,
+        "suggestedHumanReadableName" : "App UI hierarchy for com.peptidesai_0_17248532-4337-4CC1-84AE-71510103C6DF.app",
+        "timestamp" : 1795883054.385
+      },
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "40A21894-B2EA-46E8-86C3-96B6C28B749F",
+        "deviceName" : "iPhone 17 Pro",
+        "exportedFileName" : "EFA0F87F-0DDA-440E-A320-F080B4BD3C63",
+        "isAssociatedWithFailure" : true,
+        "suggestedHumanReadableName" : "UI Snapshot 2026-11-28 at 04.24.14 PM",
+        "timestamp" : 1795883054.385
+      }
+    ],
+    "testIdentifier" : "ScreenshotTests/test_captureExerciseSwap()",
+    "testIdentifierURL" : "test://com.apple.xcode/Peptide/PeptideUITests/ScreenshotTests/test_captureExerciseSwap"
+  }
+]
